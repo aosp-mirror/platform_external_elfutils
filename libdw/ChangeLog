@@ -1,0 +1,229 @@
+2004-09-25  Ulrich Drepper  <drepper@redhat.com>
+
+	* dwarf_child.c: Make compile with gcc 4.0.
+	* dwarf_error.c: Likewise.
+	* dwarf_formblock.c: Likewise.
+	* dwarf_getabbrev.c: Likewise.
+	* dwarf_getattrs.c: Likewise.
+	* dwarf_getsrclines.c: Likewise.
+	* dwarf_tag.c: Likewise.
+	* libdw_form.c: Likewise.
+
+2004-01-20  Ulrich Drepper  <drepper@redhat.com>
+
+	* Makefile.am: Support building with mudflap.
+
+	* dwarf_getloclist.c: Fix warnings gcc 3.4 spits out.
+	* dwarf_getsrclines.c: Likewise.
+	* dwarf_memory-access.h: Likewise.
+
+2004-01-19  Ulrich Drepper  <drepper@redhat.com>
+
+	* dwarf_getsrcfiles.c: Third parameter can be NULL.
+
+	* libdw.h: Define Dwarf_macro.  Declare dwarf_getmacros.
+	Third parameter of dwarf_getsrcfiles can be NULL.
+
+	* libdw.map: Add dwarf_getmacros.
+	* Makefile.am (libdw_a_SOURCES): Add dwarf_getmacros.
+	* dwarf_getmacros.c: New file.
+
+2004-01-18  Ulrich Drepper  <drepper@redhat.com>
+
+	* libdw.h: Second parameter of dwarf_getaranges can be NULL.
+
+	* dwarf_nextcu.c: Return -1 if dwarf parameter is NULL.
+
+	* dwarf_getsrclines.c:
+	Use read_2ubyte_unaligned_inc instead of _inc-less variant.
+
+	* dwarf_getaranges.c: Allow naranges parameter to be NULL.
+
+	* libdwP.h (_): Use elfutils domain.
+
+	* dwarf_getsrclines.c (dwarf_getsrclines): Add more branch prediction.
+
+	* dwarf_getsrclines.c: Fix typo in comment.
+
+2004-01-17  Ulrich Drepper  <drepper@redhat.com>
+
+	* Makefile.am: Support building with mudflap.
+
+2004-01-16  Ulrich Drepper  <drepper@redhat.com>
+
+	* memory-access.h: Add lots of const in case a pointer passed is const.
+
+	* dwarf_formflag.c: New file.
+	* dwarf_getattrs.c: New file.
+	* dwarf_error.c: Add new error value.
+	* libdw.h: Add prototypes for new functions.  Adjust prototype for
+	dwarf_getpubnames.
+	* libdw.map: Add new functions.
+	* dwarf_getpubnames.c: Change type of return value and fourth parameter
+	to ptrdiff_t.
+	* libdwP.h: Add new error value.
+	* Makefile.am (libdw_a_SOURCES): Add dwarf_getattrs.c and
+	dwarf_formflag.c.
+
+	* dwarf_getpubnames.c (dwarf_getpubnames): Just fail if dbg is NULL.
+
+2004-01-12  Ulrich Drepper  <drepper@redhat.com>
+
+	* dwarf_getarange_addr.c: New file
+	* dwarf_getarangeinfo.c: New file.
+	* dwarf_getaranges.c: New file.
+	* dwarf_onerange.c: New file.
+	* libdw.h: Declare new functions.  Define Dwarf_Arange and
+	Dwarf_Aranges.
+	* libdw.map: Add new functions.
+	* libdwP.h: Add new errors.  Add aranges member to struct Dwarf.
+	Define Dwarf_Aranges_s and Dwarf_Arange_s.
+	* Makefile.am (libdw_a_SOURCES): Add dwarf_getaranges.c,
+	dwarf_onearange.c, dwarf_getarangeinfo.c, dwarf_getarange_addr.c.
+	* dwarf_error.c: Add new message.
+
+2004-01-11  Ulrich Drepper  <drepper@redhat.com>
+
+	* Makefile.am (libdw_a_SOURCES): Add dwarf_lineaddr.c, dwarf_linecol.c,
+	dwarf_linebeginstatement.c, dwarf_lineendsequence.c, dwarf_lineblock.c,
+	dwarf_lineprologueend.c, dwarf_lineepiloguebegin.c, dwarf_onesrcline.c.
+	* dwarf_error.c: Add another message.
+	* dwarf_getsrc_die.c: Adjust for Dwarf_Files and Dwarf_Lines
+	introduction.
+	* dwarf_filesrc.c: Likewise.
+	* dwarf_getsrcfiles.c: Likewise.
+	* dwarf_getsrclines.c: Likewise.
+	* dwarf_lineaddr.c: New file.
+	* dwarf_linebeginstatement.c: New file.
+	* dwarf_lineblock.c: New file.
+	* dwarf_linecol.c: New file.
+	* dwarf_lineendsequence.c: New file.
+	* dwarf_lineepiloguebegin.c: New file.
+	* dwarf_lineno.c: New file.
+	* dwarf_lineprologueend.c: New file.
+	* dwarf_onesrcline.c: New file.
+	* dwarf_lineno.c: Change interface to store result in object pointed
+	to by second parameter.
+	* libdw.h: Add prototypes for new functions.  Change dwarf_lineno
+	prototype.  Define Dwarf_Files and Dwarf_Lines.
+	* libdw.map: Add new functions.
+	* libdwP.h: Define Dwarf_Files_s and Dwarf_Lines_s.
+	* libdw_findcu.c: Don't initialize nlines field.
+
+	* dwarf_siblingof: Little optimization.
+
+	* dwarf_begin.c: Remember that the ELF descriptor must be closed.
+	* dwarf_end.c: Close ELF descriptor if free_elf is set.
+	* libdwP.h (struct Dwarf): Add free_elf field.
+
+	* Makefile.am (libdw_a_SOURCES): Add dwarf_getstring.c and
+	dwarf_offabbrev.c.
+	* dwarf_getstring.c: New file.
+	* dwarf_offabbrev.c: New file.
+	* libdw.map: Add dwarf_getstring and dwarf_offabbrev.
+	* dwarf_getabbrev.c (__libdw_getabbrev): Add new dbg and result
+	parameters.  Don't allocate memory if not necessary and don't lookup
+	previous results if no CU given.
+	(dwarf_getabbrev): Adjust call to __libdw_getabbrev.
+	* dwarf_tag.c: Adjust call to __libdw_getabbrev.
+	* libdw.h: Declare dwarf_offabbrev and dwarf_getstring.
+	* libdwP.h: Change prototype for __libdw_getabbrev.
+
+	* dwarf_getabbrevattr.c: Add offsetp parameter.  Fill in before
+	returning if this is wanted.
+
+2004-01-09  Ulrich Drepper  <drepper@redhat.com>
+
+	* dwarf_nextcu.c: Add new parameter offset_sizep.  Initialize it
+	with offset_size value.
+	* libdw.h: Adjust dwarf_nextcu prototype.
+	* libdwP.h (struct Dwarf_CU): Add offset_size member.
+	* libdw_findcu.c: Adjust dwarf_nextcu call.  Initialize offset_size
+	member of new CU struct.
+	* dwarf_formstring.c: Depend on offset_size not address_size for
+	DW_FORM_strp handling.
+	* dwarf_form.c: Likewise for DW_FORM_strp and DW_FORM_ref_addr.
+
+	* dwarf_tag.c (__libdw_findabbrev): Return correct value for
+	failing lookup.
+	(dwarf_tag): Correctly recognize failed lookup.
+
+	* dwarf_end.c (cu_free):  Call tdestroy for locs member.  Use new
+	function noop_free.
+	* dwarf_error.c: Add message for DWARF_E_NO_BLOCK.
+	* dwarf_formblock.c: New file.
+	* dwarf_getloclist.c: Rewrite to handle a single block.
+	* libdw.h: Define Dwarf_Block.  Rename Dwarf_Loc members.  Remove
+	Dwarf_Locdesc definition.  Declare dwarf_formblock.  Remove
+	dwarf_getloclistent declaration.
+	* libdw.map: Add dwarf_formblock, remove dwarf_getloclistent.
+	* libdwP.h: Define struct loc_s and DWARF_E_NO_BLOCK.
+	Add locs member to struct Dwarf_CU.
+	* libdw_fundcu.c: Initialize locs member of new CU.
+	* Makefile.am (libdw_a_SOURCES): Add dwarf_formblock.c.
+	Remove dwarf_getloclistent.c.
+
+2004-01-07  Ulrich Drepper  <drepper@redhat.com>
+
+	* libdw.h: Use __nonnull__ attribute only for gcc >= 3.3.
+	* libdwP.h: Likewise.
+
+	* dwarf_getloclist.c: New file.
+	* dwarf_getloclistent.c: New file.
+	* libdw.h: Define Dwarf_Loc and Dwarf_Locdesc.
+	Declare dwarf_getloclistent and dwarf_getloclist.
+	* libdw.map: Add dwarf_getloclistent and dwarf_getloclist.
+	* libdwP.h: Define DWARF_E_NO_LOCLIST.
+	* Makefile.am (libdw_a_SOURCES): Add dwarf_getloclistent.c and
+	dwarf_getloclist.c.
+
+	* dwarf_error.c: More error messages.
+
+2004-01-06  Ulrich Drepper  <drepper@redhat.com>
+
+	* dwarf_getsrclines.c: Remove debugging support.
+
+	* dwarf_getsrcfiles.c: New file.
+	* dwarf_filesrc.c: New file.
+	* libdw.h: Declare these functions.  Define Dwarf_File.
+	* libdwP.c: Adjust Dwarf_File_s definition.
+	* libdw.map: Add these functions.
+	* Makefile.am (libdw_a_SOURCES): Add dwarf_getsrcfiles.c and
+	dwarf_filesrc.c.
+	* dwarf_getsrclines.c: Initialize cu->files.
+
+2004-01-05  Ulrich Drepper  <drepper@redhat.com>
+
+	* libdw.h: Add more nonnull function attributes.
+
+	* dwarf_begin_elf.c (dwarf_begin_elf): Don't initialize mem_tail->next.
+	* dwarf_end.c (cu_free): New function.
+	(dwarf_end): Also free CU tree.  Correct freeing of memory blocks.
+	* dwarf_error.c (errmsgs): Add new messages.
+	* dwarf_getsrc_die.c: New file.
+	* dwarf_getsrclines.c: New file.
+	* dwarf_lineno.c: New file.
+	* dwarf_linesrc.c: New file.
+	* dwarf_nextcu.c (dwarf_nextcu): Use read_*byte_unaligned_inc
+	instead of the *_inc-less variants.
+	* libdw.h: Define Dwarf_Line.  Add some function attributes.  Declare
+	dwarf_getsrclines, dwarf_getsrc_die, dwarf_lineno, and dwarf_linesrc.
+	* libdw.map: Add dwarf_getsrclines, dwarf_getsrc_die, dwarf_lineno,
+	and dwarf_linesrc.
+	* libdwP.h: Add more error codes.
+	(struct Dwarf): Remove mem_tail.next member.
+	(Dwarf_File): Define type.
+	(struct Dwarf_Line_s): Define type.
+	(struct Dwarf_CU): Add lines and nlines members.
+	(libdw_alloc): Define local variable _tail and use it.
+	Add some function attributes.
+	* libdw_alloc.c (__libdw_allocate): Don't initialize next member.
+	* libdw_findcu.c (__libdw_findcu): Initialize lines and nlines members.
+	* memory-access.h: Add unlikely for the endian conversion paths.
+	* Makefile.am (AM_CFLAGS): Add -std parameter.
+	(libdw_a_SOURCES): Add dwarf_getsrclines, dwarf_getsrc_die,
+	dwarf_lineno, and dwarf_linesrc.
+
+2003-08-11  Ulrich Drepper  <drepper@redhat.com>
+
+        * Moved to CVS archive.

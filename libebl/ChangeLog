@@ -1,0 +1,84 @@
+2004-08-16  Ulrich Drepper  <drepper@redhat.com>
+
+	* Makefile.am (AM_CFLAGS): Add LIBSTR definition with base name of
+	the lib directory.
+	* eblopenbackend.c (openbackend): Use LIBSTR instead of hardcoded
+	lib in path to ebl modules.
+
+2004-04-01  Ulrich Drepper  <drepper@redhat.com>
+
+	* Makefile.am: Add rules for ppc and ppc64 ebl module.
+	* ppc_init..c: New file.
+	* ppc_destr.c: New file.
+	* ppc_symbol.c: New file.
+	* libebl_ppc.h: New file.
+	* libebl_ppc.map: New file.
+	* ppc64_init..c: New file.
+	* ppc64_destr.c: New file.
+	* ppc64_symbol.c: New file.
+	* libebl_ppc64.h: New file.
+	* libebl_ppc64.map: New file.
+
+2004-01-20  Ulrich Drepper  <drepper@redhat.com>
+
+	* Makefile.am: Support building with mudflap.
+
+2004-01-18  Ulrich Drepper  <drepper@redhat.com>
+
+	* libeblP.h (_): Use elfutils domain.
+
+2004-01-16  Ulrich Drepper  <drepper@redhat.com>
+
+	* eblsectionname.c: Add support for SHN_BEFORE and SHN_AFTER.
+
+2004-01-13  Ulrich Drepper  <drepper@redhat.com>
+
+	* eblsegmenttypename.c ((ebl_segment_type_name): Add support for
+	PT_GNU_RELRO.
+
+2004-01-08  Ulrich Drepper  <drepper@redhat.com>
+
+	* libebl.h: Remove last traces of libtool.
+
+2004-01-05  Ulrich Drepper  <drepper@redhat.com>
+
+	* elf-knowledge.h: Move to libelf subdir.
+
+	* Makefile.am (EXTRA_DIST): Remove libebl.map.
+	* libebl.map: Removed.
+
+2003-12-08  Ulrich Drepper  <drepper@redhat.com>
+
+	* eblsectiontypename.c (ebl_section_type_name): Add support for
+	SHT_SUNW_move, SHT_CHECKSUM, and SHT_GNU_LIBLIST.
+
+2003-11-19  Ulrich Drepper  <drepper@redhat.com>
+
+	* ia64_symbol.c (ia64_dynamic_tag_name): New function.
+	* libebl_ia64.h (ia64_dynamic_tag_name): Declare.
+	* ia64_init.c (ia64_init): Register i164_dynamic_tag_name.
+
+2003-09-24  Ulrich Drepper  <drepper@redhat.com>
+
+	* ia64_init.c (ia64_init): Initialize segment_type_name callback.
+	* ia64_symbol.c (ia64_segment_type_name): Define.
+	* libebl_ia64.h (ia64_segment_type_name): Declare.
+
+2003-09-22  Ulrich Drepper  <drepper@redhat.com>
+
+	* Makefile.am (AM_CFLAGS): Add -fpic.
+
+2003-08-14  Ulrich Drepper  <drepper@redhat.com>
+
+	* Makefile.am (install): Remove dependency on libebl.so.
+
+2003-08-13  Ulrich Drepper  <drepper@redhat.com>
+
+	* eblopenbackend.c: Adjust relative path to arch-specific DSOs
+	assuming the code ends up in the application.  Add second dlopen()
+	try without any path, just the filename.
+	* Makefile.in: Remove rules to build and install libebl.so.
+
+2003-08-11  Ulrich Drepper  <drepper@redhat.com>
+
+        * Moved to CVS archive.

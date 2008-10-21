@@ -1,0 +1,23 @@
+2004-09-25  Ulrich Drepper  <drepper@redhat.com>
+
+	* asm_error.c: Make compile with gcc 4.0.
+
+2004-01-20  Ulrich Drepper  <drepper@redhat.com>
+
+	* Makefile.am: Support building with mudflap.
+
+2004-01-18  Ulrich Drepper  <drepper@redhat.com>
+
+	* libasmP.h (_): Use elfutils domain.
+
+2004-01-17  Ulrich Drepper  <drepper@redhat.com>
+
+	* Makefile.am: Support building with mudflap.
+
+2003-08-13  Ulrich Drepper  <drepper@redhat.com>
+
+	* Makefile.in: Depend on libebl.a, not libebl.so.
+
+2003-08-11  Ulrich Drepper  <drepper@redhat.com>
+
+        * Moved to CVS archive.

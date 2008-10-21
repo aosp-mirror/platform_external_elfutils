@@ -1,0 +1,7 @@
+2004-01-18  Ulrich Drepper  <drepper@redhat.com>
+
+	* POTFILES.in: Add files from libdw, libebl, and libasm.
+
+2003-08-11  Ulrich Drepper  <drepper@redhat.com>
+
+        * Moved to CVS archive.

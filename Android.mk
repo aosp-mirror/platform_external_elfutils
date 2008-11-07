@@ -125,6 +125,9 @@ endif
 ifeq ($(HOST_OS),windows)
 LOCAL_CFLAGS +=-include $(LOCAL_PATH)/config-compat-cygwin.h
 endif
+ifeq ($(HOST_OS),freebsd)
+LOCAL_CFLAGS +=-include $(LOCAL_PATH)/config-compat-freebsd.h
+endif
 
 LOCAL_MODULE:= libelf
 
@@ -183,6 +186,9 @@ LOCAL_CFLAGS +=-include $(LOCAL_PATH)/config-compat-darwin.h
 endif
 ifeq ($(HOST_OS),windows)
 LOCAL_CFLAGS +=-include $(LOCAL_PATH)/config-compat-cygwin.h
+endif
+ifeq ($(HOST_OS),freebsd)
+LOCAL_CFLAGS +=-include $(LOCAL_PATH)/config-compat-freebsd.h
 endif
 
 LOCAL_MODULE:=libebl

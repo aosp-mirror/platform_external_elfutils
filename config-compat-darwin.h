@@ -38,6 +38,7 @@ static inline char *dcgettext (char *__domainname, char *__msgid, int __category
 	return NULL;
 }
 
+#if __MAC_OS_X_VERSION_MIN_REQUIRED < 1070
 static inline size_t strnlen (const char *__string, size_t __maxlen)
 {
 	int len = 0;
@@ -45,6 +46,7 @@ static inline size_t strnlen (const char *__string, size_t __maxlen)
 		len++;
 	return len;
 }
+#endif
 
 static inline void *mempcpy (void * __dest, const void * __src, size_t __n)
 {

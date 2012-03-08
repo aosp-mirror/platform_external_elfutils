@@ -1,27 +1,34 @@
 #! /bin/sh
-# Copyright (C) 1999, 2000, 2002 Red Hat, Inc.
+# Copyright (C) 1999, 2000, 2002, 2005 Red Hat, Inc.
+# This file is part of Red Hat elfutils.
 # Written by Ulrich Drepper <drepper@redhat.com>, 1999.
 #
-# This program is Open Source software; you can redistribute it and/or
-# modify it under the terms of the Open Software License version 1.0 as
-# published by the Open Source Initiative.
+# Red Hat elfutils is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by the
+# Free Software Foundation; version 2 of the License.
 #
-# You should have received a copy of the Open Software License along
-# with this program; if not, you may obtain a copy of the Open Software
-# License version 1.0 from http://www.opensource.org/licenses/osl.php or
-# by writing the Open Source Initiative c/o Lawrence Rosen, Esq.,
-# 3001 King Ranch Road, Ukiah, CA 95482.
-set -e
+# Red Hat elfutils is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with Red Hat elfutils; if not, write to the Free Software Foundation,
+# Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+#
+# Red Hat elfutils is an included package of the Open Invention Network.
+# An included package of the Open Invention Network is a package for which
+# Open Invention Network licensees cross-license their patents.  No patent
+# license is granted, either expressly or impliedly, by designation as an
+# included package.  Should you wish to participate in the Open Invention
+# Network licensing program, please visit www.openinventionnetwork.com
+# <http://www.openinventionnetwork.com>.
 
-# Don't fail if we cannot decompress the file.
-bunzip2 -c $srcdir/testfile3.bz2 > testfile3 2>/dev/null || exit 0
+. $srcdir/test-subr.sh
 
-# Don't fail if we cannot decompress the file.
-bunzip2 -c $srcdir/testfile4.bz2 > testfile4 2>/dev/null || exit 0
+testfiles testfile3 testfile4
 
-./show-ciefde testfile3 testfile4 > show-ciefde.out
-
-diff -u show-ciefde.out - <<"EOF"
+testrun_compare ./show-ciefde testfile3 testfile4 <<\EOF
 testfile3 has 1 CIEs and 1 FDEs
 CIE[0]: bytes_in_cie = 16, version = 1, augmenter = ""
 CIE[0]: code_alignment_factor = 1
@@ -313,7 +320,5 @@ no FDE at 8048454
 no FDE at 8048455
 FDE[@80493fc]: cie_offset = 0, cie_index = 0, fde_offset = 28
 EOF
-
-rm -f testfile3 testfile4 show-ciefde.out
 
 exit 0

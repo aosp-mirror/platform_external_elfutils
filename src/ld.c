@@ -1,15 +1,27 @@
-/* Copyright (C) 2001, 2002, 2003, 2004 Red Hat, Inc.
+/* Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007 Red Hat, Inc.
+   This file is part of Red Hat elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2001.
 
-   This program is Open Source software; you can redistribute it and/or
-   modify it under the terms of the Open Software License version 1.0 as
-   published by the Open Source Initiative.
+   Red Hat elfutils is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by the
+   Free Software Foundation; version 2 of the License.
 
-   You should have received a copy of the Open Software License along
-   with this program; if not, you may obtain a copy of the Open Software
-   License version 1.0 from http://www.opensource.org/licenses/osl.php or
-   by writing the Open Source Initiative c/o Lawrence Rosen, Esq.,
-   3001 King Ranch Road, Ukiah, CA 95482.   */
+   Red Hat elfutils is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License along
+   with Red Hat elfutils; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+
+   Red Hat elfutils is an included package of the Open Invention Network.
+   An included package of the Open Invention Network is a package for which
+   Open Invention Network licensees cross-license their patents.  No patent
+   license is granted, either expressly or impliedly, by designation as an
+   included package.  Should you wish to participate in the Open Invention
+   Network licensing program, please visit www.openinventionnetwork.com
+   <http://www.openinventionnetwork.com>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -38,6 +50,9 @@
 static void print_version (FILE *stream, struct argp_state *state);
 void (*argp_program_version_hook) (FILE *, struct argp_state *) = print_version;
 
+/* Bug report address.  */
+const char *argp_program_bug_address = PACKAGE_BUGREPORT;
+
 
 /* Values for the various options.  */
 enum
@@ -47,7 +62,6 @@ enum
     ARGP_static,
     ARGP_dynamic,
     ARGP_pagesize,
-    ARGP_rpath,
     ARGP_rpath_link,
     ARGP_runpath,
     ARGP_runpath_link,
@@ -56,6 +70,11 @@ enum
     ARGP_no_gc_sections,
     ARGP_no_undefined,
     ARGP_conserve,
+    ARGP_as_needed,
+    ARGP_no_as_needed,
+    ARGP_eh_frame_hdr,
+    ARGP_hash_style,
+    ARGP_build_id,
 #if YYDEBUG
     ARGP_yydebug,
 #endif
@@ -65,119 +84,113 @@ enum
 /* Definitions of arguments for argp functions.  */
 static const struct argp_option options[] =
 {
-  /* XXX This list will be reordered and section names will be added.
-     Just not right now.  */
+  { NULL, 0, NULL, 0, N_("Input File Control:"), 0 },
   { "whole-archive", ARGP_whole_archive, NULL, 0,
-    N_("Include whole archives in the output from now on.") },
+    N_("Include whole archives in the output from now on."), 0 },
   { "no-whole-archive", ARGP_no_whole_archive, NULL, 0,
-    N_("Stop including the whole arhives in the output.") },
-
-  { "output", 'o', N_("FILE"), 0, N_("Place output in FILE.") },
-
-  { NULL, 'O', N_("LEVEL"), OPTION_ARG_OPTIONAL,
-    N_("Set optimization level to LEVEL.") },
-
-  { "verbose", 'v', NULL, 0, N_("Verbose messages.") },
-  { "trace", 't', NULL, 0, N_("Trace file opens.") },
-  { "conserve-memory", ARGP_conserve, NULL, 0,
-    N_("Trade speed for less memory usage") },
-
-  { NULL, 'z', "KEYWORD", OPTION_HIDDEN, NULL },
-  { "-z nodefaultlib", '\0', NULL, OPTION_DOC,
-    N_("Object is marked to not use default search path at runtime.") },
-  { "-z allextract", '\0', NULL, OPTION_DOC,
-    N_("Same as --whole-archive.") },
-  { "-z defaultextract", '\0', NULL, OPTION_DOC, N_("\
-Default rules of extracting from archive; weak references are not enough.") },
-  { "-z weakextract", '\0', NULL, OPTION_DOC,
-    N_("Weak references cause extraction from archive.") },
-  { "-z muldefs", '\0', NULL, OPTION_DOC,
-    N_("Allow multiple definitions; first is used.") },
-  { "-z defs | nodefs", '\0', NULL, OPTION_DOC,
-    N_("Disallow/allow undefined symbols in DSOs.") },
-    { "no-undefined", ARGP_no_undefined, NULL, OPTION_HIDDEN, NULL },
-  { "-z origin", '\0', NULL, OPTION_DOC,
-    N_("Object requires immediate handling of $ORIGIN.") },
-  { "-z now", '\0', NULL, OPTION_DOC,
-    N_("Relocation will not be processed lazily.") },
-  { "-z nodelete", '\0', NULL, OPTION_DOC,
-    N_("Object cannot be unloaded at runtime.") },
-  { "-z initfirst", '\0', NULL, OPTION_DOC,
-    N_("Mark object to be initialized first.") },
-  { "-z lazyload | nolazyload", '\0', NULL, OPTION_DOC,
-    N_("Enable/disable lazy-loading flag for following dependencies.") },
-  { "-z nodlopen", '\0', NULL, OPTION_DOC,
-    N_("Mark object as not loadable with 'dlopen'.") },
-  { "-z ignore | record", '\0', NULL, OPTION_DOC,
-    N_("Ignore/record dependencies on unused DSOs.") },
-  { "-z systemlibrary", '\0', NULL, OPTION_DOC,
-    N_("Generated DSO will be a system library.") },
-
-  { NULL, 'l', N_("FILE"), OPTION_HIDDEN, NULL },
-
-  { NULL, '(', NULL, 0, N_("Start a group.") },
-  { NULL, ')', NULL, 0, N_("End a group.") },
-
+    N_("Stop including the whole arhives in the output."), 0 },
+  { NULL, 'l', N_("FILE"), OPTION_HIDDEN, NULL, 0 },
+  { "start-group", '(', NULL, 0, N_("Start a group."), 0 },
+  { "end-group", ')', NULL, 0, N_("End a group."), 0 },
   { NULL, 'L', N_("PATH"), 0,
-    N_("Add PATH to list of directories files are searched in.") },
+    N_("Add PATH to list of directories files are searched in."), 0 },
+  { "as-needed", ARGP_as_needed, NULL, 0,
+    N_("Only set DT_NEEDED for following dynamic libs if actually used"), 0 },
+  { "no-as-needed", ARGP_no_as_needed, NULL, 0,
+    N_("Always set DT_NEEDED for following dynamic libs"), 0 },
+  { "rpath-link", ARGP_rpath_link, "PATH", OPTION_HIDDEN, NULL, 0 },
+  { NULL, 'i', NULL, 0, N_("Ignore LD_LIBRARY_PATH environment variable."),
+    0 },
 
-  { NULL, 'c', N_("FILE"), 0, N_("Use linker script in FILE.") },
-
-  { "entry", 'e', N_("ADDRESS"), 0, N_("Set entry point address.") },
-
-  { "static", ARGP_static, NULL, OPTION_HIDDEN, NULL },
+  { NULL, 0, NULL, 0, N_("Output File Control:"), 0 },
+  { "output", 'o', N_("FILE"), 0, N_("Place output in FILE."), 0 },
+  { NULL, 'z', "KEYWORD", OPTION_HIDDEN, NULL, 0 },
+  { "-z nodefaultlib", '\0', NULL, OPTION_DOC,
+    N_("Object is marked to not use default search path at runtime."), 0 },
+  { "-z allextract", '\0', NULL, OPTION_DOC,
+    N_("Same as --whole-archive."), 0 },
+  { "-z defaultextract", '\0', NULL, OPTION_DOC, N_("\
+Default rules of extracting from archive; weak references are not enough."),
+    0 },
+  { "-z weakextract", '\0', NULL, OPTION_DOC,
+    N_("Weak references cause extraction from archive."), 0 },
+  { "-z muldefs", '\0', NULL, OPTION_DOC,
+    N_("Allow multiple definitions; first is used."), 0 },
+  { "-z defs | nodefs", '\0', NULL, OPTION_DOC,
+    N_("Disallow/allow undefined symbols in DSOs."), 0 },
+    { "no-undefined", ARGP_no_undefined, NULL, OPTION_HIDDEN, NULL, 0 },
+  { "-z origin", '\0', NULL, OPTION_DOC,
+    N_("Object requires immediate handling of $ORIGIN."), 0 },
+  { "-z now", '\0', NULL, OPTION_DOC,
+    N_("Relocation will not be processed lazily."), 0 },
+  { "-z nodelete", '\0', NULL, OPTION_DOC,
+    N_("Object cannot be unloaded at runtime."), 0 },
+  { "-z initfirst", '\0', NULL, OPTION_DOC,
+    N_("Mark object to be initialized first."), 0 },
+  { "-z lazyload | nolazyload", '\0', NULL, OPTION_DOC,
+    N_("Enable/disable lazy-loading flag for following dependencies."), 0 },
+  { "-z nodlopen", '\0', NULL, OPTION_DOC,
+    N_("Mark object as not loadable with 'dlopen'."), 0 },
+  { "-z ignore | record", '\0', NULL, OPTION_DOC,
+    N_("Ignore/record dependencies on unused DSOs."), 0 },
+  { "-z systemlibrary", '\0', NULL, OPTION_DOC,
+    N_("Generated DSO will be a system library."), 0 },
+  { "entry", 'e', N_("ADDRESS"), 0, N_("Set entry point address."), 0 },
+  { "static", ARGP_static, NULL, OPTION_HIDDEN, NULL, 0 },
   { "-B static", ARGP_static, NULL, OPTION_DOC,
-    N_("Do not link against shared libraries.") },
-  { "dynamic", ARGP_dynamic, NULL, OPTION_HIDDEN, NULL },
+    N_("Do not link against shared libraries."), 0 },
+  { "dynamic", ARGP_dynamic, NULL, OPTION_HIDDEN, NULL, 0 },
   { "-B dynamic", ARGP_dynamic, NULL, OPTION_DOC,
-    N_("Prefer linking against shared libraries.") },
-
-  { "export-dynamic", 'E', NULL, 0, N_("Export all dynamic symbols.") },
-
-  { "strip-all", 's', NULL, 0, N_("Strip all symbols.") },
-  { "strip-debug", 'S', NULL, 0, N_("Strip debugging symbols.") },
-
+    N_("Prefer linking against shared libraries."), 0 },
+  { "export-dynamic", 'E', NULL, 0, N_("Export all dynamic symbols."), 0 },
+  { "strip-all", 's', NULL, 0, N_("Strip all symbols."), 0 },
+  { "strip-debug", 'S', NULL, 0, N_("Strip debugging symbols."), 0 },
   { "pagesize", ARGP_pagesize, "SIZE", 0,
-    N_("Assume pagesize for the target system to be SIZE.") },
-
-  { "rpath", ARGP_rpath, "PATH", OPTION_HIDDEN, NULL },
-  { "rpath-link", ARGP_rpath_link, "PATH", OPTION_HIDDEN, NULL },
-
-  { "runpath", ARGP_runpath, "PATH", 0, N_("Set runtime DSO search path.") },
+    N_("Assume pagesize for the target system to be SIZE."), 0 },
+  { "rpath", 'R', "PATH", OPTION_HIDDEN, NULL, 0 },
+  { "runpath", ARGP_runpath, "PATH", 0, N_("Set runtime DSO search path."),
+    0 },
   { "runpath-link", ARGP_runpath_link, "PATH", 0,
-    N_("Set link time DSO search path.") },
-
-  { NULL, 'i', NULL, 0, N_("Ignore LD_LIBRARY_PATH environment variable.") },
-
-  { "version-script", ARGP_version_script, "FILE", 0,
-    N_("Read version information from FILE.") },
-
-  { "emulation", 'm', "NAME", 0, N_("Set emulation to NAME.") },
-
-  { "shared", 'G', NULL, 0, N_("Generate dynamic shared object.") },
-  { NULL, 'r', NULL, 0L, N_("Generate relocatable object.") },
-
-  { NULL, 'B', "KEYWORD", OPTION_HIDDEN, "" },
+    N_("Set link time DSO search path."), 0 },
+  { "shared", 'G', NULL, 0, N_("Generate dynamic shared object."), 0 },
+  { NULL, 'r', NULL, 0L, N_("Generate relocatable object."), 0 },
+  { NULL, 'B', "KEYWORD", OPTION_HIDDEN, "", 0 },
   { "-B local", 'B', NULL, OPTION_DOC,
-    N_("Causes symbol not assigned to a version be reduced to local.") },
-
-  { "gc-sections", ARGP_gc_sections, NULL, 0, N_("Remove unused sections.") },
+    N_("Causes symbol not assigned to a version be reduced to local."), 0 },
+  { "gc-sections", ARGP_gc_sections, NULL, 0, N_("Remove unused sections."),
+    0 },
   { "no-gc-sections", ARGP_no_gc_sections, NULL, 0,
-    N_("Don't remove unused sections.") },
-
-  { "soname", 'h', "NAME", 0, N_("Set soname of shared object.") },
-  { "dynamic-linker", 'I', "NAME", 0, N_("Set the dynamic linker name.") },
-
-  { NULL, 'Q', "YN", OPTION_HIDDEN, NULL },
+    N_("Don't remove unused sections."), 0 },
+  { "soname", 'h', "NAME", 0, N_("Set soname of shared object."), 0 },
+  { "dynamic-linker", 'I', "NAME", 0, N_("Set the dynamic linker name."), 0 },
+  { NULL, 'Q', "YN", OPTION_HIDDEN, NULL, 0 },
   { "-Q y | n", 'Q', NULL, OPTION_DOC,
-    N_("Add/suppress addition indentifying link-editor to .comment section") },
+    N_("Add/suppress addition indentifying link-editor to .comment section."),
+    0 },
+  { "eh-frame-hdr", ARGP_eh_frame_hdr, NULL, 0,
+    N_("Create .eh_frame_hdr section"), 0 },
+  { "hash-style", ARGP_hash_style, "STYLE", 0,
+    N_("Set hash style to sysv, gnu or both."), 0 },
+  { "build-id", ARGP_build_id, "STYLE", OPTION_ARG_OPTIONAL,
+    N_("Generate build ID note (md5, sha1 (default), uuid)."), 0 },
 
+  { NULL, 0, NULL, 0, N_("Linker Operation Control:"), 0 },
+  { "verbose", 'v', NULL, 0, N_("Verbose messages."), 0 },
+  { "trace", 't', NULL, 0, N_("Trace file opens."), 0 },
+  { "conserve-memory", ARGP_conserve, NULL, 0,
+    N_("Trade speed for less memory usage"), 0 },
+  { NULL, 'O', N_("LEVEL"), OPTION_ARG_OPTIONAL,
+    N_("Set optimization level to LEVEL."), 0 },
+  { NULL, 'c', N_("FILE"), 0, N_("Use linker script in FILE."), 0 },
 #if YYDEBUG
   { "yydebug", ARGP_yydebug, NULL, 0,
-    N_("Select to get parser debug information") },
+    N_("Select to get parser debug information"), 0 },
 #endif
+  { "version-script", ARGP_version_script, "FILE", 0,
+    N_("Read version information from FILE."), 0 },
+  { "emulation", 'm', "NAME", 0, N_("Set emulation to NAME."), 0 },
 
-  { NULL, 0, NULL, 0, NULL }
+  { NULL, 0, NULL, 0, NULL, 0 }
 };
 
 /* Short description of program.  */
@@ -187,20 +200,18 @@ static const char doc[] = N_("Combine object and archive files.");
 static const char args_doc[] = N_("[FILE]...");
 
 /* Prototype for option handler.  */
+static void replace_args (int argc, char *argv[]);
 static error_t parse_opt_1st (int key, char *arg, struct argp_state *state);
 static error_t parse_opt_2nd (int key, char *arg, struct argp_state *state);
-
-/* Function to print some extra text in the help message.  */
-static char *more_help (int key, const char *text, void *input);
 
 /* Data structure to communicate with argp functions.  */
 static struct argp argp_1st =
 {
-  options, parse_opt_1st, args_doc, doc, NULL, more_help
+  options, parse_opt_1st, args_doc, doc, NULL, NULL, NULL
 };
 static struct argp argp_2nd =
 {
-  options, parse_opt_2nd, args_doc, doc, NULL, more_help
+  options, parse_opt_2nd, args_doc, doc, NULL, NULL, NULL
 };
 
 
@@ -292,10 +303,10 @@ main (int argc, char *argv[])
   setlocale (LC_ALL, "");
 
   /* Make sure the message catalog can be found.  */
-  bindtextdomain (PACKAGE, LOCALEDIR);
+  bindtextdomain (PACKAGE_TARNAME, LOCALEDIR);
 
   /* Initialize the message catalog.  */
-  textdomain (PACKAGE);
+  textdomain (PACKAGE_TARNAME);
 
   /* Before we start tell the ELF library which version we are using.  */
   elf_version (EV_CURRENT);
@@ -308,6 +319,9 @@ main (int argc, char *argv[])
 #define obstack_chunk_alloc xmalloc
 #define obstack_chunk_free free
   obstack_init (&ld_state.smem);
+
+  /* Recognize old-style parameters for compatibility.  */
+  replace_args (argc, argv);
 
   /* One quick pass over the parameters which allows us to scan for options
      with global effect which influence the rest of the processing.  */
@@ -324,6 +338,11 @@ main (int argc, char *argv[])
   /* Determine which ELF backend to use.  */
   determine_output_format ();
 
+  /* If no hash style was specific default to the oldand slow SysV
+     method.  */
+  if (unlikely (ld_state.hash_style == hash_style_none))
+    ld_state.hash_style = hash_style_sysv;
+
   /* Prepare state.  */
   err = ld_prepare_state (emulation);
   if (err != 0)
@@ -334,7 +353,7 @@ main (int argc, char *argv[])
      statements in the script.  This simply must not happen.  */
   ldin = fopen (linker_script, "r");
   if (ldin == NULL)
-    error (EXIT_FAILURE, errno, gettext ("cannot open linker script \"%s\""),
+    error (EXIT_FAILURE, errno, gettext ("cannot open linker script '%s'"),
 	   linker_script);
   /* No need for locking.  */
   __fsetlocking (ldin, FSETLOCKING_BYCALLER);
@@ -478,30 +497,60 @@ main (int argc, char *argv[])
 }
 
 
-static char *
-more_help (int key, const char *text, void *input)
+static void
+replace_args (int argc, char *argv[])
 {
-  char *buf;
+  static const struct
+  {
+    const char *from;
+    const char *to;
+  } args[] =
+      {
+	{ "-export-dynamic", "--export-dynamic" },
+	{ "-dynamic-linker", "--dynamic-linker" },
+	{ "-static", "--static" },
+      };
+  const size_t nargs = sizeof (args) / sizeof (args[0]);
 
-  switch (key)
+  for (int i = 1; i < argc; ++i)
+    if (argv[i][0] == '-' && islower (argv[i][1]) && argv[i][2] != '\0')
+      for (size_t j = 0; j < nargs; ++j)
+	if (strcmp (argv[i], args[j].from) == 0)
+	  {
+	    argv[i] = (char *) args[j].to;
+	    break;
+	  }
+}
+
+
+static int
+valid_hexarg (const char *arg)
+{
+  if (strncasecmp (arg, "0x", 2) != 0)
+    return 0;
+
+  arg += 2;
+  do
     {
-    case ARGP_KEY_HELP_EXTRA:
-      /* We print some extra information.  */
-      if (asprintf (&buf, gettext ("Please report bugs to %s.\n"),
-		    PACKAGE_BUGREPORT) < 0)
-	buf = NULL;
-      return buf;
-
-    default:
-      break;
+      if (isxdigit (arg[0]) && isxdigit (arg[1]))
+	{
+	  arg += 2;
+	  if (arg[0] == '-' || arg[0] == ':')
+	    ++arg;
+	}
+      else
+	return 0;
     }
-  return (char *) text;
+  while (*arg != '\0');
+
+  return 1;
 }
 
 
 /* Quick scan of the parameter list for options with global effect.  */
 static error_t
-parse_opt_1st (int key, char *arg, struct argp_state *state)
+parse_opt_1st (int key, char *arg,
+	       struct argp_state *state __attribute__ ((unused)))
 {
   switch (key)
     {
@@ -594,7 +643,7 @@ parse_opt_1st (int key, char *arg, struct argp_state *state)
 	    else
 	      {
 		error (0, 0,
-		       gettext ("invalid page size value \"%s\": ignored"),
+		       gettext ("invalid page size value '%s': ignored"),
 		       arg);
 		ld_state.pagesize = 0;
 	      }
@@ -602,7 +651,7 @@ parse_opt_1st (int key, char *arg, struct argp_state *state)
       }
       break;
 
-    case ARGP_rpath:
+    case 'R':
       add_rxxpath (&ld_state.rpath, arg);
       break;
 
@@ -623,6 +672,33 @@ parse_opt_1st (int key, char *arg, struct argp_state *state)
       ld_state.gc_sections = key == ARGP_gc_sections;
       break;
 
+    case ARGP_eh_frame_hdr:
+      ld_state.eh_frame_hdr = true;
+      break;
+
+    case ARGP_hash_style:
+      if (strcmp (arg, "gnu") == 0)
+	ld_state.hash_style = hash_style_gnu;
+      else if (strcmp (arg, "both") == 0)
+	ld_state.hash_style = hash_style_gnu | hash_style_sysv;
+      else if (strcmp (arg, "sysv") == 0)
+	ld_state.hash_style = hash_style_sysv;
+      else
+	error (EXIT_FAILURE, 0, gettext ("invalid hash style '%s'"), arg);
+      break;
+
+    case ARGP_build_id:
+      if (arg == NULL)
+	ld_state.build_id = "sha1";
+      else if (strcmp (arg, "uuid") != 0
+	       && strcmp (arg, "md5") != 0
+	       && strcmp (arg, "sha1") != 0
+	       && !valid_hexarg (arg))
+	error (EXIT_FAILURE, 0, gettext ("invalid build-ID style '%s'"), arg);
+      else
+	ld_state.build_id = arg;
+      break;
+
     case 's':
       if (arg == NULL)
 	{
@@ -639,6 +715,8 @@ parse_opt_1st (int key, char *arg, struct argp_state *state)
     case 'O':
     case ARGP_whole_archive:
     case ARGP_no_whole_archive:
+    case ARGP_as_needed:
+    case ARGP_no_as_needed:
     case 'L':
     case '(':
     case ')':
@@ -685,7 +763,8 @@ parse_opt_1st (int key, char *arg, struct argp_state *state)
 
 /* Handle program arguments for real.  */
 static error_t
-parse_opt_2nd (int key, char *arg, struct argp_state *state)
+parse_opt_2nd (int key, char *arg,
+	       struct argp_state *state __attribute__ ((unused)))
 {
   static bool group_start_requested;
   static bool group_end_requested;
@@ -732,6 +811,13 @@ parse_opt_2nd (int key, char *arg, struct argp_state *state)
       break;
     case ARGP_no_whole_archive:
       ld_state.extract_rule = defaultextract;
+      break;
+
+    case ARGP_as_needed:
+      ld_state.as_needed = true;
+      break;
+    case ARGP_no_as_needed:
+      ld_state.as_needed = false;
       break;
 
     case ARGP_static:
@@ -865,14 +951,14 @@ load_needed (void)
 
 /* Print the version information.  */
 static void
-print_version (FILE *stream, struct argp_state *state)
+print_version (FILE *stream, struct argp_state *state __attribute__ ((unused)))
 {
-  fprintf (stream, "ld (%s) %s\n", PACKAGE_NAME, VERSION);
+  fprintf (stream, "ld (%s) %s\n", PACKAGE_NAME, PACKAGE_VERSION);
   fprintf (stream, gettext ("\
 Copyright (C) %s Red Hat, Inc.\n\
 This is free software; see the source for copying conditions.  There is NO\n\
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\
-"), "2004");
+"), "2008");
   fprintf (stream, gettext ("Written by %s.\n"), "Ulrich Drepper");
 }
 
@@ -911,17 +997,19 @@ parse_z_option (const char *arg)
 	   /* This is only meaningful if we create a DSO.  */
 	   && ld_state.file_type == dso_file_type)
     ld_state.dt_flags_1 |= DF_1_NOOPEN;
-  else if (strcmp (arg, "ignore") == 0)
-    ld_state.ignore_unused_dsos = true;
-  else if (strcmp (arg, "record") == 0)
-    ld_state.ignore_unused_dsos = false;
   else if (strcmp (arg, "systemlibrary") == 0)
     ld_state.is_system_library = true;
+  else if (strcmp (arg, "execstack") == 0)
+    ld_state.execstack = execstack_true;
+  else if (strcmp (arg, "noexecstack") == 0)
+    ld_state.execstack = execstack_false_force;
   else if (strcmp (arg, "allextract") != 0
 	   && strcmp (arg, "defaultextract") != 0
 	   && strcmp (arg, "weakextract") != 0
 	   && strcmp (arg, "lazyload") != 0
-	   && strcmp (arg, "nolazyload") != 0)
+	   && strcmp (arg, "nolazyload") != 0
+	   && strcmp (arg, "ignore") != 0
+	   && strcmp (arg, "record") != 0)
     error (0, 0, gettext ("unknown option `-%c %s'"), 'z', arg);
 }
 
@@ -939,6 +1027,10 @@ parse_z_option_2 (const char *arg)
     ld_state.lazyload = true;
   else if (strcmp (arg, "nolazyload") == 0)
     ld_state.lazyload = false;
+  else if (strcmp (arg, "ignore") == 0)
+    ld_state.as_needed = true;
+  else if (strcmp (arg, "record") == 0)
+    ld_state.as_needed = false;
 }
 
 
@@ -1109,6 +1201,7 @@ ld_new_inputfile (const char *fname, enum file_type type)
   newfile->soname = newfile->fname = newfile->rfname = fname;
   newfile->file_type = type;
   newfile->extract_rule = ld_state.extract_rule;
+  newfile->as_needed = ld_state.as_needed;
   newfile->lazyload = ld_state.lazyload;
   newfile->status = not_opened;
 
@@ -1349,7 +1442,7 @@ read_version_script (const char *fname)
      or absolute) path.  No search along a path will be performed.  */
   ldin = fopen (fname, "r");
   if (ldin == NULL)
-    error (EXIT_FAILURE, errno, gettext ("cannot read version script \"%s\""),
+    error (EXIT_FAILURE, errno, gettext ("cannot read version script '%s'"),
 	   fname);
   /* No need for locking.  */
   __fsetlocking (ldin, FSETLOCKING_BYCALLER);
@@ -1514,7 +1607,12 @@ create_special_section_symbol (struct symbol **symp, const char *name)
     abort ();
 
   (*symp)->defined = 1;
+  (*symp)->local = 1;
+  (*symp)->hidden = 1;
   (*symp)->type = STT_OBJECT;
 
   ++ld_state.nsymtab;
 }
+
+
+#include "debugpred.h"

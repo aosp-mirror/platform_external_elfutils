@@ -1,17 +1,29 @@
 %{
 /* Parser for linker scripts.
-   Copyright (C) 2001, 2002, 2003, 2004 Red Hat, Inc.
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006 Red Hat, Inc.
+   This file is part of Red Hat elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2001.
 
-   This program is Open Source software; you can redistribute it and/or
-   modify it under the terms of the Open Software License version 1.0 as
-   published by the Open Source Initiative.
+   Red Hat elfutils is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by the
+   Free Software Foundation; version 2 of the License.
 
-   You should have received a copy of the Open Software License along
-   with this program; if not, you may obtain a copy of the Open Software
-   License version 1.0 from http://www.opensource.org/licenses/osl.php or
-   by writing the Open Source Initiative c/o Lawrence Rosen, Esq.,
-   3001 King Ranch Road, Ukiah, CA 95482.   */
+   Red Hat elfutils is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License along
+   with Red Hat elfutils; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+
+   Red Hat elfutils is an included package of the Open Invention Network.
+   An included package of the Open Invention Network is a package for which
+   Open Invention Network licensees cross-license their patents.  No patent
+   license is granted, either expressly or impliedly, by designation as an
+   included package.  Should you wish to participate in the Open Invention
+   Network licensing program, please visit www.openinventionnetwork.com
+   <http://www.openinventionnetwork.com>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -46,6 +58,7 @@ static void new_segment (int mode, struct output_rule *output_rule);
 static struct filename_list *new_filename_listelem (const char *string);
 static void add_inputfiles (struct filename_list *fnames);
 static struct id_list *new_id_listelem (const char *str);
+ static struct filename_list *mark_as_needed (struct filename_list *listp);
 static struct version *new_version (struct id_list *local,
 				    struct id_list *global);
 static struct version *merge_versions (struct version *one,
@@ -72,6 +85,7 @@ extern int yylex (void);
 
 %token kADD_OP
 %token kALIGN
+%token kAS_NEEDED
 %token kENTRY
 %token kEXCLUDE_FILE
 %token <str> kFILENAME
@@ -114,6 +128,7 @@ extern int yylex (void);
 %type <output_rule> outputsections
 %type <assignment> assignment
 %type <filename_list> filename_id_list
+%type <filename_list> filename_id_listelem
 %type <version> versionlist
 %type <version> version
 %type <version> version_stmt_list
@@ -150,7 +165,8 @@ content:	  kENTRY '(' kID ')' ';'
 		    }
 		| kINTERP '(' filename_id ')' ';'
 		    {
-		      if (likely (ld_state.interp == NULL))
+		      if (likely (ld_state.interp == NULL)
+			  && ld_state.file_type != dso_file_type)
 			ld_state.interp = $3;
 		    }
 		| kSEGMENT kMODE '{' outputsections '}'
@@ -176,6 +192,8 @@ content:	  kENTRY '(' kID ')' ';'
 		    }
 		| kINPUT '(' filename_id_list ')'
 		    { add_inputfiles ($3); }
+		| kAS_NEEDED '(' filename_id_list ')'
+		    { add_inputfiles (mark_as_needed ($3)); }
 		| kVERSION '{' versionlist '}'
 		    { add_versions ($3); }
 		| kOUTPUT_FORMAT '(' filename_id ')'
@@ -342,19 +360,36 @@ expr:		  kALIGN '(' expr ')'
 		    { $$ = new_expr (exp_pagesize); }
 		;
 
-filename_id_list: filename_id_list comma_opt filename_id
+filename_id_list: filename_id_list comma_opt filename_id_listelem
 		    {
-		      struct filename_list *newp = new_filename_listelem ($3);
-		      newp->next = $1->next;
-		      $$ = $1->next = newp;
+		      $3->next = $1->next;
+		      $$ = $1->next = $3;
 		    }
-		| filename_id
-		    { $$ = new_filename_listelem ($1); }
+		| filename_id_listelem
+		    { $$ = $1; }
 		;
 
 comma_opt:	  ','
 		|
 		;
+
+filename_id_listelem: kGROUP '(' filename_id_list ')'
+		    {
+		      /* First little optimization.  If there is only one
+			 file in the group don't do anything.  */
+		      if ($3 != $3->next)
+			{
+			  $3->next->group_start = 1;
+			  $3->group_end = 1;
+			}
+		      $$ = $3;
+		    }
+		| kAS_NEEDED '(' filename_id_list ')'
+		    { $$ = mark_as_needed ($3); }
+		| filename_id
+		    { $$ = new_filename_listelem ($1); }
+		;
+
 
 versionlist:	  versionlist version
 		    {
@@ -543,6 +578,21 @@ new_filename_listelem (const char *string)
   newp->name = string;
   newp->next = newp;
   return newp;
+}
+
+
+static struct filename_list *
+mark_as_needed (struct filename_list *listp)
+{
+  struct filename_list *runp = listp;
+  do
+    {
+      runp->as_needed = true;
+      runp = runp->next;
+    }
+  while (runp != listp);
+
+  return listp;
 }
 
 

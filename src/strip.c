@@ -1,16 +1,28 @@
 /* Discard section not used at runtime from object files.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004 Red Hat, Inc.
+   Copyright (C) 2000,2001,2002,2003,2004,2005,2006,2007,2008 Red Hat, Inc.
+   This file is part of Red Hat elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2000.
 
-   This program is Open Source software; you can redistribute it and/or
-   modify it under the terms of the Open Software License version 1.0 as
-   published by the Open Source Initiative.
+   Red Hat elfutils is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by the
+   Free Software Foundation; version 2 of the License.
 
-   You should have received a copy of the Open Software License along
-   with this program; if not, you may obtain a copy of the Open Software
-   License version 1.0 from http://www.opensource.org/licenses/osl.php or
-   by writing the Open Source Initiative c/o Lawrence Rosen, Esq.,
-   3001 King Ranch Road, Ukiah, CA 95482.   */
+   Red Hat elfutils is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License along
+   with Red Hat elfutils; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+
+   Red Hat elfutils is an included package of the Open Invention Network.
+   An included package of the Open Invention Network is a package for which
+   Open Invention Network licensees cross-license their patents.  No patent
+   license is granted, either expressly or impliedly, by designation as an
+   included package.  Should you wish to participate in the Open Invention
+   Network licensing program, please visit www.openinventionnetwork.com
+   <http://www.openinventionnetwork.com>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -45,6 +57,9 @@
 static void print_version (FILE *stream, struct argp_state *state);
 void (*argp_program_version_hook) (FILE *, struct argp_state *) = print_version;
 
+/* Bug report address.  */
+const char *argp_program_bug_address = PACKAGE_BUGREPORT;
+
 
 /* Values for the parameters which have no short form.  */
 #define OPT_REMOVE_COMMENT	0x100
@@ -54,19 +69,24 @@ void (*argp_program_version_hook) (FILE *, struct argp_state *) = print_version;
 /* Definitions of arguments for argp functions.  */
 static const struct argp_option options[] =
 {
-  { NULL, 0, NULL, 0, N_("Output selection:") },
-  { NULL, 'o', "FILE", 0, N_("Place stripped output into FILE") },
-  { NULL, 'f', "FILE", 0, N_("Extract the removed sections into FILE") },
+  { NULL, 0, NULL, 0, N_("Output selection:"), 0 },
+  { "output", 'o', "FILE", 0, N_("Place stripped output into FILE"), 0 },
+  { NULL, 'f', "FILE", 0, N_("Extract the removed sections into FILE"), 0 },
+  { NULL, 'F', "FILE", 0, N_("Embed name FILE instead of -f argument"), 0 },
 
-  { NULL, 0, NULL, 0, N_("Output options:") },
-  { "strip-debug", 'g', NULL, 0, N_("Remove all debugging symbols") },
+  { NULL, 0, NULL, 0, N_("Output options:"), 0 },
+  { "strip-all", 's', NULL, OPTION_HIDDEN, NULL, 0 },
+  { "strip-debug", 'g', NULL, 0, N_("Remove all debugging symbols"), 0 },
+  { NULL, 'd', NULL, OPTION_ALIAS, NULL, 0 },
+  { NULL, 'S', NULL, OPTION_ALIAS, NULL, 0 },
   { "preserve-dates", 'p', NULL, 0,
-    N_("Copy modified/access timestamps to the output") },
+    N_("Copy modified/access timestamps to the output"), 0 },
   { "remove-comment", OPT_REMOVE_COMMENT, NULL, 0,
-    N_("Remove .comment section") },
+    N_("Remove .comment section"), 0 },
+  { "remove-section", 'R', "SECTION", OPTION_HIDDEN, NULL, 0 },
   { "permissive", OPT_PERMISSIVE, NULL, 0,
-    N_("Relax a few rules to handle slightly broken ELF files") },
-  { NULL, 0, NULL, 0, NULL }
+    N_("Relax a few rules to handle slightly broken ELF files"), 0 },
+  { NULL, 0, NULL, 0, NULL, 0 }
 };
 
 /* Short description of program.  */
@@ -78,13 +98,10 @@ static const char args_doc[] = N_("[FILE...]");
 /* Prototype for option handler.  */
 static error_t parse_opt (int key, char *arg, struct argp_state *state);
 
-/* Function to print some extra text in the help message.  */
-static char *more_help (int key, const char *text, void *input);
-
 /* Data structure to communicate with argp functions.  */
 static struct argp argp =
 {
-  options, parse_opt, args_doc, doc, NULL, more_help
+  options, parse_opt, args_doc, doc, NULL, NULL, NULL
 };
 
 
@@ -101,7 +118,7 @@ static int handle_ar (int fd, Elf *elf, const char *prefix, const char *fname,
 
 #define INTERNAL_ERROR(fname) \
   error (EXIT_FAILURE, 0, gettext ("%s: INTERNAL ERROR %d (%s-%s): %s"),      \
-	 fname, __LINE__, VERSION, __DATE__, elf_errmsg (-1))
+	 fname, __LINE__, PACKAGE_VERSION, __DATE__, elf_errmsg (-1))
 
 
 /* Name of the output file.  */
@@ -109,6 +126,9 @@ static const char *output_fname;
 
 /* Name of the debug output file.  */
 static const char *debug_fname;
+
+/* Name to pretend the debug output file has.  */
+static const char *debug_fname_embed;
 
 /* If true output files shall have same date as the input file.  */
 static bool preserve_dates;
@@ -141,13 +161,14 @@ main (int argc, char *argv[])
   setlocale (LC_ALL, "");
 
   /* Make sure the message catalog can be found.  */
-  bindtextdomain (PACKAGE, LOCALEDIR);
+  bindtextdomain (PACKAGE_TARNAME, LOCALEDIR);
 
   /* Initialize the message catalog.  */
-  textdomain (PACKAGE);
+  textdomain (PACKAGE_TARNAME);
 
   /* Parse and process arguments.  */
-  argp_parse (&argp, argc, argv, 0, &remaining, NULL);
+  if (argp_parse (&argp, argc, argv, 0, &remaining, NULL) != 0)
+    return EXIT_FAILURE;
 
   /* Tell the library which version we are expecting.  */
   elf_version (EV_CURRENT);
@@ -157,7 +178,7 @@ main (int argc, char *argv[])
     result = process_file ("a.out");
   else
     {
-      /* If we have seen the `-o' or '-f' option there must be exactly one
+      /* If we have seen the '-o' or '-f' option there must be exactly one
 	 input file.  */
       if ((output_fname != NULL || debug_fname != NULL)
 	  && remaining + 1 < argc)
@@ -176,14 +197,14 @@ Only one input file allowed together with '-o' and '-f'"));
 
 /* Print the version information.  */
 static void
-print_version (FILE *stream, struct argp_state *state)
+print_version (FILE *stream, struct argp_state *state __attribute__ ((unused)))
 {
-  fprintf (stream, "strip (%s) %s\n", PACKAGE_NAME, VERSION);
+  fprintf (stream, "strip (%s) %s\n", PACKAGE_NAME, PACKAGE_VERSION);
   fprintf (stream, gettext ("\
 Copyright (C) %s Red Hat, Inc.\n\
 This is free software; see the source for copying conditions.  There is NO\n\
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\
-"), "2004");
+"), "2008");
   fprintf (stream, gettext ("Written by %s.\n"), "Ulrich Drepper");
 }
 
@@ -195,10 +216,29 @@ parse_opt (int key, char *arg, struct argp_state *state)
   switch (key)
     {
     case 'f':
+      if (debug_fname != NULL)
+	{
+	  error (0, 0, gettext ("-f option specified twice"));
+	  return EINVAL;
+	}
       debug_fname = arg;
       break;
 
+    case 'F':
+      if (debug_fname_embed != NULL)
+	{
+	  error (0, 0, gettext ("-F option specified twice"));
+	  return EINVAL;
+	}
+      debug_fname_embed = arg;
+      break;
+
     case 'o':
+      if (output_fname != NULL)
+	{
+	  error (0, 0, gettext ("-o option specified twice"));
+	  return EINVAL;
+	}
       output_fname = arg;
       break;
 
@@ -210,7 +250,20 @@ parse_opt (int key, char *arg, struct argp_state *state)
       remove_comment = true;
       break;
 
+    case 'R':
+      if (!strcmp (arg, ".comment"))
+	remove_comment = true;
+      else
+	{
+	  argp_error (state,
+		      gettext ("-R option supports only .comment section"));
+	  return EINVAL;
+	}
+      break;
+
     case 'g':
+    case 'd':
+    case 'S':
       remove_debug = true;
       break;
 
@@ -218,31 +271,13 @@ parse_opt (int key, char *arg, struct argp_state *state)
       permissive = true;
       break;
 
+    case 's':			/* Ignored for compatibility.  */
+      break;
+
     default:
       return ARGP_ERR_UNKNOWN;
     }
   return 0;
-}
-
-
-static char *
-more_help (int key, const char *text, void *input)
-{
-  char *buf;
-
-  switch (key)
-    {
-    case ARGP_KEY_HELP_EXTRA:
-      /* We print some extra information.  */
-      if (asprintf (&buf, gettext ("Please report bugs to %s.\n"),
-		    PACKAGE_BUGREPORT) < 0)
-	buf = NULL;
-      return buf;
-
-    default:
-      break;
-    }
-  return (char *) text;
 }
 
 
@@ -259,7 +294,7 @@ process_file (const char *fname)
     {
       if (stat64 (fname, &pre_st) != 0)
 	{
-	  error (0, errno, gettext ("cannot stat input file \"%s\""), fname);
+	  error (0, errno, gettext ("cannot stat input file '%s'"), fname);
 	  return 1;
 	}
 
@@ -270,10 +305,10 @@ process_file (const char *fname)
     }
 
   /* Open the file.  */
-  int fd = open (fname, O_RDWR);
+  int fd = open (fname, output_fname == NULL ? O_RDWR : O_RDONLY);
   if (fd == -1)
     {
-      error (0, errno, gettext ("while opening \"%s\""), fname);
+      error (0, errno, gettext ("while opening '%s'"), fname);
       return 1;
     }
 
@@ -283,7 +318,7 @@ process_file (const char *fname)
   struct stat64 st;
   if (fstat64 (fd, &st) != 0)
     {
-      error (0, errno, gettext ("cannot stat input file \"%s\""), fname);
+      error (0, errno, gettext ("cannot stat input file '%s'"), fname);
       return 1;
     }
   /* Paranoid mode on.  */
@@ -296,7 +331,8 @@ process_file (const char *fname)
     }
 
   /* Now get the ELF descriptor.  */
-  Elf *elf = elf_begin (fd, ELF_C_RDWR, NULL);
+  Elf *elf = elf_begin (fd, output_fname == NULL ? ELF_C_RDWR : ELF_C_READ,
+			NULL);
   int result;
   switch (elf_kind (elf))
     {
@@ -308,9 +344,9 @@ process_file (const char *fname)
     case ELF_K_AR:
       /* It is not possible to strip the content of an archive direct
 	 the output to a specific file.  */
-      if (unlikely (output_fname != NULL))
+      if (unlikely (output_fname != NULL || debug_fname != NULL))
 	{
-	  error (0, 0, gettext ("%s: cannot use -o when stripping archive"),
+	  error (0, 0, gettext ("%s: cannot use -o or -f when stripping archive"),
 		 fname);
 	  result = 1;
 	}
@@ -336,27 +372,6 @@ process_file (const char *fname)
 /* Maximum size of array allocated on stack.  */
 #define MAX_STACK_ALLOC	(400 * 1024)
 
-
-static uint32_t
-crc32_file (int fd, uint32_t *resp)
-{
-  unsigned char buffer[1024 * 8];
-  uint32_t crc = 0;
-  ssize_t count;
-
-  /* We have to rewind.  */
-  if (lseek (fd, 0, SEEK_SET) < 0)
-    return 1;
-
-  while ((count = TEMP_FAILURE_RETRY (read (fd, buffer, sizeof (buffer)))) > 0)
-    crc = crc32 (crc, buffer, count);
-
-  *resp = crc;
-
-  return count != 0;
-}
-
-
 static int
 handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	    mode_t mode, struct timeval tvp[2])
@@ -365,19 +380,17 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
   size_t fname_len = strlen (fname) + 1;
   char *fullname = alloca (prefix_len + 1 + fname_len);
   char *cp = fullname;
-  Elf *newelf;
   Elf *debugelf = NULL;
   char *tmp_debug_fname = NULL;
   int result = 0;
-  GElf_Ehdr ehdr_mem;
-  GElf_Ehdr *ehdr;
+  size_t shdridx = 0;
   size_t shstrndx;
-  size_t shnum;
   struct shdr_info
   {
     Elf_Scn *scn;
     GElf_Shdr shdr;
     Elf_Data *data;
+    Elf_Data *debug_data;
     const char *name;
     Elf32_Word idx;		/* Index in new file.  */
     Elf32_Word old_sh_link;	/* Original value of shdr.sh_link.  */
@@ -398,7 +411,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
   GElf_Ehdr debugehdr_mem;
   GElf_Ehdr *debugehdr;
   struct Ebl_Strtab *shst = NULL;
-  uint32_t debug_crc;
+  Elf_Data debuglink_crc_data;
   bool any_symtab_changes = false;
   Elf_Data *shstrtab_data = NULL;
 
@@ -416,7 +429,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
       fd = open (output_fname, O_RDWR | O_CREAT, mode);
       if (unlikely (fd == -1))
 	{
-	  error (0, errno, gettext ("cannot open `%s'"), output_fname);
+	  error (0, errno, gettext ("cannot open '%s'"), output_fname);
 	  return 1;
 	}
     }
@@ -451,14 +464,15 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
       debug_fd = mkstemp (tmp_debug_fname);
       if (unlikely (debug_fd == -1))
 	{
-	  error (0, errno, gettext ("cannot open `%s'"), debug_fname);
+	  error (0, errno, gettext ("cannot open '%s'"), debug_fname);
 	  result = 1;
 	  goto fail;
 	}
     }
 
   /* Get the information from the old file.  */
-  ehdr = gelf_getehdr (elf, &ehdr_mem);
+  GElf_Ehdr ehdr_mem;
+  GElf_Ehdr *ehdr = gelf_getehdr (elf, &ehdr_mem);
   if (ehdr == NULL)
     INTERNAL_ERROR (fname);
 
@@ -470,6 +484,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
   /* We now create a new ELF descriptor for the same file.  We
      construct it almost exactly in the same way with some information
      dropped.  */
+  Elf *newelf;
   if (output_fname != NULL)
     newelf = elf_begin (fd, ELF_C_WRITE_MMAP, NULL);
   else
@@ -479,7 +494,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
       || (ehdr->e_type != ET_REL
 	  && unlikely (gelf_newphdr (newelf, ehdr->e_phnum) == 0)))
     {
-      error (0, 0, gettext ("cannot create new file `%s': %s"),
+      error (0, 0, gettext ("cannot create new file '%s': %s"),
 	     output_fname, elf_errmsg (-1));
       goto fail;
     }
@@ -489,9 +504,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
     for (cnt = 0; cnt < ehdr->e_phnum; ++cnt)
       {
 	GElf_Phdr phdr_mem;
-	GElf_Phdr *phdr;
-
-	phdr = gelf_getphdr (elf, cnt, &phdr_mem);
+	GElf_Phdr *phdr = gelf_getphdr (elf, cnt, &phdr_mem);
 	if (phdr == NULL
 	    || unlikely (gelf_update_phdr (newelf, cnt, phdr) == 0))
 	  INTERNAL_ERROR (fname);
@@ -505,7 +518,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	  || (ehdr->e_type != ET_REL
 	      && unlikely (gelf_newphdr (debugelf, ehdr->e_phnum) == 0)))
 	{
-	  error (0, 0, gettext ("cannot create new file `%s': %s"),
+	  error (0, 0, gettext ("cannot create new file '%s': %s"),
 		 debug_fname, elf_errmsg (-1));
 	  goto fail_close;
 	}
@@ -515,9 +528,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	for (cnt = 0; cnt < ehdr->e_phnum; ++cnt)
 	  {
 	    GElf_Phdr phdr_mem;
-	    GElf_Phdr *phdr;
-
-	    phdr = gelf_getphdr (elf, cnt, &phdr_mem);
+	    GElf_Phdr *phdr = gelf_getphdr (elf, cnt, &phdr_mem);
 	    if (phdr == NULL
 		|| unlikely (gelf_update_phdr (debugelf, cnt, phdr) == 0))
 	      INTERNAL_ERROR (fname);
@@ -525,6 +536,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
     }
 
   /* Number of sections.  */
+  size_t shnum;
   if (unlikely (elf_getshnum (elf, &shnum) < 0))
     {
       error (0, 0, gettext ("cannot determine number of sections: %s"),
@@ -566,7 +578,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 					shdr_info[cnt].shdr.sh_name);
       if (shdr_info[cnt].name == NULL)
 	{
-	  error (0, 0, gettext ("illformed file `%s'"), fname);
+	  error (0, 0, gettext ("illformed file '%s'"), fname);
 	  goto fail_close;
 	}
 
@@ -592,9 +604,6 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	}
       else if (unlikely (shdr_info[cnt].shdr.sh_type == SHT_GROUP))
 	{
-	  Elf32_Word *grpref;
-	  size_t inner;
-
 	  /* Cross-reference the sections contained in the section
 	     group.  */
 	  shdr_info[cnt].data = elf_getdata (shdr_info[cnt].scn, NULL);
@@ -602,7 +611,8 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	    INTERNAL_ERROR (fname);
 
 	  /* XXX Fix for unaligned access.  */
-	  grpref = (Elf32_Word *) shdr_info[cnt].data->d_buf;
+	  Elf32_Word *grpref = (Elf32_Word *) shdr_info[cnt].data->d_buf;
+	  size_t inner;
 	  for (inner = 1;
 	       inner < shdr_info[cnt].data->d_size / sizeof (Elf32_Word);
 	       ++inner)
@@ -651,8 +661,9 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
   */
   for (cnt = 1; cnt < shnum; ++cnt)
     /* Check whether the section can be removed.  */
-    if (SECTION_STRIP_P (ebl, elf, ehdr, &shdr_info[cnt].shdr,
-			 shdr_info[cnt].name, remove_comment, remove_debug))
+    if (ebl_section_strip_p (ebl, ehdr, &shdr_info[cnt].shdr,
+			     shdr_info[cnt].name, remove_comment,
+			     remove_debug))
       {
 	/* For now assume this section will be removed.  */
 	shdr_info[cnt].idx = 0;
@@ -660,16 +671,14 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	idx = shdr_info[cnt].group_idx;
 	while (idx != 0)
 	  {
-	    /* If the references section group is a normal section
-	       group and has one element remaining, or if it is an
-	       empty COMDAT section group it is removed.  */
-	    bool is_comdat;
-
 	    /* The section group data is already loaded.  */
 	    assert (shdr_info[idx].data != NULL);
 
-	    is_comdat = (((Elf32_Word *) shdr_info[idx].data->d_buf)[0]
-			 & GRP_COMDAT) != 0;
+	    /* If the references section group is a normal section
+	       group and has one element remaining, or if it is an
+	       empty COMDAT section group it is removed.  */
+	    bool is_comdat = (((Elf32_Word *) shdr_info[idx].data->d_buf)[0]
+			      & GRP_COMDAT) != 0;
 
 	    --shdr_info[idx].group_cnt;
 	    if ((!is_comdat && shdr_info[idx].group_cnt == 1)
@@ -712,13 +721,11 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	      /* The content of symbol tables we don't remove must not
 		 reference any section which we do remove.  Otherwise
 		 we cannot remove the section.  */
-	      if (shdr_info[cnt].shdr.sh_type == SHT_DYNSYM
-		  || shdr_info[cnt].shdr.sh_type == SHT_SYMTAB)
+	      if (debug_fname != NULL
+		  && shdr_info[cnt].debug_data == NULL
+		  && (shdr_info[cnt].shdr.sh_type == SHT_DYNSYM
+		      || shdr_info[cnt].shdr.sh_type == SHT_SYMTAB))
 		{
-		  Elf_Data *symdata;
-		  Elf_Data *xndxdata;
-		  size_t elsize;
-
 		  /* Make sure the data is loaded.  */
 		  if (shdr_info[cnt].data == NULL)
 		    {
@@ -727,7 +734,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 		      if (shdr_info[cnt].data == NULL)
 			INTERNAL_ERROR (fname);
 		    }
-		  symdata = shdr_info[cnt].data;
+		  Elf_Data *symdata = shdr_info[cnt].data;
 
 		  /* If there is an extended section index table load it
 		     as well.  */
@@ -742,11 +749,13 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 		      if (shdr_info[shdr_info[cnt].symtab_idx].data == NULL)
 			INTERNAL_ERROR (fname);
 		    }
-		  xndxdata = shdr_info[shdr_info[cnt].symtab_idx].data;
+		  Elf_Data *xndxdata
+		    = shdr_info[shdr_info[cnt].symtab_idx].data;
 
 		  /* Go through all symbols and make sure the section they
 		     reference is not removed.  */
-		  elsize = gelf_fsize (elf, ELF_T_SYM, 1, ehdr->e_version);
+		  size_t elsize = gelf_fsize (elf, ELF_T_SYM, 1,
+					      ehdr->e_version);
 
 		  for (size_t inner = 0;
 		       inner < shdr_info[cnt].data->d_size / elsize;
@@ -754,15 +763,13 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 		    {
 		      GElf_Sym sym_mem;
 		      Elf32_Word xndx;
-		      GElf_Sym *sym;
-		      size_t scnidx;
-
-		      sym = gelf_getsymshndx (symdata, xndxdata, inner,
-					      &sym_mem, &xndx);
+		      GElf_Sym *sym = gelf_getsymshndx (symdata, xndxdata,
+							inner, &sym_mem,
+							&xndx);
 		      if (sym == NULL)
 			INTERNAL_ERROR (fname);
 
-		      scnidx = sym->st_shndx;
+		      size_t scnidx = sym->st_shndx;
 		      if (scnidx == SHN_UNDEF || scnidx >= shnum
 			  || (scnidx >= SHN_LORESERVE
 			      && scnidx <= SHN_HIRESERVE
@@ -775,24 +782,23 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 			scnidx = xndx;
 
 		      if (shdr_info[scnidx].idx == 0)
-			{
-			  /* Mark this section as used.  */
-			  shdr_info[scnidx].idx = 1;
-			  changes |= scnidx < cnt;
-			}
+			/* This symbol table has a real symbol in
+			   a discarded section.  So preserve the
+			   original table in the debug file.  */
+			shdr_info[cnt].debug_data = symdata;
 		    }
 		}
 
 	      /* Cross referencing happens:
 		 - for the cases the ELF specification says.  That are
-		 + SHT_DYNAMIC in sh_link to string table
-		 + SHT_HASH in sh_link to symbol table
-		 + SHT_REL and SHT_RELA in sh_link to symbol table
-		 + SHT_SYMTAB and SHT_DYNSYM in sh_link to string table
-		 + SHT_GROUP in sh_link to symbol table
-		 + SHT_SYMTAB_SHNDX in sh_link to symbol table
-		 Other (OS or architecture-specific) sections might as
-		 well use this field so we process it unconditionally.
+		   + SHT_DYNAMIC in sh_link to string table
+		   + SHT_HASH in sh_link to symbol table
+		   + SHT_REL and SHT_RELA in sh_link to symbol table
+		   + SHT_SYMTAB and SHT_DYNSYM in sh_link to string table
+		   + SHT_GROUP in sh_link to symbol table
+		   + SHT_SYMTAB_SHNDX in sh_link to symbol table
+		   Other (OS or architecture-specific) sections might as
+		   well use this field so we process it unconditionally.
 		 - references inside section groups
 		 - specially marked references in sh_info if the SHF_INFO_LINK
 		 flag is set
@@ -815,34 +821,63 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	      /* Mark the section as investigated.  */
 	      shdr_info[cnt].idx = 2;
 	    }
+
+	  if (debug_fname != NULL
+	      && (shdr_info[cnt].idx == 0 || shdr_info[cnt].debug_data != NULL))
+	    {
+	      /* This section is being preserved in the debug file.
+		 Sections it refers to must be preserved there too.
+
+		 In this pass we mark sections to be preserved in both
+		 files by setting the .debug_data pointer to the original
+		 file's .data pointer.  Below, we'll copy the section
+		 contents.  */
+
+	      inline void check_preserved (size_t i)
+	      {
+		if (i != 0 && shdr_info[i].idx != 0)
+		  {
+		    if (shdr_info[i].data == NULL)
+		      shdr_info[i].data = elf_getdata (shdr_info[i].scn, NULL);
+		    if (shdr_info[i].data == NULL)
+		      INTERNAL_ERROR (fname);
+
+		    shdr_info[i].debug_data = shdr_info[i].data;
+		    changes |= i < cnt;
+		  }
+	      }
+
+	      check_preserved (shdr_info[cnt].shdr.sh_link);
+	      if (SH_INFO_LINK_P (&shdr_info[cnt].shdr))
+		check_preserved (shdr_info[cnt].shdr.sh_info);
+	    }
 	}
     }
   while (changes);
 
-  /* Write out a copy of all the sections to the debug output file.
-     The ones that are not removed in the stripped file are SHT_NOBITS */
+  /* Copy the removed sections to the debug output file.
+     The ones that are not removed in the stripped file are SHT_NOBITS.  */
   if (debug_fname != NULL)
     {
       for (cnt = 1; cnt < shnum; ++cnt)
 	{
-	  Elf_Data *debugdata;
-	  GElf_Shdr debugshdr;
-	  int discard_section;
-
 	  scn = elf_newscn (debugelf);
 	  if (scn == NULL)
 	    error (EXIT_FAILURE, 0,
 		   gettext ("while generating output file: %s"),
 		   elf_errmsg (-1));
 
-	  discard_section = shdr_info[cnt].idx > 0 && cnt != ehdr->e_shstrndx;
+	  bool discard_section = (shdr_info[cnt].idx > 0
+				  && shdr_info[cnt].debug_data == NULL
+				  && shdr_info[cnt].shdr.sh_type != SHT_NOTE
+				  && cnt != ehdr->e_shstrndx);
 
 	  /* Set the section header in the new file.  */
-	  debugshdr = shdr_info[cnt].shdr;
+	  GElf_Shdr debugshdr = shdr_info[cnt].shdr;
 	  if (discard_section)
 	    debugshdr.sh_type = SHT_NOBITS;
 
-	  if (unlikely (gelf_update_shdr (scn, &debugshdr)) == 0)
+	  if (unlikely (gelf_update_shdr (scn, &debugshdr) == 0))
 	    /* There cannot be any overflows.  */
 	    INTERNAL_ERROR (fname);
 
@@ -855,14 +890,22 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	    }
 
 	  /* Set the data.  This is done by copying from the old file.  */
-	  debugdata = elf_newdata (scn);
+	  Elf_Data *debugdata = elf_newdata (scn);
 	  if (debugdata == NULL)
 	    INTERNAL_ERROR (fname);
 
-	  /* Copy the structure.  */
+	  /* Copy the structure.  This data may be modified in place
+	     before we write out the file.  */
 	  *debugdata = *shdr_info[cnt].data;
 	  if (discard_section)
 	    debugdata->d_buf = NULL;
+	  else if (shdr_info[cnt].debug_data != NULL)
+	    {
+	      /* Copy the original data before it gets modified.  */
+	      shdr_info[cnt].debug_data = debugdata;
+	      debugdata->d_buf = memcpy (xmalloc (debugdata->d_size),
+					 debugdata->d_buf, debugdata->d_size);
+	    }
 	}
 
       /* Finish the ELF header.  Fill in the fields not handled by
@@ -879,46 +922,13 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
       debugehdr->e_flags = ehdr->e_flags;
       debugehdr->e_shstrndx = ehdr->e_shstrndx;
 
-      if (unlikely (gelf_update_ehdr (debugelf, debugehdr)) == 0)
+      if (unlikely (gelf_update_ehdr (debugelf, debugehdr) == 0))
 	{
 	  error (0, 0, gettext ("%s: error while creating ELF header: %s"),
 		 debug_fname, elf_errmsg (-1));
 	  result = 1;
 	  goto fail_close;
 	}
-
-      /* Finally write the file.  */
-      if (unlikely (elf_update (debugelf, ELF_C_WRITE)) == -1)
-	{
-	  error (0, 0, gettext ("while writing `%s': %s"),
-		 debug_fname, elf_errmsg (-1));
-	  result = 1;
-	  goto fail_close;
-	}
-
-      /* Create the real output file.  First rename, then change the
-	 mode.  */
-      if (rename (tmp_debug_fname, debug_fname) != 0
-	  || fchmod (debug_fd, mode) != 0)
-	{
-	  error (0, errno, gettext ("while creating '%s'"), debug_fname);
-	  result = 1;
-	  goto fail_close;
-	}
-
-      /* The temporary file does not exist anymore.  */
-      tmp_debug_fname = NULL;
-
-      /* Compute the checksum which we will add to the executable.  */
-      if (crc32_file (debug_fd, &debug_crc) != 0)
-	{
-	  error (0, errno,
-		 gettext ("while computing checksum for debug information"));
-	  unlink (debug_fname);
-	  result = 1;
-	  goto fail_close;
-	}
-
     }
 
   /* Mark the section header string table as unused, we will create
@@ -928,7 +938,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
   /* We need a string table for the section headers.  */
   shst = ebl_strtabinit (true);
   if (shst == NULL)
-    error (EXIT_FAILURE, errno, gettext ("while preparing output for `%s'"),
+    error (EXIT_FAILURE, errno, gettext ("while preparing output for '%s'"),
 	   output_fname ?: fname);
 
   /* Assign new section numbers.  */
@@ -958,9 +968,6 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
   /* Create the reference to the file with the debug info.  */
   if (debug_fname != NULL)
     {
-      char *debug_basename;
-      off_t crc_offset;
-
       /* Add the section header string table section name.  */
       shdr_info[cnt].se = ebl_strtabadd (shst, ".gnu_debuglink", 15);
       shdr_info[cnt].idx = idx++;
@@ -991,8 +998,8 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	error (EXIT_FAILURE, 0, gettext ("cannot allocate section data: %s"),
 	       elf_errmsg (-1));
 
-      debug_basename = basename (debug_fname);
-      crc_offset = strlen (debug_basename) + 1;
+      char *debug_basename = basename (debug_fname_embed ?: debug_fname);
+      off_t crc_offset = strlen (debug_basename) + 1;
       /* Align to 4 byte boundary */
       crc_offset = ((crc_offset - 1) & ~3) + 4;
 
@@ -1002,21 +1009,20 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
       shdr_info[cnt].data->d_buf = xcalloc (1, shdr_info[cnt].data->d_size);
 
       strcpy (shdr_info[cnt].data->d_buf, debug_basename);
-      /* Store the crc value in the correct byteorder */
-      if ((__BYTE_ORDER == __LITTLE_ENDIAN
-	   && ehdr->e_ident[EI_DATA] == ELFDATA2MSB)
-	  || (__BYTE_ORDER == __BIG_ENDIAN
-	      && ehdr->e_ident[EI_DATA] == ELFDATA2LSB))
-	debug_crc = bswap_32 (debug_crc);
-      memcpy ((char *)shdr_info[cnt].data->d_buf + crc_offset,
-	      (char *) &debug_crc, 4);
+
+      /* Cache this Elf_Data describing the CRC32 word in the section.
+	 We'll fill this in when we have written the debug file.  */
+      debuglink_crc_data = *shdr_info[cnt].data;
+      debuglink_crc_data.d_buf = ((char *) debuglink_crc_data.d_buf
+				  + crc_offset);
+      debuglink_crc_data.d_size = 4;
 
       /* One more section done.  */
       ++cnt;
     }
 
   /* Index of the section header table in the shdr_info array.  */
-  size_t shdridx = cnt;
+  shdridx = cnt;
 
   /* Add the section header string table section name.  */
   shdr_info[cnt].se = ebl_strtabadd (shst, ".shstrtab", 10);
@@ -1112,7 +1118,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	    /* We know the size.  */
 	    shdr_info[cnt].shdr.sh_size = shdr_info[cnt].data->d_size;
 
-	    /* We have to adjust symtol tables.  The st_shndx member might
+	    /* We have to adjust symbol tables.  The st_shndx member might
 	       have to be updated.  */
 	    if (shdr_info[cnt].shdr.sh_type == SHT_DYNSYM
 		|| shdr_info[cnt].shdr.sh_type == SHT_SYMTAB)
@@ -1240,7 +1246,8 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 			    shdr_info[cnt].shdr.sh_info = destidx - 1;
 			  }
 		      }
-		    else
+		    else if (debug_fname == NULL
+			     || shdr_info[cnt].debug_data == NULL)
 		      /* This is a section symbol for a section which has
 			 been removed.  */
 		      assert (GELF_ST_TYPE (sym->st_info) == STT_SECTION);
@@ -1282,302 +1289,339 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 
   /* Adjust symbol references if symbol tables changed.  */
   if (any_symtab_changes)
-    {
-      /* Find all relocation sections which use this
-	 symbol table.  */
-      for (cnt = 1; cnt <= shdridx; ++cnt)
+    /* Find all relocation sections which use this symbol table.  */
+    for (cnt = 1; cnt <= shdridx; ++cnt)
+      {
+	/* Update section headers when the data size has changed.
+	   We also update the SHT_NOBITS section in the debug
+	   file so that the section headers match in sh_size.  */
+	inline void update_section_size (const Elf_Data *newdata)
 	{
-	  if (shdr_info[cnt].idx == 0)
-	    /* Ignore sections which are discarded.  */
-	    continue;
-
-	  if (shdr_info[cnt].shdr.sh_type == SHT_REL
-	      || shdr_info[cnt].shdr.sh_type == SHT_RELA)
+	  GElf_Shdr shdr_mem;
+	  GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
+	  shdr->sh_size = newdata->d_size;
+	  (void) gelf_update_shdr (scn, shdr);
+	  if (debugelf != NULL)
 	    {
-	      /* If the symbol table hasn't changed, do not do anything.  */
-	      if (shdr_info[shdr_info[cnt].old_sh_link].newsymidx == NULL)
-		continue;
-
-	      Elf32_Word *newsymidx
-		= shdr_info[shdr_info[cnt].old_sh_link].newsymidx;
-	      Elf_Data *d = elf_getdata (elf_getscn (newelf,
-						     shdr_info[cnt].idx),
-					 NULL);
-	      assert (d != NULL);
-	      size_t nrels = (shdr_info[cnt].shdr.sh_size
-			      / shdr_info[cnt].shdr.sh_entsize);
-
-	      if (shdr_info[cnt].shdr.sh_type == SHT_REL)
-		for (size_t relidx = 0; relidx < nrels; ++relidx)
-		  {
-		    GElf_Rel rel_mem;
-		    if (gelf_getrel (d, relidx, &rel_mem) == NULL)
-		      INTERNAL_ERROR (fname);
-
-		    size_t symidx = GELF_R_SYM (rel_mem.r_info);
-		    if (newsymidx[symidx] != symidx)
-		      {
-			rel_mem.r_info
-			  = GELF_R_INFO (newsymidx[symidx],
-					 GELF_R_TYPE (rel_mem.r_info));
-
-			if (gelf_update_rel (d, relidx, &rel_mem) == 0)
-			  INTERNAL_ERROR (fname);
-		      }
-		  }
-	      else
-		for (size_t relidx = 0; relidx < nrels; ++relidx)
-		  {
-		    GElf_Rela rel_mem;
-		    if (gelf_getrela (d, relidx, &rel_mem) == NULL)
-		      INTERNAL_ERROR (fname);
-
-		    size_t symidx = GELF_R_SYM (rel_mem.r_info);
-		    if (newsymidx[symidx] != symidx)
-		      {
-			rel_mem.r_info
-			  = GELF_R_INFO (newsymidx[symidx],
-					 GELF_R_TYPE (rel_mem.r_info));
-
-			if (gelf_update_rela (d, relidx, &rel_mem) == 0)
-			  INTERNAL_ERROR (fname);
-		      }
-		  }
-	    }
-	  else if (shdr_info[cnt].shdr.sh_type == SHT_HASH)
-	    {
-	      /* We have to recompute the hash table.  */
-	      Elf32_Word symtabidx = shdr_info[cnt].old_sh_link;
-
-	      /* We do not have to do anything if the symbol table was
-		 not changed.  */
-	      if (shdr_info[symtabidx].newsymidx == NULL)
-		continue;
-
-	      /* The symbol version section in the new file.  */
-	      scn = elf_getscn (newelf, shdr_info[cnt].idx);
-
-	      /* The symbol table data.  */
-	      Elf_Data *symd = elf_getdata (elf_getscn (newelf,
-							shdr_info[symtabidx].idx),
-					    NULL);
-	      assert (symd != NULL);
-
-	      /* The hash table data.  */
-	      Elf_Data *hashd = elf_getdata (scn, NULL);
-	      assert (hashd != NULL);
-
-	      if (shdr_info[cnt].shdr.sh_entsize == sizeof (Elf32_Word))
-		{
-		  /* Sane arches first.  */
-		  Elf32_Word *bucket = (Elf32_Word *) hashd->d_buf;
-
-		  size_t strshndx = shdr_info[symtabidx].old_sh_link;
-		  size_t elsize = gelf_fsize (elf, ELF_T_SYM, 1,
-					      ehdr->e_version);
-
-		  /* Convert to the correct byte order.  */
-		  if (gelf_xlatetom (newelf, hashd, hashd,
-				     BYTE_ORDER == LITTLE_ENDIAN
-				     ? ELFDATA2LSB : ELFDATA2MSB) == NULL)
-		    INTERNAL_ERROR (fname);
-
-		  /* Adjust the nchain value.  The symbol table size
-		     changed.  We keep the same size for the bucket array.  */
-		  bucket[1] = symd->d_size / elsize;
-		  Elf32_Word nbucket = bucket[0];
-		  bucket += 2;
-		  Elf32_Word *chain = bucket + nbucket;
-
-		  /* New size of the section.  */
-		  GElf_Shdr shdr_mem;
-		  GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
-		  shdr->sh_size = hashd->d_size
-		    = (2 + symd->d_size / elsize + nbucket)
-		      * sizeof (Elf32_Word);
-		  (void) gelf_update_shdr (scn, shdr);
-
-		  /* Clear the arrays.  */
-		  memset (bucket, '\0',
-			  (symd->d_size / elsize + nbucket)
-			  * sizeof (Elf32_Word));
-
-		  for (size_t inner = shdr_info[symtabidx].shdr.sh_info;
-		       inner < symd->d_size / elsize; ++inner)
-		    {
-		      GElf_Sym sym_mem;
-		      GElf_Sym *sym = gelf_getsym (symd, inner, &sym_mem);
-		      assert (sym != NULL);
-
-		      const char *name = elf_strptr (elf, strshndx,
-						     sym->st_name);
-		      assert (name != NULL);
-		      size_t hidx = elf_hash (name) % nbucket;
-
-		      if (bucket[hidx] == 0)
-			bucket[hidx] = inner;
-		      else
-			{
-			  hidx = bucket[hidx];
-
-			  while (chain[hidx] != 0)
-			    hidx = chain[hidx];
-
-			  chain[hidx] = inner;
-			}
-		    }
-		}
-	      else
-		{
-		  /* Alpha and S390 64-bit use 64-bit SHT_HASH entries.  */
-		  assert (shdr_info[cnt].shdr.sh_entsize
-			  == sizeof (Elf64_Xword));
-
-		  Elf64_Xword *bucket = (Elf64_Xword *) hashd->d_buf;
-
-		  size_t strshndx = shdr_info[symtabidx].old_sh_link;
-		  size_t elsize = gelf_fsize (elf, ELF_T_SYM, 1,
-					      ehdr->e_version);
-
-		  /* Convert to the correct byte order.  */
-		  if (gelf_xlatetom (newelf, hashd, hashd,
-				     BYTE_ORDER == LITTLE_ENDIAN
-				     ? ELFDATA2LSB : ELFDATA2MSB) == NULL)
-		    INTERNAL_ERROR (fname);
-
-		  /* Adjust the nchain value.  The symbol table size
-		     changed.  We keep the same size for the bucket array.  */
-		  bucket[1] = symd->d_size / elsize;
-		  Elf64_Xword nbucket = bucket[0];
-		  bucket += 2;
-		  Elf64_Xword *chain = bucket + nbucket;
-
-		  /* New size of the section.  */
-		  GElf_Shdr shdr_mem;
-		  GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
-		  shdr->sh_size = hashd->d_size
-		    = (2 + symd->d_size / elsize + nbucket)
-		      * sizeof (Elf64_Xword);
-		  (void) gelf_update_shdr (scn, shdr);
-
-		  /* Clear the arrays.  */
-		  memset (bucket, '\0',
-			  (symd->d_size / elsize + nbucket)
-			  * sizeof (Elf64_Xword));
-
-		  for (size_t inner = shdr_info[symtabidx].shdr.sh_info;
-		       inner < symd->d_size / elsize; ++inner)
-		    {
-		      GElf_Sym sym_mem;
-		      GElf_Sym *sym = gelf_getsym (symd, inner, &sym_mem);
-		      assert (sym != NULL);
-
-		      const char *name = elf_strptr (elf, strshndx,
-						     sym->st_name);
-		      assert (name != NULL);
-		      size_t hidx = elf_hash (name) % nbucket;
-
-		      if (bucket[hidx] == 0)
-			bucket[hidx] = inner;
-		      else
-			{
-			  hidx = bucket[hidx];
-
-			  while (chain[hidx] != 0)
-			    hidx = chain[hidx];
-
-			  chain[hidx] = inner;
-			}
-		    }
-	        }
-
-	      /* Convert back to the file byte order.  */
-	      if (gelf_xlatetof (newelf, hashd, hashd,
-				 BYTE_ORDER == LITTLE_ENDIAN
-				 ? ELFDATA2LSB : ELFDATA2MSB) == NULL)
-		INTERNAL_ERROR (fname);
-	    }
-	  else if (shdr_info[cnt].shdr.sh_type == SHT_GNU_versym)
-	    {
-	      /* If the symbol table changed we have to adjust the
-		 entries.  */
-	      Elf32_Word symtabidx = shdr_info[cnt].old_sh_link;
-
-	      /* We do not have to do anything if the symbol table was
-		 not changed.  */
-	      if (shdr_info[symtabidx].newsymidx == NULL)
-		continue;
-
-	      /* The symbol version section in the new file.  */
-	      scn = elf_getscn (newelf, shdr_info[cnt].idx);
-
-	      /* The symbol table data.  */
-	      Elf_Data *symd = elf_getdata (elf_getscn (newelf,
-							shdr_info[symtabidx].idx),
-					    NULL);
-	      assert (symd != NULL);
-
-	      /* The version symbol data.  */
-	      Elf_Data *verd = elf_getdata (scn, NULL);
-	      assert (verd != NULL);
-
-	      /* Convert to the correct byte order.  */
-	      if (gelf_xlatetom (newelf, verd, verd,
-				 BYTE_ORDER == LITTLE_ENDIAN
-				 ? ELFDATA2LSB : ELFDATA2MSB) == NULL)
-		INTERNAL_ERROR (fname);
-
-	      /* The symbol version array.  */
-	      GElf_Half *verstab = (GElf_Half *) verd->d_buf;
-
-	      /* New indices of the symbols.  */
-	      Elf32_Word *newsymidx = shdr_info[symtabidx].newsymidx;
-
-	      /* Walk through the list and */
-	      size_t elsize = gelf_fsize (elf, verd->d_type, 1,
-					  ehdr->e_version);
-	      for (size_t inner = 1; inner < verd->d_size / elsize; ++inner)
-		if (newsymidx[inner] != 0)
-		  /* Overwriting the same array works since the
-		     reordering can only move entries to lower indices
-		     in the array.  */
-		  verstab[newsymidx[inner]] = verstab[inner];
-
-	      /* New size of the section.  */
-	      GElf_Shdr shdr_mem;
-	      GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
-	      shdr->sh_size = verd->d_size
-		= gelf_fsize (newelf, verd->d_type,
-			      symd->d_size / gelf_fsize (elf, symd->d_type, 1,
-							 ehdr->e_version),
-			      ehdr->e_version);
-	      (void) gelf_update_shdr (scn, shdr);
-
-	      /* Convert back to the file byte order.  */
-	      if (gelf_xlatetof (newelf, verd, verd,
-				 BYTE_ORDER == LITTLE_ENDIAN
-				 ? ELFDATA2LSB : ELFDATA2MSB) == NULL)
-		INTERNAL_ERROR (fname);
-	    }
-	  else if (shdr_info[cnt].shdr.sh_type == SHT_GROUP)
-	    {
-	      /* Check whether the associated symbol table changed.  */
-	      if (shdr_info[shdr_info[cnt].old_sh_link].newsymidx != NULL)
-		{
-		  /* Yes the symbol table changed.  Update the section
-		     header of the section group.  */
-		  scn = elf_getscn (newelf, shdr_info[cnt].idx);
-		  GElf_Shdr shdr_mem;
-		  GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
-		  assert (shdr != NULL);
-
-		  size_t stabidx = shdr_info[cnt].old_sh_link;
-		  shdr->sh_info = shdr_info[stabidx].newsymidx[shdr->sh_info];
-
-		  (void) gelf_update_shdr (scn, shdr);
-		}
+	      /* libelf will use d_size to set sh_size.  */
+	      Elf_Data *debugdata = elf_getdata (elf_getscn (debugelf,
+							     cnt), NULL);
+	      debugdata->d_size = newdata->d_size;
 	    }
 	}
+
+	if (shdr_info[cnt].idx == 0 && debug_fname == NULL)
+	  /* Ignore sections which are discarded.  When we are saving a
+	     relocation section in a separate debug file, we must fix up
+	     the symbol table references.  */
+	  continue;
+
+	const Elf32_Word symtabidx = shdr_info[cnt].old_sh_link;
+	const Elf32_Word *const newsymidx = shdr_info[symtabidx].newsymidx;
+	switch (shdr_info[cnt].shdr.sh_type)
+	  {
+	    inline bool no_symtab_updates (void)
+	    {
+	      /* If the symbol table hasn't changed, do not do anything.  */
+	      if (shdr_info[symtabidx].newsymidx == NULL)
+		return true;
+
+	      /* If the symbol table is not discarded, but additionally
+		 duplicated in the separate debug file and this section
+		 is discarded, don't adjust anything.  */
+	      return (shdr_info[cnt].idx == 0
+		      && shdr_info[symtabidx].debug_data != NULL);
+	    }
+
+	  case SHT_REL:
+	  case SHT_RELA:
+	    if (no_symtab_updates ())
+	      break;
+
+	    Elf_Data *d = elf_getdata (shdr_info[cnt].idx == 0
+				       ? elf_getscn (debugelf, cnt)
+				       : elf_getscn (newelf,
+						     shdr_info[cnt].idx),
+				       NULL);
+	    assert (d != NULL);
+	    size_t nrels = (shdr_info[cnt].shdr.sh_size
+			    / shdr_info[cnt].shdr.sh_entsize);
+
+	    if (shdr_info[cnt].shdr.sh_type == SHT_REL)
+	      for (size_t relidx = 0; relidx < nrels; ++relidx)
+		{
+		  GElf_Rel rel_mem;
+		  if (gelf_getrel (d, relidx, &rel_mem) == NULL)
+		    INTERNAL_ERROR (fname);
+
+		  size_t symidx = GELF_R_SYM (rel_mem.r_info);
+		  if (newsymidx[symidx] != symidx)
+		    {
+		      rel_mem.r_info
+			= GELF_R_INFO (newsymidx[symidx],
+				       GELF_R_TYPE (rel_mem.r_info));
+
+		      if (gelf_update_rel (d, relidx, &rel_mem) == 0)
+			INTERNAL_ERROR (fname);
+		    }
+		}
+	    else
+	      for (size_t relidx = 0; relidx < nrels; ++relidx)
+		{
+		  GElf_Rela rel_mem;
+		  if (gelf_getrela (d, relidx, &rel_mem) == NULL)
+		    INTERNAL_ERROR (fname);
+
+		  size_t symidx = GELF_R_SYM (rel_mem.r_info);
+		  if (newsymidx[symidx] != symidx)
+		    {
+		      rel_mem.r_info
+			= GELF_R_INFO (newsymidx[symidx],
+				       GELF_R_TYPE (rel_mem.r_info));
+
+		      if (gelf_update_rela (d, relidx, &rel_mem) == 0)
+			INTERNAL_ERROR (fname);
+		    }
+		}
+	    break;
+
+	  case SHT_HASH:
+	    if (no_symtab_updates ())
+	      break;
+
+	    /* We have to recompute the hash table.  */
+
+	    assert (shdr_info[cnt].idx > 0);
+
+	    /* The hash section in the new file.  */
+	    scn = elf_getscn (newelf, shdr_info[cnt].idx);
+
+	    /* The symbol table data.  */
+	    Elf_Data *symd = elf_getdata (elf_getscn (newelf,
+						      shdr_info[symtabidx].idx),
+					  NULL);
+	    assert (symd != NULL);
+
+	    /* The hash table data.  */
+	    Elf_Data *hashd = elf_getdata (scn, NULL);
+	    assert (hashd != NULL);
+
+	    if (shdr_info[cnt].shdr.sh_entsize == sizeof (Elf32_Word))
+	      {
+		/* Sane arches first.  */
+		Elf32_Word *bucket = (Elf32_Word *) hashd->d_buf;
+
+		size_t strshndx = shdr_info[symtabidx].old_sh_link;
+		size_t elsize = gelf_fsize (elf, ELF_T_SYM, 1,
+					    ehdr->e_version);
+
+		/* Adjust the nchain value.  The symbol table size
+		   changed.  We keep the same size for the bucket array.  */
+		bucket[1] = symd->d_size / elsize;
+		Elf32_Word nbucket = bucket[0];
+		bucket += 2;
+		Elf32_Word *chain = bucket + nbucket;
+
+		/* New size of the section.  */
+		hashd->d_size = ((2 + symd->d_size / elsize + nbucket)
+				 * sizeof (Elf32_Word));
+		update_section_size (hashd);
+
+		/* Clear the arrays.  */
+		memset (bucket, '\0',
+			(symd->d_size / elsize + nbucket)
+			* sizeof (Elf32_Word));
+
+		for (size_t inner = shdr_info[symtabidx].shdr.sh_info;
+		     inner < symd->d_size / elsize; ++inner)
+		  {
+		    GElf_Sym sym_mem;
+		    GElf_Sym *sym = gelf_getsym (symd, inner, &sym_mem);
+		    assert (sym != NULL);
+
+		    const char *name = elf_strptr (elf, strshndx,
+						   sym->st_name);
+		    assert (name != NULL);
+		    size_t hidx = elf_hash (name) % nbucket;
+
+		    if (bucket[hidx] == 0)
+		      bucket[hidx] = inner;
+		    else
+		      {
+			hidx = bucket[hidx];
+
+			while (chain[hidx] != 0)
+			  hidx = chain[hidx];
+
+			chain[hidx] = inner;
+		      }
+		  }
+	      }
+	    else
+	      {
+		/* Alpha and S390 64-bit use 64-bit SHT_HASH entries.  */
+		assert (shdr_info[cnt].shdr.sh_entsize
+			== sizeof (Elf64_Xword));
+
+		Elf64_Xword *bucket = (Elf64_Xword *) hashd->d_buf;
+
+		size_t strshndx = shdr_info[symtabidx].old_sh_link;
+		size_t elsize = gelf_fsize (elf, ELF_T_SYM, 1,
+					    ehdr->e_version);
+
+		/* Adjust the nchain value.  The symbol table size
+		   changed.  We keep the same size for the bucket array.  */
+		bucket[1] = symd->d_size / elsize;
+		Elf64_Xword nbucket = bucket[0];
+		bucket += 2;
+		Elf64_Xword *chain = bucket + nbucket;
+
+		/* New size of the section.  */
+		hashd->d_size = ((2 + symd->d_size / elsize + nbucket)
+				 * sizeof (Elf64_Xword));
+		update_section_size (hashd);
+
+		/* Clear the arrays.  */
+		memset (bucket, '\0',
+			(symd->d_size / elsize + nbucket)
+			* sizeof (Elf64_Xword));
+
+		for (size_t inner = shdr_info[symtabidx].shdr.sh_info;
+		     inner < symd->d_size / elsize; ++inner)
+		  {
+		    GElf_Sym sym_mem;
+		    GElf_Sym *sym = gelf_getsym (symd, inner, &sym_mem);
+		    assert (sym != NULL);
+
+		    const char *name = elf_strptr (elf, strshndx,
+						   sym->st_name);
+		    assert (name != NULL);
+		    size_t hidx = elf_hash (name) % nbucket;
+
+		    if (bucket[hidx] == 0)
+		      bucket[hidx] = inner;
+		    else
+		      {
+			hidx = bucket[hidx];
+
+			while (chain[hidx] != 0)
+			  hidx = chain[hidx];
+
+			chain[hidx] = inner;
+		      }
+		  }
+	      }
+	    break;
+
+	  case SHT_GNU_versym:
+	    /* If the symbol table changed we have to adjust the entries.  */
+	    if (no_symtab_updates ())
+	      break;
+
+	    assert (shdr_info[cnt].idx > 0);
+
+	    /* The symbol version section in the new file.  */
+	    scn = elf_getscn (newelf, shdr_info[cnt].idx);
+
+	    /* The symbol table data.  */
+	    symd = elf_getdata (elf_getscn (newelf, shdr_info[symtabidx].idx),
+				NULL);
+	    assert (symd != NULL);
+
+	    /* The version symbol data.  */
+	    Elf_Data *verd = elf_getdata (scn, NULL);
+	    assert (verd != NULL);
+
+	    /* The symbol version array.  */
+	    GElf_Half *verstab = (GElf_Half *) verd->d_buf;
+
+	    /* Walk through the list and */
+	    size_t elsize = gelf_fsize (elf, verd->d_type, 1,
+					ehdr->e_version);
+	    for (size_t inner = 1; inner < verd->d_size / elsize; ++inner)
+	      if (newsymidx[inner] != 0)
+		/* Overwriting the same array works since the
+		   reordering can only move entries to lower indices
+		   in the array.  */
+		verstab[newsymidx[inner]] = verstab[inner];
+
+	    /* New size of the section.  */
+	    verd->d_size = gelf_fsize (newelf, verd->d_type,
+				       symd->d_size
+				       / gelf_fsize (elf, symd->d_type, 1,
+						     ehdr->e_version),
+				       ehdr->e_version);
+	    update_section_size (verd);
+	    break;
+
+	  case SHT_GROUP:
+	    if (no_symtab_updates ())
+	      break;
+
+	    /* Yes, the symbol table changed.
+	       Update the section header of the section group.  */
+	    scn = elf_getscn (newelf, shdr_info[cnt].idx);
+	    GElf_Shdr shdr_mem;
+	    GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
+	    assert (shdr != NULL);
+
+	    shdr->sh_info = newsymidx[shdr->sh_info];
+
+	    (void) gelf_update_shdr (scn, shdr);
+	    break;
+	  }
+      }
+
+  /* Now that we have done all adjustments to the data,
+     we can actually write out the debug file.  */
+  if (debug_fname != NULL)
+    {
+      uint32_t debug_crc;
+      Elf_Data debug_crc_data =
+	{
+	  .d_type = ELF_T_WORD,
+	  .d_buf = &debug_crc,
+	  .d_size = sizeof (debug_crc),
+	  .d_version = EV_CURRENT
+	};
+
+      /* Finally write the file.  */
+      if (unlikely (elf_update (debugelf, ELF_C_WRITE) == -1))
+	{
+	  error (0, 0, gettext ("while writing '%s': %s"),
+		 debug_fname, elf_errmsg (-1));
+	  result = 1;
+	  goto fail_close;
+	}
+
+      /* Create the real output file.  First rename, then change the
+	 mode.  */
+      if (rename (tmp_debug_fname, debug_fname) != 0
+	  || fchmod (debug_fd, mode) != 0)
+	{
+	  error (0, errno, gettext ("while creating '%s'"), debug_fname);
+	  result = 1;
+	  goto fail_close;
+	}
+
+      /* The temporary file does not exist anymore.  */
+      tmp_debug_fname = NULL;
+
+      /* Compute the checksum which we will add to the executable.  */
+      if (crc32_file (debug_fd, &debug_crc) != 0)
+	{
+	  error (0, errno,
+		 gettext ("while computing checksum for debug information"));
+	  unlink (debug_fname);
+	  result = 1;
+	  goto fail_close;
+	}
+
+      /* Store it in the debuglink section data.  */
+      if (unlikely (gelf_xlatetof (newelf, &debuglink_crc_data,
+				   &debug_crc_data, ehdr->e_ident[EI_DATA])
+		    != &debuglink_crc_data))
+	INTERNAL_ERROR (fname);
     }
 
   /* Finally finish the ELF header.  Fill in the fields not handled by
@@ -1641,7 +1685,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
   /* Finally write the file.  */
   if (elf_update (newelf, ELF_C_WRITE) == -1)
     {
-      error (0, 0, gettext ("while writing `%s': %s"),
+      error (0, 0, gettext ("while writing '%s': %s"),
 	     fname, elf_errmsg (-1));
       result = 1;
     }
@@ -1653,7 +1697,11 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	 table indices.  */
       if (any_symtab_changes)
 	for (cnt = 1; cnt <= shdridx; ++cnt)
-	  free (shdr_info[cnt].newsymidx);
+	  {
+	    free (shdr_info[cnt].newsymidx);
+	    if (shdr_info[cnt].debug_data != NULL)
+	      free (shdr_info[cnt].debug_data->d_buf);
+	  }
 
       /* Free the memory.  */
       if ((shnum + 2) * sizeof (struct shdr_info) > MAX_STACK_ALLOC)
@@ -1669,14 +1717,14 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
   /* That was it.  Close the descriptors.  */
   if (elf_end (newelf) != 0)
     {
-      error (0, 0, gettext ("error while finishing `%s': %s"), fname,
+      error (0, 0, gettext ("error while finishing '%s': %s"), fname,
 	     elf_errmsg (-1));
       result = 1;
     }
 
   if (debugelf != NULL && elf_end (debugelf) != 0)
     {
-      error (0, 0, gettext ("error while finishing `%s': %s"), debug_fname,
+      error (0, 0, gettext ("error while finishing '%s': %s"), debug_fname,
 	     elf_errmsg (-1));
       result = 1;
     }
@@ -1700,7 +1748,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
       if (futimes (fd, tvp) != 0)
 	{
 	  error (0, errno, gettext ("\
-cannot set access and modification date of \"%s\""),
+cannot set access and modification date of '%s'"),
 		 output_fname ?: fname);
 	  result = 1;
 	}
@@ -1757,13 +1805,16 @@ handle_ar (int fd, Elf *elf, const char *prefix, const char *fname,
       if (unlikely (futimes (fd, tvp) != 0))
 	{
 	  error (0, errno, gettext ("\
-cannot set access and modification date of \"%s\""), fname);
+cannot set access and modification date of '%s'"), fname);
 	  result = 1;
 	}
     }
 
   if (unlikely (close (fd) != 0))
-    error (EXIT_FAILURE, errno, gettext ("while closing `%s'"), fname);
+    error (EXIT_FAILURE, errno, gettext ("while closing '%s'"), fname);
 
   return result;
 }
+
+
+#include "debugpred.h"

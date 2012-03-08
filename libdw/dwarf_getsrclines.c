@@ -1,16 +1,52 @@
 /* Return line number information of CU.
-   Copyright (C) 2004 Red Hat, Inc.
+   Copyright (C) 2004, 2005, 2007, 2008 Red Hat, Inc.
+   This file is part of Red Hat elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2004.
 
-   This program is Open Source software; you can redistribute it and/or
-   modify it under the terms of the Open Software License version 1.0 as
-   published by the Open Source Initiative.
+   Red Hat elfutils is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by the
+   Free Software Foundation; version 2 of the License.
 
-   You should have received a copy of the Open Software License along
-   with this program; if not, you may obtain a copy of the Open Software
-   License version 1.0 from http://www.opensource.org/licenses/osl.php or
-   by writing the Open Source Initiative c/o Lawrence Rosen, Esq.,
-   3001 King Ranch Road, Ukiah, CA 95482.   */
+   Red Hat elfutils is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License along
+   with Red Hat elfutils; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+
+   In addition, as a special exception, Red Hat, Inc. gives You the
+   additional right to link the code of Red Hat elfutils with code licensed
+   under any Open Source Initiative certified open source license
+   (http://www.opensource.org/licenses/index.php) which requires the
+   distribution of source code with any binary distribution and to
+   distribute linked combinations of the two.  Non-GPL Code permitted under
+   this exception must only link to the code of Red Hat elfutils through
+   those well defined interfaces identified in the file named EXCEPTION
+   found in the source code files (the "Approved Interfaces").  The files
+   of Non-GPL Code may instantiate templates or use macros or inline
+   functions from the Approved Interfaces without causing the resulting
+   work to be covered by the GNU General Public License.  Only Red Hat,
+   Inc. may make changes or additions to the list of Approved Interfaces.
+   Red Hat's grant of this exception is conditioned upon your not adding
+   any new exceptions.  If you wish to add a new Approved Interface or
+   exception, please contact Red Hat.  You must obey the GNU General Public
+   License in all respects for all of the Red Hat elfutils code and other
+   code used in conjunction with Red Hat elfutils except the Non-GPL Code
+   covered by this exception.  If you modify this file, you may extend this
+   exception to your version of the file, but you are not obligated to do
+   so.  If you do not wish to provide this exception without modification,
+   you must delete this exception statement from your version and license
+   this file solely under the GPL without exception.
+
+   Red Hat elfutils is an included package of the Open Invention Network.
+   An included package of the Open Invention Network is a package for which
+   Open Invention Network licensees cross-license their patents.  No patent
+   license is granted, either expressly or impliedly, by designation as an
+   included package.  Should you wish to participate in the Open Invention
+   Network licensing program, please visit www.openinventionnetwork.com
+   <http://www.openinventionnetwork.com>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -36,7 +72,22 @@ struct linelist
 };
 
 
-/* Adds a new line to the matrix.  We cannot definte a function because
+/* Compare by Dwarf_Line.addr, given pointers into an array of pointers.  */
+static int
+compare_lines (const void *a, const void *b)
+{
+  Dwarf_Line *const *p1 = a;
+  Dwarf_Line *const *p2 = b;
+
+  if ((*p1)->addr == (*p2)->addr)
+    /* An end_sequence marker precedes a normal record at the same address.  */
+    return (*p2)->end_sequence - (*p1)->end_sequence;
+
+  return (*p1)->addr - (*p2)->addr;
+}
+
+
+/* Adds a new line to the matrix.  We cannot define a function because
    we want to use alloca.  */
 #define NEW_LINE(end_seq) \
   do {									      \
@@ -63,7 +114,8 @@ struct linelist
 int
 dwarf_getsrclines (Dwarf_Die *cudie, Dwarf_Lines **lines, size_t *nlines)
 {
-  if (unlikely (cudie == NULL || dwarf_tag (cudie) != DW_TAG_compile_unit))
+  if (unlikely (cudie == NULL
+		|| INTUSE(dwarf_tag) (cudie) != DW_TAG_compile_unit))
     return -1;
 
   int res = -1;
@@ -78,13 +130,13 @@ dwarf_getsrclines (Dwarf_Die *cudie, Dwarf_Lines **lines, size_t *nlines)
 
       /* The die must have a statement list associated.  */
       Dwarf_Attribute stmt_list_mem;
-      Dwarf_Attribute *stmt_list = dwarf_attr (cudie, DW_AT_stmt_list,
-					       &stmt_list_mem);
+      Dwarf_Attribute *stmt_list = INTUSE(dwarf_attr) (cudie, DW_AT_stmt_list,
+						       &stmt_list_mem);
 
       /* Get the offset into the .debug_line section.  NB: this call
 	 also checks whether the previous dwarf_attr call failed.  */
       Dwarf_Word offset;
-      if (dwarf_formudata (stmt_list, &offset) != 0)
+      if (INTUSE(dwarf_formudata) (stmt_list, &offset) != 0)
 	goto out;
 
       Dwarf *dbg = cu->dbg;
@@ -93,15 +145,16 @@ dwarf_getsrclines (Dwarf_Die *cudie, Dwarf_Lines **lines, size_t *nlines)
 	  __libdw_seterrno (DWARF_E_NO_DEBUG_LINE);
 	  goto out;
 	}
-      uint8_t *linep = dbg->sectiondata[IDX_debug_line]->d_buf + offset;
-      uint8_t *lineendp = (dbg->sectiondata[IDX_debug_line]->d_buf
-			   + dbg->sectiondata[IDX_debug_line]->d_size);
+      const uint8_t *linep = dbg->sectiondata[IDX_debug_line]->d_buf + offset;
+      const uint8_t *lineendp = (dbg->sectiondata[IDX_debug_line]->d_buf
+				 + dbg->sectiondata[IDX_debug_line]->d_size);
 
       /* Get the compilation directory.  */
       Dwarf_Attribute compdir_attr_mem;
-      Dwarf_Attribute *compdir_attr = dwarf_attr (cudie, DW_AT_comp_dir,
-						  &compdir_attr_mem);
-      const char *comp_dir = dwarf_formstring (compdir_attr);
+      Dwarf_Attribute *compdir_attr = INTUSE(dwarf_attr) (cudie,
+							  DW_AT_comp_dir,
+							  &compdir_attr_mem);
+      const char *comp_dir = INTUSE(dwarf_formstring) (compdir_attr);
 
       if (unlikely (linep + 4 > lineendp))
 	{
@@ -111,7 +164,7 @@ dwarf_getsrclines (Dwarf_Die *cudie, Dwarf_Lines **lines, size_t *nlines)
 	}
       Dwarf_Word unit_length = read_4ubyte_unaligned_inc (dbg, linep);
       unsigned int length = 4;
-      if (unlikely (unit_length == 0xffffffff))
+      if (unlikely (unit_length == DWARF3_LENGTH_64_BIT))
 	{
 	  if (unlikely (linep + 8 > lineendp))
 	    goto invalid_data;
@@ -127,7 +180,7 @@ dwarf_getsrclines (Dwarf_Die *cudie, Dwarf_Lines **lines, size_t *nlines)
 
       /* The next element of the header is the version identifier.  */
       uint_fast16_t version = read_2ubyte_unaligned_inc (dbg, linep);
-      if (unlikely (version != DWARF_VERSION))
+      if (unlikely (version > DWARF_VERSION))
 	{
 	  __libdw_seterrno (DWARF_E_VERSION);
 	  goto out;
@@ -139,7 +192,7 @@ dwarf_getsrclines (Dwarf_Die *cudie, Dwarf_Lines **lines, size_t *nlines)
 	header_length = read_4ubyte_unaligned_inc (dbg, linep);
       else
 	header_length = read_8ubyte_unaligned_inc (dbg, linep);
-      unsigned char *header_start = linep;
+      const unsigned char *header_start = linep;
 
       /* Next the minimum instruction length.  */
       uint_fast8_t minimum_instr_len = *linep++;
@@ -160,7 +213,7 @@ dwarf_getsrclines (Dwarf_Die *cudie, Dwarf_Lines **lines, size_t *nlines)
 
       /* Remember array with the standard opcode length (-1 to account for
 	 the opcode with value zero not being mentioned).  */
-      uint8_t *standard_opcode_lengths = linep - 1;
+      const uint8_t *standard_opcode_lengths = linep - 1;
       linep += opcode_base - 1;
       if (unlikely (linep >= lineendp))
 	goto invalid_data;
@@ -203,13 +256,10 @@ dwarf_getsrclines (Dwarf_Die *cudie, Dwarf_Lines **lines, size_t *nlines)
       /* Rearrange the list in array form.  */
       struct dirlist **dirarray
 	= (struct dirlist **) alloca (ndirlist * sizeof (*dirarray));
-      while (ndirlist-- > 0)
-	{
-	  dirarray[ndirlist] = dirlist;
-	  dirlist = dirlist->next;
-	}
+      for (unsigned int n = ndirlist; n-- > 0; dirlist = dirlist->next)
+	dirarray[n] = dirlist;
 
-        /* Now read the files.  */
+      /* Now read the files.  */
       struct filelist null_file =
 	{
 	  .info =
@@ -437,7 +487,7 @@ dwarf_getsrclines (Dwarf_Die *cudie, Dwarf_Lines **lines, size_t *nlines)
 		  break;
 		}
 	    }
-	  else if (opcode <= DW_LNS_set_epilog_begin)
+	  else if (opcode <= DW_LNS_set_epilogue_begin)
 	    {
 	      /* This is a known standard opcode.  */
 	      switch (opcode)
@@ -540,7 +590,7 @@ dwarf_getsrclines (Dwarf_Die *cudie, Dwarf_Lines **lines, size_t *nlines)
 		  prologue_end = 1;
 		  break;
 
-		case DW_LNS_set_epilog_begin:
+		case DW_LNS_set_epilogue_begin:
 		  /* Takes no argument.  */
 		  if (unlikely (standard_opcode_lengths[opcode] != 0))
 		    goto invalid_data;
@@ -565,8 +615,11 @@ dwarf_getsrclines (Dwarf_Die *cudie, Dwarf_Lines **lines, size_t *nlines)
       /* Put all the files in an array.  */
       Dwarf_Files *files = libdw_alloc (dbg, Dwarf_Files,
 					sizeof (Dwarf_Files)
-					+ nfilelist * sizeof (Dwarf_Fileinfo),
-				       1);
+					+ nfilelist * sizeof (Dwarf_Fileinfo)
+					+ (ndirlist + 1) * sizeof (char *),
+					1);
+      const char **dirs = (void *) &files->info[nfilelist];
+
       files->nfiles = nfilelist;
       while (nfilelist-- > 0)
 	{
@@ -575,23 +628,54 @@ dwarf_getsrclines (Dwarf_Die *cudie, Dwarf_Lines **lines, size_t *nlines)
 	}
       assert (filelist == NULL);
 
+      /* Put all the directory strings in an array.  */
+      files->ndirs = ndirlist;
+      for (unsigned int i = 0; i < ndirlist; ++i)
+	dirs[i] = dirarray[i]->dir;
+      dirs[ndirlist] = NULL;
+
       /* Remember the debugging descriptor.  */
       files->dbg = dbg;
 
       /* Make the file data structure available through the CU.  */
       cu->files = files;
 
-      cu->lines = libdw_alloc (dbg, Dwarf_Lines, (sizeof (Dwarf_Lines)
+      void *buf = libdw_alloc (dbg, Dwarf_Lines, (sizeof (Dwarf_Lines)
 						  + (sizeof (Dwarf_Line)
 						     * nlinelist)), 1);
-      cu->lines->nlines = nlinelist;
-      while (nlinelist-- > 0)
+
+      /* First use the buffer for the pointers, and sort the entries.
+	 We'll write the pointers in the end of the buffer, and then
+	 copy into the buffer from the beginning so the overlap works.  */
+      assert (sizeof (Dwarf_Line) >= sizeof (Dwarf_Line *));
+      Dwarf_Line **sortlines = (buf + sizeof (Dwarf_Lines)
+				+ ((sizeof (Dwarf_Line)
+				    - sizeof (Dwarf_Line *)) * nlinelist));
+
+      /* The list is in LIFO order and usually they come in clumps with
+	 ascending addresses.  So fill from the back to probably start with
+	 runs already in order before we sort.  */
+      unsigned int i = nlinelist;
+      while (i-- > 0)
 	{
-	  cu->lines->info[nlinelist] = linelist->line;
-	  cu->lines->info[nlinelist].files = files;
+	  sortlines[i] = &linelist->line;
 	  linelist = linelist->next;
 	}
       assert (linelist == NULL);
+
+      /* Sort by ascending address.  */
+      qsort (sortlines, nlinelist, sizeof sortlines[0], &compare_lines);
+
+      /* Now that they are sorted, put them in the final array.
+	 The buffers overlap, so we've clobbered the early elements
+	 of SORTLINES by the time we're reading the later ones.  */
+      cu->lines = buf;
+      cu->lines->nlines = nlinelist;
+      for (i = 0; i < nlinelist; ++i)
+	{
+	  cu->lines->info[i] = *sortlines[i];
+	  cu->lines->info[i].files = files;
+	}
 
       /* Success.  */
       res = 0;
@@ -611,3 +695,4 @@ dwarf_getsrclines (Dwarf_Die *cudie, Dwarf_Lines **lines, size_t *nlines)
 
   return res;
 }
+INTDEF(dwarf_getsrclines)

@@ -1,16 +1,52 @@
 /* ELF string table handling.
-   Copyright (C) 2000, 2001, 2002 Red Hat, Inc.
+   Copyright (C) 2000, 2001, 2002, 2005 Red Hat, Inc.
+   This file is part of Red Hat elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2000.
 
-   This program is Open Source software; you can redistribute it and/or
-   modify it under the terms of the Open Software License version 1.0 as
-   published by the Open Source Initiative.
+   Red Hat elfutils is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by the
+   Free Software Foundation; version 2 of the License.
 
-   You should have received a copy of the Open Software License along
-   with this program; if not, you may obtain a copy of the Open Software
-   License version 1.0 from http://www.opensource.org/licenses/osl.php or
-   by writing the Open Source Initiative c/o Lawrence Rosen, Esq.,
-   3001 King Ranch Road, Ukiah, CA 95482.   */
+   Red Hat elfutils is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License along
+   with Red Hat elfutils; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+
+   In addition, as a special exception, Red Hat, Inc. gives You the
+   additional right to link the code of Red Hat elfutils with code licensed
+   under any Open Source Initiative certified open source license
+   (http://www.opensource.org/licenses/index.php) which requires the
+   distribution of source code with any binary distribution and to
+   distribute linked combinations of the two.  Non-GPL Code permitted under
+   this exception must only link to the code of Red Hat elfutils through
+   those well defined interfaces identified in the file named EXCEPTION
+   found in the source code files (the "Approved Interfaces").  The files
+   of Non-GPL Code may instantiate templates or use macros or inline
+   functions from the Approved Interfaces without causing the resulting
+   work to be covered by the GNU General Public License.  Only Red Hat,
+   Inc. may make changes or additions to the list of Approved Interfaces.
+   Red Hat's grant of this exception is conditioned upon your not adding
+   any new exceptions.  If you wish to add a new Approved Interface or
+   exception, please contact Red Hat.  You must obey the GNU General Public
+   License in all respects for all of the Red Hat elfutils code and other
+   code used in conjunction with Red Hat elfutils except the Non-GPL Code
+   covered by this exception.  If you modify this file, you may extend this
+   exception to your version of the file, but you are not obligated to do
+   so.  If you do not wish to provide this exception without modification,
+   you must delete this exception statement from your version and license
+   this file solely under the GPL without exception.
+
+   Red Hat elfutils is an included package of the Open Invention Network.
+   An included package of the Open Invention Network is a package for which
+   Open Invention Network licensees cross-license their patents.  No patent
+   license is granted, either expressly or impliedly, by designation as an
+   included package.  Should you wish to participate in the Open Invention
+   Network licensing program, please visit www.openinventionnetwork.com
+   <http://www.openinventionnetwork.com>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -73,15 +109,14 @@ static size_t ps;
 struct Ebl_Strtab *
 ebl_strtabinit (bool nullstr)
 {
-  struct Ebl_Strtab *ret;
-
   if (ps == 0)
     {
       ps = sysconf (_SC_PAGESIZE) - 2 * sizeof (void *);
       assert (sizeof (struct memoryblock) < ps);
     }
 
-  ret = (struct Ebl_Strtab *) calloc (1, sizeof (struct Ebl_Strtab));
+  struct Ebl_Strtab *ret
+    = (struct Ebl_Strtab *) calloc (1, sizeof (struct Ebl_Strtab));
   if (ret != NULL)
     {
       ret->nullstr = nullstr;
@@ -100,11 +135,10 @@ ebl_strtabinit (bool nullstr)
 static int
 morememory (struct Ebl_Strtab *st, size_t len)
 {
-  struct memoryblock *newmem;
-
   if (len < ps)
     len = ps;
-  newmem = (struct memoryblock *) malloc (len);
+
+  struct memoryblock *newmem = (struct memoryblock *) malloc (len);
   if (newmem == NULL)
     return 1;
 
@@ -136,15 +170,11 @@ ebl_strtabfree (struct Ebl_Strtab *st)
 static struct Ebl_Strent *
 newstring (struct Ebl_Strtab *st, const char *str, size_t len)
 {
-  struct Ebl_Strent *newstr;
-  size_t align;
-  int i;
-
   /* Compute the amount of padding needed to make the structure aligned.  */
-  align = ((__alignof__ (struct Ebl_Strent)
-	    - (((uintptr_t) st->backp)
-	       & (__alignof__ (struct Ebl_Strent) - 1)))
-	   & (__alignof__ (struct Ebl_Strent) - 1));
+  size_t align = ((__alignof__ (struct Ebl_Strent)
+		   - (((uintptr_t) st->backp)
+		      & (__alignof__ (struct Ebl_Strent) - 1)))
+		  & (__alignof__ (struct Ebl_Strent) - 1));
 
   /* Make sure there is enough room in the memory block.  */
   if (st->left < align + sizeof (struct Ebl_Strent) + len)
@@ -156,14 +186,14 @@ newstring (struct Ebl_Strtab *st, const char *str, size_t len)
     }
 
   /* Create the reserved string.  */
-  newstr = (struct Ebl_Strent *) (st->backp + align);
+  struct Ebl_Strent *newstr = (struct Ebl_Strent *) (st->backp + align);
   newstr->string = str;
   newstr->len = len;
   newstr->next = NULL;
   newstr->left = NULL;
   newstr->right = NULL;
   newstr->offset = 0;
-  for (i = len - 2; i >= 0; --i)
+  for (int i = len - 2; i >= 0; --i)
     newstr->reverse[i] = str[len - 2 - i];
   newstr->reverse[len - 1] = '\0';
   st->backp += align + sizeof (struct Ebl_Strent) + len;
@@ -179,8 +209,6 @@ newstring (struct Ebl_Strtab *st, const char *str, size_t len)
 static struct Ebl_Strent **
 searchstring (struct Ebl_Strent **sep, struct Ebl_Strent *newstr)
 {
-  int cmpres;
-
   /* More strings?  */
   if (*sep == NULL)
     {
@@ -189,8 +217,8 @@ searchstring (struct Ebl_Strent **sep, struct Ebl_Strent *newstr)
     }
 
   /* Compare the strings.  */
-  cmpres = memcmp ((*sep)->reverse, newstr->reverse,
-		   MIN ((*sep)->len, newstr->len) - 1);
+  int cmpres = memcmp ((*sep)->reverse, newstr->reverse,
+		       MIN ((*sep)->len, newstr->len) - 1);
   if (cmpres == 0)
     /* We found a matching string.  */
     return sep;
@@ -205,9 +233,6 @@ searchstring (struct Ebl_Strent **sep, struct Ebl_Strent *newstr)
 struct Ebl_Strent *
 ebl_strtabadd (struct Ebl_Strtab *st, const char *str, size_t len)
 {
-  struct Ebl_Strent *newstr;
-  struct Ebl_Strent **sep;
-
   /* Compute the string length if the caller doesn't know it.  */
   if (len == 0)
     len = strlen (str) + 1;
@@ -218,23 +243,22 @@ ebl_strtabadd (struct Ebl_Strtab *st, const char *str, size_t len)
     return &st->null;
 
   /* Allocate memory for the new string and its associated information.  */
-  newstr = newstring (st, str, len);
+  struct Ebl_Strent *newstr = newstring (st, str, len);
   if (newstr == NULL)
     return NULL;
 
   /* Search in the array for the place to insert the string.  If there
      is no string with matching prefix and no string with matching
      leading substring, create a new entry.  */
-  sep = searchstring (&st->root, newstr);
+  struct Ebl_Strent **sep = searchstring (&st->root, newstr);
   if (*sep != newstr)
     {
       /* This is not the same entry.  This means we have a prefix match.  */
       if ((*sep)->len > newstr->len)
 	{
-	  struct Ebl_Strent *subs;
-
 	  /* Check whether we already know this string.  */
-	  for (subs = (*sep)->next; subs != NULL; subs = subs->next)
+	  for (struct Ebl_Strent *subs = (*sep)->next; subs != NULL;
+	       subs = subs->next)
 	    if (subs->len == newstr->len)
 	      {
 		/* We have an exact match with a substring.  Free the memory
@@ -283,8 +307,6 @@ ebl_strtabadd (struct Ebl_Strtab *st, const char *str, size_t len)
 static void
 copystrings (struct Ebl_Strent *nodep, char **freep, size_t *offsetp)
 {
-  struct Ebl_Strent *subs;
-
   if (nodep->left != NULL)
     copystrings (nodep->left, freep, offsetp);
 
@@ -293,7 +315,7 @@ copystrings (struct Ebl_Strent *nodep, char **freep, size_t *offsetp)
   *freep = (char *) mempcpy (*freep, nodep->string, nodep->len);
   *offsetp += nodep->len;
 
-  for (subs = nodep->next; subs != NULL; subs = subs->next)
+  for (struct Ebl_Strent *subs = nodep->next; subs != NULL; subs = subs->next)
     {
       assert (subs->len < nodep->len);
       subs->offset = nodep->offset + nodep->len - subs->len;
@@ -308,8 +330,6 @@ copystrings (struct Ebl_Strent *nodep, char **freep, size_t *offsetp)
 void
 ebl_strtabfinalize (struct Ebl_Strtab *st, Elf_Data *data)
 {
-  size_t copylen;
-  char *endp;
   size_t nulllen = st->nullstr ? 1 : 0;
 
   /* Fill in the information.  */
@@ -330,8 +350,8 @@ ebl_strtabfinalize (struct Ebl_Strtab *st, Elf_Data *data)
 
   /* Now run through the tree and add all the string while also updating
      the offset members of the elfstrent records.  */
-  endp = (char *) data->d_buf + nulllen;
-  copylen = nulllen;
+  char *endp = (char *) data->d_buf + nulllen;
+  size_t copylen = nulllen;
   copystrings (st->root, &endp, &copylen);
   assert (copylen == st->total + nulllen);
 }

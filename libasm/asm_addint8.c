@@ -1,16 +1,28 @@
 /* Add integer to a section.
-   Copyright (C) 2002 Red Hat, Inc.
+   Copyright (C) 2002, 2005 Red Hat, Inc.
+   This file is part of Red Hat elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2002.
 
-   This program is Open Source software; you can redistribute it and/or
-   modify it under the terms of the Open Software License version 1.0 as
-   published by the Open Source Initiative.
+   Red Hat elfutils is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by the
+   Free Software Foundation; version 2 of the License.
 
-   You should have received a copy of the Open Software License along
-   with this program; if not, you may obtain a copy of the Open Software
-   License version 1.0 from http://www.opensource.org/licenses/osl.php or
-   by writing the Open Source Initiative c/o Lawrence Rosen, Esq.,
-   3001 King Ranch Road, Ukiah, CA 95482.   */
+   Red Hat elfutils is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License along
+   with Red Hat elfutils; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+
+   Red Hat elfutils is an included package of the Open Invention Network.
+   An included package of the Open Invention Network is a package for which
+   Open Invention Network licensees cross-license their patents.  No patent
+   license is granted, either expressly or impliedly, by designation as an
+   included package.  Should you wish to participate in the Open Invention
+   Network licensing program, please visit www.openinventionnetwork.com
+   <http://www.openinventionnetwork.com>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -53,22 +65,25 @@ FCT(SIZE) (asmscn, num)
     {
       // XXX Needs to use backend specified pseudo-ops
       if (SIZE == 8)
-	printf ("\t.byte\t%" PRId8 "\n", (int8_t) num);
+	fprintf (asmscn->ctx->out.file, "\t.byte\t%" PRId8 "\n", (int8_t) num);
       else if (SIZE == 16)
-	printf ("\t.value\t%" PRId16 "\n", (int16_t) num);
+	fprintf (asmscn->ctx->out.file, "\t.value\t%" PRId16 "\n",
+		 (int16_t) num);
       else if (SIZE == 32)
-	printf ("\t.long\t%" PRId32 "\n", (int32_t) num);
+	fprintf (asmscn->ctx->out.file, "\t.long\t%" PRId32 "\n",
+		 (int32_t) num);
       else
 	{
 	  // XXX This is not necessary for 64-bit machines
 	  bool is_leb = (elf_getident (asmscn->ctx->out.elf, NULL)[EI_DATA]
 			 == ELFDATA2LSB);
 
-	  printf ("\t.long\t%" PRId32 "\n\t.long\t%" PRId32 "\n",
-		  (int32_t) (is_leb
-			     ? num % 0x100000000ll : num / 0x100000000ll),
-		  (int32_t) (is_leb
-			     ? num / 0x100000000ll : num % 0x100000000ll));
+	  fprintf (asmscn->ctx->out.file,
+		   "\t.long\t%" PRId32 "\n\t.long\t%" PRId32 "\n",
+		   (int32_t) (is_leb
+			      ? num % 0x100000000ll : num / 0x100000000ll),
+		   (int32_t) (is_leb
+			      ? num / 0x100000000ll : num % 0x100000000ll));
 	}
     }
   else

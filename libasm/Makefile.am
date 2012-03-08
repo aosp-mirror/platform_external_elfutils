@@ -1,38 +1,51 @@
 ## Process this file with automake to create Makefile.in
-## Configure input file for elfutils.
 ##
-## Copyright (C) 2002, 2004 Red Hat, Inc.
+## Copyright (C) 2002, 2004, 2005, 2006, 2008 Red Hat, Inc.
+## This file is part of Red Hat elfutils.
 ##
-## This program is Open Source software; you can redistribute it and/or
-## modify it under the terms of the Open Software License version 1.0 as
-## published by the Open Source Initiative.
+## Red Hat elfutils is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by the
+## Free Software Foundation; version 2 of the License.
 ##
-## You should have received a copy of the Open Software License along
-## with this program; if not, you may obtain a copy of the Open Software
-## License version 1.0 from http://www.opensource.org/licenses/osl.php or
-## by writing the Open Source Initiative c/o Lawrence Rosen, Esq.,
-## 3001 King Ranch Road, Ukiah, CA 95482.
+## Red Hat elfutils is distributed in the hope that it will be useful, but
+## WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+## General Public License for more details.
+##
+## You should have received a copy of the GNU General Public License along
+## with Red Hat elfutils; if not, write to the Free Software Foundation,
+## Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+##
+## Red Hat elfutils is an included package of the Open Invention Network.
+## An included package of the Open Invention Network is a package for which
+## Open Invention Network licensees cross-license their patents.  No patent
+## license is granted, either expressly or impliedly, by designation as an
+## included package.  Should you wish to participate in the Open Invention
+## Network licensing program, please visit www.openinventionnetwork.com
+## <http://www.openinventionnetwork.com>.
 ##
 DEFS = -D_GNU_SOURCE -DHAVE_CONFIG_H
 if MUDFLAP
-AM_CFLAGS = -Wall
+AM_CFLAGS = -fmudflap
 else
-AM_CFLAGS = -Wall -Werror
+AM_CFLAGS =
 endif
-INCLUDES = -I. -I$(srcdir) -I.. -I$(top_srcdir)/libelf -I$(top_srcdir)/libebl \
+AM_CFLAGS += -std=gnu99 -Wall -Wshadow -Werror -Wunused -Wextra -Wformat=2
+INCLUDES = -I. -I$(srcdir) -I.. \
+	   -I$(top_srcdir)/libelf -I$(top_srcdir)/libebl -I$(top_srcdir)/libdw\
 	   -I$(top_srcdir)/lib
 GCC_INCLUDE = -I$(shell $(CC) -print-file-name=include)
 VERSION = 1
 
-LINT = splint
+COMPILE.os = $(filter-out -fprofile-arcs, $(filter-out -ftest-coverage, \
+						       $(COMPILE)))
 
 lib_LIBRARIES = libasm.a
 if !MUDFLAP
 noinst_LIBRARIES = libasm_pic.a
 noinst_PROGRAMS = $(noinst_LIBRARIES:_pic.a=.so)
 endif
-euincludedir = ${includedir}/elfutils
-euinclude_HEADERS = libasm.h
+pkginclude_HEADERS = libasm.h
 
 libasm_a_SOURCES = asm_begin.c asm_abort.c asm_end.c asm_error.c \
 		   asm_getelf.c asm_newscn.c asm_newscn_ingrp.c \
@@ -45,23 +58,30 @@ libasm_a_SOURCES = asm_begin.c asm_abort.c asm_end.c asm_error.c \
 		   asm_addint32.c asm_adduint32.c \
 		   asm_addint64.c asm_adduint64.c \
 		   asm_adduleb128.c asm_addsleb128.c \
+		   disasm_begin.c disasm_cb.c disasm_end.c disasm_str.c \
 		   symbolhash.c
 
 if !MUDFLAP
 libasm_pic_a_SOURCES =
 am_libasm_pic_a_OBJECTS = $(libasm_a_SOURCES:.c=.os)
 
+libasm_so_LDLIBS =
+if USE_TLS
+libasm_so_LDLIBS += -lpthread
+endif
+
 libasm_so_SOURCES =
 libasm.so: libasm_pic.a libasm.map
-	$(CC) -shared -o $@ -Wl,--whole-archive,$<,--no-whole-archive \
-	      -Wl,--version-script,$(srcdir)/libasm.map,--no-undefined \
-	      -Wl,--soname,$@.$(VERSION) \
-	      ../libebl/libebl.a ../libelf/libelf.so
+	$(LINK) -shared -o $@ -Wl,--whole-archive,$<,--no-whole-archive \
+		-Wl,--version-script,$(srcdir)/libasm.map,--no-undefined \
+		-Wl,--soname,$@.$(VERSION) \
+		../libebl/libebl.a ../libelf/libelf.so  $(libasm_so_LDLIBS)
+	if readelf -d $@ | fgrep -q TEXTREL; then exit 1; fi
 	ln -fs $@ $@.$(VERSION)
 
 
 %.os: %.c %.o
-	if $(COMPILE) -c -o $@ -fpic -DPIC -DSHARED -MT $@ -MD -MP \
+	if $(COMPILE.os) -c -o $@ -fpic -DPIC -DSHARED -MT $@ -MD -MP \
 	  -MF "$(DEPDIR)/$*.Tpo" `test -f '$<' || echo '$(srcdir)/'`$<; \
 	then cat "$(DEPDIR)/$*.Tpo" >> "$(DEPDIR)/$*.Po"; \
 	     rm -f "$(DEPDIR)/$*.Tpo"; \
@@ -81,12 +101,7 @@ uninstall: uninstall-am
 	rmdir --ignore-fail-on-non-empty $(DESTDIR)$(includedir)/elfutils
 endif
 
-.PSEUDO: lint
-lint:
-	$(LINT) $(DEFS) $(INCLUDES) $(GCC_INCLUDE) -f $(top_srcdir)/splint.rc \
-		$(addprefix $(srcdir)/,$(libelf_la_SOURCES))
-
 noinst_HEADERS = libasmP.h symbolhash.h
 EXTRA_DIST = libasm.map
 
-CLEANFILES = $(am_libasm_pic_a_OBJECTS)
+CLEANFILES = $(am_libasm_pic_a_OBJECTS) *.gcno *.gcda libasm.so.$(VERSION)

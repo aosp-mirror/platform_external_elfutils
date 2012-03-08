@@ -1,5 +1,6 @@
 /* This file defines standard ELF types, structures, and macros.
-   Copyright (C) 1995-2003, 2004 Free Software Foundation, Inc.
+   Copyright (C) 1995-2003,2004,2005,2006,2007,2008
+	Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -20,7 +21,17 @@
 #ifndef _ELF_H
 #define	_ELF_H 1
 
-//#include <features.h>
+/* ANDROID_CHANGE_BEGIN */
+/*
+ * elf.h may be directly included from a different project, and features.h does
+ * not exist on host Mac OS.
+ */
+#ifndef __APPLE__
+#include <features.h>
+#endif
+/* ANDROID_CHANGE_END */
+
+__BEGIN_DECLS
 
 /* Standard ELF types.  */
 
@@ -327,7 +338,9 @@ typedef struct
 #define SHT_GROUP	  17		/* Section group */
 #define SHT_SYMTAB_SHNDX  18		/* Extended section indeces */
 #define	SHT_NUM		  19		/* Number of defined types.  */
-#define SHT_LOOS	  0x60000000	/* Start OS-specific */
+#define SHT_LOOS	  0x60000000	/* Start OS-specific.  */
+#define SHT_GNU_ATTRIBUTES 0x6ffffff5	/* Object attributes.  */
+#define SHT_GNU_HASH	  0x6ffffff6	/* GNU-style hash table.  */
 #define SHT_GNU_LIBLIST	  0x6ffffff7	/* Prelink library list */
 #define SHT_CHECKSUM	  0x6ffffff8	/* Checksum for DSO content.  */
 #define SHT_LOSUNW	  0x6ffffffa	/* Sun-specific low bound.  */
@@ -599,7 +612,13 @@ typedef struct
 #define NT_UTSNAME	15		/* Contains copy of utsname struct */
 #define NT_LWPSTATUS	16		/* Contains copy of lwpstatus struct */
 #define NT_LWPSINFO	17		/* Contains copy of lwpinfo struct */
-#define NT_PRFPXREG	20		/* Contains copy of fprxregset struct*/
+#define NT_PRFPXREG	20		/* Contains copy of fprxregset struct */
+#define NT_PRXFPREG	0x46e62b7f	/* Contains copy of user_fxsr_struct */
+#define NT_PPC_VMX	0x100		/* PowerPC Altivec/VMX registers */
+#define NT_PPC_SPE	0x101		/* PowerPC SPE/EVR registers */
+#define NT_PPC_VSX	0x102		/* PowerPC VSX registers */
+#define NT_386_TLS	0x200		/* i386 TLS slots (struct user_desc) */
+#define NT_386_IOPERM	0x201		/* x86 io permission bitmap (1=deny) */
 
 /* Legal values for the note segment descriptor types for object files.  */
 
@@ -697,6 +716,9 @@ typedef struct
    If any adjustment is made to the ELF object after it has been
    built these entries will need to be adjusted.  */
 #define DT_ADDRRNGLO	0x6ffffe00
+#define DT_GNU_HASH	0x6ffffef5	/* GNU-style hash table.  */
+#define DT_TLSDESC_PLT	0x6ffffef6
+#define DT_TLSDESC_GOT	0x6ffffef7
 #define DT_GNU_CONFLICT	0x6ffffef8	/* Start of conflict section */
 #define DT_GNU_LIBLIST	0x6ffffef9	/* Library list */
 #define DT_CONFIG	0x6ffffefa	/* Configuration information.  */
@@ -707,7 +729,7 @@ typedef struct
 #define DT_SYMINFO	0x6ffffeff	/* Syminfo table.  */
 #define DT_ADDRRNGHI	0x6ffffeff
 #define DT_ADDRTAGIDX(tag)	(DT_ADDRRNGHI - (tag))	/* Reverse order! */
-#define DT_ADDRNUM 10
+#define DT_ADDRNUM 11
 
 /* The versioning entry types.  The next are defined as part of the
    GNU extension.  */
@@ -897,23 +919,25 @@ typedef struct
 
 typedef struct
 {
-  int a_type;			/* Entry type */
+  uint32_t a_type;		/* Entry type */
   union
     {
-      long int a_val;		/* Integer value */
-      void *a_ptr;		/* Pointer value */
-      void (*a_fcn) (void);	/* Function pointer value */
+      uint32_t a_val;		/* Integer value */
+      /* We use to have pointer elements added here.  We cannot do that,
+	 though, since it does not work when using 32-bit definitions
+	 on 64-bit platforms and vice versa.  */
     } a_un;
 } Elf32_auxv_t;
 
 typedef struct
 {
-  long int a_type;		/* Entry type */
+  uint64_t a_type;		/* Entry type */
   union
     {
-      long int a_val;		/* Integer value */
-      void *a_ptr;		/* Pointer value */
-      void (*a_fcn) (void);	/* Function pointer value */
+      uint64_t a_val;		/* Integer value */
+      /* We use to have pointer elements added here.  We cannot do that,
+	 though, since it does not work when using 32-bit definitions
+	 on 64-bit platforms and vice versa.  */
     } a_un;
 } Elf64_auxv_t;
 
@@ -956,11 +980,19 @@ typedef struct
 
 #define	AT_SECURE	23		/* Boolean, was exec setuid-like?  */
 
+#define AT_EXECFN	31		/* Filename of executable.  */
+
 /* Pointer to the global system page used for system calls and other
    nice things.  */
 #define AT_SYSINFO	32
 #define AT_SYSINFO_EHDR	33
 
+/* Shapes of the caches.  Bits 0-3 contains associativity; bits 4-7 contains
+   log2 of line size; mask those to get cache size.  */
+#define AT_L1I_CACHESHAPE	34
+#define AT_L1D_CACHESHAPE	35
+#define AT_L2_CACHESHAPE	36
+#define AT_L3_CACHESHAPE	37
 
 /* Note section contents.  Each entry in the note section begins with
    a header of a fixed form.  */
@@ -1002,14 +1034,27 @@ typedef struct
    word 2: minor version of the ABI
    word 3: subminor version of the ABI
 */
-#define ELF_NOTE_ABI		1
+#define NT_GNU_ABI_TAG	1
+#define ELF_NOTE_ABI	NT_GNU_ABI_TAG /* Old name.  */
 
-/* Known OSes.  These value can appear in word 0 of an ELF_NOTE_ABI
-   note section entry.  */
+/* Known OSes.  These values can appear in word 0 of an
+   NT_GNU_ABI_TAG note section entry.  */
 #define ELF_NOTE_OS_LINUX	0
 #define ELF_NOTE_OS_GNU		1
 #define ELF_NOTE_OS_SOLARIS2	2
 #define ELF_NOTE_OS_FREEBSD	3
+
+/* Synthetic hwcap information.  The descriptor begins with two words:
+   word 0: number of entries
+   word 1: bitmask of enabled entries
+   Then follow variable-length entries, one byte followed by a
+   '\0'-terminated hwcap name string.  The byte gives the bit
+   number to test if enabled, (1U << bit) & bitmask.  */
+#define NT_GNU_HWCAP	2
+
+/* Build ID bits as generated by ld --build-id.
+   The descriptor consists of any nonzero number of bytes.  */
+#define NT_GNU_BUILD_ID	3
 
 
 /* Move records.  */
@@ -1126,8 +1171,17 @@ typedef struct
 #define R_386_TLS_DTPMOD32 35		/* ID of module containing symbol */
 #define R_386_TLS_DTPOFF32 36		/* Offset in TLS block */
 #define R_386_TLS_TPOFF32  37		/* Negated offset in static TLS block */
+/* 38? */
+#define R_386_TLS_GOTDESC  39		/* GOT offset for TLS descriptor.  */
+#define R_386_TLS_DESC_CALL 40		/* Marker of call through TLS
+					   descriptor for
+					   relaxation.  */
+#define R_386_TLS_DESC     41		/* TLS descriptor containing
+					   pointer to code and to
+					   argument, returning the TLS
+					   offset for the symbol.  */
 /* Keep this the last entry.  */
-#define R_386_NUM	   38
+#define R_386_NUM	   42
 
 /* SUN SPARC specific definitions.  */
 
@@ -1240,14 +1294,16 @@ typedef struct
 #define DT_SPARC_REGISTER 0x70000001
 #define DT_SPARC_NUM	2
 
-/* Bits present in AT_HWCAP, primarily for Sparc32.  */
+/* Bits present in AT_HWCAP on SPARC.  */
 
-#define HWCAP_SPARC_FLUSH	1	/* The cpu supports flush insn.  */
+#define HWCAP_SPARC_FLUSH	1	/* The CPU supports flush insn.  */
 #define HWCAP_SPARC_STBAR	2
 #define HWCAP_SPARC_SWAP	4
 #define HWCAP_SPARC_MULDIV	8
-#define HWCAP_SPARC_V9		16	/* The cpu is v9, so v8plus is ok.  */
+#define HWCAP_SPARC_V9		16	/* The CPU is v9, so v8plus is ok.  */
 #define HWCAP_SPARC_ULTRA3	32
+#define HWCAP_SPARC_BLKINIT	64	/* Sun4v with block-init/load-twin.  */
+#define HWCAP_SPARC_N2		128
 
 /* MIPS R3000 specific definitions.  */
 
@@ -1351,6 +1407,7 @@ typedef struct
 #define STO_MIPS_INTERNAL		0x1
 #define STO_MIPS_HIDDEN			0x2
 #define STO_MIPS_PROTECTED		0x3
+#define STO_MIPS_PLT			0x8
 #define STO_MIPS_SC_ALIGN_UNUSED	0xff
 
 /* MIPS specific values for `st_info'.  */
@@ -1483,8 +1540,24 @@ typedef struct
 #define R_MIPS_PJUMP		35
 #define R_MIPS_RELGOT		36
 #define R_MIPS_JALR		37
+#define R_MIPS_TLS_DTPMOD32	38	/* Module number 32 bit */
+#define R_MIPS_TLS_DTPREL32	39	/* Module-relative offset 32 bit */
+#define R_MIPS_TLS_DTPMOD64	40	/* Module number 64 bit */
+#define R_MIPS_TLS_DTPREL64	41	/* Module-relative offset 64 bit */
+#define R_MIPS_TLS_GD		42	/* 16 bit GOT offset for GD */
+#define R_MIPS_TLS_LDM		43	/* 16 bit GOT offset for LDM */
+#define R_MIPS_TLS_DTPREL_HI16	44	/* Module-relative offset, high 16 bits */
+#define R_MIPS_TLS_DTPREL_LO16	45	/* Module-relative offset, low 16 bits */
+#define R_MIPS_TLS_GOTTPREL	46	/* 16 bit GOT offset for IE */
+#define R_MIPS_TLS_TPREL32	47	/* TP-relative offset, 32 bit */
+#define R_MIPS_TLS_TPREL64	48	/* TP-relative offset, 64 bit */
+#define R_MIPS_TLS_TPREL_HI16	49	/* TP-relative offset, high 16 bits */
+#define R_MIPS_TLS_TPREL_LO16	50	/* TP-relative offset, low 16 bits */
+#define R_MIPS_GLOB_DAT		51
+#define R_MIPS_COPY		126
+#define R_MIPS_JUMP_SLOT        127
 /* Keep this the last entry.  */
-#define R_MIPS_NUM		38
+#define R_MIPS_NUM		128
 
 /* Legal values for p_type field of Elf32_Phdr.  */
 
@@ -1550,7 +1623,13 @@ typedef struct
 #define DT_MIPS_COMPACT_SIZE 0x7000002f /* (O32)Size of compact rel section. */
 #define DT_MIPS_GP_VALUE     0x70000030 /* GP value for aux GOTs.  */
 #define DT_MIPS_AUX_DYNAMIC  0x70000031 /* Address of aux .dynamic.  */
-#define DT_MIPS_NUM	     0x32
+/* The address of .got.plt in an executable using the new non-PIC ABI.  */
+#define DT_MIPS_PLTGOT	     0x70000032
+/* The base of the PLT in an executable using the new non-PIC ABI if that
+   PLT is writable.  For a non-writable PLT, this is omitted or has a zero
+   value.  */
+#define DT_MIPS_RWPLT        0x70000034
+#define DT_MIPS_NUM	     0x35
 
 /* Legal values for DT_MIPS_FLAGS Elf32_Dyn entry.  */
 
@@ -1680,6 +1759,8 @@ typedef Elf32_Addr Elf32_Conflict;
 #define R_PARISC_LTOFF_FPTR14R	62	/* LT-rel. fct ptr, right 14 bits. */
 #define R_PARISC_FPTR64		64	/* 64 bits function address.  */
 #define R_PARISC_PLABEL32	65	/* 32 bits function address.  */
+#define R_PARISC_PLABEL21L	66	/* Left 21 bits of fdesc address.  */
+#define R_PARISC_PLABEL14R	70	/* Right 14 bits of fdesc address.  */
 #define R_PARISC_PCREL64	72	/* 64 bits PC-rel. address.  */
 #define R_PARISC_PCREL22F	74	/* 22 bits PC-rel. address.  */
 #define R_PARISC_PCREL14WR	75	/* PC-rel. address, right 14 bits.  */
@@ -1740,6 +1821,26 @@ typedef Elf32_Addr Elf32_Conflict;
 #define R_PARISC_LTOFF_TP16F	229	/* 16 bits LT-TP-rel. address.  */
 #define R_PARISC_LTOFF_TP16WF	230	/* 16 bits LT-TP-rel. address.  */
 #define R_PARISC_LTOFF_TP16DF	231	/* 16 bits LT-TP-rel. address.  */
+#define R_PARISC_GNU_VTENTRY	232
+#define R_PARISC_GNU_VTINHERIT	233
+#define R_PARISC_TLS_GD21L	234	/* GD 21-bit left.  */
+#define R_PARISC_TLS_GD14R	235	/* GD 14-bit right.  */
+#define R_PARISC_TLS_GDCALL	236	/* GD call to __t_g_a.  */
+#define R_PARISC_TLS_LDM21L	237	/* LD module 21-bit left.  */
+#define R_PARISC_TLS_LDM14R	238	/* LD module 14-bit right.  */
+#define R_PARISC_TLS_LDMCALL	239	/* LD module call to __t_g_a.  */
+#define R_PARISC_TLS_LDO21L	240	/* LD offset 21-bit left.  */
+#define R_PARISC_TLS_LDO14R	241	/* LD offset 14-bit right.  */
+#define R_PARISC_TLS_DTPMOD32	242	/* DTP module 32-bit.  */
+#define R_PARISC_TLS_DTPMOD64	243	/* DTP module 64-bit.  */
+#define R_PARISC_TLS_DTPOFF32	244	/* DTP offset 32-bit.  */
+#define R_PARISC_TLS_DTPOFF64	245	/* DTP offset 32-bit.  */
+#define R_PARISC_TLS_LE21L	R_PARISC_TPREL21L
+#define R_PARISC_TLS_LE14R	R_PARISC_TPREL14R
+#define R_PARISC_TLS_IE21L	R_PARISC_LTOFF_TP21L
+#define R_PARISC_TLS_IE14R	R_PARISC_LTOFF_TP14R
+#define R_PARISC_TLS_TPREL32	R_PARISC_TPREL32
+#define R_PARISC_TLS_TPREL64	R_PARISC_TPREL64
 #define R_PARISC_HIRESERVE	255
 
 /* Legal values for p_type field of Elf32_Phdr/Elf64_Phdr.  */
@@ -1843,6 +1944,9 @@ typedef Elf32_Addr Elf32_Conflict;
 #define LITUSE_ALPHA_TLS_GD	4
 #define LITUSE_ALPHA_TLS_LDM	5
 
+/* Legal values for d_tag of Elf64_Dyn.  */
+#define DT_ALPHA_PLTRO		(DT_LOPROC + 0)
+#define DT_ALPHA_NUM		1
 
 /* PowerPC specific declarations */
 
@@ -1953,10 +2057,19 @@ typedef Elf32_Addr Elf32_Conflict;
 #define R_PPC_DIAB_RELSDA_HI	184	/* like EMB_RELSDA, but high 16 bit */
 #define R_PPC_DIAB_RELSDA_HA	185	/* like EMB_RELSDA, adjusted high 16 */
 
+/* GNU relocs used in PIC code sequences.  */
+#define R_PPC_REL16		249	/* word32   (sym-.) */
+#define R_PPC_REL16_LO		250	/* half16   (sym-.)@l */
+#define R_PPC_REL16_HI		251	/* half16   (sym-.)@h */
+#define R_PPC_REL16_HA		252	/* half16   (sym-.)@ha */
+
 /* This is a phony reloc to handle any old fashioned TOC16 references
    that may still be in object files.  */
 #define R_PPC_TOC16		255
 
+/* PowerPC specific values for the Dyn d_tag field.  */
+#define DT_PPC_GOT		(DT_LOPROC + 0)
+#define DT_PPC_NUM		1
 
 /* PowerPC64 relocations defined by the ABIs */
 #define R_PPC64_NONE		R_PPC_NONE
@@ -2117,7 +2230,11 @@ typedef Elf32_Addr Elf32_Conflict;
 #define PF_ARM_SB          0x10000000   /* Segment contains the location
 					   addressed by the static base */
 
+/* Processor specific values for the Phdr p_type field.  */
+#define PT_ARM_EXIDX	0x70000001	/* .ARM.exidx segment */
+
 /* ARM relocs.  */
+
 #define R_ARM_NONE		0	/* No reloc */
 #define R_ARM_PC24		1	/* PC relative 26 bit branch */
 #define R_ARM_ABS32		2	/* Direct 32 bit  */
@@ -2135,6 +2252,9 @@ typedef Elf32_Addr Elf32_Conflict;
 #define R_ARM_THM_SWI8		14
 #define R_ARM_XPC25		15
 #define R_ARM_THM_XPC22		16
+#define R_ARM_TLS_DTPMOD32	17	/* ID of module containing symbol */
+#define R_ARM_TLS_DTPOFF32	18	/* Offset in TLS block */
+#define R_ARM_TLS_TPOFF32	19	/* Offset in static TLS block */
 #define R_ARM_COPY		20	/* Copy symbol at runtime */
 #define R_ARM_GLOB_DAT		21	/* Create GOT entry */
 #define R_ARM_JUMP_SLOT		22	/* Create PLT entry */
@@ -2153,6 +2273,16 @@ typedef Elf32_Addr Elf32_Conflict;
 #define R_ARM_GNU_VTINHERIT	101
 #define R_ARM_THM_PC11		102	/* thumb unconditional branch */
 #define R_ARM_THM_PC9		103	/* thumb conditional branch */
+#define R_ARM_TLS_GD32		104	/* PC-rel 32 bit for global dynamic
+					   thread local data */
+#define R_ARM_TLS_LDM32		105	/* PC-rel 32 bit for local dynamic
+					   thread local data */
+#define R_ARM_TLS_LDO32		106	/* 32 bit offset relative to TLS
+					   block */
+#define R_ARM_TLS_IE32		107	/* PC-rel 32 bit for GOT entry of
+					   static TLS block offset */
+#define R_ARM_TLS_LE32		108	/* 32 bit offset relative to static
+					   TLS block */
 #define R_ARM_RXPC25		249
 #define R_ARM_RSBREL32		250
 #define R_ARM_THM_RPC22		251
@@ -2394,9 +2524,14 @@ typedef Elf32_Addr Elf32_Conflict;
 #define R_390_TLS_DTPOFF	55	/* Offset in TLS block.	 */
 #define R_390_TLS_TPOFF		56	/* Negated offset in static TLS
 					   block.  */
-
+#define R_390_20		57	/* Direct 20 bit.  */
+#define R_390_GOT20		58	/* 20 bit GOT offset.  */
+#define R_390_GOTPLT20		59	/* 20 bit offset to jump slot.  */
+#define R_390_TLS_GOTIE20	60	/* 20 bit GOT offset for static TLS
+					   block offset.  */
 /* Keep this the last entry.  */
-#define R_390_NUM		57
+#define R_390_NUM		61
+
 
 /* CRIS relocations.  */
 #define R_CRIS_NONE		0
@@ -2421,6 +2556,7 @@ typedef Elf32_Addr Elf32_Conflict;
 #define R_CRIS_32_PLT_PCREL	19
 
 #define R_CRIS_NUM		20
+
 
 /* AMD x86-64 relocations.  */
 #define R_X86_64_NONE		0	/* No reloc */
@@ -2451,7 +2587,104 @@ typedef Elf32_Addr Elf32_Conflict;
 #define R_X86_64_GOTTPOFF	22	/* 32 bit signed PC relative offset
 					   to GOT entry for IE symbol */
 #define R_X86_64_TPOFF32	23	/* Offset in initial TLS block */
+#define R_X86_64_PC64		24	/* PC relative 64 bit */
+#define R_X86_64_GOTOFF64	25	/* 64 bit offset to GOT */
+#define R_X86_64_GOTPC32	26	/* 32 bit signed pc relative
+					   offset to GOT */
+/* 27 .. 33 */
+#define R_X86_64_GOTPC32_TLSDESC 34	/* GOT offset for TLS descriptor.  */
+#define R_X86_64_TLSDESC_CALL   35	/* Marker for call through TLS
+					   descriptor.  */
+#define R_X86_64_TLSDESC        36	/* TLS descriptor.  */
 
-#define R_X86_64_NUM		24
+#define R_X86_64_NUM		37
+
+
+/* AM33 relocations.  */
+#define R_MN10300_NONE		0	/* No reloc.  */
+#define R_MN10300_32		1	/* Direct 32 bit.  */
+#define R_MN10300_16		2	/* Direct 16 bit.  */
+#define R_MN10300_8		3	/* Direct 8 bit.  */
+#define R_MN10300_PCREL32	4	/* PC-relative 32-bit.  */
+#define R_MN10300_PCREL16	5	/* PC-relative 16-bit signed.  */
+#define R_MN10300_PCREL8	6	/* PC-relative 8-bit signed.  */
+#define R_MN10300_GNU_VTINHERIT	7	/* Ancient C++ vtable garbage... */
+#define R_MN10300_GNU_VTENTRY	8	/* ... collection annotation.  */
+#define R_MN10300_24		9	/* Direct 24 bit.  */
+#define R_MN10300_GOTPC32	10	/* 32-bit PCrel offset to GOT.  */
+#define R_MN10300_GOTPC16	11	/* 16-bit PCrel offset to GOT.  */
+#define R_MN10300_GOTOFF32	12	/* 32-bit offset from GOT.  */
+#define R_MN10300_GOTOFF24	13	/* 24-bit offset from GOT.  */
+#define R_MN10300_GOTOFF16	14	/* 16-bit offset from GOT.  */
+#define R_MN10300_PLT32		15	/* 32-bit PCrel to PLT entry.  */
+#define R_MN10300_PLT16		16	/* 16-bit PCrel to PLT entry.  */
+#define R_MN10300_GOT32		17	/* 32-bit offset to GOT entry.  */
+#define R_MN10300_GOT24		18	/* 24-bit offset to GOT entry.  */
+#define R_MN10300_GOT16		19	/* 16-bit offset to GOT entry.  */
+#define R_MN10300_COPY		20	/* Copy symbol at runtime.  */
+#define R_MN10300_GLOB_DAT	21	/* Create GOT entry.  */
+#define R_MN10300_JMP_SLOT	22	/* Create PLT entry.  */
+#define R_MN10300_RELATIVE	23	/* Adjust by program base.  */
+
+#define R_MN10300_NUM		24
+
+
+/* M32R relocs.  */
+#define R_M32R_NONE		0	/* No reloc. */
+#define R_M32R_16		1	/* Direct 16 bit. */
+#define R_M32R_32		2	/* Direct 32 bit. */
+#define R_M32R_24		3	/* Direct 24 bit. */
+#define R_M32R_10_PCREL		4	/* PC relative 10 bit shifted. */
+#define R_M32R_18_PCREL		5	/* PC relative 18 bit shifted. */
+#define R_M32R_26_PCREL		6	/* PC relative 26 bit shifted. */
+#define R_M32R_HI16_ULO		7	/* High 16 bit with unsigned low. */
+#define R_M32R_HI16_SLO		8	/* High 16 bit with signed low. */
+#define R_M32R_LO16		9	/* Low 16 bit. */
+#define R_M32R_SDA16		10	/* 16 bit offset in SDA. */
+#define R_M32R_GNU_VTINHERIT	11
+#define R_M32R_GNU_VTENTRY	12
+/* M32R relocs use SHT_RELA.  */
+#define R_M32R_16_RELA		33	/* Direct 16 bit. */
+#define R_M32R_32_RELA		34	/* Direct 32 bit. */
+#define R_M32R_24_RELA		35	/* Direct 24 bit. */
+#define R_M32R_10_PCREL_RELA	36	/* PC relative 10 bit shifted. */
+#define R_M32R_18_PCREL_RELA	37	/* PC relative 18 bit shifted. */
+#define R_M32R_26_PCREL_RELA	38	/* PC relative 26 bit shifted. */
+#define R_M32R_HI16_ULO_RELA	39	/* High 16 bit with unsigned low */
+#define R_M32R_HI16_SLO_RELA	40	/* High 16 bit with signed low */
+#define R_M32R_LO16_RELA	41	/* Low 16 bit */
+#define R_M32R_SDA16_RELA	42	/* 16 bit offset in SDA */
+#define R_M32R_RELA_GNU_VTINHERIT	43
+#define R_M32R_RELA_GNU_VTENTRY	44
+#define R_M32R_REL32		45	/* PC relative 32 bit.  */
+
+#define R_M32R_GOT24		48	/* 24 bit GOT entry */
+#define R_M32R_26_PLTREL	49	/* 26 bit PC relative to PLT shifted */
+#define R_M32R_COPY		50	/* Copy symbol at runtime */
+#define R_M32R_GLOB_DAT		51	/* Create GOT entry */
+#define R_M32R_JMP_SLOT		52	/* Create PLT entry */
+#define R_M32R_RELATIVE		53	/* Adjust by program base */
+#define R_M32R_GOTOFF		54	/* 24 bit offset to GOT */
+#define R_M32R_GOTPC24		55	/* 24 bit PC relative offset to GOT */
+#define R_M32R_GOT16_HI_ULO	56	/* High 16 bit GOT entry with unsigned
+					   low */
+#define R_M32R_GOT16_HI_SLO	57	/* High 16 bit GOT entry with signed
+					   low */
+#define R_M32R_GOT16_LO		58	/* Low 16 bit GOT entry */
+#define R_M32R_GOTPC_HI_ULO	59	/* High 16 bit PC relative offset to
+					   GOT with unsigned low */
+#define R_M32R_GOTPC_HI_SLO	60	/* High 16 bit PC relative offset to
+					   GOT with signed low */
+#define R_M32R_GOTPC_LO		61	/* Low 16 bit PC relative offset to
+					   GOT */
+#define R_M32R_GOTOFF_HI_ULO	62	/* High 16 bit offset to GOT
+					   with unsigned low */
+#define R_M32R_GOTOFF_HI_SLO	63	/* High 16 bit offset to GOT
+					   with signed low */
+#define R_M32R_GOTOFF_LO	64	/* Low 16 bit offset to GOT */
+#define R_M32R_NUM		256	/* Keep this the last entry. */
+
+
+__END_DECLS
 
 #endif	/* elf.h */

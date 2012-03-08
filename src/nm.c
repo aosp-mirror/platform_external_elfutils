@@ -1,16 +1,28 @@
-/* Print information from ELF file in human-readable form.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004 Red Hat, Inc.
+/* Print symbol information from ELF file in human-readable form.
+   Copyright (C) 2000,2001,2002,2003,2004,2005,2006,2007,2008 Red Hat, Inc.
+   This file is part of Red Hat elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2000.
 
-   This program is Open Source software; you can redistribute it and/or
-   modify it under the terms of the Open Software License version 1.0 as
-   published by the Open Source Initiative.
+   Red Hat elfutils is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by the
+   Free Software Foundation; version 2 of the License.
 
-   You should have received a copy of the Open Software License along
-   with this program; if not, you may obtain a copy of the Open Software
-   License version 1.0 from http://www.opensource.org/licenses/osl.php or
-   by writing the Open Source Initiative c/o Lawrence Rosen, Esq.,
-   3001 King Ranch Road, Ukiah, CA 95482.   */
+   Red Hat elfutils is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License along
+   with Red Hat elfutils; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+
+   Red Hat elfutils is an included package of the Open Invention Network.
+   An included package of the Open Invention Network is a package for which
+   Open Invention Network licensees cross-license their patents.  No patent
+   license is granted, either expressly or impliedly, by designation as an
+   included package.  Should you wish to participate in the Open Invention
+   Network licensing program, please visit www.openinventionnetwork.com
+   <http://www.openinventionnetwork.com>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -27,7 +39,6 @@
 #include <gelf.h>
 #include <inttypes.h>
 #include <libdw.h>
-#include <libebl.h>
 #include <libintl.h>
 #include <locale.h>
 #include <mcheck.h>
@@ -42,11 +53,15 @@
 #include <sys/param.h>
 
 #include <system.h>
+#include "../libebl/libeblP.h"
 
 
 /* Name and version of program.  */
 static void print_version (FILE *stream, struct argp_state *state);
 void (*argp_program_version_hook) (FILE *, struct argp_state *) = print_version;
+
+/* Bug report address.  */
+const char *argp_program_bug_address = PACKAGE_BUGREPORT;
 
 
 /* Values for the parameters which have no short form.  */
@@ -98,13 +113,10 @@ static const char args_doc[] = N_("[FILE...]");
 /* Prototype for option handler.  */
 static error_t parse_opt (int key, char *arg, struct argp_state *state);
 
-/* Function to print some extra text in the help message.  */
-static char *more_help (int key, const char *text, void *input);
-
 /* Data structure to communicate with argp functions.  */
 static struct argp argp =
 {
-  options, parse_opt, args_doc, doc, NULL, more_help, NULL
+  options, parse_opt, args_doc, doc, NULL, NULL, NULL
 };
 
 
@@ -122,7 +134,7 @@ static int handle_elf (Elf *elf, const char *prefix, const char *fname,
 
 #define INTERNAL_ERROR(fname) \
   error (EXIT_FAILURE, 0, gettext ("%s: INTERNAL ERROR %d (%s-%s): %s"),      \
-	 fname, __LINE__, VERSION, __DATE__, elf_errmsg (-1))
+	 fname, __LINE__, PACKAGE_VERSION, __DATE__, elf_errmsg (-1))
 
 
 /* Internal representation of symbols.  */
@@ -205,10 +217,10 @@ main (int argc, char *argv[])
   (void) setlocale (LC_ALL, "");
 
   /* Make sure the message catalog can be found.  */
-  (void) bindtextdomain (PACKAGE, LOCALEDIR);
+  (void) bindtextdomain (PACKAGE_TARNAME, LOCALEDIR);
 
   /* Initialize the message catalog.  */
-  (void) textdomain (PACKAGE);
+  (void) textdomain (PACKAGE_TARNAME);
 
   /* Parse and process arguments.  */
   (void) argp_parse (&argp, argc, argv, 0, &remaining, NULL);
@@ -235,21 +247,22 @@ main (int argc, char *argv[])
 
 /* Print the version information.  */
 static void
-print_version (FILE *stream, /*@unused@*/ struct argp_state *state)
+print_version (FILE *stream, struct argp_state *state __attribute__ ((unused)))
 {
-  fprintf (stream, "nm (%s) %s\n", PACKAGE_NAME, VERSION);
+  fprintf (stream, "nm (%s) %s\n", PACKAGE_NAME, PACKAGE_VERSION);
   fprintf (stream, gettext ("\
 Copyright (C) %s Red Hat, Inc.\n\
 This is free software; see the source for copying conditions.  There is NO\n\
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\
-"), "2004");
+"), "2008");
   fprintf (stream, gettext ("Written by %s.\n"), "Ulrich Drepper");
 }
 
 
 /* Handle program arguments.  */
 static error_t
-parse_opt (int key, char *arg, /*@unused@*/ struct argp_state *state)
+parse_opt (int key, char *arg,
+	   struct argp_state *state __attribute__ ((unused)))
 {
   switch (key)
     {
@@ -339,27 +352,6 @@ parse_opt (int key, char *arg, /*@unused@*/ struct argp_state *state)
 }
 
 
-static char *
-more_help (int key, const char *text, /*@unused@*/ void *input)
-{
-  char *buf;
-
-  switch (key)
-    {
-    case ARGP_KEY_HELP_EXTRA:
-      /* We print some extra information.  */
-      if (asprintf (&buf, gettext ("Please report bugs to %s.\n"),
-		    PACKAGE_BUGREPORT) < 0)
-	buf = NULL;
-      return buf;
-
-    default:
-      break;
-    }
-  return (char *) text;
-}
-
-
 /* Open the file and determine the type.  */
 static int
 process_file (const char *fname, bool more_than_one)
@@ -368,7 +360,7 @@ process_file (const char *fname, bool more_than_one)
   int fd = open (fname, O_RDONLY);
   if (fd == -1)
     {
-      error (0, errno, fname);
+      error (0, errno, gettext ("cannot open '%s'"), fname);
       return 1;
     }
 
@@ -385,7 +377,7 @@ process_file (const char *fname, bool more_than_one)
 	    INTERNAL_ERROR (fname);
 
 	  if (close (fd) != 0)
-	    error (EXIT_FAILURE, errno, gettext ("while close `%s'"), fname);
+	    error (EXIT_FAILURE, errno, gettext ("while closing '%s'"), fname);
 
 	  return result;
 	}
@@ -397,7 +389,7 @@ process_file (const char *fname, bool more_than_one)
 	    INTERNAL_ERROR (fname);
 
 	  if (close (fd) != 0)
-	    error (EXIT_FAILURE, errno, gettext ("while close `%s'"), fname);
+	    error (EXIT_FAILURE, errno, gettext ("while closing '%s'"), fname);
 
 	  return result;
 	}
@@ -527,13 +519,6 @@ static const int length_map[2][3] =
 };
 
 
-struct global_name
-{
-  Dwarf_Global global;
-  const char *name;
-};
-
-
 static int
 global_compare (const void *p1, const void *p2)
 {
@@ -548,7 +533,8 @@ static void *global_root;
 
 
 static int
-get_global (Dwarf *dbg, Dwarf_Global *global, void *arg)
+get_global (Dwarf *dbg __attribute__ ((unused)), Dwarf_Global *global,
+	    void *arg __attribute__ ((unused)))
 {
   tsearch (memcpy (xmalloc (sizeof (Dwarf_Global)), global,
 		   sizeof (Dwarf_Global)),
@@ -608,9 +594,9 @@ get_var_range (Dwarf_Die *die, Dwarf_Word *lowpc, Dwarf_Word *highpc)
   if  (locattr == NULL)
     return 1;
 
-  Dwarf_Loc *loc;
+  Dwarf_Op *loc;
   size_t nloc;
-  if (dwarf_getloclist (locattr, &loc, &nloc) != 0)
+  if (dwarf_getlocation (locattr, &loc, &nloc) != 0)
     return 1;
 
   /* Interpret the location expressions.  */
@@ -630,7 +616,7 @@ static void *local_root;
 
 
 static void
-get_local_names (Ebl *ebl, Dwarf *dbg)
+get_local_names (Dwarf *dbg)
 {
   Dwarf_Off offset = 0;
   Dwarf_Off old_offset;
@@ -717,6 +703,18 @@ get_local_names (Ebl *ebl, Dwarf *dbg)
     }
 }
 
+/* Do elf_strptr, but return a backup string and never NULL.  */
+static const char *
+sym_name (Elf *elf, GElf_Word strndx, GElf_Word st_name, char buf[], size_t n)
+{
+  const char *symstr = elf_strptr (elf, strndx, st_name);
+  if (symstr == NULL)
+    {
+      snprintf (buf, n, "[invalid st_name %#" PRIx32 "]", st_name);
+      symstr = buf;
+    }
+  return symstr;
+}
 
 /* Show symbols in SysV format.  */
 static void
@@ -750,9 +748,15 @@ show_symbols_sysv (Ebl *ebl, GElf_Word strndx,
 
       assert (elf_ndxscn (scn) == cnt++);
 
-      scnnames[elf_ndxscn (scn)]
-	= elf_strptr (ebl->elf, shstrndx,
-		      gelf_getshdr (scn, &shdr_mem)->sh_name);
+      char *name = elf_strptr (ebl->elf, shstrndx,
+			       gelf_getshdr (scn, &shdr_mem)->sh_name);
+      if (unlikely (name == NULL))
+	{
+	  name = alloca (sizeof "[invalid sh_name 0x12345678]");
+	  snprintf (name, sizeof name, "[invalid sh_name %#" PRIx32 "]",
+		    gelf_getshdr (scn, &shdr_mem)->sh_name);
+	}
+      scnnames[elf_ndxscn (scn)] = name;
     }
 
   int digits = length_map[gelf_getclass (ebl->elf) - 1][radix];
@@ -786,8 +790,10 @@ show_symbols_sysv (Ebl *ebl, GElf_Word strndx,
   /* Iterate over all symbols.  */
   for (cnt = 0; cnt < nsyms; ++cnt)
     {
-      const char *symstr = elf_strptr (ebl->elf, strndx,
-				       syms[cnt].sym.st_name);
+      char symstrbuf[50];
+      const char *symstr = sym_name (ebl->elf, strndx, syms[cnt].sym.st_name,
+				     symstrbuf, sizeof symstrbuf);
+
       char symbindbuf[50];
       char symtypebuf[50];
       char secnamebuf[1024];
@@ -839,7 +845,7 @@ class_type_char (GElf_Sym *sym)
 
 
 static void
-show_symbols_bsd (Elf *elf, GElf_Ehdr *ehdr, GElf_Word strndx,
+show_symbols_bsd (Elf *elf, GElf_Word strndx,
 		  const char *prefix, const char *fname, const char *fullname,
 		  GElf_SymX *syms, size_t nsyms)
 {
@@ -864,7 +870,9 @@ show_symbols_bsd (Elf *elf, GElf_Ehdr *ehdr, GElf_Word strndx,
   /* Iterate over all symbols.  */
   for (size_t cnt = 0; cnt < nsyms; ++cnt)
     {
-      const char *symstr = elf_strptr (elf, strndx, syms[cnt].sym.st_name);
+      char symstrbuf[50];
+      const char *symstr = sym_name (elf, strndx, syms[cnt].sym.st_name,
+				     symstrbuf, sizeof symstrbuf);
 
       /* Printing entries with a zero-length name makes the output
 	 not very well parseable.  Since these entries don't carry
@@ -886,7 +894,7 @@ show_symbols_bsd (Elf *elf, GElf_Ehdr *ehdr, GElf_Word strndx,
 		? (GELF_ST_BIND (syms[cnt].sym.st_info) == STB_WEAK
 		   ? "*" : " ")
 		: "",
-		elf_strptr (elf, strndx, syms[cnt].sym.st_name));
+		symstr);
       else
 	printf (print_size ? sfmtstrs[radix] : fmtstrs[radix],
 		digits, syms[cnt].sym.st_value,
@@ -895,15 +903,14 @@ show_symbols_bsd (Elf *elf, GElf_Ehdr *ehdr, GElf_Word strndx,
 		? (GELF_ST_BIND (syms[cnt].sym.st_info) == STB_WEAK
 		   ? "*" : " ")
 		: "",
-		elf_strptr (elf, strndx, syms[cnt].sym.st_name),
+		symstr,
 		digits, (uint64_t) syms[cnt].sym.st_size);
     }
 }
 
 
 static void
-show_symbols_posix (Elf *elf, GElf_Ehdr *ehdr, GElf_Word strndx,
-		    const char *prefix, const char *fname,
+show_symbols_posix (Elf *elf, GElf_Word strndx, const char *prefix,
 		    const char *fullname, GElf_SymX *syms, size_t nsyms)
 {
   if (prefix != NULL && ! print_file_name)
@@ -922,7 +929,9 @@ show_symbols_posix (Elf *elf, GElf_Ehdr *ehdr, GElf_Word strndx,
   /* Iterate over all symbols.  */
   for (size_t cnt = 0; cnt < nsyms; ++cnt)
     {
-      const char *symstr = elf_strptr (elf, strndx, syms[cnt].sym.st_name);
+      char symstrbuf[50];
+      const char *symstr = sym_name (elf, strndx, syms[cnt].sym.st_name,
+				     symstrbuf, sizeof symstrbuf);
 
       /* Printing entries with a zero-length name makes the output
 	 not very well parseable.  Since these entries don't carry
@@ -953,34 +962,39 @@ show_symbols_posix (Elf *elf, GElf_Ehdr *ehdr, GElf_Word strndx,
 /* Maximum size of memory we allocate on the stack.  */
 #define MAX_STACK_ALLOC	65536
 
+static int
+sort_by_address (const void *p1, const void *p2)
+{
+  GElf_SymX *s1 = (GElf_SymX *) p1;
+  GElf_SymX *s2 = (GElf_SymX *) p2;
+
+  int result = (s1->sym.st_value < s2->sym.st_value
+		? -1 : (s1->sym.st_value == s2->sym.st_value ? 0 : 1));
+
+  return reverse_sort ? -result : result;
+}
+
+static Elf_Data *sort_by_name_strtab;
+
+static int
+sort_by_name (const void *p1, const void *p2)
+{
+  GElf_SymX *s1 = (GElf_SymX *) p1;
+  GElf_SymX *s2 = (GElf_SymX *) p2;
+
+  const char *n1 = sort_by_name_strtab->d_buf + s1->sym.st_name;
+  const char *n2 = sort_by_name_strtab->d_buf + s2->sym.st_name;
+
+  int result = strcmp (n1, n2);
+
+  return reverse_sort ? -result : result;
+}
+
 static void
 show_symbols (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, Elf_Scn *xndxscn,
 	      GElf_Shdr *shdr, const char *prefix, const char *fname,
 	      const char *fullname)
 {
-  int sort_by_name (const void *p1, const void *p2)
-    {
-      GElf_SymX *s1 = (GElf_SymX *) p1;
-      GElf_SymX *s2 = (GElf_SymX *) p2;
-      int result;
-
-      result = strcmp (elf_strptr (ebl->elf, shdr->sh_link, s1->sym.st_name),
-		       elf_strptr (ebl->elf, shdr->sh_link, s2->sym.st_name));
-
-      return reverse_sort ? -result : result;
-    }
-
-  int sort_by_address (const void *p1, const void *p2)
-    {
-      GElf_SymX *s1 = (GElf_SymX *) p1;
-      GElf_SymX *s2 = (GElf_SymX *) p2;
-
-      int result = (s1->sym.st_value < s2->sym.st_value
-		    ? -1 : (s1->sym.st_value == s2->sym.st_value ? 0 : 1));
-
-      return reverse_sort ? -result : result;
-    }
-
   /* Get the section header string table index.  */
   size_t shstrndx;
   if (elf_getshstrndx (ebl->elf, &shstrndx) < 0)
@@ -1021,7 +1035,7 @@ show_symbols (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, Elf_Scn *xndxscn,
 	{
 	  (void) dwarf_getpubnames (dbg, get_global, NULL, 0);
 
-	  get_local_names (ebl, dbg);
+	  get_local_names (dbg);
 	}
     }
 
@@ -1066,6 +1080,8 @@ show_symbols (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, Elf_Scn *xndxscn,
 	{
 	  const char *symstr = elf_strptr (ebl->elf, shdr->sh_link,
 					   sym->st_name);
+	  if (symstr == NULL)
+	    continue;
 
 	  longest_name = MAX ((size_t) longest_name, strlen (symstr));
 
@@ -1157,7 +1173,11 @@ show_symbols (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, Elf_Scn *xndxscn,
 
   /* Sort the entries according to the users wishes.  */
   if (sort == sort_name)
-    qsort (sym_mem, nentries, sizeof (GElf_SymX), sort_by_name);
+    {
+      sort_by_name_strtab = elf_getdata (elf_getscn (ebl->elf, shdr->sh_link),
+					 NULL);
+      qsort (sym_mem, nentries, sizeof (GElf_SymX), sort_by_name);
+    }
   else if (sort == sort_numeric)
     qsort (sym_mem, nentries, sizeof (GElf_SymX), sort_by_address);
 
@@ -1171,15 +1191,15 @@ show_symbols (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, Elf_Scn *xndxscn,
       break;
 
     case format_bsd:
-      show_symbols_bsd (ebl->elf, ehdr, shdr->sh_link, prefix, fname,
-			fullname, sym_mem, nentries);
+      show_symbols_bsd (ebl->elf, shdr->sh_link, prefix, fname, fullname,
+			sym_mem, nentries);
       break;
 
     case format_posix:
     default:
       assert (format == format_posix);
-      show_symbols_posix (ebl->elf, ehdr, shdr->sh_link, prefix, fname,
-			  fullname, sym_mem, nentries);
+      show_symbols_posix (ebl->elf, shdr->sh_link, prefix, fullname, sym_mem,
+			  nentries);
       break;
     }
 
@@ -1300,3 +1320,6 @@ handle_elf (Elf *elf, const char *prefix, const char *fname,
 
   return result;
 }
+
+
+#include "debugpred.h"

@@ -1,3 +1,360 @@
+Version 0.138:
+
+Install <elfutils/version.h> header file for applications to use in source
+version compatibility checks.
+
+libebl: backend fixes for i386 TLS relocs; backend support for NT_386_IOPERM
+
+libcpu: disassembler fixes
+
+libdwfl: bug fixes
+
+libelf: bug fixes
+
+nm: bug fixes for handling corrupt input files
+
+Version 0.137:
+
+Minor fixes for unreleased 0.136 release.
+
+Version 0.136:
+
+libdwfl: bug fixes; new "segment" interfaces;
+	 all the libdwfl-based tools now support --core=COREFILE option
+
+Version 0.135:
+
+libdwfl: bug fixes
+
+strip: changed handling of ET_REL files wrt symbol tables and relocs
+
+Version 0.134:
+
+elflint: backend improvements for sparc, alpha
+
+libdwfl, libelf: bug fixes
+
+Version 0.133:
+
+readelf, elflint, libebl: SHT_GNU_ATTRIBUTE section handling (readelf -A)
+
+readelf: core note handling for NT_386_TLS, NT_PPC_SPE, Alpha NT_AUXV
+
+libdwfl: bug fixes and optimization in relocation handling
+
+elfcmp: bug fix for non-allocated section handling
+
+ld: implement newer features of binutils linker.
+
+Version 0.132:
+
+libcpu: Implement x86 and x86-64 disassembler.
+libasm: Add interface for disassembler.
+
+all programs: add debugging of branch prediction.
+
+libelf: new function elf_scnshndx.
+
+Version 0.131:
+
+libdw: DW_FORM_ref_addr support; dwarf_formref entry point now deprecated;
+       bug fixes for oddly-formatted DWARF
+
+libdwfl: bug fixes in offline archive support, symbol table handling;
+	 apply partial relocations for dwfl_module_address_section on ET_REL
+
+libebl: powerpc backend support for Altivec registers
+
+Version 0.130:
+
+readelf: -p option can take an argument like -x for one section,
+	 or no argument (as before) for all SHF_STRINGS sections;
+	 new option --archive-index (or -c);
+	 improved -n output for core files, on many machines
+
+libelf: new function elf_getdata_rawchunk, replaces gelf_rawchunk;
+	new functions gelf_getnote, gelf_getauxv, gelf_update_auxv
+
+readelf, elflint: handle SHT_NOTE sections without requiring phdrs
+
+elflint: stricter checks on debug sections
+
+libdwfl: new functions dwfl_build_id_find_elf, dwfl_build_id_find_debuginfo,
+	 dwfl_module_build_id, dwfl_module_report_build_id;
+	 support dynamic symbol tables found via phdrs;
+	 dwfl_standard_find_debuginfo now uses build IDs when available
+
+unstrip: new option --list (or -n)
+
+libebl: backend improvements for sparc, alpha, powerpc
+
+Version 0.129:
+
+readelf: new options --hex-dump (or -x), --strings (or -p)
+
+addr2line: new option --symbols (or -S)
+
+Version 0.128:
+
+new program: unstrip
+
+elfcmp: new option --hash-inexact
+
+Version 0.127:
+
+libdw: new function dwarf_getsrcdirs
+
+libdwfl: new functions dwfl_module_addrsym, dwfl_report_begin_add,
+	 dwfl_module_address_section
+
+Version 0.126:
+
+new program: ar
+
+Version 0.125:
+
+elflint: Compare DT_GNU_HASH tests.
+
+move archives into -static RPMs
+
+libelf, elflint: better support for core file handling
+
+Version 0.124:
+
+libebl: sparc backend support for return value location
+
+libebl, libdwfl: backend register name support extended with more info
+
+libelf, libdw: bug fixes for unaligned accesses on machines that care
+
+readelf, elflint: trivial bugs fixed
+
+Version 0.123:
+
+libebl: Backend build fixes, thanks to Stepan Kasal.
+
+libebl: ia64 backend support for register names, return value location
+
+libdwfl: Handle truncated linux kernel module section names.
+
+libdwfl: Look for linux kernel "vmlinux" files with ".debug" suffix.
+
+elflint: Fix checks to permit --hash-style=gnu format.
+
+Version 0.122:
+
+libebl: add function to test for relative relocation
+
+elflint: fix and extend DT_RELCOUNT/DT_RELACOUNT checks
+
+elflint, readelf: add support for DT_GNU_HASH
+libelf: add elf_gnu_hash
+
+elflint, readelf: add support for 64-bit SysV-style hash tables
+
+libdwfl: new functions dwfl_module_getsymtab, dwfl_module_getsym.
+
+Version 0.121:
+
+libelf: bug fixes for rewriting existing files when using mmap.
+
+make all installed headers usable in C++ code.
+
+readelf: better output format.
+
+elflint: fix tests of dynamic section content.
+
+ld: Implement --as-needed, --execstack, PT_GNU_STACK.  Many small patches.
+
+libdw, libdwfl: handle files without aranges info.
+
+Version 0.120:
+
+Bug fixes.
+
+dwarf.h updated for DWARF 3.0 final specification.
+
+libdwfl: New function dwfl_version.
+
+The license is now GPL for most files.  The libelf, libebl, libdw,
+and libdwfl libraries have additional exceptions.  Add reference to
+OIN.
+
+Version 0.119:
+
+bug fixes
+
+Version 0.118:
+
+elflint: more tests.
+
+libdwfl: New function dwfl_module_register_names.
+
+libebl: New backend hook for register names.
+
+Version 0.117:
+
+libdwfl: New function dwfl_module_return_value_location.
+
+libebl: Backend improvements for several CPUs.
+
+Version 0.116:
+
+libdw: New functions dwarf_ranges, dwarf_entrypc, dwarf_diecu,
+       dwarf_entry_breakpoints.  Removed Dwarf_Func type and functions
+       dwarf_func_name, dwarf_func_lowpc, dwarf_func_highpc,
+       dwarf_func_entrypc, dwarf_func_die; dwarf_getfuncs callback now uses
+       Dwarf_Die, and dwarf_func_file, dwarf_func_line, dwarf_func_col
+       replaced by dwarf_decl_file, dwarf_decl_line, dwarf_decl_column;
+       dwarf_func_inline, dwarf_func_inline_instances now take Dwarf_Die.
+       Type Dwarf_Loc renamed to Dwarf_Op; dwarf_getloclist,
+       dwarf_addrloclists renamed dwarf_getlocation, dwarf_getlocation_addr.
+
+Version 0.115:
+
+libelf: speed-ups of non-mmap reading.
+
+strings: New program.
+
+Implement --enable-gcov option for configure.
+
+libdw: New function dwarf_getscopes_die.
+
+Version 0.114:
+
+libelf: new function elf_getaroff
+
+libdw: Added dwarf_func_die, dwarf_func_inline, dwarf_func_inline_instances.
+
+libdwfl: New functions dwfl_report_offline, dwfl_offline_section_address,
+	 dwfl_linux_kernel_report_offline.
+
+ranlib: new program
+
+Version 0.113:
+
+elflint: relax a bit. Allow version definitions for defined symbols against
+DSO versions also for symbols in nobits sections.  Allow .rodata section
+to have STRINGS and MERGE flag set.
+
+strip: add some more compatibility with binutils.
+
+Version 0.112:
+
+elfcmp: some more relaxation.
+
+elflint: many more tests, especially regarding to symbol versioning.
+
+libelf: Add elfXX_offscn and gelf_offscn.
+
+libasm: asm_begin interface changes.
+
+libebl: Add three new interfaces to directly access machine, class, and
+data encoding information.
+
+objdump: New program.  Just the beginning.
+
+Version 0.111:
+
+libdw: now contains all of libdwfl.  The latter is not installed anymore.
+
+elfcmp: little usability tweak, name and index of differing section is printed.
+
+Version 0.110:
+
+libelf: fix a number of problems with elf_update
+
+elfcmp: fix a few bugs.  Compare gaps.
+
+Fix a few PLT problems and mudflap build issues.
+
+libebl: Don't expose Ebl structure definition in libebl.h.  It's now private.
+
+Version 0.109:
+
+libebl: Check for matching modules.
+
+elflint: Check that copy relocations only happen for OBJECT or NOTYPE symbols.
+
+elfcmp: New program.
+
+libdwfl: New library.
+
+Version 0.108:
+
+strip: fix bug introduced in last change
+
+libdw: records returned by dwarf_getsrclines are now sorted by address
+
+Version 0.107:
+
+readelf: improve DWARF output format
+
+strip: support Linux kernel modules
+
+Version 0.106:
+
+libdw: Updated dwarf.h from DWARF3 spec
+libdw: add new funtions dwarf_func_entrypc, dwarf_func_file, dwarf_func_line,
+dwarf_func_col, dwarf_getsrc_file
+
+Version 0.105:
+
+addr2line: New program
+
+libdw: add new functions: dwarf_addrdie, dwarf_macro_*, dwarf_getfuncs,
+dwarf_func_*.
+
+findtextrel: use dwarf_addrdie
+
+Version 0.104:
+
+findtextrel: New program.
+
+Version 0.103:
+
+libdw: Fix using libdw.h with gcc < 4 and C++ code.  Compiler bug.
+
+Version 0.102:
+
+More Makefile and spec file cleanups.
+
+Version 0.101:
+
+Remove most gettext autoconf handling.
+
+Add more warnings
+
+Fix resulting problems.  One actual bug found and fixed this way
+
+Version 0.100:
+
+libebl: Fix x86-64 relocations.
+
+Add -Wunused -Wextra warnings.
+
+Some cleanups resulting from those additional warnings.
+
+Lots of Makefile cleanup.
+
+Version 0.99:
+
+libelf: add gelf_checksum prototype to <libelf.h>
+
+libelf: fix elf*_checksum handling of NOBITS sections
+
+Finish mudflap support.
+
+Fix three bugs found by mudflap.
+
+ld: add as_needed support
+
+Version 0.98:
+
+readelf: in section to segment mapping, indicate read-only sections.
+
+elflint: more relaxation for GNU ld
+
 Version 0.97:
 
 Fix compiling with gcc 4.0.

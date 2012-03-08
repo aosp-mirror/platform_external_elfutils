@@ -1,16 +1,52 @@
 /* Create descriptor from ELF descriptor for processing file.
-   Copyright (C) 2002, 2003, 2004 Red Hat, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2007 Red Hat, Inc.
+   This file is part of Red Hat elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2002.
 
-   This program is Open Source software; you can redistribute it and/or
-   modify it under the terms of the Open Software License version 1.0 as
-   published by the Open Source Initiative.
+   Red Hat elfutils is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by the
+   Free Software Foundation; version 2 of the License.
 
-   You should have received a copy of the Open Software License along
-   with this program; if not, you may obtain a copy of the Open Software
-   License version 1.0 from http://www.opensource.org/licenses/osl.php or
-   by writing the Open Source Initiative c/o Lawrence Rosen, Esq.,
-   3001 King Ranch Road, Ukiah, CA 95482.   */
+   Red Hat elfutils is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License along
+   with Red Hat elfutils; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+
+   In addition, as a special exception, Red Hat, Inc. gives You the
+   additional right to link the code of Red Hat elfutils with code licensed
+   under any Open Source Initiative certified open source license
+   (http://www.opensource.org/licenses/index.php) which requires the
+   distribution of source code with any binary distribution and to
+   distribute linked combinations of the two.  Non-GPL Code permitted under
+   this exception must only link to the code of Red Hat elfutils through
+   those well defined interfaces identified in the file named EXCEPTION
+   found in the source code files (the "Approved Interfaces").  The files
+   of Non-GPL Code may instantiate templates or use macros or inline
+   functions from the Approved Interfaces without causing the resulting
+   work to be covered by the GNU General Public License.  Only Red Hat,
+   Inc. may make changes or additions to the list of Approved Interfaces.
+   Red Hat's grant of this exception is conditioned upon your not adding
+   any new exceptions.  If you wish to add a new Approved Interface or
+   exception, please contact Red Hat.  You must obey the GNU General Public
+   License in all respects for all of the Red Hat elfutils code and other
+   code used in conjunction with Red Hat elfutils except the Non-GPL Code
+   covered by this exception.  If you modify this file, you may extend this
+   exception to your version of the file, but you are not obligated to do
+   so.  If you do not wish to provide this exception without modification,
+   you must delete this exception statement from your version and license
+   this file solely under the GPL without exception.
+
+   Red Hat elfutils is an included package of the Open Invention Network.
+   An included package of the Open Invention Network is a package for which
+   Open Invention Network licensees cross-license their patents.  No patent
+   license is granted, either expressly or impliedly, by designation as an
+   included package.  Should you wish to participate in the Open Invention
+   Network licensing program, please visit www.openinventionnetwork.com
+   <http://www.openinventionnetwork.com>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -42,12 +78,13 @@ static const char dwarf_scnnames[IDX_last][17] =
   [IDX_debug_typenames] = ".debug_typenames",
   [IDX_debug_varnames] = ".debug_varnames",
   [IDX_debug_weaknames] = ".debug_weaknames",
-  [IDX_debug_macinfo] = ".debug_macinfo"
+  [IDX_debug_macinfo] = ".debug_macinfo",
+  [IDX_debug_ranges] = ".debug_ranges"
 };
 #define ndwarf_scnnames (sizeof (dwarf_scnnames) / sizeof (dwarf_scnnames[0]))
 
 
-static void
+static Dwarf *
 check_section (Dwarf *result, GElf_Ehdr *ehdr, Elf_Scn *scn, bool inscngrp)
 {
   GElf_Shdr shdr_mem;
@@ -60,6 +97,11 @@ check_section (Dwarf *result, GElf_Ehdr *ehdr, Elf_Scn *scn, bool inscngrp)
        wrong in the libelf library.  */
     abort ();
 
+  /* Ignore any SHT_NOBITS sections.  Debugging sections should not
+     have been stripped, but in case of a corrupt file we won't try
+     to look at the missing data.  */
+  if (unlikely (shdr->sh_type == SHT_NOBITS))
+    return result;
 
   /* Make sure the section is part of a section group only iff we
      really need it.  If we are looking for the global (= non-section
@@ -68,7 +110,7 @@ check_section (Dwarf *result, GElf_Ehdr *ehdr, Elf_Scn *scn, bool inscngrp)
      a section which isn't part of the section group.  */
   if (! inscngrp && (shdr->sh_flags & SHF_GROUP) != 0)
     /* Ignore the section.  */
-    return;
+    return result;
 
 
   /* We recognize the DWARF section by their names.  This is not very
@@ -81,7 +123,7 @@ check_section (Dwarf *result, GElf_Ehdr *ehdr, Elf_Scn *scn, bool inscngrp)
 	 invalid.  */
       __libdw_seterrno (DWARF_E_INVALID_ELF);
       free (result);
-      return;
+      return NULL;
     }
 
 
@@ -103,6 +145,8 @@ check_section (Dwarf *result, GElf_Ehdr *ehdr, Elf_Scn *scn, bool inscngrp)
 
 	break;
       }
+
+  return result;
 }
 
 
@@ -116,9 +160,11 @@ valid_p (Dwarf *result)
      XXX Which sections are absolutely necessary?  Add tests if
      necessary.  For now we require only .debug_info.  Hopefully this
      is correct.  */
-  if (unlikely (result->sectiondata[IDX_debug_info] == NULL))
+  if (likely (result != NULL)
+      && unlikely (result->sectiondata[IDX_debug_info] == NULL))
     {
       __libdw_seterrno (DWARF_E_NO_DWARF);
+      free (result);
       result = NULL;
     }
 
@@ -127,20 +173,19 @@ valid_p (Dwarf *result)
 
 
 static Dwarf *
-global_read (Dwarf *result, Elf *elf, GElf_Ehdr *ehdr, Dwarf_Cmd cmd)
+global_read (Dwarf *result, Elf *elf, GElf_Ehdr *ehdr)
 {
   Elf_Scn *scn = NULL;
 
-  while ((scn = elf_nextscn (elf, scn)) != NULL)
-    check_section (result, ehdr, scn, false);
+  while (result != NULL && (scn = elf_nextscn (elf, scn)) != NULL)
+    result = check_section (result, ehdr, scn, false);
 
   return valid_p (result);
 }
 
 
 static Dwarf *
-scngrp_read (Dwarf *result, Elf *elf, GElf_Ehdr *ehdr, Dwarf_Cmd cmd,
-	     Elf_Scn *scngrp)
+scngrp_read (Dwarf *result, Elf *elf, GElf_Ehdr *ehdr, Elf_Scn *scngrp)
 {
   /* SCNGRP is the section descriptor for a section group which might
      contain debug sections.  */
@@ -168,7 +213,9 @@ scngrp_read (Dwarf *result, Elf *elf, GElf_Ehdr *ehdr, Dwarf_Cmd cmd,
 	  return NULL;
 	}
 
-      check_section (result, ehdr, scn, true);
+      result = check_section (result, ehdr, scn, true);
+      if (result == NULL)
+	break;
     }
 
   return valid_p (result);
@@ -234,9 +281,9 @@ dwarf_begin_elf (elf, cmd, scngrp)
 	 sections with the name are ignored.  The DWARF specification
 	 does not really say this is allowed.  */
       if (scngrp == NULL)
-	return global_read (result, elf, ehdr, cmd);
+	return global_read (result, elf, ehdr);
       else
-	return scngrp_read (result, elf, ehdr, cmd, scngrp);
+	return scngrp_read (result, elf, ehdr, scngrp);
     }
   else if (cmd == DWARF_C_WRITE)
     {
@@ -249,3 +296,4 @@ dwarf_begin_elf (elf, cmd, scngrp)
   free (result);
   return NULL;
 }
+INTDEF(dwarf_begin_elf)

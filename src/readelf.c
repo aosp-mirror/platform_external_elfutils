@@ -1,16 +1,28 @@
 /* Print information from ELF file in human-readable form.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Red Hat, Inc.
+   Copyright (C) 1999,2000,2001,2002,2003,2004,2005,2006,2007,2008 Red Hat, Inc.
+   This file is part of Red Hat elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 1999.
 
-   This program is Open Source software; you can redistribute it and/or
-   modify it under the terms of the Open Software License version 1.0 as
-   published by the Open Source Initiative.
+   Red Hat elfutils is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by the
+   Free Software Foundation; version 2 of the License.
 
-   You should have received a copy of the Open Software License along
-   with this program; if not, you may obtain a copy of the Open Software
-   License version 1.0 from http://www.opensource.org/licenses/osl.php or
-   by writing the Open Source Initiative c/o Lawrence Rosen, Esq.,
-   3001 King Ranch Road, Ukiah, CA 95482.   */
+   Red Hat elfutils is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License along
+   with Red Hat elfutils; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+
+   Red Hat elfutils is an included package of the Open Invention Network.
+   An included package of the Open Invention Network is a package for which
+   Open Invention Network licensees cross-license their patents.  No patent
+   license is granted, either expressly or impliedly, by designation as an
+   included package.  Should you wish to participate in the Open Invention
+   Network licensing program, please visit www.openinventionnetwork.com
+   <http://www.openinventionnetwork.com>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -18,6 +30,7 @@
 
 #include <argp.h>
 #include <assert.h>
+#include <ctype.h>
 #include <dwarf.h>
 #include <errno.h>
 #include <error.h>
@@ -26,9 +39,10 @@
 #include <inttypes.h>
 #include <langinfo.h>
 #include <libdw.h>
-#include <libebl.h>
+#include <libdwfl.h>
 #include <libintl.h>
 #include <locale.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,7 +51,11 @@
 #include <sys/param.h>
 
 #include <system.h>
+#include "../libelf/libelfP.h"
+#include "../libelf/common.h"
+#include "../libebl/libeblP.h"
 #include "../libdw/libdwP.h"
+#include "../libdwfl/libdwflP.h"
 #include "../libdw/memory-access.h"
 
 
@@ -45,30 +63,43 @@
 static void print_version (FILE *stream, struct argp_state *state);
 void (*argp_program_version_hook) (FILE *, struct argp_state *) = print_version;
 
+/* Bug report address.  */
+const char *argp_program_bug_address = PACKAGE_BUGREPORT;
+
 /* Definitions of arguments for argp functions.  */
 static const struct argp_option options[] =
 {
-  { NULL, 0, NULL, 0, N_("Output selection:") },
-  { "all", 'a', NULL, 0, N_("Equivalent to: -h -l") },
-  { "dynamic", 'd', NULL, 0, N_("Display the dynamic segment") },
-  { "file-header", 'h', NULL, 0, N_("Display the ELF file header") },
+  { NULL, 0, NULL, 0, N_("Output selection:"), 0 },
+  { "all", 'a', NULL, 0, N_("Equivalent to: -h -l"), 0 },
+  { "dynamic", 'd', NULL, 0, N_("Display the dynamic segment"), 0 },
+  { "file-header", 'h', NULL, 0, N_("Display the ELF file header"), 0 },
   { "histogram", 'I', NULL, 0,
-    N_("Display histogram of bucket list lengths") },
-  { "program-headers", 'l', NULL, 0, N_("Display the program headers") },
-  { "relocs", 'r', NULL, 0, N_("Display relocations") },
-  { "section-headers", 'S', NULL, 0, N_("Display the sections' header") },
-  { "symbols", 's', NULL, 0, N_("Display the symbol table") },
-  { "version-info", 'V', NULL, 0, N_("Display versioning information") },
+    N_("Display histogram of bucket list lengths"), 0 },
+  { "program-headers", 'l', NULL, 0, N_("Display the program headers"), 0 },
+  { "segments", 'l', NULL, OPTION_ALIAS | OPTION_HIDDEN, NULL, 0 },
+  { "relocs", 'r', NULL, 0, N_("Display relocations"), 0 },
+  { "section-headers", 'S', NULL, 0, N_("Display the sections' header"), 0 },
+  { "sections", 'S', NULL, OPTION_ALIAS | OPTION_HIDDEN, NULL, 0 },
+  { "symbols", 's', NULL, 0, N_("Display the symbol table"), 0 },
+  { "version-info", 'V', NULL, 0, N_("Display versioning information"), 0 },
   { "debug-dump", 'w', "SECTION", OPTION_ARG_OPTIONAL,
     N_("Display DWARF section content.  SECTION can be one of abbrev, "
-       "aranges, frame, info, loc, line, pubnames, str, or macinfo.") },
-  { "notes", 'n', NULL, 0, N_("Display the core notes") },
+       "aranges, frame, info, loc, line, ranges, pubnames, str, or macinfo."),
+    0 },
+  { "notes", 'n', NULL, 0, N_("Display the core notes"), 0 },
   { "arch-specific", 'A', NULL, 0,
-    N_("Display architecture specific information (if any)") },
+    N_("Display architecture specific information (if any)"), 0 },
+  { "hex-dump", 'x', "SECTION", 0,
+    N_("Dump the uninterpreted contents of SECTION, by number or name"), 0 },
+  { "strings", 'p', "SECTION", OPTION_ARG_OPTIONAL,
+    N_("Print string contents of sections"), 0 },
+  { "string-dump", 'p', NULL, OPTION_ALIAS | OPTION_HIDDEN, NULL, 0 },
+  { "archive-index", 'c', NULL, 0,
+    N_("Display the symbol index of an archive"), 0 },
 
-  { NULL, 0, NULL, 0, N_("Output control:") },
+  { NULL, 0, NULL, 0, N_("Output control:"), 0 },
 
-  { NULL, 0, NULL, 0, NULL }
+  { NULL, 0, NULL, 0, NULL, 0 }
 };
 
 /* Short description of program.  */
@@ -81,20 +112,14 @@ static const char args_doc[] = N_("FILE...");
 /* Prototype for option handler.  */
 static error_t parse_opt (int key, char *arg, struct argp_state *state);
 
-/* Function to print some extra text in the help message.  */
-static char *more_help (int key, const char *text, void *input);
-
 /* Data structure to communicate with argp functions.  */
 static struct argp argp =
 {
-  options, parse_opt, args_doc, doc, NULL, more_help
+  options, parse_opt, args_doc, doc, NULL, NULL, NULL
 };
 
 
 /* Flags set by the option controlling the output.  */
-
-/* True if any of the control options is set.  */
-static bool any_control_option;
 
 /* True if dynamic segment should be printed.  */
 static bool print_dynamic_table;
@@ -129,6 +154,15 @@ static bool print_arch;
 /* True if note section content should be printed.  */
 static bool print_notes;
 
+/* True if SHF_STRINGS section content should be printed.  */
+static bool print_string_sections;
+
+/* True if archive index should be printed.  */
+static bool print_archive_index;
+
+/* True if any of the control options except print_archive_index is set.  */
+static bool any_control_option;
+
 /* Select printing of debugging sections.  */
 static enum section_e
 {
@@ -141,102 +175,89 @@ static enum section_e
   section_pubnames = 64,/* .debug_pubnames  */
   section_str = 128,	/* .debug_str  */
   section_macinfo = 256,/* .debug_macinfo  */
+  section_ranges = 512, /* .debug_ranges  */
   section_all = (section_abbrev | section_aranges | section_frame
 		 | section_info | section_line | section_loc
-		 | section_pubnames | section_str | section_macinfo)
+		 | section_pubnames | section_str | section_macinfo
+		 | section_ranges)
 } print_debug_sections;
+
+/* Select hex dumping of sections.  */
+static struct section_argument *dump_data_sections;
+static struct section_argument **dump_data_sections_tail = &dump_data_sections;
+
+/* Select string dumping of sections.  */
+static struct section_argument *string_sections;
+static struct section_argument **string_sections_tail = &string_sections;
+
+struct section_argument
+{
+  struct section_argument *next;
+  const char *arg;
+};
 
 /* Number of sections in the file.  */
 static size_t shnum;
 
 
 /* Declarations of local functions.  */
-static void process_file (int fd, Elf *elf, const char *prefix,
-			  const char *fname, bool only_one);
-static void process_elf_file (Elf *elf, const char *prefix, const char *fname,
-			      bool only_one);
+static void process_file (int fd, const char *fname, bool only_one);
+static void process_elf_file (Dwfl_Module *dwflmod, int fd);
 static void print_ehdr (Ebl *ebl, GElf_Ehdr *ehdr);
 static void print_shdr (Ebl *ebl, GElf_Ehdr *ehdr);
 static void print_phdr (Ebl *ebl, GElf_Ehdr *ehdr);
-static void print_scngrp (Ebl *ebl, GElf_Ehdr *ehdr);
+static void print_scngrp (Ebl *ebl);
 static void print_dynamic (Ebl *ebl, GElf_Ehdr *ehdr);
-static void print_relocs (Ebl *ebl, GElf_Ehdr *ehdr);
-static void handle_relocs_rel (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
-			       GElf_Shdr *shdr);
-static void handle_relocs_rela (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
-				GElf_Shdr *shdr);
-static void print_symtab (Ebl *ebl, GElf_Ehdr *ehdr, int type);
-static void handle_symtab (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
+static void print_relocs (Ebl *ebl);
+static void handle_relocs_rel (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr);
+static void handle_relocs_rela (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr);
+static void print_symtab (Ebl *ebl, int type);
+static void handle_symtab (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr);
+static void print_verinfo (Ebl *ebl);
+static void handle_verneed (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr);
+static void handle_verdef (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr);
+static void handle_versym (Ebl *ebl, Elf_Scn *scn,
 			   GElf_Shdr *shdr);
-static void print_verinfo (Ebl *ebl, GElf_Ehdr *ehdr);
-static void handle_verneed (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
-			    GElf_Shdr *shdr);
-static void handle_verdef (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
-			   GElf_Shdr *shdr);
-static void handle_versym (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
-			   GElf_Shdr *shdr);
-static void print_debug (Ebl *ebl, GElf_Ehdr *ehdr);
-static void handle_hash (Ebl *ebl, GElf_Ehdr *ehdr);
+static void print_debug (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr);
+static void handle_hash (Ebl *ebl);
 static void handle_notes (Ebl *ebl, GElf_Ehdr *ehdr);
-static void print_liblist (Ebl *ebl, GElf_Ehdr *ehdr);
+static void print_liblist (Ebl *ebl);
+static void print_attributes (Ebl *ebl, const GElf_Ehdr *ehdr);
+static void dump_data (Ebl *ebl);
+static void dump_strings (Ebl *ebl);
+static void print_strings (Ebl *ebl);
+static void dump_archive_index (Elf *, const char *);
 
 
 int
 main (int argc, char *argv[])
 {
-  int remaining;
-  bool only_one;
-
   /* Set locale.  */
   setlocale (LC_ALL, "");
 
   /* Initialize the message catalog.  */
-  textdomain (PACKAGE);
+  textdomain (PACKAGE_TARNAME);
 
   /* Parse and process arguments.  */
+  int remaining;
   argp_parse (&argp, argc, argv, 0, &remaining, NULL);
-
-  /* If no control option or no ELF file is given punt.  */
-  if ((any_control_option == 0 && print_debug_sections == 0)
-      || remaining >= argc)
-    {
-      argp_help (&argp, stdout, ARGP_HELP_SEE | ARGP_HELP_EXIT_ERR,
-		 program_invocation_short_name);
-      exit (1);
-    }
 
   /* Before we start tell the ELF library which version we are using.  */
   elf_version (EV_CURRENT);
 
   /* Now process all the files given at the command line.  */
-  only_one = remaining + 1 == argc;
+  bool only_one = remaining + 1 == argc;
   do
     {
-      int fd;
-      Elf *elf;
-
       /* Open the file.  */
-      fd = open (argv[remaining], O_RDONLY);
+      int fd = open (argv[remaining], O_RDONLY);
       if (fd == -1)
 	{
 	  error (0, errno, gettext ("cannot open input file"));
 	  continue;
 	}
 
-      /* Create an `Elf' descriptor.  */
-      elf = elf_begin (fd, ELF_C_READ_MMAP, NULL);
-      if (elf == NULL)
-	error (0, 0, gettext ("cannot generate Elf descriptor: %s\n"),
-	       elf_errmsg (-1));
-      else
-	{
-	  process_file (fd, elf, NULL, argv[remaining], only_one);
-
-	  /* Now we can close the descriptor.  */
-	  if (elf_end (elf) != 0)
-	    error (0, 0, gettext ("error while closing Elf descriptor: %s"),
-		   elf_errmsg (-1));
-	}
+      process_file (fd, argv[remaining], only_one);
 
       close (fd);
     }
@@ -248,7 +269,8 @@ main (int argc, char *argv[])
 
 /* Handle program arguments.  */
 static error_t
-parse_opt (int key, char *arg, struct argp_state *state)
+parse_opt (int key, char *arg,
+	   struct argp_state *state __attribute__ ((unused)))
 {
   switch (key)
     {
@@ -310,6 +332,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
       print_version_info = true;
       any_control_option = true;
       break;
+    case 'c':
+      print_archive_index = true;
+      break;
     case 'w':
       if (arg == NULL)
 	print_debug_sections = section_all;
@@ -317,6 +342,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 	print_debug_sections |= section_abbrev;
       else if (strcmp (arg, "aranges") == 0)
 	print_debug_sections |= section_aranges;
+      else if (strcmp (arg, "ranges") == 0)
+	print_debug_sections |= section_ranges;
       else if (strcmp (arg, "frame") == 0)
 	print_debug_sections |= section_frame;
       else if (strcmp (arg, "info") == 0)
@@ -339,6 +366,40 @@ parse_opt (int key, char *arg, struct argp_state *state)
 		     program_invocation_short_name);
 	  exit (1);
 	}
+      any_control_option = true;
+      break;
+    case 'p':
+      any_control_option = true;
+      if (arg == NULL)
+	{
+	  print_string_sections = true;
+	  break;
+	}
+      /* Fall through.  */
+    case 'x':
+      {
+	struct section_argument *a = xmalloc (sizeof *a);
+	a->arg = arg;
+	a->next = NULL;
+	struct section_argument ***tailp
+	  = key == 'x' ? &dump_data_sections_tail : &string_sections_tail;
+	**tailp = a;
+	*tailp = &a->next;
+      }
+      any_control_option = true;
+      break;
+    case ARGP_KEY_NO_ARGS:
+      fputs (gettext ("Missing file name.\n"), stderr);
+      goto do_argp_help;
+    case ARGP_KEY_FINI:
+      if (! any_control_option && ! print_archive_index)
+	{
+	  fputs (gettext ("No operation specified.\n"), stderr);
+	do_argp_help:
+	  argp_help (&argp, stderr, ARGP_HELP_SEE | ARGP_HELP_EXIT_ERR,
+		     program_invocation_short_name);
+	  exit (1);
+	}
       break;
     default:
       return ARGP_ERR_UNKNOWN;
@@ -347,177 +408,265 @@ parse_opt (int key, char *arg, struct argp_state *state)
 }
 
 
-static char *
-more_help (int key, const char *text, void *input)
-{
-  char *buf;
-
-  switch (key)
-    {
-    case ARGP_KEY_HELP_EXTRA:
-      /* We print some extra information.  */
-      if (asprintf (&buf, gettext ("Please report bugs to %s.\n"),
-		    PACKAGE_BUGREPORT) < 0)
-	buf = NULL;
-      return buf;
-
-    default:
-      break;
-    }
-  return (char *) text;
-}
-
-
 /* Print the version information.  */
 static void
-print_version (FILE *stream, struct argp_state *state)
+print_version (FILE *stream, struct argp_state *state __attribute__ ((unused)))
 {
-  fprintf (stream, "readelf (%s) %s\n", PACKAGE_NAME, VERSION);
+  fprintf (stream, "readelf (%s) %s\n", PACKAGE_NAME, PACKAGE_VERSION);
   fprintf (stream, gettext ("\
 Copyright (C) %s Red Hat, Inc.\n\
 This is free software; see the source for copying conditions.  There is NO\n\
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\
-"), "2004");
+"), "2008");
   fprintf (stream, gettext ("Written by %s.\n"), "Ulrich Drepper");
 }
 
 
-/* Process one file.  */
+/* Check if the file is an archive, and if so dump its index.  */
 static void
-process_file (int fd, Elf *elf, const char *prefix, const char *fname,
-	      bool only_one)
+check_archive_index (int fd, const char *fname, bool only_one)
 {
-  /* We can handle two types of files: ELF files and archives.  */
-  Elf_Kind kind = elf_kind (elf);
-  struct stat64 st;
-
-  switch (kind)
+  /* Create an `Elf' descriptor.  */
+  Elf *elf = elf_begin (fd, ELF_C_READ_MMAP, NULL);
+  if (elf == NULL)
+    error (0, 0, gettext ("cannot generate Elf descriptor: %s"),
+	   elf_errmsg (-1));
+  else
     {
-    case ELF_K_ELF:
-      /* Yes!  It's an ELF file.  */
-      process_elf_file (elf, prefix, fname, only_one);
-      break;
-
-    case ELF_K_AR:
-      {
-	Elf *subelf;
-	Elf_Cmd cmd = ELF_C_READ_MMAP;
-	size_t prefix_len = prefix == NULL ? 0 : strlen (prefix);
-	size_t fname_len = strlen (fname) + 1;
-	char new_prefix[prefix_len + 1 + fname_len];
-	char *cp = new_prefix;
-
-	/* Create the full name of the file.  */
-	if (prefix != NULL)
-	  {
-	    cp = mempcpy (cp, prefix, prefix_len);
-	    *cp++ = ':';
-	  }
-	memcpy (cp, fname, fname_len);
-
-	/* It's an archive.  We process each file in it.  */
-	while ((subelf = elf_begin (fd, cmd, elf)) != NULL)
-	  {
-	    kind = elf_kind (subelf);
-
-	    /* Call this function recursively.  */
-	    if (kind == ELF_K_ELF || kind == ELF_K_AR)
-	      {
-		Elf_Arhdr *arhdr = elf_getarhdr (subelf);
-		assert (arhdr != NULL);
-
-		process_file (fd, subelf, new_prefix, arhdr->ar_name, false);
-	      }
-
-	    /* Get next archive element.  */
-	    cmd = elf_next (subelf);
-	    if (elf_end (subelf) != 0)
-	      error (0, 0,
-		     gettext (" error while freeing sub-ELF descriptor: %s\n"),
-		     elf_errmsg (-1));
-	  }
-      }
-      break;
-
-    default:
-      if (fstat64 (fd, &st) != 0)
-	error (0, errno, gettext ("cannot stat input file"));
-      else if (st.st_size == 0)
-	error (0, 0, gettext ("input file is empty"));
+      if (elf_kind (elf) == ELF_K_AR)
+	{
+	  if (!only_one)
+	    printf ("\n%s:\n\n", fname);
+	  dump_archive_index (elf, fname);
+	}
       else
-	/* We cannot do anything.  */
-	error (0, 0, gettext ("\
-Not an ELF file - it has the wrong magic bytes at the start"));
-      break;
+	error (0, 0,
+	       gettext ("'%s' is not an archive, cannot print archive index"),
+	       fname);
+
+      /* Now we can close the descriptor.  */
+      if (elf_end (elf) != 0)
+	error (0, 0, gettext ("error while closing Elf descriptor: %s"),
+	       elf_errmsg (-1));
     }
 }
 
-
-/* Process one file.  */
-static void
-process_elf_file (Elf *elf, const char *prefix, const char *fname,
-		  bool only_one)
+/* Trivial callback used for checking if we opened an archive.  */
+static int
+count_dwflmod (Dwfl_Module *dwflmod __attribute__ ((unused)),
+	       void **userdata __attribute__ ((unused)),
+	       const char *name __attribute__ ((unused)),
+	       Dwarf_Addr base __attribute__ ((unused)),
+	       void *arg)
 {
-  GElf_Ehdr ehdr_mem;
-  GElf_Ehdr *ehdr = gelf_getehdr (elf, &ehdr_mem);
-  Ebl *ebl;
+  if (*(bool *) arg)
+    return DWARF_CB_ABORT;
+  *(bool *) arg = true;
+  return DWARF_CB_OK;
+}
+
+struct process_dwflmod_args
+{
+  int fd;
+  bool only_one;
+};
+
+static int
+process_dwflmod (Dwfl_Module *dwflmod,
+		 void **userdata __attribute__ ((unused)),
+		 const char *name __attribute__ ((unused)),
+		 Dwarf_Addr base __attribute__ ((unused)),
+		 void *arg)
+{
+  const struct process_dwflmod_args *a = arg;
 
   /* Print the file name.  */
-  if (!only_one)
+  if (!a->only_one)
     {
-      if (prefix != NULL)
-	printf ("\n%s(%s):\n\n", prefix, fname);
-      else
-	printf ("\n%s:\n\n", fname);
+      const char *fname;
+      dwfl_module_info (dwflmod, NULL, NULL, NULL, NULL, NULL, &fname, NULL);
+
+      printf ("\n%s:\n\n", fname);
     }
+
+  process_elf_file (dwflmod, a->fd);
+
+  return DWARF_CB_OK;
+}
+
+/* Stub libdwfl callback, only the ELF handle already open is ever used.  */
+static int
+find_no_debuginfo (Dwfl_Module *mod __attribute__ ((unused)),
+		   void **userdata __attribute__ ((unused)),
+		   const char *modname __attribute__ ((unused)),
+		   Dwarf_Addr base __attribute__ ((unused)),
+		   const char *file_name __attribute__ ((unused)),
+		   const char *debuglink_file __attribute__ ((unused)),
+		   GElf_Word debuglink_crc __attribute__ ((unused)),
+		   char **debuginfo_file_name __attribute__ ((unused)))
+{
+  return -1;
+}
+
+/* Process one input file.  */
+static void
+process_file (int fd, const char *fname, bool only_one)
+{
+  if (print_archive_index)
+    check_archive_index (fd, fname, only_one);
+
+  if (!any_control_option)
+    return;
+
+  /* Duplicate an fd for dwfl_report_offline to swallow.  */
+  int dwfl_fd = dup (fd);
+  if (unlikely (dwfl_fd < 0))
+    error (EXIT_FAILURE, errno, "dup");
+
+  /* Use libdwfl in a trivial way to open the libdw handle for us.
+     This takes care of applying relocations to DWARF data in ET_REL files.  */
+  static const Dwfl_Callbacks callbacks =
+    {
+      .section_address = dwfl_offline_section_address,
+      .find_debuginfo = find_no_debuginfo
+    };
+  Dwfl *dwfl = dwfl_begin (&callbacks);
+  if (likely (dwfl != NULL))
+    /* Let 0 be the logical address of the file (or first in archive).  */
+    dwfl->offline_next_address = 0;
+  if (dwfl_report_offline (dwfl, fname, fname, dwfl_fd) == NULL)
+    {
+      struct stat64 st;
+      if (fstat64 (fd, &st) != 0)
+	error (0, errno, gettext ("cannot stat input file"));
+      else if (unlikely (st.st_size == 0))
+	error (0, 0, gettext ("input file is empty"));
+      else
+	error (0, 0, gettext ("failed reading '%s': %s"),
+	       fname, dwfl_errmsg (-1));
+    }
+  else
+    {
+      dwfl_report_end (dwfl, NULL, NULL);
+
+      if (only_one)
+	{
+	  /* Clear ONLY_ONE if we have multiple modules, from an archive.  */
+	  bool seen = false;
+	  only_one = dwfl_getmodules (dwfl, &count_dwflmod, &seen, 0) == 0;
+	}
+
+      /* Process the one or more modules gleaned from this file.  */
+      struct process_dwflmod_args a = { .fd = fd, .only_one = only_one };
+      dwfl_getmodules (dwfl, &process_dwflmod, &a, 0);
+    }
+  dwfl_end (dwfl);
+}
+
+
+/* Process one ELF file.  */
+static void
+process_elf_file (Dwfl_Module *dwflmod, int fd)
+{
+  GElf_Addr dwflbias;
+  Elf *elf = dwfl_module_getelf (dwflmod, &dwflbias);
+
+  GElf_Ehdr ehdr_mem;
+  GElf_Ehdr *ehdr = gelf_getehdr (elf, &ehdr_mem);
 
   if (ehdr == NULL)
     {
+    elf_error:
       error (0, 0, gettext ("cannot read ELF header: %s"), elf_errmsg (-1));
       return;
     }
 
-  ebl = ebl_openbackend (elf);
-  if (ebl == NULL)
+  Ebl *ebl = ebl_openbackend (elf);
+  if (unlikely (ebl == NULL))
     {
+    ebl_error:
       error (0, errno, gettext ("cannot create EBL handle"));
       return;
     }
 
   /* Determine the number of sections.  */
-  if (elf_getshnum (ebl->elf, &shnum) < 0)
+  if (unlikely (elf_getshnum (ebl->elf, &shnum) < 0))
     error (EXIT_FAILURE, 0,
 	   gettext ("cannot determine number of sections: %s"),
 	   elf_errmsg (-1));
 
+  /* For an ET_REL file, libdwfl has adjusted the in-core shdrs
+     and may have applied relocation to some sections.
+     So we need to get a fresh Elf handle on the file to display those.  */
+  bool print_unrelocated = (print_section_header
+			    || print_relocations
+			    || dump_data_sections != NULL
+			    || print_notes);
+
+  Elf *pure_elf = NULL;
+  Ebl *pure_ebl = ebl;
+  if (ehdr->e_type == ET_REL && print_unrelocated)
+    {
+      /* Read the file afresh.  */
+      off64_t aroff = elf_getaroff (elf);
+      pure_elf = elf_begin (fd, ELF_C_READ_MMAP, NULL);
+      if (aroff > 0)
+	{
+	  /* Archive member.  */
+	  (void) elf_rand (pure_elf, aroff);
+	  Elf *armem = elf_begin (-1, ELF_C_READ_MMAP, pure_elf);
+	  elf_end (pure_elf);
+	  pure_elf = armem;
+	}
+      if (pure_elf == NULL)
+	goto elf_error;
+      pure_ebl = ebl_openbackend (pure_elf);
+      if (pure_ebl == NULL)
+	goto ebl_error;
+    }
+
   if (print_file_header)
     print_ehdr (ebl, ehdr);
   if (print_section_header)
-    print_shdr (ebl, ehdr);
+    print_shdr (pure_ebl, ehdr);
   if (print_program_header)
     print_phdr (ebl, ehdr);
   if (print_section_groups)
-    print_scngrp (ebl, ehdr);
+    print_scngrp (ebl);
   if (print_dynamic_table)
     print_dynamic (ebl, ehdr);
   if (print_relocations)
-    print_relocs (ebl, ehdr);
+    print_relocs (pure_ebl);
   if (print_histogram)
-    handle_hash (ebl, ehdr);
+    handle_hash (ebl);
   if (print_symbol_table)
-    print_symtab (ebl, ehdr, SHT_DYNSYM);
+    print_symtab (ebl, SHT_DYNSYM);
   if (print_version_info)
-    print_verinfo (ebl, ehdr);
+    print_verinfo (ebl);
   if (print_symbol_table)
-    print_symtab (ebl, ehdr, SHT_SYMTAB);
+    print_symtab (ebl, SHT_SYMTAB);
   if (print_arch)
-    print_liblist (ebl, ehdr);
+    print_liblist (ebl);
+  if (print_arch)
+    print_attributes (ebl, ehdr);
+  if (dump_data_sections != NULL)
+    dump_data (pure_ebl);
+  if (string_sections != NULL)
+    dump_strings (ebl);
   if (print_debug_sections != 0)
-    print_debug (ebl, ehdr);
+    print_debug (dwflmod, ebl, ehdr);
   if (print_notes)
-    handle_notes (ebl, ehdr);
+    handle_notes (pure_ebl, ehdr);
+  if (print_string_sections)
+    print_strings (ebl);
 
   ebl_closebackend (ebl);
+
+  if (pure_ebl != ebl)
+    {
+      ebl_closebackend (pure_ebl);
+      elf_end (pure_elf);
+    }
 }
 
 
@@ -525,9 +674,9 @@ process_elf_file (Elf *elf, const char *prefix, const char *fname,
 static void
 print_file_type (unsigned short int e_type)
 {
-  if (e_type <= ET_CORE)
+  if (likely (e_type <= ET_CORE))
     {
-      static const char *knowntypes[] =
+      static const char *const knowntypes[] =
       {
 	N_("NONE (None)"),
 	N_("REL (Relocatable file)"),
@@ -550,11 +699,8 @@ print_file_type (unsigned short int e_type)
 static void
 print_ehdr (Ebl *ebl, GElf_Ehdr *ehdr)
 {
-  char buf[512];
-  size_t cnt;
-
   fputs_unlocked (gettext ("ELF Header:\n  Magic:  "), stdout);
-  for (cnt = 0; cnt < EI_NIDENT; ++cnt)
+  for (size_t cnt = 0; cnt < EI_NIDENT; ++cnt)
     printf (" %02hhx", ehdr->e_ident[cnt]);
 
   printf (gettext ("\n  Class:                             %s\n"),
@@ -568,11 +714,12 @@ print_ehdr (Ebl *ebl, GElf_Ehdr *ehdr)
 	  : ehdr->e_ident[EI_DATA] == ELFDATA2MSB
 	  ? "2's complement, big endian" : "\?\?\?");
 
-  printf (gettext ("  Version:                           %hhd %s\n"),
+  printf (gettext ("  Ident Version:                     %hhd %s\n"),
 	  ehdr->e_ident[EI_VERSION],
 	  ehdr->e_ident[EI_VERSION] == EV_CURRENT ? gettext ("(current)")
 	  : "(\?\?\?)");
 
+  char buf[512];
   printf (gettext ("  OS/ABI:                            %s\n"),
 	  ebl_osabi_name (ebl, ehdr->e_ident[EI_OSABI], buf, sizeof (buf)));
 
@@ -617,9 +764,7 @@ print_ehdr (Ebl *ebl, GElf_Ehdr *ehdr)
   if (ehdr->e_shnum == 0)
     {
       GElf_Shdr shdr_mem;
-      GElf_Shdr *shdr;
-
-      shdr = gelf_getshdr (elf_getscn (ebl->elf, 0), &shdr_mem);
+      GElf_Shdr *shdr = gelf_getshdr (elf_getscn (ebl->elf, 0), &shdr_mem);
       if (shdr != NULL)
 	printf (gettext (" (%" PRIu32 " in [0].sh_size)"),
 		(uint32_t) shdr->sh_size);
@@ -628,12 +773,10 @@ print_ehdr (Ebl *ebl, GElf_Ehdr *ehdr)
     }
   fputc_unlocked ('\n', stdout);
 
-  if (ehdr->e_shstrndx == SHN_XINDEX)
+  if (unlikely (ehdr->e_shstrndx == SHN_XINDEX))
     {
       GElf_Shdr shdr_mem;
-      GElf_Shdr *shdr;
-
-      shdr = gelf_getshdr (elf_getscn (ebl->elf, 0), &shdr_mem);
+      GElf_Shdr *shdr = gelf_getshdr (elf_getscn (ebl->elf, 0), &shdr_mem);
       if (shdr != NULL)
 	/* We managed to get the zeroth section.  */
 	snprintf (buf, sizeof (buf), gettext (" (%" PRIu32 " in [0].sh_link)"),
@@ -686,7 +829,7 @@ There are %d section headers, starting at offset %#" PRIx64 ":\n\
 	    ehdr->e_shnum, ehdr->e_shoff);
 
   /* Get the section header string table index.  */
-  if (elf_getshstrndx (ebl->elf, &shstrndx) < 0)
+  if (unlikely (elf_getshstrndx (ebl->elf, &shstrndx) < 0))
     error (EXIT_FAILURE, 0,
 	   gettext ("cannot get section header string table index"));
 
@@ -699,24 +842,21 @@ There are %d section headers, starting at offset %#" PRIx64 ":\n\
 
   for (cnt = 0; cnt < shnum; ++cnt)
     {
-      char buf[128];
-      char flagbuf[20];
-      char *cp;
       Elf_Scn *scn = elf_getscn (ebl->elf, cnt);
-      GElf_Shdr shdr_mem;
-      GElf_Shdr *shdr;
 
-      if (scn == NULL)
+      if (unlikely (scn == NULL))
 	error (EXIT_FAILURE, 0, gettext ("cannot get section: %s"),
 	       elf_errmsg (-1));
 
       /* Get the section header.  */
-      shdr = gelf_getshdr (scn, &shdr_mem);
-      if (shdr == NULL)
+      GElf_Shdr shdr_mem;
+      GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
+      if (unlikely (shdr == NULL))
 	error (EXIT_FAILURE, 0, gettext ("cannot get section header: %s"),
 	       elf_errmsg (-1));
 
-      cp = flagbuf;
+      char flagbuf[20];
+      char *cp = flagbuf;
       if (shdr->sh_flags & SHF_WRITE)
 	*cp++ = 'W';
       if (shdr->sh_flags & SHF_ALLOC)
@@ -743,6 +883,7 @@ There are %d section headers, starting at offset %#" PRIx64 ":\n\
 	*cp++ = 'E';
       *cp = '\0';
 
+      char buf[128];
       printf ("[%2zu] %-20s %-12s %0*" PRIx64 " %0*" PRIx64 " %0*" PRIx64
 	      " %2" PRId64 " %-5s %2" PRId32 " %3" PRId32
 	      " %2" PRId64 "\n",
@@ -765,9 +906,6 @@ There are %d section headers, starting at offset %#" PRIx64 ":\n\
 static void
 print_phdr (Ebl *ebl, GElf_Ehdr *ehdr)
 {
-  size_t cnt;
-  size_t shstrndx;
-
   if (ehdr->e_phnum == 0)
     /* No program header, this is OK in relocatable objects.  */
     return;
@@ -784,14 +922,14 @@ print_phdr (Ebl *ebl, GElf_Ehdr *ehdr)
   bool has_relro = false;
   GElf_Addr relro_from = 0;
   GElf_Addr relro_to = 0;
-  for (cnt = 0; cnt < ehdr->e_phnum; ++cnt)
+  for (size_t cnt = 0; cnt < ehdr->e_phnum; ++cnt)
     {
       char buf[128];
       GElf_Phdr mem;
       GElf_Phdr *phdr = gelf_getphdr (ebl->elf, cnt, &mem);
 
       /* If for some reason the header cannot be returned show this.  */
-      if (phdr == NULL)
+      if (unlikely (phdr == NULL))
 	{
 	  puts ("  ???");
 	  continue;
@@ -829,42 +967,40 @@ print_phdr (Ebl *ebl, GElf_Ehdr *ehdr)
     }
 
   /* Get the section header string table index.  */
-  if (elf_getshstrndx (ebl->elf, &shstrndx) < 0)
+  size_t shstrndx;
+  if (unlikely (elf_getshstrndx (ebl->elf, &shstrndx) < 0))
     error (EXIT_FAILURE, 0,
 	   gettext ("cannot get section header string table index"));
 
   puts (gettext ("\n Section to Segment mapping:\n  Segment Sections..."));
 
-  for (cnt = 0; cnt < ehdr->e_phnum; ++cnt)
+  for (size_t cnt = 0; cnt < ehdr->e_phnum; ++cnt)
     {
-      GElf_Phdr phdr_mem;
-      GElf_Phdr *phdr = gelf_getphdr (ebl->elf, cnt, &phdr_mem);
-      size_t inner;
-
       /* Print the segment number.  */
       printf ("   %2.2zu     ", cnt);
 
+      GElf_Phdr phdr_mem;
+      GElf_Phdr *phdr = gelf_getphdr (ebl->elf, cnt, &phdr_mem);
       /* This must not happen.  */
-      if (phdr == NULL)
+      if (unlikely (phdr == NULL))
 	error (EXIT_FAILURE, 0, gettext ("cannot get program header: %s"),
 	       elf_errmsg (-1));
 
       /* Iterate over the sections.  */
       bool in_relro = false;
-      for (inner = 1; inner < shnum; ++inner)
+      bool in_ro = false;
+      for (size_t inner = 1; inner < shnum; ++inner)
 	{
 	  Elf_Scn *scn = elf_getscn (ebl->elf, inner);
-	  GElf_Shdr shdr_mem;
-	  GElf_Shdr *shdr;
-
-	  /* It should not happen.  */
-	  if (scn == NULL)
+	  /* This should not happen.  */
+	  if (unlikely (scn == NULL))
 	    error (EXIT_FAILURE, 0, gettext ("cannot get section: %s"),
 		   elf_errmsg (-1));
 
 	  /* Get the section header.  */
-	  shdr = gelf_getshdr (scn, &shdr_mem);
-	  if (shdr == NULL)
+	  GElf_Shdr shdr_mem;
+	  GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
+	  if (unlikely (shdr == NULL))
 	    error (EXIT_FAILURE, 0,
 		   gettext ("cannot get section header: %s"),
 		   elf_errmsg (-1));
@@ -895,6 +1031,45 @@ print_phdr (Ebl *ebl, GElf_Ehdr *ehdr)
 	      else if (has_relro && in_relro
 		       && shdr->sh_addr + shdr->sh_size > relro_to)
 		fputs_unlocked ("] <RELRO:", stdout);
+	      else if (phdr->p_type == PT_LOAD && (phdr->p_flags & PF_W) == 0)
+		{
+		  if (!in_ro)
+		    {
+		      fputs_unlocked (" [RO:", stdout);
+		      in_ro = true;
+		    }
+		}
+	      else
+		{
+		  /* Determine the segment this section is part of.  */
+		  size_t cnt2;
+		  GElf_Phdr *phdr2 = NULL;
+		  for (cnt2 = 0; cnt2 < ehdr->e_phnum; ++cnt2)
+		    {
+		      GElf_Phdr phdr2_mem;
+		      phdr2 = gelf_getphdr (ebl->elf, cnt2, &phdr2_mem);
+
+		      if (phdr2 != NULL && phdr2->p_type == PT_LOAD
+			  && shdr->sh_addr >= phdr2->p_vaddr
+			  && (shdr->sh_addr + shdr->sh_size
+			      <= phdr2->p_vaddr + phdr2->p_memsz))
+			break;
+		    }
+
+		  if (cnt2 < ehdr->e_phnum)
+		    {
+		      if ((phdr2->p_flags & PF_W) == 0 && !in_ro)
+			{
+			  fputs_unlocked (" [RO:", stdout);
+			  in_ro = true;
+			}
+		      else if ((phdr2->p_flags & PF_W) != 0 && in_ro)
+			{
+			  fputs_unlocked ("]", stdout);
+			  in_ro = false;
+			}
+		    }
+		}
 
 	      printf (" %s",
 		      elf_strptr (ebl->elf, shstrndx, shdr->sh_name));
@@ -908,7 +1083,7 @@ print_phdr (Ebl *ebl, GElf_Ehdr *ehdr)
 		}
 	    }
 	}
-      if (in_relro)
+      if (in_relro || in_ro)
 	fputs_unlocked ("]", stdout);
 
       /* Finish the line.  */
@@ -918,36 +1093,29 @@ print_phdr (Ebl *ebl, GElf_Ehdr *ehdr)
 
 
 static void
-handle_scngrp (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
+handle_scngrp (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 {
-  Elf_Data *data;
-  Elf32_Word *grpref;
-  Elf_Scn *symscn;
-  GElf_Shdr symshdr_mem;
-  GElf_Shdr *symshdr;
-  Elf_Data *symdata;
-  GElf_Sym sym_mem;
-  size_t cnt;
-  size_t shstrndx;
-
   /* Get the data of the section.  */
-  data = elf_getdata (scn, NULL);
+  Elf_Data *data = elf_getdata (scn, NULL);
 
-  symscn = elf_getscn (ebl->elf, shdr->sh_link);
-  symshdr = gelf_getshdr (symscn, &symshdr_mem);
-  symdata = elf_getdata (symscn, NULL);
+  Elf_Scn *symscn = elf_getscn (ebl->elf, shdr->sh_link);
+  GElf_Shdr symshdr_mem;
+  GElf_Shdr *symshdr = gelf_getshdr (symscn, &symshdr_mem);
+  Elf_Data *symdata = elf_getdata (symscn, NULL);
 
   if (data == NULL || data->d_size < sizeof (Elf32_Word) || symshdr == NULL
       || symdata == NULL)
     return;
 
   /* Get the section header string table index.  */
-  if (elf_getshstrndx (ebl->elf, &shstrndx) < 0)
+  size_t shstrndx;
+  if (unlikely (elf_getshstrndx (ebl->elf, &shstrndx) < 0))
     error (EXIT_FAILURE, 0,
 	   gettext ("cannot get section header string table index"));
 
-  grpref = (Elf32_Word *) data->d_buf;
+  Elf32_Word *grpref = (Elf32_Word *) data->d_buf;
 
+  GElf_Sym sym_mem;
   printf ((grpref[0] & GRP_COMDAT)
 	  ? ngettext ("\
 \nCOMDAT section group [%2zu] '%s' with signature '%s' contains %zu entry:\n",
@@ -965,27 +1133,24 @@ handle_scngrp (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 	  ?: gettext ("<INVALID SYMBOL>"),
 	  data->d_size / sizeof (Elf32_Word) - 1);
 
-  for (cnt = 1; cnt < data->d_size / sizeof (Elf32_Word); ++cnt)
+  for (size_t cnt = 1; cnt < data->d_size / sizeof (Elf32_Word); ++cnt)
     {
       GElf_Shdr grpshdr_mem;
-      GElf_Shdr *grpshdr;
+      GElf_Shdr *grpshdr = gelf_getshdr (elf_getscn (ebl->elf, grpref[cnt]),
+					 &grpshdr_mem);
 
-      grpshdr = gelf_getshdr (elf_getscn (ebl->elf, grpref[cnt]),
-			      &grpshdr_mem);
-
-      if (grpshdr == NULL)
-	printf (gettext ("  [%2u] <INVALID SECTION>\n"), grpref[cnt]);
-      else
-	printf ("  [%2u] %s\n",
-		grpref[cnt],
-		elf_strptr (ebl->elf, shstrndx, grpshdr->sh_name)
-		?: gettext ("<INVALID SECTION>"));
+      const char *str;
+      printf ("  [%2u] %s\n",
+	      grpref[cnt],
+	      grpshdr != NULL
+	      && (str = elf_strptr (ebl->elf, shstrndx, grpshdr->sh_name))
+	      ? str : gettext ("<INVALID SECTION>"));
     }
 }
 
 
 static void
-print_scngrp (Ebl *ebl, GElf_Ehdr *ehdr)
+print_scngrp (Ebl *ebl)
 {
   /* Find all relocation sections and handle them.  */
   Elf_Scn *scn = NULL;
@@ -997,7 +1162,7 @@ print_scngrp (Ebl *ebl, GElf_Ehdr *ehdr)
       GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
 
       if (shdr != NULL && shdr->sh_type == SHT_GROUP)
-	handle_scngrp (ebl, ehdr, scn, shdr);
+	handle_scngrp (ebl, scn, shdr);
     }
 }
 
@@ -1112,7 +1277,7 @@ print_dt_posflag_1 (int class, GElf_Xword d_val)
 
 
 static void
-handle_dynamic (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
+handle_dynamic (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 {
   int class = gelf_getclass (ebl->elf);
   GElf_Shdr glink;
@@ -1126,7 +1291,7 @@ handle_dynamic (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
     return;
 
   /* Get the section header string table index.  */
-  if (elf_getshstrndx (ebl->elf, &shstrndx) < 0)
+  if (unlikely (elf_getshstrndx (ebl->elf, &shstrndx) < 0))
     error (EXIT_FAILURE, 0,
 	   gettext ("cannot get section header string table index"));
 
@@ -1146,14 +1311,12 @@ handle_dynamic (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 
   for (cnt = 0; cnt < shdr->sh_size / shdr->sh_entsize; ++cnt)
     {
-      char buf[64];
       GElf_Dyn dynmem;
-      GElf_Dyn *dyn;
-
-      dyn = gelf_getdyn (data, cnt, &dynmem);
+      GElf_Dyn *dyn = gelf_getdyn (data, cnt, &dynmem);
       if (dyn == NULL)
 	break;
 
+      char buf[64];
       printf ("  %-17s ",
 	      ebl_dynamic_tag_name (ebl, dyn->d_tag, buf, sizeof (buf)));
 
@@ -1164,7 +1327,7 @@ handle_dynamic (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 	case DT_BIND_NOW:
 	case DT_TEXTREL:
 	  /* No further output.  */
-	  fputc ('\n', stdout);
+	  fputc_unlocked ('\n', stdout);
 	  break;
 
 	case DT_NEEDED:
@@ -1246,18 +1409,18 @@ handle_dynamic (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 static void
 print_dynamic (Ebl *ebl, GElf_Ehdr *ehdr)
 {
-  /* Find all relocation sections and handle them.  */
-  Elf_Scn *scn = NULL;
-
-  while ((scn = elf_nextscn (ebl->elf, scn)) != NULL)
+  for (int i = 0; i < ehdr->e_phnum; ++i)
     {
-       /* Handle the section if it is a symbol table.  */
-      GElf_Shdr shdr_mem;
-      GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
+      GElf_Phdr phdr_mem;
+      GElf_Phdr *phdr = gelf_getphdr (ebl->elf, i, &phdr_mem);
 
-      if (shdr != NULL && shdr->sh_type == SHT_DYNAMIC)
+      if (phdr != NULL && phdr->p_type == PT_DYNAMIC)
 	{
-	  handle_dynamic (ebl, ehdr, scn, shdr);
+	  Elf_Scn *scn = gelf_offscn (ebl->elf, phdr->p_offset);
+	  GElf_Shdr shdr_mem;
+	  GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
+	  if (shdr != NULL && shdr->sh_type == SHT_DYNAMIC)
+	    handle_dynamic (ebl, scn, shdr);
 	  break;
 	}
     }
@@ -1266,7 +1429,7 @@ print_dynamic (Ebl *ebl, GElf_Ehdr *ehdr)
 
 /* Print relocations.  */
 static void
-print_relocs (Ebl *ebl, GElf_Ehdr *ehdr)
+print_relocs (Ebl *ebl)
 {
   /* Find all relocation sections and handle them.  */
   Elf_Scn *scn = NULL;
@@ -1277,12 +1440,12 @@ print_relocs (Ebl *ebl, GElf_Ehdr *ehdr)
       GElf_Shdr shdr_mem;
       GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
 
-      if (shdr != NULL)
+      if (likely (shdr != NULL))
 	{
 	  if (shdr->sh_type == SHT_REL)
-	    handle_relocs_rel (ebl, ehdr, scn, shdr);
+	    handle_relocs_rel (ebl, scn, shdr);
 	  else if (shdr->sh_type == SHT_RELA)
-	    handle_relocs_rela (ebl, ehdr, scn, shdr);
+	    handle_relocs_rela (ebl, scn, shdr);
 	}
     }
 }
@@ -1290,37 +1453,28 @@ print_relocs (Ebl *ebl, GElf_Ehdr *ehdr)
 
 /* Handle a relocation section.  */
 static void
-handle_relocs_rel (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
+handle_relocs_rel (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 {
   int class = gelf_getclass (ebl->elf);
   int nentries = shdr->sh_size / shdr->sh_entsize;
-  int cnt;
-  Elf_Data *data;
-  Elf_Scn *symscn;
-  GElf_Shdr symshdr_mem;
-  GElf_Shdr *symshdr;
-  Elf_Data *symdata;
-  GElf_Shdr destshdr_mem;
-  GElf_Shdr *destshdr;
-  Elf_Scn *xndxscn;
-  Elf_Data *xndxdata = NULL;
-  size_t shstrndx;
 
   /* Get the data of the section.  */
-  data = elf_getdata (scn, NULL);
+  Elf_Data *data = elf_getdata (scn, NULL);
   if (data == NULL)
     return;
 
   /* Get the symbol table information.  */
-  symscn = elf_getscn (ebl->elf, shdr->sh_link);
-  symshdr = gelf_getshdr (symscn, &symshdr_mem);
-  symdata = elf_getdata (symscn, NULL);
+  Elf_Scn *symscn = elf_getscn (ebl->elf, shdr->sh_link);
+  GElf_Shdr symshdr_mem;
+  GElf_Shdr *symshdr = gelf_getshdr (symscn, &symshdr_mem);
+  Elf_Data *symdata = elf_getdata (symscn, NULL);
 
   /* Get the section header of the section the relocations are for.  */
-  destshdr = gelf_getshdr (elf_getscn (ebl->elf, shdr->sh_info),
-			   &destshdr_mem);
+  GElf_Shdr destshdr_mem;
+  GElf_Shdr *destshdr = gelf_getshdr (elf_getscn (ebl->elf, shdr->sh_info),
+				      &destshdr_mem);
 
-  if (symshdr == NULL || symdata == NULL || destshdr == NULL)
+  if (unlikely (symshdr == NULL || symdata == NULL || destshdr == NULL))
     {
       printf (gettext ("\nInvalid symbol table at offset %#0" PRIx64 "\n"),
 	      shdr->sh_offset);
@@ -1328,24 +1482,14 @@ handle_relocs_rel (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
     }
 
   /* Search for the optional extended section index table.  */
-  xndxscn = NULL;
-  while ((xndxscn = elf_nextscn (ebl->elf, xndxscn)) != NULL)
-    {
-      GElf_Shdr xndxshdr_mem;
-      GElf_Shdr *xndxshdr;
-
-      xndxshdr = gelf_getshdr (xndxscn, &xndxshdr_mem);
-      if (xndxshdr != NULL && xndxshdr->sh_type == SHT_SYMTAB_SHNDX
-	  && xndxshdr->sh_link == elf_ndxscn (symscn))
-	{
-	  /* Found it.  */
-	  xndxdata = elf_getdata (xndxscn, NULL);
-	  break;
-	}
-    }
+  Elf_Data *xndxdata = NULL;
+  int xndxscnidx = elf_scnshndx (scn);
+  if (unlikely (xndxscnidx > 0))
+    xndxdata = elf_getdata (elf_getscn (ebl->elf, xndxscnidx), NULL);
 
   /* Get the section header string table index.  */
-  if (elf_getshstrndx (ebl->elf, &shstrndx) < 0)
+  size_t shstrndx;
+  if (unlikely (elf_getshstrndx (ebl->elf, &shstrndx) < 0))
     error (EXIT_FAILURE, 0,
 	   gettext ("cannot get section header string table index"));
 
@@ -1381,22 +1525,19 @@ handle_relocs_rel (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
   Offset              Type                 Value               Name\n"),
 	 stdout);
 
-  for (cnt = 0; cnt < nentries; ++cnt)
+  for (int cnt = 0; cnt < nentries; ++cnt)
     {
       GElf_Rel relmem;
-      GElf_Rel *rel;
-
-      rel = gelf_getrel (data, cnt, &relmem);
-      if (rel != NULL)
+      GElf_Rel *rel = gelf_getrel (data, cnt, &relmem);
+      if (likely (rel != NULL))
 	{
 	  char buf[128];
 	  GElf_Sym symmem;
-	  GElf_Sym *sym;
 	  Elf32_Word xndx;
-
-	  sym = gelf_getsymshndx (symdata, xndxdata, GELF_R_SYM (rel->r_info),
-				  &symmem, &xndx);
-	  if (sym == NULL)
+	  GElf_Sym *sym = gelf_getsymshndx (symdata, xndxdata,
+					    GELF_R_SYM (rel->r_info),
+					    &symmem, &xndx);
+	  if (unlikely (sym == NULL))
 	    printf ("  %#0*" PRIx64 "  %-20s <%s %ld>\n",
 		    class == ELFCLASS32 ? 10 : 18, rel->r_offset,
 		    ebl_reloc_type_check (ebl, GELF_R_TYPE (rel->r_info))
@@ -1410,7 +1551,8 @@ handle_relocs_rel (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 	  else if (GELF_ST_TYPE (sym->st_info) != STT_SECTION)
 	    printf ("  %#0*" PRIx64 "  %-20s %#0*" PRIx64 "  %s\n",
 		    class == ELFCLASS32 ? 10 : 18, rel->r_offset,
-		    ebl_reloc_type_check (ebl, GELF_R_TYPE (rel->r_info))
+		    likely (ebl_reloc_type_check (ebl,
+						  GELF_R_TYPE (rel->r_info)))
 		    /* Avoid the leading R_ which isn't carrying any
 		       information.  */
 		    ? ebl_reloc_type_name (ebl, GELF_R_TYPE (rel->r_info),
@@ -1425,7 +1567,7 @@ handle_relocs_rel (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 						   ? xndx : sym->st_shndx),
 				       &destshdr_mem);
 
-	      if (shdr == NULL)
+	      if (unlikely (destshdr == NULL))
 		printf ("  %#0*" PRIx64 "  %-20s <%s %ld>\n",
 			class == ELFCLASS32 ? 10 : 18, rel->r_offset,
 			ebl_reloc_type_check (ebl, GELF_R_TYPE (rel->r_info))
@@ -1456,7 +1598,7 @@ handle_relocs_rel (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 
 /* Handle a relocation section.  */
 static void
-handle_relocs_rela (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
+handle_relocs_rela (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 {
   int class = gelf_getclass (ebl->elf);
   int nentries = shdr->sh_size / shdr->sh_entsize;
@@ -1477,7 +1619,7 @@ handle_relocs_rela (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
   GElf_Shdr *destshdr = gelf_getshdr (elf_getscn (ebl->elf, shdr->sh_info),
 				      &destshdr_mem);
 
-  if (symshdr == NULL || symdata == NULL || destshdr == NULL)
+  if (unlikely (symshdr == NULL || symdata == NULL || destshdr == NULL))
     {
       printf (gettext ("\nInvalid symbol table at offset %#0" PRIx64 "\n"),
 	      shdr->sh_offset);
@@ -1486,25 +1628,13 @@ handle_relocs_rela (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 
   /* Search for the optional extended section index table.  */
   Elf_Data *xndxdata = NULL;
-  Elf_Scn *xndxscn = NULL;
-  while ((xndxscn = elf_nextscn (ebl->elf, xndxscn)) != NULL)
-    {
-      GElf_Shdr xndxshdr_mem;
-      GElf_Shdr *xndxshdr;
-
-      xndxshdr = gelf_getshdr (xndxscn, &xndxshdr_mem);
-      if (xndxshdr != NULL && xndxshdr->sh_type == SHT_SYMTAB_SHNDX
-	  && xndxshdr->sh_link == elf_ndxscn (symscn))
-	{
-	  /* Found it.  */
-	  xndxdata = elf_getdata (xndxscn, NULL);
-	  break;
-	}
-    }
+  int xndxscnidx = elf_scnshndx (scn);
+  if (unlikely (xndxscnidx > 0))
+    xndxdata = elf_getdata (elf_getscn (ebl->elf, xndxscnidx), NULL);
 
   /* Get the section header string table index.  */
   size_t shstrndx;
-  if (elf_getshstrndx (ebl->elf, &shstrndx) < 0)
+  if (unlikely (elf_getshstrndx (ebl->elf, &shstrndx) < 0))
     error (EXIT_FAILURE, 0,
 	   gettext ("cannot get section header string table index"));
 
@@ -1530,17 +1660,16 @@ handle_relocs_rela (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
     {
       GElf_Rela relmem;
       GElf_Rela *rel = gelf_getrela (data, cnt, &relmem);
-      if (rel != NULL)
+      if (likely (rel != NULL))
 	{
 	  char buf[64];
 	  GElf_Sym symmem;
-	  GElf_Sym *sym;
 	  Elf32_Word xndx;
+	  GElf_Sym *sym = gelf_getsymshndx (symdata, xndxdata,
+					    GELF_R_SYM (rel->r_info),
+					    &symmem, &xndx);
 
-	  sym = gelf_getsymshndx (symdata, xndxdata, GELF_R_SYM (rel->r_info),
-				  &symmem, &xndx);
-
-	  if (sym == NULL)
+	  if (unlikely (sym == NULL))
 	    printf ("  %#0*" PRIx64 "  %-15s <%s %ld>\n",
 		    class == ELFCLASS32 ? 10 : 18, rel->r_offset,
 		    ebl_reloc_type_check (ebl, GELF_R_TYPE (rel->r_info))
@@ -1553,9 +1682,10 @@ handle_relocs_rela (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 		    (long int) GELF_R_SYM (rel->r_info));
 	  else if (GELF_ST_TYPE (sym->st_info) != STT_SECTION)
 	    printf ("\
-  %#0*" PRIx64 "  %-15s %#0*" PRIx64 "  +%5" PRId64 " %s\n",
+  %#0*" PRIx64 "  %-15s %#0*" PRIx64 "  %+6" PRId64 " %s\n",
 		    class == ELFCLASS32 ? 10 : 18, rel->r_offset,
-		    ebl_reloc_type_check (ebl, GELF_R_TYPE (rel->r_info))
+		    likely (ebl_reloc_type_check (ebl,
+						  GELF_R_TYPE (rel->r_info)))
 		    /* Avoid the leading R_ which isn't carrying any
 		       information.  */
 		    ? ebl_reloc_type_name (ebl, GELF_R_TYPE (rel->r_info),
@@ -1571,7 +1701,7 @@ handle_relocs_rela (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 						   ? xndx : sym->st_shndx),
 				       &destshdr_mem);
 
-	      if (shdr == NULL)
+	      if (unlikely (shdr == NULL))
 		printf ("  %#0*" PRIx64 "  %-15s <%s %ld>\n",
 			class == ELFCLASS32 ? 10 : 18, rel->r_offset,
 			ebl_reloc_type_check (ebl, GELF_R_TYPE (rel->r_info))
@@ -1585,7 +1715,7 @@ handle_relocs_rela (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 				    ? xndx : sym->st_shndx));
 	      else
 		printf ("\
-  %#0*" PRIx64 "  %-15s %#0*" PRIx64 "  +%5" PRId64 " %s\n",
+  %#0*" PRIx64 "  %-15s %#0*" PRIx64 "  %+6" PRId64 " %s\n",
 			class == ELFCLASS32 ? 10 : 18, rel->r_offset,
 			ebl_reloc_type_check (ebl, GELF_R_TYPE (rel->r_info))
 			/* Avoid the leading R_ which isn't carrying any
@@ -1604,7 +1734,7 @@ handle_relocs_rela (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 
 /* Print the program header.  */
 static void
-print_symtab (Ebl *ebl, GElf_Ehdr *ehdr, int type)
+print_symtab (Ebl *ebl, int type)
 {
   /* Find the symbol table(s).  For this we have to search through the
      section table.  */
@@ -1617,41 +1747,35 @@ print_symtab (Ebl *ebl, GElf_Ehdr *ehdr, int type)
       GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
 
       if (shdr != NULL && shdr->sh_type == (GElf_Word) type)
-	handle_symtab (ebl, ehdr, scn, shdr);
+	handle_symtab (ebl, scn, shdr);
     }
 }
 
 
 static void
-handle_symtab (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
+handle_symtab (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 {
   Elf_Data *versym_data = NULL;
   Elf_Data *verneed_data = NULL;
   Elf_Data *verdef_data = NULL;
   Elf_Data *xndx_data = NULL;
-  Elf_Scn *runscn;
-  Elf_Data *data;
   int class = gelf_getclass (ebl->elf);
-  unsigned int nsyms;
-  unsigned int cnt;
   Elf32_Word verneed_stridx = 0;
   Elf32_Word verdef_stridx = 0;
-  GElf_Shdr glink;
-  size_t shstrndx;
 
   /* Get the data of the section.  */
-  data = elf_getdata (scn, NULL);
+  Elf_Data *data = elf_getdata (scn, NULL);
   if (data == NULL)
     return;
 
   /* Find out whether we have other sections we might need.  */
-  runscn = NULL;
+  Elf_Scn *runscn = NULL;
   while ((runscn = elf_nextscn (ebl->elf, runscn)) != NULL)
     {
       GElf_Shdr runshdr_mem;
       GElf_Shdr *runshdr = gelf_getshdr (runscn, &runshdr_mem);
 
-      if (runshdr != NULL)
+      if (likely (runshdr != NULL))
 	{
 	  if (runshdr->sh_type == SHT_GNU_versym
 	      && runshdr->sh_link == elf_ndxscn (scn))
@@ -1677,19 +1801,22 @@ handle_symtab (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
     }
 
   /* Get the section header string table index.  */
-  if (elf_getshstrndx (ebl->elf, &shstrndx) < 0)
+  size_t shstrndx;
+  if (unlikely (elf_getshstrndx (ebl->elf, &shstrndx) < 0))
     error (EXIT_FAILURE, 0,
 	   gettext ("cannot get section header string table index"));
 
   /* Now we can compute the number of entries in the section.  */
-  nsyms = data->d_size / (class == ELFCLASS32
-			  ? sizeof (Elf32_Sym) : sizeof (Elf64_Sym));
+  unsigned int nsyms = data->d_size / (class == ELFCLASS32
+				       ? sizeof (Elf32_Sym)
+				       : sizeof (Elf64_Sym));
 
   printf (ngettext ("\nSymbol table [%2u] '%s' contains %u entry:\n",
 		    "\nSymbol table [%2u] '%s' contains %u entries:\n",
 		    nsyms),
 	  (unsigned int) elf_ndxscn (scn),
 	  elf_strptr (ebl->elf, shstrndx, shdr->sh_name), nsyms);
+  GElf_Shdr glink;
   printf (ngettext (" %lu local symbol  String table: [%2u] '%s'\n",
 		    " %lu local symbols  String table: [%2u] '%s'\n",
 		    shdr->sh_info),
@@ -1706,7 +1833,7 @@ handle_symtab (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
   Num:            Value   Size Type    Bind   Vis          Ndx Name\n"),
 		  stdout);
 
-  for (cnt = 0; cnt < nsyms; ++cnt)
+  for (unsigned int cnt = 0; cnt < nsyms; ++cnt)
     {
       char typebuf[64];
       char bindbuf[64];
@@ -1715,11 +1842,11 @@ handle_symtab (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
       GElf_Sym sym_mem;
       GElf_Sym *sym = gelf_getsymshndx (data, xndx_data, cnt, &sym_mem, &xndx);
 
-      if (sym == NULL)
+      if (unlikely (sym == NULL))
 	continue;
 
       /* Determine the real section index.  */
-      if (sym->st_shndx != SHN_XINDEX)
+      if (likely (sym->st_shndx != SHN_XINDEX))
 	xndx = sym->st_shndx;
 
       printf (gettext ("\
@@ -1741,9 +1868,7 @@ handle_symtab (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 	{
 	  /* Get the version information.  */
 	  GElf_Versym versym_mem;
-	  GElf_Versym *versym;
-
-	  versym = gelf_getversym (versym_data, cnt, &versym_mem);
+	  GElf_Versym *versym = gelf_getversym (versym_data, cnt, &versym_mem);
 
 	  if (versym != NULL && ((*versym & 0x8000) != 0 || *versym > 1))
 	    {
@@ -1763,13 +1888,13 @@ handle_symtab (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 	      if (is_nobits || ! check_def)
 		{
 		  /* We must test both.  */
-		  GElf_Verneed verneed_mem;
-		  GElf_Verneed *verneed;
 		  GElf_Vernaux vernaux_mem;
 		  GElf_Vernaux *vernaux = NULL;
 		  size_t vn_offset = 0;
 
-		  verneed = gelf_getverneed (verneed_data, 0, &verneed_mem);
+		  GElf_Verneed verneed_mem;
+		  GElf_Verneed *verneed = gelf_getverneed (verneed_data, 0,
+							   &verneed_mem);
 		  while (verneed != NULL)
 		    {
 		      size_t vna_offset = vn_offset;
@@ -1811,7 +1936,7 @@ handle_symtab (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 			      (unsigned int) vernaux->vna_other);
 		      check_def = 0;
 		    }
-		  else if (! is_nobits)
+		  else if (unlikely (! is_nobits))
 		    error (0, 0, gettext ("bad dynamic symbol"));
 		  else
 		    check_def = 1;
@@ -1820,11 +1945,11 @@ handle_symtab (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 	      if (check_def && *versym != 0x8001)
 		{
 		  /* We must test both.  */
-		  GElf_Verdef verdef_mem;
-		  GElf_Verdef *verdef;
 		  size_t vd_offset = 0;
 
-		  verdef = gelf_getverdef (verdef_data, 0, &verdef_mem);
+		  GElf_Verdef verdef_mem;
+		  GElf_Verdef *verdef = gelf_getverdef (verdef_data, 0,
+							&verdef_mem);
 		  while (verdef != NULL)
 		    {
 		      if (verdef->vd_ndx == (*versym & 0x7fff))
@@ -1841,11 +1966,10 @@ handle_symtab (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 		  if (verdef != NULL)
 		    {
 		      GElf_Verdaux verdaux_mem;
-		      GElf_Verdaux *verdaux;
-
-		      verdaux = gelf_getverdaux (verdef_data,
-						 vd_offset + verdef->vd_aux,
-						 &verdaux_mem);
+		      GElf_Verdaux *verdaux
+			= gelf_getverdaux (verdef_data,
+					   vd_offset + verdef->vd_aux,
+					   &verdaux_mem);
 
 		      if (verdaux != NULL)
 			printf ((*versym & 0x8000) ? "@%s" : "@@%s",
@@ -1856,14 +1980,14 @@ handle_symtab (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 	    }
 	}
 
-      putchar ('\n');
+      putchar_unlocked ('\n');
     }
 }
 
 
 /* Print version information.  */
 static void
-print_verinfo (Ebl *ebl, GElf_Ehdr *ehdr)
+print_verinfo (Ebl *ebl)
 {
   /* Find the version information sections.  For this we have to
      search through the section table.  */
@@ -1875,14 +1999,14 @@ print_verinfo (Ebl *ebl, GElf_Ehdr *ehdr)
       GElf_Shdr shdr_mem;
       GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
 
-      if (shdr != NULL)
+      if (likely (shdr != NULL))
 	{
 	  if (shdr->sh_type == SHT_GNU_verneed)
-	    handle_verneed (ebl, ehdr, scn, shdr);
+	    handle_verneed (ebl, scn, shdr);
 	  else if (shdr->sh_type == SHT_GNU_verdef)
-	    handle_verdef (ebl, ehdr, scn, shdr);
+	    handle_verdef (ebl, scn, shdr);
 	  else if (shdr->sh_type == SHT_GNU_versym)
-	    handle_versym (ebl, ehdr, scn, shdr);
+	    handle_versym (ebl, scn, shdr);
 	}
     }
 }
@@ -1910,7 +2034,7 @@ get_ver_flags (unsigned int flags)
       endp = stpcpy (endp, "WEAK ");
     }
 
-  if (flags & ~(VER_FLG_BASE | VER_FLG_WEAK))
+  if (unlikely (flags & ~(VER_FLG_BASE | VER_FLG_WEAK)))
     {
       strncpy (endp, gettext ("| <unknown>"), buf + sizeof (buf) - endp);
       buf[sizeof (buf) - 1] = '\0';
@@ -1921,25 +2045,22 @@ get_ver_flags (unsigned int flags)
 
 
 static void
-handle_verneed (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
+handle_verneed (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 {
-  Elf_Data *data;
   int class = gelf_getclass (ebl->elf);
-  GElf_Shdr glink;
-  int cnt;
-  unsigned int offset;
-  size_t shstrndx;
 
   /* Get the data of the section.  */
-  data = elf_getdata (scn, NULL);
+  Elf_Data *data = elf_getdata (scn, NULL);
   if (data == NULL)
     return;
 
   /* Get the section header string table index.  */
-  if (elf_getshstrndx (ebl->elf, &shstrndx) < 0)
+  size_t shstrndx;
+  if (unlikely (elf_getshstrndx (ebl->elf, &shstrndx) < 0))
     error (EXIT_FAILURE, 0,
 	   gettext ("cannot get section header string table index"));
 
+  GElf_Shdr glink;
   printf (ngettext ("\
 \nVersion needs section [%2u] '%s' contains %d entry:\n Addr: %#0*" PRIx64 "  Offset: %#08" PRIx64 "  Link to section: [%2u] '%s'\n",
 		    "\
@@ -1954,17 +2075,13 @@ handle_verneed (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 		      gelf_getshdr (elf_getscn (ebl->elf, shdr->sh_link),
 				    &glink)->sh_name));
 
-  offset = 0;
-  for (cnt = shdr->sh_info; --cnt >= 0; )
+  unsigned int offset = 0;
+  for (int cnt = shdr->sh_info; --cnt >= 0; )
     {
-      GElf_Verneed needmem;
-      GElf_Verneed *need;
-      unsigned int auxoffset;
-      int cnt2;
-
       /* Get the data at the next offset.  */
-      need = gelf_getverneed (data, offset, &needmem);
-      if (need == NULL)
+      GElf_Verneed needmem;
+      GElf_Verneed *need = gelf_getverneed (data, offset, &needmem);
+      if (unlikely (need == NULL))
 	break;
 
       printf (gettext ("  %#06x: Version: %hu  File: %s  Cnt: %hu\n"),
@@ -1972,14 +2089,12 @@ handle_verneed (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 	      elf_strptr (ebl->elf, shdr->sh_link, need->vn_file),
 	      (unsigned short int) need->vn_cnt);
 
-      auxoffset = offset + need->vn_aux;
-      for (cnt2 = need->vn_cnt; --cnt2 >= 0; )
+      unsigned int auxoffset = offset + need->vn_aux;
+      for (int cnt2 = need->vn_cnt; --cnt2 >= 0; )
 	{
 	  GElf_Vernaux auxmem;
-	  GElf_Vernaux *aux;
-
-	  aux = gelf_getvernaux (data, auxoffset, &auxmem);
-	  if (aux == NULL)
+	  GElf_Vernaux *aux = gelf_getvernaux (data, auxoffset, &auxmem);
+	  if (unlikely (aux == NULL))
 	    break;
 
 	  printf (gettext ("  %#06x: Name: %s  Flags: %s  Version: %hu\n"),
@@ -1998,25 +2113,21 @@ handle_verneed (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 
 
 static void
-handle_verdef (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
+handle_verdef (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 {
-  Elf_Data *data;
-  int class = gelf_getclass (ebl->elf);
-  GElf_Shdr glink;
-  int cnt;
-  unsigned int offset;
-  size_t shstrndx;
-
   /* Get the data of the section.  */
-  data = elf_getdata (scn, NULL);
+  Elf_Data *data = elf_getdata (scn, NULL);
   if (data == NULL)
     return;
 
   /* Get the section header string table index.  */
-  if (elf_getshstrndx (ebl->elf, &shstrndx) < 0)
+  size_t shstrndx;
+  if (unlikely (elf_getshstrndx (ebl->elf, &shstrndx) < 0))
     error (EXIT_FAILURE, 0,
 	   gettext ("cannot get section header string table index"));
 
+  int class = gelf_getclass (ebl->elf);
+  GElf_Shdr glink;
   printf (ngettext ("\
 \nVersion definition section [%2u] '%s' contains %d entry:\n Addr: %#0*" PRIx64 "  Offset: %#08" PRIx64 "  Link to section: [%2u] '%s'\n",
 		    "\
@@ -2032,24 +2143,19 @@ handle_verdef (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 		      gelf_getshdr (elf_getscn (ebl->elf, shdr->sh_link),
 				    &glink)->sh_name));
 
-  offset = 0;
-  for (cnt = shdr->sh_info; --cnt >= 0; )
+  unsigned int offset = 0;
+  for (int cnt = shdr->sh_info; --cnt >= 0; )
     {
-      GElf_Verdef defmem;
-      GElf_Verdef *def;
-      GElf_Verdaux auxmem;
-      GElf_Verdaux *aux;
-      unsigned int auxoffset;
-      int cnt2;
-
       /* Get the data at the next offset.  */
-      def = gelf_getverdef (data, offset, &defmem);
-      if (def == NULL)
+      GElf_Verdef defmem;
+      GElf_Verdef *def = gelf_getverdef (data, offset, &defmem);
+      if (unlikely (def == NULL))
 	break;
 
-      auxoffset = offset + def->vd_aux;
-      aux = gelf_getverdaux (data, auxoffset, &auxmem);
-      if (aux == NULL)
+      unsigned int auxoffset = offset + def->vd_aux;
+      GElf_Verdaux auxmem;
+      GElf_Verdaux *aux = gelf_getverdaux (data, auxoffset, &auxmem);
+      if (unlikely (aux == NULL))
 	break;
 
       printf (gettext ("\
@@ -2061,10 +2167,10 @@ handle_verdef (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 	      elf_strptr (ebl->elf, shdr->sh_link, aux->vda_name));
 
       auxoffset += aux->vda_next;
-      for (cnt2 = 1; cnt2 < def->vd_cnt; ++cnt2)
+      for (int cnt2 = 1; cnt2 < def->vd_cnt; ++cnt2)
 	{
 	  aux = gelf_getverdaux (data, auxoffset, &auxmem);
-	  if (aux == NULL)
+	  if (unlikely (aux == NULL))
 	    break;
 
 	  printf (gettext ("  %#06x: Parent %d: %s\n"),
@@ -2081,42 +2187,35 @@ handle_verdef (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 
 
 static void
-handle_versym (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
+handle_versym (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 {
-  Elf_Data *data;
   int class = gelf_getclass (ebl->elf);
-  Elf_Scn *verscn;
-  GElf_Shdr glink;
-  Elf_Scn *defscn;
-  Elf_Scn *needscn;
   const char **vername;
   const char **filename;
-  size_t nvername;
-  unsigned int cnt;
-  size_t shstrndx;
 
   /* Get the data of the section.  */
-  data = elf_getdata (scn, NULL);
+  Elf_Data *data = elf_getdata (scn, NULL);
   if (data == NULL)
     return;
 
   /* Get the section header string table index.  */
-  if (elf_getshstrndx (ebl->elf, &shstrndx) < 0)
+  size_t shstrndx;
+  if (unlikely (elf_getshstrndx (ebl->elf, &shstrndx) < 0))
     error (EXIT_FAILURE, 0,
 	   gettext ("cannot get section header string table index"));
 
   /* We have to find the version definition section and extract the
      version names.  */
-  defscn = NULL;
-  needscn = NULL;
+  Elf_Scn *defscn = NULL;
+  Elf_Scn *needscn = NULL;
 
-  verscn = NULL;
+  Elf_Scn *verscn = NULL;
   while ((verscn = elf_nextscn (ebl->elf, verscn)) != NULL)
     {
       GElf_Shdr vershdr_mem;
       GElf_Shdr *vershdr = gelf_getshdr (verscn, &vershdr_mem);
 
-      if (vershdr != NULL)
+      if (likely (vershdr != NULL))
 	{
 	  if (vershdr->sh_type == SHT_GNU_verdef)
 	    defscn = verscn;
@@ -2125,6 +2224,7 @@ handle_versym (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 	}
     }
 
+  size_t nvername;
   if (defscn != NULL || needscn != NULL)
     {
       /* We have a version information (better should have).  Now get
@@ -2140,21 +2240,21 @@ handle_versym (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 	  GElf_Shdr *defshdr;
 
 	  defdata = elf_getdata (defscn, NULL);
-	  if (defdata == NULL)
+	  if (unlikely (defdata == NULL))
 	    return;
 
 	  defshdr = gelf_getshdr (defscn, &defshdrmem);
-	  if (defshdr == NULL)
+	  if (unlikely (defshdr == NULL))
 	    return;
 
-	  for (cnt = 0; cnt < defshdr->sh_info; ++cnt)
+	  for (unsigned int cnt = 0; cnt < defshdr->sh_info; ++cnt)
 	    {
 	      GElf_Verdef defmem;
 	      GElf_Verdef *def;
 
 	      /* Get the data at the next offset.  */
 	      def = gelf_getverdef (defdata, offset, &defmem);
-	      if (def == NULL)
+	      if (unlikely (def == NULL))
 		break;
 
 	      nvername = MAX (nvername, (size_t) (def->vd_ndx & 0x7fff));
@@ -2170,14 +2270,14 @@ handle_versym (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 	  GElf_Shdr *needshdr;
 
 	  needdata = elf_getdata (needscn, NULL);
-	  if (needdata == NULL)
+	  if (unlikely (needdata == NULL))
 	    return;
 
 	  needshdr = gelf_getshdr (needscn, &needshdrmem);
-	  if (needshdr == NULL)
+	  if (unlikely (needshdr == NULL))
 	    return;
 
-	  for (cnt = 0; cnt < needshdr->sh_info; ++cnt)
+	  for (unsigned int cnt = 0; cnt < needshdr->sh_info; ++cnt)
 	    {
 	      GElf_Verneed needmem;
 	      GElf_Verneed *need;
@@ -2186,7 +2286,7 @@ handle_versym (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 
 	      /* Get the data at the next offset.  */
 	      need = gelf_getverneed (needdata, offset, &needmem);
-	      if (need == NULL)
+	      if (unlikely (need == NULL))
 		break;
 
 	      /* Run through the auxiliary entries.  */
@@ -2197,7 +2297,7 @@ handle_versym (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 		  GElf_Vernaux *aux;
 
 		  aux = gelf_getvernaux (needdata, auxoffset, &auxmem);
-		  if (aux == NULL)
+		  if (unlikely (aux == NULL))
 		    break;
 
 		  nvername = MAX (nvername,
@@ -2228,27 +2328,24 @@ handle_versym (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 	  GElf_Shdr *defshdr;
 
 	  defdata = elf_getdata (defscn, NULL);
-	  if (defdata == NULL)
+	  if (unlikely (defdata == NULL))
 	    return;
 
 	  defshdr = gelf_getshdr (defscn, &defshdrmem);
-	  if (defshdr == NULL)
+	  if (unlikely (defshdr == NULL))
 	    return;
 
-	  for (cnt = 0; cnt < defshdr->sh_info; ++cnt)
+	  for (unsigned int cnt = 0; cnt < defshdr->sh_info; ++cnt)
 	    {
-	      GElf_Verdef defmem;
-	      GElf_Verdef *def;
-	      GElf_Verdaux auxmem;
-	      GElf_Verdaux *aux;
 
 	      /* Get the data at the next offset.  */
-	      def = gelf_getverdef (defdata, offset, &defmem);
-	      if (def == NULL)
-		break;
-
-	      aux = gelf_getverdaux (defdata, offset + def->vd_aux, &auxmem);
-	      if (aux == NULL)
+	      GElf_Verdef defmem;
+	      GElf_Verdef *def = gelf_getverdef (defdata, offset, &defmem);
+	      GElf_Verdaux auxmem;
+	      GElf_Verdaux *aux = gelf_getverdaux (defdata,
+						   offset + def->vd_aux,
+						   &auxmem);
+	      if (unlikely (def == NULL || aux == NULL))
 		break;
 
 	      vername[def->vd_ndx & 0x7fff]
@@ -2261,39 +2358,30 @@ handle_versym (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
       if (needscn != NULL)
 	{
 	  unsigned int offset = 0;
-	  Elf_Data *needdata;
+
+	  Elf_Data *needdata = elf_getdata (needscn, NULL);
 	  GElf_Shdr needshdrmem;
-	  GElf_Shdr *needshdr;
-
-	  needdata = elf_getdata (needscn, NULL);
-	  if (needdata == NULL)
+	  GElf_Shdr *needshdr = gelf_getshdr (needscn, &needshdrmem);
+	  if (unlikely (needdata == NULL || needshdr == NULL))
 	    return;
 
-	  needshdr = gelf_getshdr (needscn, &needshdrmem);
-	  if (needshdr == NULL)
-	    return;
-
-	  for (cnt = 0; cnt < needshdr->sh_info; ++cnt)
+	  for (unsigned int cnt = 0; cnt < needshdr->sh_info; ++cnt)
 	    {
-	      GElf_Verneed needmem;
-	      GElf_Verneed *need;
-	      unsigned int auxoffset;
-	      int cnt2;
-
 	      /* Get the data at the next offset.  */
-	      need = gelf_getverneed (needdata, offset, &needmem);
-	      if (need == NULL)
+	      GElf_Verneed needmem;
+	      GElf_Verneed *need = gelf_getverneed (needdata, offset,
+						    &needmem);
+	      if (unlikely (need == NULL))
 		break;
 
 	      /* Run through the auxiliary entries.  */
-	      auxoffset = offset + need->vn_aux;
-	      for (cnt2 = need->vn_cnt; --cnt2 >= 0; )
+	      unsigned int auxoffset = offset + need->vn_aux;
+	      for (int cnt2 = need->vn_cnt; --cnt2 >= 0; )
 		{
 		  GElf_Vernaux auxmem;
-		  GElf_Vernaux *aux;
-
-		  aux = gelf_getvernaux (needdata, auxoffset, &auxmem);
-		  if (aux == NULL)
+		  GElf_Vernaux *aux = gelf_getvernaux (needdata, auxoffset,
+						       &auxmem);
+		  if (unlikely (aux == NULL))
 		    break;
 
 		  vername[aux->vna_other & 0x7fff]
@@ -2316,6 +2404,7 @@ handle_versym (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
     }
 
   /* Print the header.  */
+  GElf_Shdr glink;
   printf (ngettext ("\
 \nVersion symbols section [%2u] '%s' contains %d entry:\n Addr: %#0*" PRIx64 "  Offset: %#08" PRIx64 "  Link to section: [%2u] '%s'",
 		    "\
@@ -2332,21 +2421,19 @@ handle_versym (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 				    &glink)->sh_name));
 
   /* Now we can finally look at the actual contents of this section.  */
-  for (cnt = 0; cnt < shdr->sh_size / shdr->sh_entsize; ++cnt)
+  for (unsigned int cnt = 0; cnt < shdr->sh_size / shdr->sh_entsize; ++cnt)
     {
-      GElf_Versym symmem;
-      GElf_Versym *sym;
-      ssize_t n;
-
       if (cnt % 2 == 0)
 	printf ("\n %4d:", cnt);
 
-      sym = gelf_getversym (data, cnt, &symmem);
+      GElf_Versym symmem;
+      GElf_Versym *sym = gelf_getversym (data, cnt, &symmem);
       if (sym == NULL)
 	break;
 
       switch (*sym)
 	{
+	  ssize_t n;
 	case 0:
 	  fputs_unlocked (gettext ("   0 *local*                     "),
 			  stdout);
@@ -2369,138 +2456,276 @@ handle_versym (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 	  break;
 	}
     }
-  putchar ('\n');
+  putchar_unlocked ('\n');
 }
 
 
 static void
-handle_hash (Ebl *ebl, GElf_Ehdr *ehdr)
+print_hash_info (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, size_t shstrndx,
+		 uint_fast32_t maxlength, Elf32_Word nbucket,
+		 uint_fast32_t nsyms, uint32_t *lengths, const char *extrastr)
 {
-  /* Find the symbol table(s).  For this we have to search through the
-     section table.  */
-  Elf_Scn *scn = NULL;
-  size_t shstrndx;
+  uint32_t *counts = (uint32_t *) xcalloc (maxlength + 1, sizeof (uint32_t));
 
+  for (Elf32_Word cnt = 0; cnt < nbucket; ++cnt)
+    ++counts[lengths[cnt]];
+
+  GElf_Shdr glink;
+  printf (ngettext ("\
+\nHistogram for bucket list length in section [%2u] '%s' (total of %d bucket):\n Addr: %#0*" PRIx64 "  Offset: %#08" PRIx64 "  Link to section: [%2u] '%s'\n",
+		    "\
+\nHistogram for bucket list length in section [%2u] '%s' (total of %d buckets):\n Addr: %#0*" PRIx64 "  Offset: %#08" PRIx64 "  Link to section: [%2u] '%s'\n",
+		    nbucket),
+	  (unsigned int) elf_ndxscn (scn),
+	  elf_strptr (ebl->elf, shstrndx, shdr->sh_name),
+	  (int) nbucket,
+	  gelf_getclass (ebl->elf) == ELFCLASS32 ? 10 : 18,
+	  shdr->sh_addr,
+	  shdr->sh_offset,
+	  (unsigned int) shdr->sh_link,
+	  elf_strptr (ebl->elf, shstrndx,
+		      gelf_getshdr (elf_getscn (ebl->elf, shdr->sh_link),
+				    &glink)->sh_name));
+
+  if (extrastr != NULL)
+    fputs (extrastr, stdout);
+
+  if (likely (nbucket > 0))
+    {
+      uint64_t success = 0;
+
+      fputs_unlocked (gettext ("\
+ Length  Number  % of total  Coverage\n"), stdout);
+      printf (gettext ("      0  %6" PRIu32 "      %5.1f%%\n"),
+	      counts[0], (counts[0] * 100.0) / nbucket);
+
+      uint64_t nzero_counts = 0;
+      for (Elf32_Word cnt = 1; cnt <= maxlength; ++cnt)
+	{
+	  nzero_counts += counts[cnt] * cnt;
+	  printf (gettext ("\
+%7d  %6" PRIu32 "      %5.1f%%    %5.1f%%\n"),
+		  (int) cnt, counts[cnt], (counts[cnt] * 100.0) / nbucket,
+		  (nzero_counts * 100.0) / nsyms);
+	}
+
+      Elf32_Word acc = 0;
+      for (Elf32_Word cnt = 1; cnt <= maxlength; ++cnt)
+	{
+	  acc += cnt;
+	  success += counts[cnt] * acc;
+	}
+
+      printf (gettext ("\
+ Average number of tests:   successful lookup: %f\n\
+                          unsuccessful lookup: %f\n"),
+	      (double) success / (double) nzero_counts,
+	      (double) nzero_counts / (double) nbucket);
+    }
+
+  free (counts);
+}
+
+
+/* This function handles the traditional System V-style hash table format.  */
+static void
+handle_sysv_hash (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, size_t shstrndx)
+{
+  Elf_Data *data = elf_getdata (scn, NULL);
+  if (unlikely (data == NULL))
+    {
+      error (0, 0, gettext ("cannot get data for section %d: %s"),
+	     (int) elf_ndxscn (scn), elf_errmsg (-1));
+      return;
+    }
+
+  Elf32_Word nbucket = ((Elf32_Word *) data->d_buf)[0];
+  Elf32_Word nchain = ((Elf32_Word *) data->d_buf)[1];
+  Elf32_Word *bucket = &((Elf32_Word *) data->d_buf)[2];
+  Elf32_Word *chain = &((Elf32_Word *) data->d_buf)[2 + nbucket];
+
+  uint32_t *lengths = (uint32_t *) xcalloc (nbucket, sizeof (uint32_t));
+
+  uint_fast32_t maxlength = 0;
+  uint_fast32_t nsyms = 0;
+  for (Elf32_Word cnt = 0; cnt < nbucket; ++cnt)
+    {
+      Elf32_Word inner = bucket[cnt];
+      while (inner > 0 && inner < nchain)
+	{
+	  ++nsyms;
+	  if (maxlength < ++lengths[cnt])
+	    ++maxlength;
+
+	  inner = chain[inner];
+	}
+    }
+
+  print_hash_info (ebl, scn, shdr, shstrndx, maxlength, nbucket, nsyms,
+		   lengths, NULL);
+
+  free (lengths);
+}
+
+
+/* This function handles the incorrect, System V-style hash table
+   format some 64-bit architectures use.  */
+static void
+handle_sysv_hash64 (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, size_t shstrndx)
+{
+  Elf_Data *data = elf_getdata (scn, NULL);
+  if (unlikely (data == NULL))
+    {
+      error (0, 0, gettext ("cannot get data for section %d: %s"),
+	     (int) elf_ndxscn (scn), elf_errmsg (-1));
+      return;
+    }
+
+  Elf64_Xword nbucket = ((Elf64_Xword *) data->d_buf)[0];
+  Elf64_Xword nchain = ((Elf64_Xword *) data->d_buf)[1];
+  Elf64_Xword *bucket = &((Elf64_Xword *) data->d_buf)[2];
+  Elf64_Xword *chain = &((Elf64_Xword *) data->d_buf)[2 + nbucket];
+
+  uint32_t *lengths = (uint32_t *) xcalloc (nbucket, sizeof (uint32_t));
+
+  uint_fast32_t maxlength = 0;
+  uint_fast32_t nsyms = 0;
+  for (Elf64_Xword cnt = 0; cnt < nbucket; ++cnt)
+    {
+      Elf64_Xword inner = bucket[cnt];
+      while (inner > 0 && inner < nchain)
+	{
+	  ++nsyms;
+	  if (maxlength < ++lengths[cnt])
+	    ++maxlength;
+
+	  inner = chain[inner];
+	}
+    }
+
+  print_hash_info (ebl, scn, shdr, shstrndx, maxlength, nbucket, nsyms,
+		   lengths, NULL);
+
+  free (lengths);
+}
+
+
+/* This function handles the GNU-style hash table format.  */
+static void
+handle_gnu_hash (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, size_t shstrndx)
+{
+  Elf_Data *data = elf_getdata (scn, NULL);
+  if (unlikely (data == NULL))
+    {
+      error (0, 0, gettext ("cannot get data for section %d: %s"),
+	     (int) elf_ndxscn (scn), elf_errmsg (-1));
+      return;
+    }
+
+  Elf32_Word nbucket = ((Elf32_Word *) data->d_buf)[0];
+  Elf32_Word symbias = ((Elf32_Word *) data->d_buf)[1];
+
+  /* Next comes the size of the bitmap.  It's measured in words for
+     the architecture.  It's 32 bits for 32 bit archs, and 64 bits for
+     64 bit archs.  */
+  Elf32_Word bitmask_words = ((Elf32_Word *) data->d_buf)[2];
+  if (gelf_getclass (ebl->elf) == ELFCLASS64)
+    bitmask_words *= 2;
+
+  Elf32_Word shift = ((Elf32_Word *) data->d_buf)[3];
+
+  uint32_t *lengths = (uint32_t *) xcalloc (nbucket, sizeof (uint32_t));
+
+  Elf32_Word *bitmask = &((Elf32_Word *) data->d_buf)[4];
+  Elf32_Word *bucket = &((Elf32_Word *) data->d_buf)[4 + bitmask_words];
+  Elf32_Word *chain = &((Elf32_Word *) data->d_buf)[4 + bitmask_words
+						    + nbucket];
+
+  /* Compute distribution of chain lengths.  */
+  uint_fast32_t maxlength = 0;
+  uint_fast32_t nsyms = 0;
+  for (Elf32_Word cnt = 0; cnt < nbucket; ++cnt)
+    if (bucket[cnt] != 0)
+      {
+	Elf32_Word inner = bucket[cnt] - symbias;
+	do
+	  {
+	    ++nsyms;
+	    if (maxlength < ++lengths[cnt])
+	      ++maxlength;
+	  }
+	while ((chain[inner++] & 1) == 0);
+      }
+
+  /* Count bits in bitmask.  */
+  uint_fast32_t nbits = 0;
+  for (Elf32_Word cnt = 0; cnt < bitmask_words; ++cnt)
+    {
+      uint_fast32_t word = bitmask[cnt];
+
+      word = (word & 0x55555555) + ((word >> 1) & 0x55555555);
+      word = (word & 0x33333333) + ((word >> 2) & 0x33333333);
+      word = (word & 0x0f0f0f0f) + ((word >> 4) & 0x0f0f0f0f);
+      word = (word & 0x00ff00ff) + ((word >> 8) & 0x00ff00ff);
+      nbits += (word & 0x0000ffff) + ((word >> 16) & 0x0000ffff);
+    }
+
+  char *str;
+  if (unlikely (asprintf (&str, gettext ("\
+ Symbol Bias: %u\n\
+ Bitmask Size: %zu bytes  %" PRIuFAST32 "%% bits set  2nd hash shift: %u\n"),
+			  (unsigned int) symbias,
+			  bitmask_words * sizeof (Elf32_Word),
+			  ((nbits * 100 + 50)
+			   / (uint_fast32_t) (bitmask_words
+					      * sizeof (Elf32_Word) * 8)),
+			  (unsigned int) shift) == -1))
+    error (EXIT_FAILURE, 0, gettext ("memory exhausted"));
+
+  print_hash_info (ebl, scn, shdr, shstrndx, maxlength, nbucket, nsyms,
+		   lengths, str);
+
+  free (str);
+  free (lengths);
+}
+
+
+/* Find the symbol table(s).  For this we have to search through the
+   section table.  */
+static void
+handle_hash (Ebl *ebl)
+{
   /* Get the section header string table index.  */
-  if (elf_getshstrndx (ebl->elf, &shstrndx) < 0)
+  size_t shstrndx;
+  if (unlikely (elf_getshstrndx (ebl->elf, &shstrndx) < 0))
     error (EXIT_FAILURE, 0,
 	   gettext ("cannot get section header string table index"));
 
+  Elf_Scn *scn = NULL;
   while ((scn = elf_nextscn (ebl->elf, scn)) != NULL)
     {
       /* Handle the section if it is a symbol table.  */
       GElf_Shdr shdr_mem;
       GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
 
-      if (shdr != NULL && shdr->sh_type == SHT_HASH)
+      if (likely (shdr != NULL))
 	{
-	  Elf_Data *data = elf_getdata (scn, NULL);
-	  Elf32_Word nbucket;
-	  Elf32_Word nchain;
-	  Elf32_Word *bucket;
-	  Elf32_Word *chain;
-	  uint32_t *lengths;
-	  uint32_t *counts;
-	  Elf32_Word cnt;
-	  Elf32_Word maxlength = 0;
-	  Elf32_Word nsyms = 0;
-	  uint64_t nzero_counts = 0;
-	  GElf_Shdr glink;
-
-	  if (data == NULL)
+	  if (shdr->sh_type == SHT_HASH)
 	    {
-	      error (0, 0, gettext ("cannot get data for section %d: %s"),
-		     (int) elf_ndxscn (scn), elf_errmsg (-1));
-	      continue;
+	      if (ebl_sysvhash_entrysize (ebl) == sizeof (Elf64_Xword))
+		handle_sysv_hash64 (ebl, scn, shdr, shstrndx);
+	      else
+		handle_sysv_hash (ebl, scn, shdr, shstrndx);
 	    }
-
-	  nbucket = ((Elf32_Word *) data->d_buf)[0];
-	  nchain = ((Elf32_Word *) data->d_buf)[1];
-	  bucket = &((Elf32_Word *) data->d_buf)[2];
-	  chain = &((Elf32_Word *) data->d_buf)[2 + nbucket];
-
-	  printf (ngettext ("\
-\nHistogram for bucket list length in section [%2u] '%s' (total of %d bucket):\n Addr: %#0*" PRIx64 "  Offset: %#08" PRIx64 "  Link to section: [%2u] '%s'\n",
-			    "\
-\nHistogram for bucket list length in section [%2u] '%s' (total of %d buckets):\n Addr: %#0*" PRIx64 "  Offset: %#08" PRIx64 "  Link to section: [%2u] '%s'\n",
-			    nbucket),
-		  (unsigned int) elf_ndxscn (scn),
-		  elf_strptr (ebl->elf, shstrndx, shdr->sh_name),
-		  (int) nbucket,
-		  gelf_getclass (ebl->elf) == ELFCLASS32 ? 10 : 18,
-		  shdr->sh_addr,
-		  shdr->sh_offset,
-		  (unsigned int) shdr->sh_link,
-		  elf_strptr (ebl->elf, shstrndx,
-			      gelf_getshdr (elf_getscn (ebl->elf,
-							shdr->sh_link),
-					    &glink)->sh_name));
-
-	  lengths = (uint32_t *) xcalloc (nbucket, sizeof (uint32_t));
-
-	  for (cnt = 0; cnt < nbucket; ++cnt)
-	    if (bucket[cnt] != 0)
-	      {
-		Elf32_Word inner;
-
-		inner = bucket[cnt];
-		while (inner > 0 && inner < nchain)
-		  {
-		    ++nsyms;
-		    if (maxlength < ++lengths[cnt])
-		      ++maxlength;
-
-		    inner = chain[inner];
-		  }
-	      }
-
-	  counts = (uint32_t *) xcalloc (maxlength + 1, sizeof (uint32_t));
-
-	  for (cnt = 0; cnt < nbucket; ++cnt)
-	    ++counts[lengths[cnt]];
-
-	  if (nbucket > 0)
-	    {
-	      uint64_t success = 0;
-	      Elf32_Word acc;
-
-	      puts (gettext (" Length  Number  % of total  Coverage"));
-	      printf (gettext ("      0  %6" PRIu32 "      %5.1f%%\n"),
-		      counts[0], (counts[0] * 100.0) / nbucket);
-
-	      for (cnt = 1; cnt <= maxlength; ++cnt)
-		{
-		  nzero_counts += counts[cnt] * cnt;
-		  printf (gettext ("\
-%7d  %6" PRIu32 "      %5.1f%%    %5.1f%%\n"),
-			  (int) cnt,
-			  counts[cnt], (counts[cnt] * 100.0) / nbucket,
-			  (nzero_counts * 100.0) / nsyms);
-		}
-
-	      acc = 0;
-	      for (cnt = 1; cnt <= maxlength; ++cnt)
-		{
-		  acc += cnt;
-		  success += counts[cnt] * acc;
-		}
-
-	      printf (gettext ("\
- Average number of tests:   successful lookup: %f\n\
-                          unsuccessful lookup: %f\n"),
-		      (double) success / (double) nzero_counts,
-		      (double) nzero_counts / (double) nbucket);
-	    }
-
-	  free (counts);
-	  free (lengths);
+	  else if (shdr->sh_type == SHT_GNU_HASH)
+	    handle_gnu_hash (ebl, scn, shdr, shstrndx);
 	}
     }
 }
 
 
 static void
-print_liblist (Ebl *ebl, GElf_Ehdr *ehdr)
+print_liblist (Ebl *ebl)
 {
   /* Find the library list sections.  For this we have to search
      through the section table.  */
@@ -2508,7 +2733,7 @@ print_liblist (Ebl *ebl, GElf_Ehdr *ehdr)
 
   /* Get the section header string table index.  */
   size_t shstrndx;
-  if (elf_getshstrndx (ebl->elf, &shstrndx) < 0)
+  if (unlikely (elf_getshstrndx (ebl->elf, &shstrndx) < 0))
     error (EXIT_FAILURE, 0,
 	   gettext ("cannot get section header string table index"));
 
@@ -2541,12 +2766,12 @@ print_liblist (Ebl *ebl, GElf_Ehdr *ehdr)
 	    {
 	      GElf_Lib lib_mem;
 	      GElf_Lib *lib = gelf_getlib (data, cnt, &lib_mem);
-	      if (lib == NULL)
+	      if (unlikely (lib == NULL))
 		continue;
 
 	      time_t t = (time_t) lib->l_time_stamp;
 	      struct tm *tm = gmtime (&t);
-	      if (tm == NULL)
+	      if (unlikely (tm == NULL))
 		continue;
 
 	      printf ("  [%2d] %-29s %04u-%02u-%02uT%02u:%02u:%02u %08x %-7u %u\n",
@@ -2561,11 +2786,244 @@ print_liblist (Ebl *ebl, GElf_Ehdr *ehdr)
     }
 }
 
+static void
+print_attributes (Ebl *ebl, const GElf_Ehdr *ehdr)
+{
+  /* Find the object attributes sections.  For this we have to search
+     through the section table.  */
+  Elf_Scn *scn = NULL;
+
+  /* Get the section header string table index.  */
+  size_t shstrndx;
+  if (unlikely (elf_getshstrndx (ebl->elf, &shstrndx) < 0))
+    error (EXIT_FAILURE, 0,
+	   gettext ("cannot get section header string table index"));
+
+  while ((scn = elf_nextscn (ebl->elf, scn)) != NULL)
+    {
+      GElf_Shdr shdr_mem;
+      GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
+
+      if (shdr == NULL || shdr->sh_type != SHT_GNU_ATTRIBUTES)
+	continue;
+
+      printf (gettext ("\
+\nObject attributes section [%2zu] '%s' of %" PRIu64
+		       " bytes at offset %#0" PRIx64 ":\n"),
+	      elf_ndxscn (scn),
+	      elf_strptr (ebl->elf, shstrndx, shdr->sh_name),
+	      shdr->sh_size, shdr->sh_offset);
+
+      Elf_Data *data = elf_rawdata (scn, NULL);
+      if (data == NULL)
+	return;
+
+      const unsigned char *p = data->d_buf;
+
+      if (unlikely (*p++ != 'A'))
+	return;
+
+      fputs_unlocked (gettext ("  Owner          Size\n"), stdout);
+
+      inline size_t left (void)
+      {
+	return (const unsigned char *) data->d_buf + data->d_size - p;
+      }
+
+      while (left () >= 4)
+	{
+	  uint32_t len;
+	  memcpy (&len, p, sizeof len);
+
+	  if (MY_ELFDATA != ehdr->e_ident[EI_DATA])
+	    CONVERT (len);
+
+	  if (unlikely (len > left ()))
+	    break;
+
+	  const unsigned char *name = p + sizeof len;
+	  p += len;
+
+	  unsigned const char *q = memchr (name, '\0', len);
+	  if (unlikely (q == NULL))
+	    continue;
+	  ++q;
+
+	  printf (gettext ("  %-13s  %4" PRIu32 "\n"), name, len);
+
+	  if (q - name == sizeof "gnu"
+	      && !memcmp (name, "gnu", sizeof "gnu"))
+	    while (q < p)
+	      {
+		const unsigned char *const sub = q;
+
+		unsigned int subsection_tag;
+		get_uleb128 (subsection_tag, q);
+		if (unlikely (q >= p))
+		  break;
+
+		uint32_t subsection_len;
+		if (unlikely (p - sub < (ptrdiff_t) sizeof subsection_len))
+		  break;
+
+		memcpy (&subsection_len, q, sizeof subsection_len);
+
+		if (MY_ELFDATA != ehdr->e_ident[EI_DATA])
+		  CONVERT (subsection_len);
+
+		if (unlikely (p - sub < (ptrdiff_t) subsection_len))
+		  break;
+
+		const unsigned char *r = q + sizeof subsection_len;
+		q = sub + subsection_len;
+
+		switch (subsection_tag)
+		  {
+		  default:
+		    printf (gettext ("    %-4u %12" PRIu32 "\n"),
+			    subsection_tag, subsection_len);
+		    break;
+
+		  case 1:	/* Tag_File */
+		    printf (gettext ("    File: %11" PRIu32 "\n"),
+			    subsection_len);
+
+		    while (r < q)
+		      {
+			unsigned int tag;
+			get_uleb128 (tag, r);
+			if (unlikely (r >= q))
+			  break;
+
+			uint64_t value = 0;
+			const char *string = NULL;
+			if (tag == 32 || (tag & 1) == 0)
+			  {
+			    get_uleb128 (value, r);
+			    if (r > q)
+			      break;
+			  }
+			if (tag == 32 || (tag & 1) != 0)
+			  {
+			    r = memchr (r, '\0', q - r);
+			    if (r == NULL)
+			      break;
+			    ++r;
+			  }
+
+			const char *tag_name = NULL;
+			const char *value_name = NULL;
+			ebl_check_object_attribute (ebl, (const char *) name,
+						    tag, value,
+						    &tag_name, &value_name);
+
+			if (tag_name != NULL)
+			  {
+			    if (tag == 32)
+			      printf (gettext ("      %s: %" PRId64 ", %s\n"),
+				      tag_name, value, string);
+			    else if (string == NULL && value_name == NULL)
+			      printf (gettext ("      %s: %" PRId64 "\n"),
+				      tag_name, value);
+			    else
+			      printf (gettext ("      %s: %s\n"),
+				      tag_name, string ?: value_name);
+			  }
+			else
+			  {
+			    assert (tag != 32);
+			    if (string == NULL)
+			      printf (gettext ("      %u: %" PRId64 "\n"),
+				      tag, value);
+			    else
+			      printf (gettext ("      %u: %s\n"),
+				      tag, string);
+			  }
+		      }
+		  }
+	      }
+	}
+    }
+}
+
+
+static char *
+format_dwarf_addr (Dwfl_Module *dwflmod,
+		   int address_size, Dwarf_Addr address)
+{
+  /* See if there is a name we can give for this address.  */
+  GElf_Sym sym;
+  const char *name = dwfl_module_addrsym (dwflmod, address, &sym, NULL);
+  if (name != NULL)
+    sym.st_value = address - sym.st_value;
+
+  /* Relativize the address.  */
+  int n = dwfl_module_relocations (dwflmod);
+  int i = n < 1 ? -1 : dwfl_module_relocate_address (dwflmod, &address);
+
+  /* In an ET_REL file there is a section name to refer to.  */
+  const char *scn = (i < 0 ? NULL
+		     : dwfl_module_relocation_info (dwflmod, i, NULL));
+
+  char *result;
+  if ((name != NULL
+       ? (sym.st_value != 0
+	  ? (scn != NULL
+	     ? (address_size == 0
+		? asprintf (&result,
+			    gettext ("%s+%#" PRIx64 " <%s+%#" PRIx64 ">"),
+			    scn, address, name, sym.st_value)
+		: asprintf (&result,
+			    gettext ("%s+%#0*" PRIx64 " <%s+%#" PRIx64 ">"),
+			    scn, 2 + address_size * 2, address,
+			    name, sym.st_value))
+	     : (address_size == 0
+		? asprintf (&result,
+			    gettext ("%#" PRIx64 " <%s+%#" PRIx64 ">"),
+			    address, name, sym.st_value)
+		: asprintf (&result,
+			    gettext ("%#0*" PRIx64 " <%s+%#" PRIx64 ">"),
+			    2 + address_size * 2, address,
+			    name, sym.st_value)))
+	  : (scn != NULL
+	     ? (address_size == 0
+		? asprintf (&result,
+			    gettext ("%s+%#" PRIx64 " <%s>"),
+			    scn, address, name)
+		: asprintf (&result,
+			    gettext ("%s+%#0*" PRIx64 " <%s>"),
+			    scn, 2 + address_size * 2, address, name))
+	     : (address_size == 0
+		? asprintf (&result,
+			    gettext ("%#" PRIx64 " <%s>"),
+			    address, name)
+		: asprintf (&result,
+			    gettext ("%#0*" PRIx64 " <%s>"),
+			    2 + address_size * 2, address, name))))
+       : (scn != NULL
+	  ? (address_size == 0
+	     ? asprintf (&result,
+			 gettext ("%s+%#" PRIx64),
+			 scn, address)
+	     : asprintf (&result,
+			 gettext ("%s+%#0*" PRIx64),
+			 scn, 2 + address_size * 2, address))
+	  : (address_size == 0
+	     ? asprintf (&result,
+			 "%#" PRIx64,
+			 address)
+	     : asprintf (&result,
+			 "%#0*" PRIx64,
+			 2 + address_size * 2, address)))) < 0)
+    error (EXIT_FAILURE, 0, _("memory exhausted"));
+
+  return result;
+}
 
 static const char *
 dwarf_tag_string (unsigned int tag)
 {
-  static const char *known_tags[]  =
+  static const char *const known_tags[]  =
     {
       [DW_TAG_array_type] = "array_type",
       [DW_TAG_class_type] = "class_type",
@@ -2607,23 +3065,34 @@ dwarf_tag_string (unsigned int tag)
       [DW_TAG_namelist_item] = "namelist_item",
       [DW_TAG_packed_type] = "packed_type",
       [DW_TAG_subprogram] = "subprogram",
-      [DW_TAG_template_type_param] = "template_type_param",
-      [DW_TAG_template_value_param] = "template_value_param",
+      [DW_TAG_template_type_parameter] = "template_type_parameter",
+      [DW_TAG_template_value_parameter] = "template_value_parameter",
       [DW_TAG_thrown_type] = "thrown_type",
       [DW_TAG_try_block] = "try_block",
       [DW_TAG_variant_part] = "variant_part",
       [DW_TAG_variable] = "variable",
       [DW_TAG_volatile_type] = "volatile_type",
+      [DW_TAG_dwarf_procedure] = "dwarf_procedure",
+      [DW_TAG_restrict_type] = "restrict_type",
+      [DW_TAG_interface_type] = "interface_type",
+      [DW_TAG_namespace] = "namespace",
+      [DW_TAG_imported_module] = "imported_module",
+      [DW_TAG_unspecified_type] = "unspecified_type",
+      [DW_TAG_partial_unit] = "partial_unit",
+      [DW_TAG_imported_unit] = "imported_unit",
+      [DW_TAG_mutable_type] = "mutable_type",
+      [DW_TAG_condition] = "condition",
+      [DW_TAG_shared_type] = "shared_type",
     };
   const unsigned int nknown_tags = (sizeof (known_tags)
 				    / sizeof (known_tags[0]));
   static char buf[40];
   const char *result = NULL;
 
-  if (tag < nknown_tags)
+  if (likely (tag < nknown_tags))
     result = known_tags[tag];
 
-  if (result == NULL)
+  if (unlikely (result == NULL))
     /* There are a few known extensions.  */
     switch (tag)
       {
@@ -2659,7 +3128,7 @@ dwarf_tag_string (unsigned int tag)
 static const char *
 dwarf_attr_string (unsigned int attrnum)
 {
-  static const char *known_attrs[] =
+  static const char *const known_attrs[] =
     {
       [DW_AT_sibling] = "sibling",
       [DW_AT_location] = "location",
@@ -2692,7 +3161,7 @@ dwarf_attr_string (unsigned int attrnum)
       [DW_AT_prototyped] = "prototyped",
       [DW_AT_return_addr] = "return_addr",
       [DW_AT_start_scope] = "start_scope",
-      [DW_AT_stride_size] = "stride_size",
+      [DW_AT_bit_stride] = "bit_stride",
       [DW_AT_upper_bound] = "upper_bound",
       [DW_AT_abstract_origin] = "abstract_origin",
       [DW_AT_accessibility] = "accessibility",
@@ -2713,7 +3182,7 @@ dwarf_attr_string (unsigned int attrnum)
       [DW_AT_friend] = "friend",
       [DW_AT_identifier_case] = "identifier_case",
       [DW_AT_macro_info] = "macro_info",
-      [DW_AT_namelist_items] = "namelist_items",
+      [DW_AT_namelist_item] = "namelist_item",
       [DW_AT_priority] = "priority",
       [DW_AT_segment] = "segment",
       [DW_AT_specification] = "specification",
@@ -2722,17 +3191,44 @@ dwarf_attr_string (unsigned int attrnum)
       [DW_AT_use_location] = "use_location",
       [DW_AT_variable_parameter] = "variable_parameter",
       [DW_AT_virtuality] = "virtuality",
-      [DW_AT_vtable_elem_location] = "vtable_elem_location"
+      [DW_AT_vtable_elem_location] = "vtable_elem_location",
+      [DW_AT_allocated] = "allocated",
+      [DW_AT_associated] = "associated",
+      [DW_AT_data_location] = "data_location",
+      [DW_AT_byte_stride] = "byte_stride",
+      [DW_AT_entry_pc] = "entry_pc",
+      [DW_AT_use_UTF8] = "use_UTF8",
+      [DW_AT_extension] = "extension",
+      [DW_AT_ranges] = "ranges",
+      [DW_AT_trampoline] = "trampoline",
+      [DW_AT_call_column] = "call_column",
+      [DW_AT_call_file] = "call_file",
+      [DW_AT_call_line] = "call_line",
+      [DW_AT_description] = "description",
+      [DW_AT_binary_scale] = "binary_scale",
+      [DW_AT_decimal_scale] = "decimal_scale",
+      [DW_AT_small] = "small",
+      [DW_AT_decimal_sign] = "decimal_sign",
+      [DW_AT_digit_count] = "digit_count",
+      [DW_AT_picture_string] = "picture_string",
+      [DW_AT_mutable] = "mutable",
+      [DW_AT_threads_scaled] = "threads_scaled",
+      [DW_AT_explicit] = "explicit",
+      [DW_AT_object_pointer] = "object_pointer",
+      [DW_AT_endianity] = "endianity",
+      [DW_AT_elemental] = "elemental",
+      [DW_AT_pure] = "pure",
+      [DW_AT_recursive] = "recursive",
     };
   const unsigned int nknown_attrs = (sizeof (known_attrs)
 				     / sizeof (known_attrs[0]));
   static char buf[40];
   const char *result = NULL;
 
-  if (attrnum < nknown_attrs)
+  if (likely (attrnum < nknown_attrs))
     result = known_attrs[attrnum];
 
-  if (result == NULL)
+  if (unlikely (result == NULL))
     /* There are a few known extensions.  */
     switch (attrnum)
       {
@@ -2846,7 +3342,7 @@ dwarf_attr_string (unsigned int attrnum)
 static const char *
 dwarf_form_string (unsigned int form)
 {
-  static const char *known_forms[] =
+  static const char *const known_forms[] =
     {
       [DW_FORM_addr] = "addr",
       [DW_FORM_block2] = "block2",
@@ -2875,10 +3371,10 @@ dwarf_form_string (unsigned int form)
   static char buf[40];
   const char *result = NULL;
 
-  if (form < nknown_forms)
+  if (likely (form < nknown_forms))
     result = known_forms[form];
 
-  if (result == NULL)
+  if (unlikely (result == NULL))
     snprintf (buf, sizeof buf, gettext ("unknown form %" PRIx64),
 	      (uint64_t) form);
 
@@ -2889,12 +3385,12 @@ dwarf_form_string (unsigned int form)
 static const char *
 dwarf_lang_string (unsigned int lang)
 {
-  static const char *known[] =
+  static const char *const known[] =
     {
       [DW_LANG_C89] = "ISO C89",
       [DW_LANG_C] = "C",
       [DW_LANG_Ada83] = "Ada83",
-      [DW_LANG_C_plus_plus ] = "C++",
+      [DW_LANG_C_plus_plus] = "C++",
       [DW_LANG_Cobol74] = "Cobol74",
       [DW_LANG_Cobol85] = "Cobol85",
       [DW_LANG_Fortran77] = "Fortran77",
@@ -2905,10 +3401,14 @@ dwarf_lang_string (unsigned int lang)
       [DW_LANG_C99] = "ISO C99",
       [DW_LANG_Ada95] = "Ada95",
       [DW_LANG_Fortran95] = "Fortran95",
-      [DW_LANG_PL1] = "PL1"
+      [DW_LANG_PL1] = "PL1",
+      [DW_LANG_Objc] = "Objective C",
+      [DW_LANG_ObjC_plus_plus] = "Objective C++",
+      [DW_LANG_UPC] = "UPC",
+      [DW_LANG_D] = "D",
     };
 
-  if (lang < sizeof (known) / sizeof (known[0]))
+  if (likely (lang < sizeof (known) / sizeof (known[0])))
     return known[lang];
   else if (lang == DW_LANG_Mips_Assembler)
     /* This language tag is used for assembler in general.  */
@@ -2916,7 +3416,7 @@ dwarf_lang_string (unsigned int lang)
 
   if (lang >= DW_LANG_lo_user && lang <= DW_LANG_hi_user)
     {
-      static char buf[100];
+      static char buf[30];
       snprintf (buf, sizeof (buf), "lo_user+%u", lang - DW_LANG_lo_user);
       return buf;
     }
@@ -2925,11 +3425,191 @@ dwarf_lang_string (unsigned int lang)
 }
 
 
-static void
-print_ops (Dwarf *dbg, int level, unsigned int addrsize, Dwarf_Word len,
-	   unsigned char *data)
+static const char *
+dwarf_inline_string (unsigned int code)
 {
-  static const char *known[] =
+  static const char *const known[] =
+    {
+      [DW_INL_not_inlined] = "not_inlined",
+      [DW_INL_inlined] = "inlined",
+      [DW_INL_declared_not_inlined] = "declared_not_inlined",
+      [DW_INL_declared_inlined] = "declared_inlined"
+    };
+
+  if (likely (code < sizeof (known) / sizeof (known[0])))
+    return known[code];
+
+  return "???";
+}
+
+
+static const char *
+dwarf_encoding_string (unsigned int code)
+{
+  static const char *const known[] =
+    {
+      [DW_ATE_void] = "void",
+      [DW_ATE_address] = "address",
+      [DW_ATE_boolean] = "boolean",
+      [DW_ATE_complex_float] = "complex_float",
+      [DW_ATE_float] = "float",
+      [DW_ATE_signed] = "signed",
+      [DW_ATE_signed_char] = "signed_char",
+      [DW_ATE_unsigned] = "unsigned",
+      [DW_ATE_unsigned_char] = "unsigned_char",
+      [DW_ATE_imaginary_float] = "imaginary_float",
+      [DW_ATE_packed_decimal] = "packed_decimal",
+      [DW_ATE_numeric_string] = "numeric_string",
+      [DW_ATE_edited] = "edited",
+      [DW_ATE_signed_fixed] = "signed_fixed",
+      [DW_ATE_unsigned_fixed] = "unsigned_fixed",
+      [DW_ATE_decimal_float] = "decimal_float",
+    };
+
+  if (likely (code < sizeof (known) / sizeof (known[0])))
+    return known[code];
+
+  if (code >= DW_ATE_lo_user && code <= DW_ATE_hi_user)
+    {
+      static char buf[30];
+      snprintf (buf, sizeof (buf), "lo_user+%u", code - DW_ATE_lo_user);
+      return buf;
+    }
+
+  return "???";
+}
+
+
+static const char *
+dwarf_access_string (unsigned int code)
+{
+  static const char *const known[] =
+    {
+      [DW_ACCESS_public] = "public",
+      [DW_ACCESS_protected] = "protected",
+      [DW_ACCESS_private] = "private"
+    };
+
+  if (likely (code < sizeof (known) / sizeof (known[0])))
+    return known[code];
+
+  return "???";
+}
+
+
+static const char *
+dwarf_visibility_string (unsigned int code)
+{
+  static const char *const known[] =
+    {
+      [DW_VIS_local] = "local",
+      [DW_VIS_exported] = "exported",
+      [DW_VIS_qualified] = "qualified"
+    };
+
+  if (likely (code < sizeof (known) / sizeof (known[0])))
+    return known[code];
+
+  return "???";
+}
+
+
+static const char *
+dwarf_virtuality_string (unsigned int code)
+{
+  static const char *const known[] =
+    {
+      [DW_VIRTUALITY_none] = "none",
+      [DW_VIRTUALITY_virtual] = "virtual",
+      [DW_VIRTUALITY_pure_virtual] = "pure_virtual"
+    };
+
+  if (likely (code < sizeof (known) / sizeof (known[0])))
+    return known[code];
+
+  return "???";
+}
+
+
+static const char *
+dwarf_identifier_case_string (unsigned int code)
+{
+  static const char *const known[] =
+    {
+      [DW_ID_case_sensitive] = "sensitive",
+      [DW_ID_up_case] = "up_case",
+      [DW_ID_down_case] = "down_case",
+      [DW_ID_case_insensitive] = "insensitive"
+    };
+
+  if (likely (code < sizeof (known) / sizeof (known[0])))
+    return known[code];
+
+  return "???";
+}
+
+
+static const char *
+dwarf_calling_convention_string (unsigned int code)
+{
+  static const char *const known[] =
+    {
+      [DW_CC_normal] = "normal",
+      [DW_CC_program] = "program",
+      [DW_CC_nocall] = "nocall",
+    };
+
+  if (likely (code < sizeof (known) / sizeof (known[0])))
+    return known[code];
+
+  if (code >= DW_CC_lo_user && code <= DW_CC_hi_user)
+    {
+      static char buf[30];
+      snprintf (buf, sizeof (buf), "lo_user+%u", code - DW_CC_lo_user);
+      return buf;
+    }
+
+  return "???";
+}
+
+
+static const char *
+dwarf_ordering_string (unsigned int code)
+{
+  static const char *const known[] =
+    {
+      [DW_ORD_row_major] = "row_major",
+      [DW_ORD_col_major] = "col_major"
+    };
+
+  if (likely (code < sizeof (known) / sizeof (known[0])))
+    return known[code];
+
+  return "???";
+}
+
+
+static const char *
+dwarf_discr_list_string (unsigned int code)
+{
+  static const char *const known[] =
+    {
+      [DW_DSC_label] = "label",
+      [DW_DSC_range] = "range"
+    };
+
+  if (likely (code < sizeof (known) / sizeof (known[0])))
+    return known[code];
+
+  return "???";
+}
+
+
+static void
+print_ops (Dwfl_Module *dwflmod, Dwarf *dbg, int indent, int indentrest,
+	   unsigned int addrsize, Dwarf_Word len, const unsigned char *data)
+{
+  static const char *const known[] =
     {
       [DW_OP_addr] = "addr",
       [DW_OP_deref] = "deref",
@@ -3080,13 +3760,15 @@ print_ops (Dwarf *dbg, int level, unsigned int addrsize, Dwarf_Word len,
       [DW_OP_call2] = "call2",
       [DW_OP_call4] = "call4",
       [DW_OP_call_ref] = "call_ref",
+      [DW_OP_form_tls_address] = "form_tls_address",
+      [DW_OP_call_frame_cfa] = "call_frame_cfa",
+      [DW_OP_bit_piece] = "bit_piece",
     };
 
   Dwarf_Word offset = 0;
   while (len-- > 0)
     {
-      size_t op = *((unsigned char *) data);
-      ++data;
+      uint_fast8_t op = *data++;
 
       switch (op)
 	{
@@ -3104,18 +3786,27 @@ print_ops (Dwarf *dbg, int level, unsigned int addrsize, Dwarf_Word len,
 	  data += addrsize;
 	  len -= addrsize;
 
-	  printf ("           %*s [%4" PRIuMAX "] %s %" PRIuMAX "\n",
-		  (int) (20 + level * 2), "", (uintmax_t) offset,
-		  known[op] ?: "???", (uintmax_t) addr);
+	  if (op == DW_OP_addr)
+	    {
+	      char *a = format_dwarf_addr (dwflmod, 0, addr);
+	      printf ("%*s[%4" PRIuMAX "] %s %s\n",
+		      indent, "", (uintmax_t) offset,
+		      known[op] ?: "???", a);
+	      free (a);
+	    }
+	  else
+	    printf ("%*s[%4" PRIuMAX "] %s %#" PRIxMAX "\n",
+		    indent, "", (uintmax_t) offset,
+		    known[op] ?: "???", (uintmax_t) addr);
 	  offset += 1 + addrsize;
 	  break;
 
-	case DW_OP_deref_size:		/* XXX Correct?  */
-	case DW_OP_xderef_size:		/* XXX Correct?  */
+	case DW_OP_deref_size:
+	case DW_OP_xderef_size:
 	case DW_OP_pick:
 	case DW_OP_const1u:
-	  printf ("           %*s [%4" PRIuMAX "] %s %" PRIu8 "\n",
-		  (int) (20 + level * 2), "", (uintmax_t) offset,
+	  printf ("%*s[%4" PRIuMAX "] %s %" PRIu8 "\n",
+		  indent, "", (uintmax_t) offset,
 		  known[op] ?: "???", *((uint8_t *) data));
 	  ++data;
 	  --len;
@@ -3123,8 +3814,8 @@ print_ops (Dwarf *dbg, int level, unsigned int addrsize, Dwarf_Word len,
 	  break;
 
 	case DW_OP_const2u:
-	  printf ("           %*s [%4" PRIuMAX "] %s %" PRIu16 "\n",
-		  (int) (20 + level * 2), "", (uintmax_t) offset,
+	  printf ("%*s[%4" PRIuMAX "] %s %" PRIu16 "\n",
+		  indent, "", (uintmax_t) offset,
 		  known[op] ?: "???", read_2ubyte_unaligned (dbg, data));
 	  len -= 2;
 	  data += 2;
@@ -3132,8 +3823,8 @@ print_ops (Dwarf *dbg, int level, unsigned int addrsize, Dwarf_Word len,
 	  break;
 
 	case DW_OP_const4u:
-	  printf ("           %*s [%4" PRIuMAX "] %s %" PRIu32 "\n",
-		  (int) (20 + level * 2), "", (uintmax_t) offset,
+	  printf ("%*s[%4" PRIuMAX "] %s %" PRIu32 "\n",
+		  indent, "", (uintmax_t) offset,
 		  known[op] ?: "???", read_4ubyte_unaligned (dbg, data));
 	  len -= 4;
 	  data += 4;
@@ -3141,8 +3832,8 @@ print_ops (Dwarf *dbg, int level, unsigned int addrsize, Dwarf_Word len,
 	  break;
 
 	case DW_OP_const8u:
-	  printf ("           %*s [%4" PRIuMAX "] %s %" PRIu64 "\n",
-		  (int) (20 + level * 2), "", (uintmax_t) offset,
+	  printf ("%*s[%4" PRIuMAX "] %s %" PRIu64 "\n",
+		  indent, "", (uintmax_t) offset,
 		  known[op] ?: "???", read_8ubyte_unaligned (dbg, data));
 	  len -= 8;
 	  data += 8;
@@ -3150,8 +3841,8 @@ print_ops (Dwarf *dbg, int level, unsigned int addrsize, Dwarf_Word len,
 	  break;
 
 	case DW_OP_const1s:
-	  printf ("           %*s [%4" PRIuMAX "] %s %" PRId8 "\n",
-		  (int) (20 + level * 2), "", (uintmax_t) offset,
+	  printf ("%*s[%4" PRIuMAX "] %s %" PRId8 "\n",
+		  indent, "", (uintmax_t) offset,
 		  known[op] ?: "???", *((int8_t *) data));
 	  ++data;
 	  --len;
@@ -3159,8 +3850,8 @@ print_ops (Dwarf *dbg, int level, unsigned int addrsize, Dwarf_Word len,
 	  break;
 
 	case DW_OP_const2s:
-	  printf ("           %*s [%4" PRIuMAX "] %s %" PRId16 "\n",
-		  (int) (20 + level * 2), "", (uintmax_t) offset,
+	  printf ("%*s[%4" PRIuMAX "] %s %" PRId16 "\n",
+		  indent, "", (uintmax_t) offset,
 		  known[op] ?: "???", read_2sbyte_unaligned (dbg, data));
 	  len -= 2;
 	  data += 2;
@@ -3168,8 +3859,8 @@ print_ops (Dwarf *dbg, int level, unsigned int addrsize, Dwarf_Word len,
 	  break;
 
 	case DW_OP_const4s:
-	  printf ("           %*s [%4" PRIuMAX "] %s %" PRId32 "\n",
-		  (int) (20 + level * 2), "", (uintmax_t) offset,
+	  printf ("%*s[%4" PRIuMAX "] %s %" PRId32 "\n",
+		  indent, "", (uintmax_t) offset,
 		  known[op] ?: "???", read_4sbyte_unaligned (dbg, data));
 	  len -= 4;
 	  data += 4;
@@ -3177,24 +3868,36 @@ print_ops (Dwarf *dbg, int level, unsigned int addrsize, Dwarf_Word len,
 	  break;
 
 	case DW_OP_const8s:
-	  printf ("           %*s [%4" PRIuMAX "] %s %" PRId64 "\n",
-		  (int) (20 + level * 2), "", (uintmax_t) offset,
+	  printf ("%*s[%4" PRIuMAX "] %s %" PRId64 "\n",
+		  indent, "", (uintmax_t) offset,
 		  known[op] ?: "???", read_8sbyte_unaligned (dbg, data));
 	  len -= 8;
 	  data += 8;
 	  offset += 9;
 	  break;
 
-	case DW_OP_piece:		/* XXX Correct?  */
+	case DW_OP_piece:
 	case DW_OP_regx:
 	case DW_OP_plus_uconst:
 	case DW_OP_constu:;
-	  unsigned char *start = data;
+	  const unsigned char *start = data;
 	  unsigned int uleb;
 	  get_uleb128 (uleb, data);
-	  printf ("           %*s [%4" PRIuMAX "] %s %u\n",
-		  (int) (20 + level * 2), "", (uintmax_t) offset,
+	  printf ("%*s[%4" PRIuMAX "] %s %u\n",
+		  indent, "", (uintmax_t) offset,
 		  known[op] ?: "???", uleb);
+	  len -= data - start;
+	  offset += 1 + (data - start);
+	  break;
+
+	case DW_OP_bit_piece:
+	  start = data;
+	  unsigned int uleb2;
+	  get_uleb128 (uleb, data);
+	  get_uleb128 (uleb2, data);
+	  printf ("%*s[%4" PRIuMAX "] %s %u, %u\n",
+		  indent, "", (uintmax_t) offset,
+		  known[op] ?: "???", uleb, uleb2);
 	  len -= data - start;
 	  offset += 1 + (data - start);
 	  break;
@@ -3205,8 +3908,8 @@ print_ops (Dwarf *dbg, int level, unsigned int addrsize, Dwarf_Word len,
 	  start = data;
 	  unsigned int sleb;
 	  get_sleb128 (sleb, data);
-	  printf ("           %*s [%4" PRIuMAX "] %s %d\n",
-		  (int) (20 + level * 2), "", (uintmax_t) offset,
+	  printf ("%*s[%4" PRIuMAX "] %s %d\n",
+		  indent, "", (uintmax_t) offset,
 		  known[op] ?: "???", sleb);
 	  len -= data - start;
 	  offset += 1 + (data - start);
@@ -3216,8 +3919,8 @@ print_ops (Dwarf *dbg, int level, unsigned int addrsize, Dwarf_Word len,
 	  start = data;
 	  get_uleb128 (uleb, data);
 	  get_sleb128 (sleb, data);
-	  printf ("           %*s [%4" PRIuMAX "] %s %u %d\n",
-		  (int) (20 + level * 2), "", (uintmax_t) offset,
+	  printf ("%*s[%4" PRIuMAX "] %s %u %d\n",
+		  indent, "", (uintmax_t) offset,
 		  known[op] ?: "???", uleb, sleb);
 	  len -= data - start;
 	  offset += 1 + (data - start);
@@ -3227,8 +3930,8 @@ print_ops (Dwarf *dbg, int level, unsigned int addrsize, Dwarf_Word len,
 	case DW_OP_call4:
 	case DW_OP_skip:
 	case DW_OP_bra:
-	  printf ("           %*s [%4" PRIuMAX "] %s %" PRIuMAX "\n",
-		  (int) (20 + level * 2), "", (uintmax_t) offset,
+	  printf ("%*s[%4" PRIuMAX "] %s %" PRIuMAX "\n",
+		  indent, "", (uintmax_t) offset,
 		  known[op] ?: "???",
 		  (uintmax_t) (offset + read_2sbyte_unaligned (dbg, data)));
 	  len -= 2;
@@ -3238,18 +3941,26 @@ print_ops (Dwarf *dbg, int level, unsigned int addrsize, Dwarf_Word len,
 
 	default:
 	  /* No Operand.  */
-	  printf ("           %*s [%4" PRIuMAX "] %s\n",
-		  (int) (20 + level * 2), "", (uintmax_t) offset,
-		  known[op] ?: "???");
+	  if (op < sizeof known / sizeof known[0] && known[op] != NULL)
+	    printf ("%*s[%4" PRIuMAX "] %s\n",
+		    indent, "", (uintmax_t) offset, known[op]);
+	  else
+	    printf ("%*s[%4" PRIuMAX "] %#x\n",
+		    indent, "", (uintmax_t) offset, op);
 	  ++offset;
 	  break;
 	}
+
+      indent = indentrest;
     }
 }
 
 
 static void
-print_debug_abbrev_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
+print_debug_abbrev_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
+			    Ebl *ebl __attribute__ ((unused)),
+			    GElf_Ehdr *ehdr __attribute__ ((unused)),
+			    Elf_Scn *scn __attribute__ ((unused)),
 			    GElf_Shdr *shdr, Dwarf *dbg)
 {
   printf (gettext ("\nDWARF section '%s' at offset %#" PRIx64 ":\n"
@@ -3257,47 +3968,59 @@ print_debug_abbrev_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 	  ".debug_abbrev", (uint64_t) shdr->sh_offset);
 
   Dwarf_Off offset = 0;
-  while (1)
+  while (offset < shdr->sh_size)
     {
-      size_t length;
-      Dwarf_Abbrev abbrev;
+      printf (gettext ("\nAbbreviation section at offset %" PRIu64 ":\n"),
+	      offset);
 
-      if  (dwarf_offabbrev (dbg, offset, &length, &abbrev) != 0)
+      while (1)
 	{
-	  printf (gettext (" *** error while reading abbreviation: %s\n"),
-		  dwarf_errmsg (-1));
-	  break;
+	  size_t length;
+	  Dwarf_Abbrev abbrev;
+
+	  int res = dwarf_offabbrev (dbg, offset, &length, &abbrev);
+	  if (res != 0)
+	    {
+	      if (unlikely (res < 0))
+		{
+		  printf (gettext ("\
+ *** error while reading abbreviation: %s\n"),
+			  dwarf_errmsg (-1));
+		  return;
+		}
+
+	      /* This is the NUL byte at the end of the section.  */
+	      ++offset;
+	      break;
+	    }
+
+	  /* We know these calls can never fail.  */
+	  unsigned int code = dwarf_getabbrevcode (&abbrev);
+	  unsigned int tag = dwarf_getabbrevtag (&abbrev);
+	  int has_children = dwarf_abbrevhaschildren (&abbrev);
+
+	  printf (gettext (" [%5u] offset: %" PRId64
+			   ", children: %s, tag: %s\n"),
+		  code, (int64_t) offset,
+		  has_children ? gettext ("yes") : gettext ("no"),
+		  dwarf_tag_string (tag));
+
+	  size_t cnt = 0;
+	  unsigned int name;
+	  unsigned int form;
+	  Dwarf_Off enoffset;
+	  while (dwarf_getabbrevattr (&abbrev, cnt,
+				      &name, &form, &enoffset) == 0)
+	    {
+	      printf ("          attr: %s, form: %s, offset: %#" PRIx64 "\n",
+		      dwarf_attr_string (name), dwarf_form_string (form),
+		      (uint64_t) enoffset);
+
+	      ++cnt;
+	    }
+
+	  offset += length;
 	}
-
-      if (length == 1)
-	/* This is the NUL byte at the end of the section.  */
-	break;
-
-      /* We know these calls can never fail.  */
-      unsigned int code = dwarf_getabbrevcode (&abbrev);
-      unsigned int tag = dwarf_getabbrevtag (&abbrev);
-      int has_children = dwarf_abbrevhaschildren (&abbrev);
-
-      printf (gettext (" [%5u] offset: %" PRId64
-		       ", children: %s, tag: %s\n"),
-	      code, (int64_t) offset,
-	      has_children ? gettext ("yes") : gettext ("no"),
-	      dwarf_tag_string (tag));
-
-      size_t cnt = 0;
-      unsigned int name;
-      unsigned int form;
-      Dwarf_Off enoffset;
-      while (dwarf_getabbrevattr (&abbrev, cnt, &name, &form, &enoffset) == 0)
-	{
-	  printf ("          attr: %s, form: %s, offset: %#" PRIx64 "\n",
-		  dwarf_attr_string (name), dwarf_form_string (form),
-		  (uint64_t) enoffset);
-
-	  ++cnt;
-	}
-
-      offset += length;
     }
 }
 
@@ -3306,12 +4029,15 @@ print_debug_abbrev_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
    not have to know a bit about the structure of the section, libdwarf
    takes care of it.  */
 static void
-print_debug_aranges_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
+print_debug_aranges_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
+			     Ebl *ebl __attribute__ ((unused)),
+			     GElf_Ehdr *ehdr __attribute__ ((unused)),
+			     Elf_Scn *scn __attribute__ ((unused)),
 			     GElf_Shdr *shdr, Dwarf *dbg)
 {
   Dwarf_Aranges *aranges;
   size_t cnt;
-  if (dwarf_getaranges (dbg, &aranges, &cnt) != 0)
+  if (unlikely (dwarf_getaranges (dbg, &aranges, &cnt) != 0))
     {
       error (0, 0, gettext ("cannot get .debug_aranges content: %s"),
 	     dwarf_errmsg (-1));
@@ -3337,7 +4063,7 @@ print_debug_aranges_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
   for (size_t n = 0; n < cnt; ++n)
     {
       Dwarf_Arange *runp = dwarf_onearange (aranges, n);
-      if (runp == NULL)
+      if (unlikely (runp == NULL))
 	{
 	  printf ("cannot get arange %zu: %s\n", n, dwarf_errmsg (-1));
 	  return;
@@ -3347,7 +4073,7 @@ print_debug_aranges_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
       Dwarf_Word length;
       Dwarf_Off offset;
 
-      if (dwarf_getarangeinfo (runp, &start, &length, &offset) != 0)
+      if (unlikely (dwarf_getarangeinfo (runp, &start, &length, &offset) != 0))
 	printf (gettext (" [%*zu] ???\n"), digits, n);
       else
 	printf (gettext (" [%*zu] start: %0#*" PRIx64
@@ -3358,16 +4084,95 @@ print_debug_aranges_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
     }
 }
 
+/* Print content of DWARF .debug_ranges section.  */
+static void
+print_debug_ranges_section (Dwfl_Module *dwflmod,
+			    Ebl *ebl __attribute__ ((unused)),
+			    GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr,
+			    Dwarf *dbg)
+{
+  Elf_Data *data = elf_rawdata (scn, NULL);
+
+  if (unlikely (data == NULL))
+    {
+      error (0, 0, gettext ("cannot get .debug_ranges content: %s"),
+	     elf_errmsg (-1));
+      return;
+    }
+
+  printf (gettext ("\
+\nDWARF section '%s' at offset %#" PRIx64 ":\n"),
+	  ".debug_ranges", (uint64_t) shdr->sh_offset);
+
+  size_t address_size = ehdr->e_ident[EI_CLASS] == ELFCLASS32 ? 4 : 8;
+
+  bool first = true;
+  unsigned char *readp = data->d_buf;
+  while (readp < (unsigned char *) data->d_buf + data->d_size)
+    {
+      ptrdiff_t offset = readp - (unsigned char *) data->d_buf;
+
+      if (unlikely (data->d_size - offset < address_size * 2))
+	{
+	  printf (gettext (" [%6tx]  <INVALID DATA>\n"), offset);
+	  break;
+	}
+
+      Dwarf_Addr begin;
+      Dwarf_Addr end;
+      if (address_size == 8)
+	{
+	  begin = read_8ubyte_unaligned_inc (dbg, readp);
+	  end = read_8ubyte_unaligned_inc (dbg, readp);
+	}
+      else
+	{
+	  begin = read_4ubyte_unaligned_inc (dbg, readp);
+	  end = read_4ubyte_unaligned_inc (dbg, readp);
+	  if (begin == (Dwarf_Addr) (uint32_t) -1)
+	    begin = (Dwarf_Addr) -1l;
+	}
+
+      if (begin == (Dwarf_Addr) -1l) /* Base address entry.  */
+	{
+	  char *b = format_dwarf_addr (dwflmod, address_size, end);
+	  printf (gettext (" [%6tx]  base address %s\n"), offset, b);
+	  free (b);
+	}
+      else if (begin == 0 && end == 0) /* End of list entry.  */
+	first = true;
+      else
+	{
+	  char *b = format_dwarf_addr (dwflmod, address_size, begin);
+	  char *e = format_dwarf_addr (dwflmod, address_size, end);
+	  /* We have an address range entry.  */
+	  if (first)		/* First address range entry in a list.  */
+	    printf (gettext (" [%6tx]  %s..%s\n"), offset, b, e);
+	  else
+	    printf (gettext ("           %s..%s\n"), b, e);
+	  free (b);
+	  free (e);
+
+	  first = false;
+	}
+    }
+}
+
 
 static void
-print_debug_frame_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
-			   GElf_Shdr *shdr, Dwarf *dbg)
+print_debug_frame_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
+			   Ebl *ebl __attribute__ ((unused)),
+			   GElf_Ehdr *ehdr __attribute__ ((unused)),
+			   Elf_Scn *scn __attribute__ ((unused)),
+			   GElf_Shdr *shdr __attribute__ ((unused)),
+			   Dwarf *dbg __attribute__ ((unused)))
 {
 }
 
 
 struct attrcb_args
 {
+  Dwfl_Module *dwflmod;
   Dwarf *dbg;
   int level;
   unsigned int addrsize;
@@ -3399,18 +4204,21 @@ attr_callback (Dwarf_Attribute *attrp, void *arg)
 
   switch (form)
     {
-    case DW_FORM_addr:;
-      Dwarf_Addr addr;
-      if (unlikely (dwarf_formaddr (attrp, &addr) != 0))
-	{
-	attrval_out:
-	  error (0, 0, gettext ("cannot get attribute value: %s"),
-		 dwarf_errmsg (-1));
-	  return DWARF_CB_ABORT;
-	}
-      printf ("           %*s%-20s %#0*" PRIxMAX "\n",
-	      (int) (level * 2), "", dwarf_attr_string (attr),
-	      (int) (cbargs->addrsize * 2), (uintmax_t) addr);
+    case DW_FORM_addr:
+      {
+	Dwarf_Addr addr;
+	if (unlikely (dwarf_formaddr (attrp, &addr) != 0))
+	  {
+	  attrval_out:
+	    error (0, 0, gettext ("cannot get attribute value: %s"),
+		   dwarf_errmsg (-1));
+	    return DWARF_CB_ABORT;
+	  }
+	char *a = format_dwarf_addr (cbargs->dwflmod, cbargs->addrsize, addr);
+	printf ("           %*s%-20s %s\n",
+		(int) (level * 2), "", dwarf_attr_string (attr), a);
+	free (a);
+      }
       break;
 
     case DW_FORM_indirect:
@@ -3429,13 +4237,13 @@ attr_callback (Dwarf_Attribute *attrp, void *arg)
     case DW_FORM_ref4:
     case DW_FORM_ref2:
     case DW_FORM_ref1:;
-      Dwarf_Off ref;
-      if (unlikely (dwarf_formref (attrp, &ref) != 0))
+      Dwarf_Die ref;
+      if (unlikely (dwarf_formref_die (attrp, &ref) == NULL))
 	goto attrval_out;
 
       printf ("           %*s%-20s [%6" PRIxMAX "]\n",
 	      (int) (level * 2), "", dwarf_attr_string (attr),
-	      (uintmax_t) (ref + cbargs->cu_offset));
+	      (uintmax_t) dwarf_dieoffset (&ref));
       break;
 
     case DW_FORM_udata:
@@ -3448,17 +4256,72 @@ attr_callback (Dwarf_Attribute *attrp, void *arg)
       if (unlikely (dwarf_formudata (attrp, &num) != 0))
 	goto attrval_out;
 
-      if (attr == DW_AT_language)
+      const char *valuestr = NULL;
+      switch (attr)
 	{
-	  printf ("           %*s%-20s %s (%d)\n",
+	case DW_AT_location:
+	case DW_AT_data_location:
+	case DW_AT_data_member_location:
+	case DW_AT_vtable_elem_location:
+	case DW_AT_string_length:
+	case DW_AT_use_location:
+	case DW_AT_frame_base:
+	case DW_AT_return_addr:
+	case DW_AT_static_link:
+	  printf ("           %*s%-20s location list [%6" PRIxMAX "]\n",
 		  (int) (level * 2), "", dwarf_attr_string (attr),
-		  dwarf_lang_string (num), (int) num);
+		  (uintmax_t) num);
+	  return DWARF_CB_OK;
+
+	case DW_AT_ranges:
+	  printf ("           %*s%-20s range list [%6" PRIxMAX "]\n",
+		  (int) (level * 2), "", dwarf_attr_string (attr),
+		  (uintmax_t) num);
+	  return DWARF_CB_OK;
+
+	case DW_AT_language:
+	  valuestr = dwarf_lang_string (num);
+	  break;
+	case DW_AT_encoding:
+	  valuestr = dwarf_encoding_string (num);
+	  break;
+	case DW_AT_accessibility:
+	  valuestr = dwarf_access_string (num);
+	  break;
+	case DW_AT_visibility:
+	  valuestr = dwarf_visibility_string (num);
+	  break;
+	case DW_AT_virtuality:
+	  valuestr = dwarf_virtuality_string (num);
+	  break;
+	case DW_AT_identifier_case:
+	  valuestr = dwarf_identifier_case_string (num);
+	  break;
+	case DW_AT_calling_convention:
+	  valuestr = dwarf_calling_convention_string (num);
+	  break;
+	case DW_AT_inline:
+	  valuestr = dwarf_inline_string (num);
+	  break;
+	case DW_AT_ordering:
+	  valuestr = dwarf_ordering_string (num);
+	  break;
+	case DW_AT_discr_list:
+	  valuestr = dwarf_discr_list_string (num);
+	  break;
+	default:
+	  /* Nothing.  */
 	  break;
 	}
 
-      printf ("           %*s%-20s %" PRIuMAX "\n",
-	      (int) (level * 2), "", dwarf_attr_string (attr),
-	      (uintmax_t) num);
+      if (valuestr == NULL)
+	printf ("           %*s%-20s %" PRIuMAX "\n",
+		(int) (level * 2), "", dwarf_attr_string (attr),
+		(uintmax_t) num);
+      else
+	printf ("           %*s%-20s %s (%" PRIuMAX ")\n",
+		(int) (level * 2), "", dwarf_attr_string (attr),
+		valuestr, (uintmax_t) num);
       break;
 
     case DW_FORM_flag:;
@@ -3483,9 +4346,32 @@ attr_callback (Dwarf_Attribute *attrp, void *arg)
 	      (int) (level * 2), "", dwarf_attr_string (attr),
 	      (uintmax_t) block.length);
 
-      if (attr == DW_AT_data_member_location)
-	print_ops (cbargs->dbg, level, cbargs->addrsize, block.length,
-		   block.data);
+      switch (attr)
+	{
+	case DW_AT_location:
+	case DW_AT_data_location:
+	case DW_AT_data_member_location:
+	case DW_AT_vtable_elem_location:
+	case DW_AT_string_length:
+	case DW_AT_use_location:
+	case DW_AT_frame_base:
+	case DW_AT_return_addr:
+	case DW_AT_static_link:
+	case DW_AT_allocated:
+	case DW_AT_associated:
+	case DW_AT_bit_size:
+	case DW_AT_bit_offset:
+	case DW_AT_bit_stride:
+	case DW_AT_byte_size:
+	case DW_AT_byte_stride:
+	case DW_AT_count:
+	case DW_AT_lower_bound:
+	case DW_AT_upper_bound:
+	  print_ops (cbargs->dwflmod, cbargs->dbg,
+		     12 + level * 2, 12 + level * 2,
+		     cbargs->addrsize, block.length, block.data);
+	  break;
+	}
       break;
 
     default:
@@ -3500,7 +4386,10 @@ attr_callback (Dwarf_Attribute *attrp, void *arg)
 
 
 static void
-print_debug_info_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
+print_debug_info_section (Dwfl_Module *dwflmod,
+			  Ebl *ebl __attribute__ ((unused)),
+			  GElf_Ehdr *ehdr __attribute__ ((unused)),
+			  Elf_Scn *scn __attribute__ ((unused)),
 			  GElf_Shdr *shdr, Dwarf *dbg)
 {
   printf (gettext ("\
@@ -3511,7 +4400,7 @@ print_debug_info_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
   if (shdr->sh_size == 0)
     return;
 
-  size_t maxdies = 20;
+  int maxdies = 20;
   Dwarf_Die *dies = (Dwarf_Die *) xmalloc (maxdies * sizeof (Dwarf_Die));
 
   Dwarf_Off offset = 0;
@@ -3535,6 +4424,7 @@ print_debug_info_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 
 
   struct attrcb_args args;
+  args.dwflmod = dwflmod;
   args.dbg = dbg;
   args.addrsize = addrsize;
   args.cu_offset = offset;
@@ -3554,7 +4444,7 @@ print_debug_info_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
   do
     {
       offset = dwarf_dieoffset (&dies[level]);
-      if (offset == -1l)
+      if (unlikely (offset == ~0ul))
 	{
 	  error (0, 0, gettext ("cannot get DIE offset: %s"),
 		 dwarf_errmsg (-1));
@@ -3562,7 +4452,7 @@ print_debug_info_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 	}
 
       int tag = dwarf_tag (&dies[level]);
-      if (tag == DW_TAG_invalid)
+      if (unlikely (tag == DW_TAG_invalid))
 	{
 	  error (0, 0, gettext ("cannot get tag of DIE at offset %" PRIu64
 				" in section '%s': %s"),
@@ -3570,93 +4460,9 @@ print_debug_info_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 	  goto do_return;
 	}
 
-      static const char *const lowtags[] =
-	{
-	  [DW_TAG_array_type] = "array_type",
-	  [DW_TAG_class_type] = "class_type",
-	  [DW_TAG_entry_point] = "entry_point",
-	  [DW_TAG_enumeration_type] = "enumeration_type",
-	  [DW_TAG_formal_parameter] = "formal_parameter",
-	  [DW_TAG_imported_declaration] = "imported_declaration",
-	  [DW_TAG_label] = "label",
-	  [DW_TAG_lexical_block] = "lexical_block",
-	  [DW_TAG_member] = "member",
-	  [DW_TAG_pointer_type] = "pointer_type",
-	  [DW_TAG_reference_type] = "reference_type",
-	  [DW_TAG_compile_unit] = "compile_unit",
-	  [DW_TAG_string_type] = "string_type",
-	  [DW_TAG_structure_type] = "structure_type",
-	  [DW_TAG_subroutine_type] = "subroutine_type",
-	  [DW_TAG_typedef] = "typedef",
-	  [DW_TAG_union_type] = "union_type",
-	  [DW_TAG_unspecified_parameters] = "unspecified_parameters",
-	  [DW_TAG_variant] = "variant",
-	  [DW_TAG_common_block] = "common_block",
-	  [DW_TAG_common_inclusion] = "common_inclusion",
-	  [DW_TAG_inheritance] = "inheritance",
-	  [DW_TAG_inlined_subroutine] = "inlined_subroutine",
-	  [DW_TAG_module] = "module",
-	  [DW_TAG_ptr_to_member_type] = "ptr_to_member_type",
-	  [DW_TAG_set_type] = "set_type",
-	  [DW_TAG_subrange_type] = "subrange_type",
-	  [DW_TAG_with_stmt] = "with_stmt",
-	  [DW_TAG_access_declaration] = "access_declaration",
-	  [DW_TAG_base_type] = "base_type",
-	  [DW_TAG_catch_block] = "catch_block",
-	  [DW_TAG_const_type] = "const_type",
-	  [DW_TAG_constant] = "constant",
-	  [DW_TAG_enumerator] = "enumerator",
-	  [DW_TAG_file_type] = "file_type",
-	  [DW_TAG_friend] = "friend",
-	  [DW_TAG_namelist] = "namelist",
-	  [DW_TAG_namelist_item] = "namelist_item",
-	  [DW_TAG_packed_type] = "packed_type",
-	  [DW_TAG_subprogram] = "subprogram",
-	  [DW_TAG_template_type_param] = "template_type_param",
-	  [DW_TAG_template_value_param] = "template_value_param",
-	  [DW_TAG_thrown_type] = "thrown_type",
-	  [DW_TAG_try_block] = "try_block",
-	  [DW_TAG_variant_part] = "variant_part",
-	  [DW_TAG_variable] = "variable",
-	  [DW_TAG_volatile_type] = "volatile_type"
-	};
-
-      const char *tagstr;
-      switch (tag)
-	{
-	case DW_TAG_lo_user:
-	  tagstr = "lo_user";
-	  break;
-
-	case DW_TAG_MIPS_loop:
-	  tagstr = "MIPS_loop";
-	  break;
-
-	case DW_TAG_format_label:
-	  tagstr = "format_label";
-	  break;
-
-	case DW_TAG_function_template:
-	  tagstr = "function_template";
-	  break;
-
-	case DW_TAG_class_template:
-	  tagstr = "class_template";
-	  break;
-	case DW_TAG_hi_user:
-	  tagstr = "hi_user";
-	  break;
-
-	default:
-	  if (tag < sizeof (lowtags) / sizeof (lowtags[0]))
-	    tagstr = lowtags[tag];
-	  else
-	    tagstr = "???";
-	  break;
-	}
-
       printf (" [%6" PRIx64 "]  %*s%s\n",
-	      (uint64_t) offset, (int) (level * 2), "", tagstr);
+	      (uint64_t) offset, (int) (level * 2), "",
+	      dwarf_tag_string (tag));
 
       /* Print the attribute values.  */
       args.level = level;
@@ -3675,7 +4481,7 @@ print_debug_info_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 	    if (level-- == 0)
 	      break;
 
-	  if (res == -1)
+	  if (unlikely (res == -1))
 	    {
 	      error (0, 0, gettext ("cannot get next DIE: %s\n"),
 		     dwarf_errmsg (-1));
@@ -3703,8 +4509,9 @@ print_debug_info_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 
 
 static void
-print_debug_line_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
-			  GElf_Shdr *shdr, Dwarf *dbg)
+print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl,
+			  GElf_Ehdr *ehdr __attribute__ ((unused)),
+			  Elf_Scn *scn, GElf_Shdr *shdr, Dwarf *dbg)
 {
   printf (gettext ("\
 \nDWARF section '%s' at offset %#" PRIx64 ":\n"),
@@ -3716,7 +4523,7 @@ print_debug_line_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
   /* There is no functionality in libdw to read the information in the
      way it is represented here.  Hardcode the decoder.  */
   Elf_Data *data = elf_getdata (scn, NULL);
-  if (data == NULL || data->d_buf == NULL)
+  if (unlikely (data == NULL || data->d_buf == NULL))
     {
       error (0, 0, gettext ("cannot get line data section data: %s"),
 	     elf_errmsg (-1));
@@ -3730,6 +4537,8 @@ print_debug_line_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 	 < (lineendp = (const unsigned char *) data->d_buf + data->d_size))
     {
       size_t start_offset = linep - (const unsigned char *) data->d_buf;
+
+      printf (gettext ("\nTable at offset %Zu:\n"), start_offset);
 
       Dwarf_Word unit_length = read_4ubyte_unaligned_inc (dbg, linep);
       unsigned int length = 4;
@@ -3797,7 +4606,15 @@ print_debug_line_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 	      line_range, opcode_base);
 
       if (unlikely (linep + opcode_base - 1 >= lineendp))
-	goto invalid_data;
+	{
+	invalid_unit:
+	  error (0, 0,
+		 gettext ("invalid data at offset %tu in section [%zu] '%s'"),
+		 linep - (const unsigned char *) data->d_buf,
+		 elf_ndxscn (scn), ".debug_line");
+	  linep = lineendp;
+	  continue;
+	}
       int opcode_base_l10 = 1;
       unsigned int tmp = opcode_base;
       while (tmp > 10)
@@ -3813,14 +4630,14 @@ print_debug_line_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 		opcode_base_l10, cnt, linep[cnt - 1]);
       linep += opcode_base - 1;
       if (unlikely (linep >= lineendp))
-	goto invalid_data;
+	goto invalid_unit;
 
       puts (gettext ("\nDirectory table:"));
       while (*linep != 0)
 	{
 	  unsigned char *endp = memchr (linep, '\0', lineendp - linep);
-	  if (endp == NULL)
-	    goto invalid_data;
+	  if (unlikely (endp == NULL))
+	    goto invalid_unit;
 
 	  printf (" %s\n", (char *) linep);
 
@@ -3830,7 +4647,7 @@ print_debug_line_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
       ++linep;
 
       if (unlikely (linep >= lineendp))
-	goto invalid_data;
+	goto invalid_unit;
       puts (gettext ("\nFile name table:\n"
 		     " Entry Dir   Time      Size      Name"));
       for (unsigned int cnt = 1; *linep != 0; ++cnt)
@@ -3838,8 +4655,8 @@ print_debug_line_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 	  /* First comes the file name.  */
 	  char *fname = (char *) linep;
 	  unsigned char *endp = memchr (fname, '\0', lineendp - linep);
-	  if (endp == NULL)
-	    goto invalid_data;
+	  if (unlikely (endp == NULL))
+	    goto invalid_unit;
 	  linep = endp + 1;
 
 	  /* Then the index.  */
@@ -3920,22 +4737,23 @@ print_debug_line_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 	      line += line_increment;
 	      address += address_increment;
 
+	      char *a = format_dwarf_addr (dwflmod, 0, address);
 	      printf (gettext ("\
- special opcode %u: address+%u = %#" PRIx64 ", line%+d = %zu\n"),
-		      opcode, address_increment, (uint64_t) address,
-		      line_increment, line);
+ special opcode %u: address+%u = %s, line%+d = %zu\n"),
+		      opcode, address_increment, a, line_increment, line);
+	      free (a);
 	    }
 	  else if (opcode == 0)
 	    {
 	      /* This an extended opcode.  */
 	      if (unlikely (linep + 2 > lineendp))
-		goto invalid_data;
+		goto invalid_unit;
 
 	      /* The length.  */
 	      unsigned int len = *linep++;
 
 	      if (unlikely (linep + len > lineendp))
-		goto invalid_data;
+		goto invalid_unit;
 
 	      /* The sub-opcode.  */
 	      opcode = *linep++;
@@ -3958,8 +4776,11 @@ print_debug_line_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 		    address = read_4ubyte_unaligned_inc (dbg, linep);
 		  else
 		    address = read_8ubyte_unaligned_inc (dbg, linep);
-		  printf (gettext ("set address to %#" PRIx64 "\n"),
-			  (uint64_t) address);
+		  {
+		    char *a = format_dwarf_addr (dwflmod, 0, address);
+		    printf (gettext ("set address to %s\n"), a);
+		    free (a);
+		  }
 		  break;
 
 		case DW_LNE_define_file:
@@ -3967,8 +4788,8 @@ print_debug_line_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 		    char *fname = (char *) linep;
 		    unsigned char *endp = memchr (linep, '\0',
 						  lineendp - linep);
-		    if (endp == NULL)
-		      goto invalid_data;
+		    if (unlikely (endp == NULL))
+		      goto invalid_unit;
 		    linep = endp + 1;
 
 		    unsigned int diridx;
@@ -3992,7 +4813,7 @@ define new file: dir=%u, mtime=%" PRIu64 ", length=%" PRIu64 ", name=%s\n"),
 		  break;
 		}
 	    }
-	  else if (opcode <= DW_LNS_set_epilog_begin)
+	  else if (opcode <= DW_LNS_set_epilogue_begin)
 	    {
 	      /* This is a known standard opcode.  */
 	      switch (opcode)
@@ -4007,9 +4828,12 @@ define new file: dir=%u, mtime=%" PRIu64 ", length=%" PRIu64 ", name=%s\n"),
 		     address.  */
 		  get_uleb128 (u128, linep);
 		  address += minimum_instr_len * u128;
-		  printf (gettext ("\
- advance address by %u to %#" PRIx64 "\n"),
-			  u128, (uint64_t) address);
+		  {
+		    char *a = format_dwarf_addr (dwflmod, 0, address);
+		    printf (gettext ("advance address by %u to %s\n"),
+			    u128, a);
+		    free (a);
+		  }
 		  break;
 
 		case DW_LNS_advance_line:
@@ -4032,7 +4856,7 @@ define new file: dir=%u, mtime=%" PRIu64 ", length=%" PRIu64 ", name=%s\n"),
 		case DW_LNS_set_column:
 		  /* Takes one uleb128 parameter which is stored in column.  */
 		  if (unlikely (standard_opcode_lengths[opcode] != 1))
-		    goto invalid_data;
+		    goto invalid_unit;
 
 		  get_uleb128 (u128, linep);
 		  printf (gettext (" set column to %" PRIu64 "\n"),
@@ -4056,22 +4880,29 @@ define new file: dir=%u, mtime=%" PRIu64 ", length=%" PRIu64 ", name=%s\n"),
 		  u128 = (minimum_instr_len
 			  * ((255 - opcode_base) / line_range));
 		  address += u128;
-		  printf (gettext ("\
- advance address by constant %u to %#" PRIx64 "\n"),
-			  u128, (uint64_t) address);
+		  {
+		    char *a = format_dwarf_addr (dwflmod, 0, address);
+		    printf (gettext ("advance address by constant %u to %s\n"),
+			    u128, a);
+		    free (a);
+		  }
 		  break;
 
 		case DW_LNS_fixed_advance_pc:
 		  /* Takes one 16 bit parameter which is added to the
 		     address.  */
 		  if (unlikely (standard_opcode_lengths[opcode] != 1))
-		    goto invalid_data;
+		    goto invalid_unit;
 
 		  u128 = read_2ubyte_unaligned_inc (dbg, linep);
 		  address += u128;
-		  printf (gettext ("\
- advance address by fixed value %u to %#" PRIx64 "\n"),
-			  u128, (uint64_t) address);
+		  {
+		    char *a = format_dwarf_addr (dwflmod, 0, address);
+		    printf (gettext ("\
+advance address by fixed value %u to %s\n"),
+			    u128, a);
+		    free (a);
+		  }
 		  break;
 
 		case DW_LNS_set_prologue_end:
@@ -4079,7 +4910,7 @@ define new file: dir=%u, mtime=%" PRIu64 ", length=%" PRIu64 ", name=%s\n"),
 		  puts (gettext (" set prologue end flag"));
 		  break;
 
-		case DW_LNS_set_epilog_begin:
+		case DW_LNS_set_epilogue_begin:
 		  /* Takes no argument.  */
 		  puts (gettext (" set epilogue begin flag"));
 		  break;
@@ -4114,16 +4945,87 @@ define new file: dir=%u, mtime=%" PRIu64 ", length=%" PRIu64 ", name=%s\n"),
 
 
 static void
-print_debug_loc_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
-			 GElf_Shdr *shdr, Dwarf *dbg)
+print_debug_loc_section (Dwfl_Module *dwflmod,
+			 Ebl *ebl __attribute__ ((unused)),
+			 GElf_Ehdr *ehdr __attribute__ ((unused)),
+			 Elf_Scn *scn __attribute__ ((unused)),
+			 GElf_Shdr *shdr,
+			 Dwarf *dbg __attribute__ ((unused)))
 {
+  Elf_Data *data = elf_rawdata (scn, NULL);
+
+  if (unlikely (data == NULL))
+    {
+      error (0, 0, gettext ("cannot get .debug_loc content: %s"),
+	     elf_errmsg (-1));
+      return;
+    }
+
   printf (gettext ("\
 \nDWARF section '%s' at offset %#" PRIx64 ":\n"),
 	  ".debug_loc", (uint64_t) shdr->sh_offset);
 
-  // XXX add something
-}
+  size_t address_size = ehdr->e_ident[EI_CLASS] == ELFCLASS32 ? 4 : 8;
 
+  bool first = true;
+  unsigned char *readp = data->d_buf;
+  while (readp < (unsigned char *) data->d_buf + data->d_size)
+    {
+      ptrdiff_t offset = readp - (unsigned char *) data->d_buf;
+
+      if (unlikely (data->d_size - offset < address_size * 2))
+	{
+	  printf (gettext (" [%6tx]  <INVALID DATA>\n"), offset);
+	  break;
+	}
+
+      Dwarf_Addr begin;
+      Dwarf_Addr end;
+      if (address_size == 8)
+	{
+	  begin = read_8ubyte_unaligned_inc (dbg, readp);
+	  end = read_8ubyte_unaligned_inc (dbg, readp);
+	}
+      else
+	{
+	  begin = read_4ubyte_unaligned_inc (dbg, readp);
+	  end = read_4ubyte_unaligned_inc (dbg, readp);
+	  if (begin == (Dwarf_Addr) (uint32_t) -1)
+	    begin = (Dwarf_Addr) -1l;
+	}
+
+      if (begin == (Dwarf_Addr) -1l) /* Base address entry.  */
+	{
+	  char *b = format_dwarf_addr (dwflmod, address_size, end);
+	  printf (gettext (" [%6tx]  base address %s\n"), offset, b);
+	  free (b);
+	}
+      else if (begin == 0 && end == 0) /* End of list entry.  */
+	first = true;
+      else
+	{
+	  /* We have a location expression entry.  */
+	  uint_fast16_t len = read_2ubyte_unaligned_inc (dbg, readp);
+
+	  char *b = format_dwarf_addr (dwflmod, address_size, begin);
+	  char *e = format_dwarf_addr (dwflmod, address_size, end);
+
+	  if (first)		/* First entry in a list.  */
+	    printf (gettext (" [%6tx]  %s..%s"), offset, b, e);
+	  else
+	    printf (gettext ("           %s..%s"), b, e);
+
+	  free (b);
+	  free (e);
+
+	  print_ops (dwflmod, dbg, 1, 18 + (address_size * 4),
+		     address_size, len, readp);
+
+	  first = false;
+	  readp += len;
+	}
+    }
+}
 
 struct mac_culist
 {
@@ -4149,8 +5051,10 @@ mac_compare (const void *p1, const void *p2)
 
 
 static void
-print_debug_macinfo_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
-			 GElf_Shdr *shdr, Dwarf *dbg)
+print_debug_macinfo_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
+			     Ebl *ebl __attribute__ ((unused)),
+			     GElf_Ehdr *ehdr __attribute__ ((unused)),
+			     Elf_Scn *scn, GElf_Shdr *shdr, Dwarf *dbg)
 {
   printf (gettext ("\
 \nDWARF section '%s' at offset %#" PRIx64 ":\n"),
@@ -4160,7 +5064,7 @@ print_debug_macinfo_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
   /* There is no function in libdw to iterate over the raw content of
      the section but it is easy enough to do.  */
   Elf_Data *data = elf_getdata (scn, NULL);
-  if (data == NULL || data->d_buf == NULL)
+  if (unlikely (data == NULL || data->d_buf == NULL))
     {
       error (0, 0, gettext ("cannot get macro information section data: %s"),
 	     elf_errmsg (-1));
@@ -4239,7 +5143,7 @@ print_debug_macinfo_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 	  get_uleb128 (u128, readp);
 
 	  endp = memchr (readp, '\0', readendp - readp);
-	  if (endp == NULL)
+	  if (unlikely (endp == NULL))
 	    {
 	      printf (gettext ("\
 %*s*** non-terminated string at end of section"),
@@ -4265,7 +5169,7 @@ print_debug_macinfo_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 	  get_uleb128 (u128_2, readp);
 
 	  /* Find the CU DIE for this file.  */
-	  ptrdiff_t macoff = readp - (const unsigned char *) data->d_buf;
+	  size_t macoff = readp - (const unsigned char *) data->d_buf;
 	  const char *fname = "???";
 	  if (macoff >= cus[0].offset)
 	    {
@@ -4294,7 +5198,7 @@ print_debug_macinfo_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 
 	default:
 	  // XXX gcc seems to generate files with a trailing zero.
-	  if (opcode != 0 || readp != readendp)
+	  if (unlikely (opcode != 0 || readp != readendp))
 	    printf ("%*s*** invalid opcode %u\n", level, "", opcode);
 	  break;
 	}
@@ -4304,7 +5208,8 @@ print_debug_macinfo_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 
 /* Callback for printing global names.  */
 static int
-print_pubnames (Dwarf *dbg, Dwarf_Global *global, void *arg)
+print_pubnames (Dwarf *dbg __attribute__ ((unused)), Dwarf_Global *global,
+		void *arg)
 {
   int *np = (int *) arg;
 
@@ -4318,7 +5223,10 @@ print_pubnames (Dwarf *dbg, Dwarf_Global *global, void *arg)
 
 /* Print the known exported symbols in the DWARF section '.debug_pubnames'.  */
 static void
-print_debug_pubnames_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
+print_debug_pubnames_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
+			      Ebl *ebl __attribute__ ((unused)),
+			      GElf_Ehdr *ehdr __attribute__ ((unused)),
+			      Elf_Scn *scn __attribute__ ((unused)),
 			      GElf_Shdr *shdr, Dwarf *dbg)
 {
   printf (gettext ("\nDWARF section '%s' at offset %#" PRIx64 ":\n"),
@@ -4330,7 +5238,10 @@ print_debug_pubnames_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 
 /* Print the content of the DWARF string section '.debug_str'.  */
 static void
-print_debug_str_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
+print_debug_str_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
+			 Ebl *ebl __attribute__ ((unused)),
+			 GElf_Ehdr *ehdr __attribute__ ((unused)),
+			 Elf_Scn *scn __attribute__ ((unused)),
 			 GElf_Shdr *shdr, Dwarf *dbg)
 {
   /* Compute floor(log16(shdr->sh_size)).  */
@@ -4354,7 +5265,7 @@ print_debug_str_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
     {
       size_t len;
       const char *str = dwarf_getstring (dbg, offset, &len);
-      if (str == NULL)
+      if (unlikely (str == NULL))
 	{
 	  printf (gettext (" *** error while reading strings: %s\n"),
 		  dwarf_errmsg (-1));
@@ -4367,44 +5278,40 @@ print_debug_str_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
     }
 }
 
-
 static void
-print_debug (Ebl *ebl, GElf_Ehdr *ehdr)
+print_debug (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr)
 {
-  /* Find the version information sections.  For this we have to
-     search through the section table.  */
-  Dwarf *dbg;
-  Elf_Scn *scn;
-  size_t shstrndx;
-
   /* Before we start the real work get a debug context descriptor.  */
-  dbg = dwarf_begin_elf (ebl->elf, DWARF_C_READ, NULL);
+  Dwarf_Addr dwbias;
+  Dwarf *dbg = dwfl_module_getdwarf (dwflmod, &dwbias);
   if (dbg == NULL)
     {
       error (0, 0, gettext ("cannot get debug context descriptor: %s"),
-	     dwarf_errmsg (-1));
+	     dwfl_errmsg (-1));
       return;
     }
 
   /* Get the section header string table index.  */
-  if (elf_getshstrndx (ebl->elf, &shstrndx) < 0)
+  size_t shstrndx;
+  if (unlikely (elf_getshstrndx (ebl->elf, &shstrndx) < 0))
     error (EXIT_FAILURE, 0,
 	   gettext ("cannot get section header string table index"));
 
-  scn = NULL;
+  /* Look through all the sections for the debugging sections to print.  */
+  Elf_Scn *scn = NULL;
   while ((scn = elf_nextscn (ebl->elf, scn)) != NULL)
     {
-      /* Handle the section if it is part of the versioning handling.  */
       GElf_Shdr shdr_mem;
       GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
 
-      if (shdr != NULL || shdr->sh_type != SHT_PROGBITS)
+      if (shdr != NULL && shdr->sh_type == SHT_PROGBITS)
 	{
 	  static const struct
 	  {
 	    const char *name;
 	    enum section_e bitmask;
-	    void (*fp) (Ebl *, GElf_Ehdr *, Elf_Scn *, GElf_Shdr *, Dwarf *);
+	    void (*fp) (Dwfl_Module *, Ebl *,
+			GElf_Ehdr *, Elf_Scn *, GElf_Shdr *, Dwarf *);
 	  } debug_sections[] =
 	    {
 #define NEW_SECTION(name) \
@@ -4418,6 +5325,7 @@ print_debug (Ebl *ebl, GElf_Ehdr *ehdr)
 	      NEW_SECTION (pubnames),
 	      NEW_SECTION (str),
 	      NEW_SECTION (macinfo),
+	      NEW_SECTION (ranges),
 	      { ".eh_frame", section_frame, print_debug_frame_section }
 	    };
 	  const int ndebug_sections = (sizeof (debug_sections)
@@ -4430,26 +5338,851 @@ print_debug (Ebl *ebl, GElf_Ehdr *ehdr)
 	    if (strcmp (name, debug_sections[n].name) == 0)
 	      {
 		if (print_debug_sections & debug_sections[n].bitmask)
-		  debug_sections[n].fp (ebl, ehdr, scn, shdr, dbg);
+		  debug_sections[n].fp (dwflmod, ebl, ehdr, scn, shdr, dbg);
 		break;
 	      }
 	}
     }
-
-  /* We are done with the DWARF handling.  */
-  dwarf_end (dbg);
 }
 
+
+#define ITEM_INDENT		4
+#define ITEM_WRAP_COLUMN	150
+#define REGISTER_WRAP_COLUMN	75
+
+/* Print "NAME: FORMAT", wrapping when FORMAT_MAX chars of FORMAT would
+   make the line exceed ITEM_WRAP_COLUMN.  Unpadded numbers look better
+   for the core items.  But we do not want the line breaks to depend on
+   the particular values.  */
+static unsigned int
+__attribute__ ((format (printf, 7, 8)))
+print_core_item (unsigned int colno, char sep, unsigned int wrap,
+		 size_t name_width, const char *name,
+		 size_t format_max, const char *format, ...)
+{
+  size_t len = strlen (name);
+  if (name_width < len)
+    name_width = len;
+
+  size_t n = name_width + sizeof ": " - 1 + format_max;
+
+  if (colno == 0)
+    {
+      printf ("%*s", ITEM_INDENT, "");
+      colno = ITEM_INDENT + n;
+    }
+  else if (colno + 2 + n < wrap)
+    {
+      printf ("%c ", sep);
+      colno += 2 + n;
+    }
+  else
+    {
+      printf ("\n%*s", ITEM_INDENT, "");
+      colno = ITEM_INDENT + n;
+    }
+
+  printf ("%s: %*s", name, (int) (name_width - len), "");
+
+  va_list ap;
+  va_start (ap, format);
+  vprintf (format, ap);
+  va_end (ap);
+
+  return colno;
+}
+
+static const void *
+convert (Elf *core, Elf_Type type, uint_fast16_t count,
+	 void *value, const void *data, size_t size)
+{
+  Elf_Data valuedata =
+    {
+      .d_type = type,
+      .d_buf = value,
+      .d_size = size ?: gelf_fsize (core, type, count, EV_CURRENT),
+      .d_version = EV_CURRENT,
+    };
+  Elf_Data indata =
+    {
+      .d_type = type,
+      .d_buf = (void *) data,
+      .d_size = valuedata.d_size,
+      .d_version = EV_CURRENT,
+    };
+
+  Elf_Data *d = (gelf_getclass (core) == ELFCLASS32
+		 ? elf32_xlatetom : elf64_xlatetom)
+    (&valuedata, &indata, elf_getident (core, NULL)[EI_DATA]);
+  if (d == NULL)
+    error (EXIT_FAILURE, 0,
+	   gettext ("cannot convert core note data: %s"), elf_errmsg (-1));
+
+  return data + indata.d_size;
+}
+
+typedef uint8_t GElf_Byte;
+
+static unsigned int
+handle_core_item (Elf *core, const Ebl_Core_Item *item, const void *desc,
+		  unsigned int colno, size_t *repeated_size)
+{
+  uint_fast16_t count = item->count ?: 1;
+
+#define TYPES								      \
+  DO_TYPE (BYTE, Byte, "0x%.2" PRIx8, "%" PRId8, 4);			      \
+  DO_TYPE (HALF, Half, "0x%.4" PRIx16, "%" PRId16, 6);			      \
+  DO_TYPE (WORD, Word, "0x%.8" PRIx32, "%" PRId32, 11);			      \
+  DO_TYPE (SWORD, Sword, "%" PRId32, "%" PRId32, 11);			      \
+  DO_TYPE (XWORD, Xword, "0x%.16" PRIx64, "%" PRId64, 20);		      \
+  DO_TYPE (SXWORD, Sxword, "%" PRId64, "%" PRId64, 20)
+
+#define DO_TYPE(NAME, Name, hex, dec, max) GElf_##Name Name[count]
+  union { TYPES; } value;
+#undef DO_TYPE
+
+  void *data = &value;
+  size_t size = gelf_fsize (core, item->type, count, EV_CURRENT);
+  size_t convsize = size;
+  if (repeated_size != NULL)
+    {
+      if (*repeated_size > size && (item->format == 'b' || item->format == 'B'))
+	{
+	  data = alloca (*repeated_size);
+	  count *= *repeated_size / size;
+	  convsize = count * size;
+	  *repeated_size -= convsize;
+	}
+      else
+	*repeated_size -= size;
+    }
+
+  desc = convert (core, item->type, count, data, desc + item->offset, convsize);
+
+  Elf_Type type = item->type;
+  if (type == ELF_T_ADDR)
+    type = gelf_getclass (core) == ELFCLASS32 ? ELF_T_WORD : ELF_T_XWORD;
+
+  switch (item->format)
+    {
+    case 'd':
+      assert (count == 1);
+      switch (type)
+	{
+#define DO_TYPE(NAME, Name, hex, dec, max)				      \
+	  case ELF_T_##NAME:						      \
+	    colno = print_core_item (colno, ',', ITEM_WRAP_COLUMN,	      \
+				     0, item->name, max, dec, value.Name[0]); \
+	    break
+	  TYPES;
+#undef DO_TYPE
+	default:
+	  abort ();
+	}
+      break;
+
+    case 'x':
+      assert (count == 1);
+      switch (type)
+	{
+#define DO_TYPE(NAME, Name, hex, dec, max)				      \
+	  case ELF_T_##NAME:						      \
+	    colno = print_core_item (colno, ',', ITEM_WRAP_COLUMN,	      \
+				     0, item->name, max, hex, value.Name[0]); \
+	    break
+	  TYPES;
+#undef DO_TYPE
+	default:
+	  abort ();
+	}
+      break;
+
+    case 'b':
+    case 'B':
+      assert (size % sizeof (unsigned int) == 0);
+      unsigned int nbits = count * size * 8;
+      unsigned int pop = 0;
+      for (const unsigned int *i = data; (void *) i < data + count * size; ++i)
+	pop += __builtin_popcount (*i);
+      bool negate = pop > nbits / 2;
+      const unsigned int bias = item->format == 'b';
+
+      {
+	char printed[(negate ? nbits - pop : pop) * 16];
+	char *p = printed;
+	*p = '\0';
+
+	if (BYTE_ORDER != LITTLE_ENDIAN && size > sizeof (unsigned int))
+	  {
+	    assert (size == sizeof (unsigned int) * 2);
+	    for (unsigned int *i = data;
+		 (void *) i < data + count * size; i += 2)
+	      {
+		unsigned int w = i[1];
+		i[1] = i[0];
+		i[0] = w;
+	      }
+	  }
+
+	unsigned int lastbit = 0;
+	for (const unsigned int *i = data;
+	     (void *) i < data + count * size; ++i)
+	  {
+	    unsigned int bit = ((void *) i - data) * 8;
+	    unsigned int w = negate ? ~*i : *i;
+	    while (w != 0)
+	      {
+		int n = ffs (w);
+		w >>= n;
+		bit += n;
+
+		if (lastbit + 1 != bit)
+		  p += sprintf (p, "-%u,%u", lastbit - bias, bit - bias);
+		else if (lastbit == 0)
+		  p += sprintf (p, "%u", bit - bias);
+
+		lastbit = bit;
+	      }
+	  }
+	if (lastbit > 0 && lastbit + 1 != nbits)
+	  p += sprintf (p, "-%u", nbits - bias);
+
+	colno = print_core_item (colno, ',', ITEM_WRAP_COLUMN, 0, item->name,
+				 4 + nbits * 4,
+				 negate ? "~<%s>" : "<%s>", printed);
+      }
+      break;
+
+    case 'T':
+    case (char) ('T'|0x80):
+      assert (count == 2);
+      Dwarf_Word sec;
+      Dwarf_Word usec;
+      size_t maxfmt = 7;
+      switch (type)
+	{
+#define DO_TYPE(NAME, Name, hex, dec, max)				      \
+	  case ELF_T_##NAME:						      \
+	    sec = value.Name[0];					      \
+	    usec = value.Name[1];					      \
+	    maxfmt += max;						      \
+	    break
+	  TYPES;
+#undef DO_TYPE
+	default:
+	  abort ();
+	}
+      if (unlikely (item->format == (char) ('T'|0x80)))
+	{
+	  /* This is a hack for an ill-considered 64-bit ABI where
+	     tv_usec is actually a 32-bit field with 32 bits of padding
+	     rounding out struct timeval.  We've already converted it as
+	     a 64-bit field.  For little-endian, this just means the
+	     high half is the padding; it's presumably zero, but should
+	     be ignored anyway.  For big-endian, it means the 32-bit
+	     field went into the high half of USEC.  */
+	  GElf_Ehdr ehdr_mem;
+	  GElf_Ehdr *ehdr = gelf_getehdr (core, &ehdr_mem);
+	  if (likely (ehdr->e_ident[EI_DATA] == ELFDATA2MSB))
+	    usec >>= 32;
+	  else
+	    usec &= UINT32_MAX;
+	}
+      colno = print_core_item (colno, ',', ITEM_WRAP_COLUMN, 0, item->name,
+			       maxfmt, "%" PRIu64 ".%.6" PRIu64, sec, usec);
+      break;
+
+    case 'c':
+      assert (count == 1);
+      colno = print_core_item (colno, ',', ITEM_WRAP_COLUMN, 0, item->name,
+			       1, "%c", value.Byte[0]);
+      break;
+
+    case 's':
+      colno = print_core_item (colno, ',', ITEM_WRAP_COLUMN, 0, item->name,
+			       count, "%.*s", (int) count, value.Byte);
+      break;
+
+    default:
+      error (0, 0, "XXX not handling format '%c' for %s",
+	     item->format, item->name);
+      break;
+    }
+
+#undef TYPES
+
+  return colno;
+}
+
+
+/* Sort items by group, and by layout offset within each group.  */
+static int
+compare_core_items (const void *a, const void *b)
+{
+  const Ebl_Core_Item *const *p1 = a;
+  const Ebl_Core_Item *const *p2 = b;
+  const Ebl_Core_Item *item1 = *p1;
+  const Ebl_Core_Item *item2 = *p2;
+
+  return ((item1->group == item2->group ? 0
+	   : strcmp (item1->group, item2->group))
+	  ?: (int) item1->offset - (int) item2->offset);
+}
+
+/* Sort item groups by layout offset of the first item in the group.  */
+static int
+compare_core_item_groups (const void *a, const void *b)
+{
+  const Ebl_Core_Item *const *const *p1 = a;
+  const Ebl_Core_Item *const *const *p2 = b;
+  const Ebl_Core_Item *const *group1 = *p1;
+  const Ebl_Core_Item *const *group2 = *p2;
+  const Ebl_Core_Item *item1 = *group1;
+  const Ebl_Core_Item *item2 = *group2;
+
+  return (int) item1->offset - (int) item2->offset;
+}
+
+static unsigned int
+handle_core_items (Elf *core, const void *desc, size_t descsz,
+		   const Ebl_Core_Item *items, size_t nitems)
+{
+  if (nitems == 0)
+    return 0;
+
+  /* Sort to collect the groups together.  */
+  const Ebl_Core_Item *sorted_items[nitems];
+  for (size_t i = 0; i < nitems; ++i)
+    sorted_items[i] = &items[i];
+  qsort (sorted_items, nitems, sizeof sorted_items[0], &compare_core_items);
+
+  /* Collect the unique groups and sort them.  */
+  const Ebl_Core_Item **groups[nitems];
+  groups[0] = &sorted_items[0];
+  size_t ngroups = 1;
+  for (size_t i = 1; i < nitems; ++i)
+    if (sorted_items[i]->group != sorted_items[i - 1]->group
+	&& strcmp (sorted_items[i]->group, sorted_items[i - 1]->group))
+      groups[ngroups++] = &sorted_items[i];
+  qsort (groups, ngroups, sizeof groups[0], &compare_core_item_groups);
+
+  /* Write out all the groups.  */
+  unsigned int colno = 0;
+
+  const void *last = desc;
+  if (nitems == 1)
+    {
+      size_t size = descsz;
+      colno = handle_core_item (core, sorted_items[0], desc, colno, &size);
+      if (size == 0)
+	return colno;
+      desc += descsz - size;
+      descsz = size;
+    }
+
+  do
+    {
+      for (size_t i = 0; i < ngroups; ++i)
+	{
+	  for (const Ebl_Core_Item **item = groups[i];
+	       (item < &sorted_items[nitems]
+		&& ((*item)->group == groups[i][0]->group
+		    || !strcmp ((*item)->group, groups[i][0]->group)));
+	       ++item)
+	    colno = handle_core_item (core, *item, desc, colno, NULL);
+
+	  /* Force a line break at the end of the group.  */
+	  colno = ITEM_WRAP_COLUMN;
+	}
+
+      if (descsz == 0)
+	break;
+
+      /* This set of items consumed a certain amount of the note's data.
+	 If there is more data there, we have another unit of the same size.
+	 Loop to print that out too.  */
+      const Ebl_Core_Item *item = &items[nitems - 1];
+      size_t eltsz = item->offset + gelf_fsize (core, item->type,
+						item->count ?: 1, EV_CURRENT);
+
+      int reps = -1;
+      do
+	{
+	  ++reps;
+	  desc += eltsz;
+	  descsz -= eltsz;
+	}
+      while (descsz >= eltsz && !memcmp (desc, last, eltsz));
+
+      if (reps == 1)
+	{
+	  /* For just one repeat, print it unabridged twice.  */
+	  desc -= eltsz;
+	  descsz += eltsz;
+	}
+      else if (reps > 1)
+	printf (gettext ("\n%*s... <repeats %u more times> ..."),
+		ITEM_INDENT, "", reps);
+
+      last = desc;
+    }
+  while (descsz > 0);
+
+  return colno;
+}
+
+static unsigned int
+handle_bit_registers (const Ebl_Register_Location *regloc, const void *desc,
+		      unsigned int colno)
+{
+  desc += regloc->offset;
+
+  abort ();			/* XXX */
+  return colno;
+}
+
+
+static unsigned int
+handle_core_register (Ebl *ebl, Elf *core, int maxregname,
+		      const Ebl_Register_Location *regloc, const void *desc,
+		      unsigned int colno)
+{
+  if (regloc->bits % 8 != 0)
+    return handle_bit_registers (regloc, desc, colno);
+
+  desc += regloc->offset;
+
+  for (int reg = regloc->regno; reg < regloc->regno + regloc->count; ++reg)
+    {
+      const char *pfx;
+      const char *set;
+      char name[16];
+      int bits;
+      int type;
+      ssize_t n = ebl_register_info (ebl, reg, name, sizeof name,
+				     &pfx, &set, &bits, &type);
+      if (n <= 0)
+	error (EXIT_FAILURE, 0,
+	       gettext ("unable to handle register number %d"),
+	       regloc->regno);
+
+#define TYPES								      \
+      BITS (8, BYTE, "%4" PRId8, "0x%.2" PRIx8, 4);			      \
+      BITS (16, HALF, "%6" PRId16, "0x%.4" PRIx16, 6);			      \
+      BITS (32, WORD, "%11" PRId32, " 0x%.8" PRIx32, 11);		      \
+      BITS (64, XWORD, "%20" PRId64, "  0x%.16" PRIx64, 20)
+
+#define BITS(bits, xtype, sfmt, ufmt, max)				\
+      uint##bits##_t b##bits; int##bits##_t b##bits##s
+      union { TYPES; uint64_t b128[2]; } value;
+#undef	BITS
+
+      switch (type)
+	{
+	case DW_ATE_unsigned:
+	case DW_ATE_signed:
+	case DW_ATE_address:
+	  switch (bits)
+	    {
+#define BITS(bits, xtype, sfmt, ufmt, max)				      \
+	    case bits:							      \
+	      desc = convert (core, ELF_T_##xtype, 1, &value, desc, 0);	      \
+	      if (type == DW_ATE_signed)				      \
+		colno = print_core_item (colno, ' ', REGISTER_WRAP_COLUMN,    \
+					 maxregname, name,		      \
+					 max, sfmt, value.b##bits##s);	      \
+	      else							      \
+		colno = print_core_item (colno, ' ', REGISTER_WRAP_COLUMN,    \
+					 maxregname, name,		      \
+					 max, ufmt, value.b##bits);	      \
+	      break
+
+	    TYPES;
+
+	    case 128:
+	      assert (type == DW_ATE_unsigned);
+	      desc = convert (core, ELF_T_XWORD, 2, &value, desc, 0);
+	      int be = elf_getident (core, NULL)[EI_DATA] == ELFDATA2MSB;
+	      colno = print_core_item (colno, ' ', REGISTER_WRAP_COLUMN,
+				       maxregname, name,
+				       34, "0x%.16" PRIx64 "%.16" PRIx64,
+				       value.b128[!be], value.b128[be]);
+	      break;
+
+	    default:
+	      abort ();
+#undef	BITS
+	    }
+	  break;
+
+	default:
+	  /* Print each byte in hex, the whole thing in native byte order.  */
+	  assert (bits % 8 == 0);
+	  const uint8_t *bytes = desc;
+	  desc += bits / 8;
+	  char hex[bits / 4 + 1];
+	  hex[bits / 4] = '\0';
+	  int incr = 1;
+	  if (elf_getident (core, NULL)[EI_DATA] == ELFDATA2LSB)
+	    {
+	      bytes += bits / 8 - 1;
+	      incr = -1;
+	    }
+	  size_t idx = 0;
+	  for (char *h = hex; bits > 0; bits -= 8, idx += incr)
+	    {
+	      *h++ = "0123456789abcdef"[bytes[idx] >> 4];
+	      *h++ = "0123456789abcdef"[bytes[idx] & 0xf];
+	    }
+	  colno = print_core_item (colno, ' ', REGISTER_WRAP_COLUMN,
+				   maxregname, name,
+				   2 + sizeof hex - 1, "0x%s", hex);
+	  break;
+	}
+      desc += regloc->pad;
+
+#undef TYPES
+    }
+
+  return colno;
+}
+
+
+struct register_info
+{
+  const Ebl_Register_Location *regloc;
+  const char *set;
+  char name[16];
+  Dwarf_Half regno;
+  uint8_t bits;
+  uint8_t type;
+};
+
+static int
+register_bitpos (const struct register_info *r)
+{
+  return (r->regloc->offset * 8
+	  + ((r->regno - r->regloc->regno)
+	     * (r->regloc->bits + r->regloc->pad * 8)));
+}
+
+static int
+compare_sets_by_info (const struct register_info *r1,
+		      const struct register_info *r2)
+{
+  return ((int) r2->bits - (int) r1->bits
+	  ?: register_bitpos (r1) - register_bitpos (r2));
+}
+
+/* Sort registers by set, and by size and layout offset within each set.  */
+static int
+compare_registers (const void *a, const void *b)
+{
+  const struct register_info *r1 = a;
+  const struct register_info *r2 = b;
+
+  /* Unused elements sort last.  */
+  if (r1->regloc == NULL)
+    return r2->regloc == NULL ? 0 : 1;
+  if (r2->regloc == NULL)
+    return -1;
+
+  return ((r1->set == r2->set ? 0 : strcmp (r1->set, r2->set))
+	  ?: compare_sets_by_info (r1, r2));
+}
+
+/* Sort register sets by layout offset of the first register in the set.  */
+static int
+compare_register_sets (const void *a, const void *b)
+{
+  const struct register_info *const *p1 = a;
+  const struct register_info *const *p2 = b;
+  return compare_sets_by_info (*p1, *p2);
+}
+
+static unsigned int
+handle_core_registers (Ebl *ebl, Elf *core, const void *desc,
+		       const Ebl_Register_Location *reglocs, size_t nregloc)
+{
+  if (nregloc == 0)
+    return 0;
+
+  ssize_t maxnreg = ebl_register_info (ebl, 0, NULL, 0, NULL, NULL, NULL, NULL);
+  if (maxnreg <= 0)
+    error (EXIT_FAILURE, 0,
+	   gettext ("cannot register info: %s"), elf_errmsg (-1));
+
+  struct register_info regs[maxnreg];
+  memset (regs, 0, sizeof regs);
+
+  /* Sort to collect the sets together.  */
+  int maxreg = 0;
+  for (size_t i = 0; i < nregloc; ++i)
+    for (int reg = reglocs[i].regno;
+	 reg < reglocs[i].regno + reglocs[i].count;
+	 ++reg)
+      {
+	assert (reg < maxnreg);
+	if (reg > maxreg)
+	  maxreg = reg;
+	struct register_info *info = &regs[reg];
+
+	const char *pfx;
+	int bits;
+	int type;
+	ssize_t n = ebl_register_info (ebl, reg, info->name, sizeof info->name,
+				       &pfx, &info->set, &bits, &type);
+	if (n <= 0)
+	  error (EXIT_FAILURE, 0,
+		 gettext ("cannot register info: %s"), elf_errmsg (-1));
+
+	info->regloc = &reglocs[i];
+	info->regno = reg;
+	info->bits = bits;
+	info->type = type;
+      }
+  qsort (regs, maxreg + 1, sizeof regs[0], &compare_registers);
+
+  /* Collect the unique sets and sort them.  */
+  inline bool same_set (const struct register_info *a,
+			const struct register_info *b)
+  {
+    return (a < &regs[maxnreg] && a->regloc != NULL
+	    && b < &regs[maxnreg] && b->regloc != NULL
+	    && a->bits == b->bits
+	    && (a->set == b->set || !strcmp (a->set, b->set)));
+  }
+  struct register_info *sets[maxreg + 1];
+  sets[0] = &regs[0];
+  size_t nsets = 1;
+  for (int i = 1; i <= maxreg; ++i)
+    if (regs[i].regloc != NULL && !same_set (&regs[i], &regs[i - 1]))
+      sets[nsets++] = &regs[i];
+  qsort (sets, nsets, sizeof sets[0], &compare_register_sets);
+
+  /* Write out all the sets.  */
+  unsigned int colno = 0;
+  for (size_t i = 0; i < nsets; ++i)
+    {
+      /* Find the longest name of a register in this set.  */
+      size_t maxname = 0;
+      const struct register_info *end;
+      for (end = sets[i]; same_set (sets[i], end); ++end)
+	{
+	  size_t len = strlen (end->name);
+	  if (len > maxname)
+	    maxname = len;
+	}
+
+      for (const struct register_info *reg = sets[i];
+	   reg < end;
+	   reg += reg->regloc->count ?: 1)
+	colno = handle_core_register (ebl, core, maxname,
+				      reg->regloc, desc, colno);
+
+      /* Force a line break at the end of the group.  */
+      colno = REGISTER_WRAP_COLUMN;
+    }
+
+  return colno;
+}
+
+static void
+handle_auxv_note (Ebl *ebl, Elf *core, GElf_Word descsz, GElf_Off desc_pos)
+{
+  Elf_Data *data = elf_getdata_rawchunk (core, desc_pos, descsz, ELF_T_AUXV);
+  if (data == NULL)
+  elf_error:
+    error (EXIT_FAILURE, 0,
+	   gettext ("cannot convert core note data: %s"), elf_errmsg (-1));
+
+  const size_t nauxv = descsz / gelf_fsize (core, ELF_T_AUXV, 1, EV_CURRENT);
+  for (size_t i = 0; i < nauxv; ++i)
+    {
+      GElf_auxv_t av_mem;
+      GElf_auxv_t *av = gelf_getauxv (data, i, &av_mem);
+      if (av == NULL)
+	goto elf_error;
+
+      const char *name;
+      const char *fmt;
+      if (ebl_auxv_info (ebl, av->a_type, &name, &fmt) == 0)
+	{
+	  /* Unknown type.  */
+	  if (av->a_un.a_val == 0)
+	    printf ("    %" PRIu64 "\n", av->a_type);
+	  else
+	    printf ("    %" PRIu64 ": %#" PRIx64 "\n",
+		    av->a_type, av->a_un.a_val);
+	}
+      else
+	switch (fmt[0])
+	  {
+	  case '\0':		/* Normally zero.  */
+	    if (av->a_un.a_val == 0)
+	      {
+		printf ("    %s\n", name);
+		break;
+	      }
+	    /* Fall through */
+	  case 'x':		/* hex */
+	  case 'p':		/* address */
+	  case 's':		/* address of string */
+	    printf ("    %s: %#" PRIx64 "\n", name, av->a_un.a_val);
+	    break;
+	  case 'u':
+	    printf ("    %s: %" PRIu64 "\n", name, av->a_un.a_val);
+	    break;
+	  case 'd':
+	    printf ("    %s: %" PRId64 "\n", name, av->a_un.a_val);
+	    break;
+
+	  case 'b':
+	    printf ("    %s: %#" PRIx64 "  ", name, av->a_un.a_val);
+	    GElf_Xword bit = 1;
+	    const char *pfx = "<";
+	    for (const char *p = fmt + 1; *p != 0; p = strchr (p, '\0') + 1)
+	      {
+		if (av->a_un.a_val & bit)
+		  {
+		    printf ("%s%s", pfx, p);
+		    pfx = " ";
+		  }
+		bit <<= 1;
+	      }
+	    printf (">\n");
+	    break;
+
+	  default:
+	    abort ();
+	  }
+    }
+}
+
+static void
+handle_core_note (Ebl *ebl, const GElf_Nhdr *nhdr, const void *desc)
+{
+  GElf_Word regs_offset;
+  size_t nregloc;
+  const Ebl_Register_Location *reglocs;
+  size_t nitems;
+  const Ebl_Core_Item *items;
+
+  if (! ebl_core_note (ebl, nhdr->n_type, nhdr->n_descsz,
+		       &regs_offset, &nregloc, &reglocs, &nitems, &items))
+    return;
+
+  /* Pass 0 for DESCSZ when there are registers in the note,
+     so that the ITEMS array does not describe the whole thing.
+     For non-register notes, the actual descsz might be a multiple
+     of the unit size, not just exactly the unit size.  */
+  unsigned int colno = handle_core_items (ebl->elf, desc,
+					  nregloc == 0 ? nhdr->n_descsz : 0,
+					  items, nitems);
+  if (colno != 0)
+    putchar_unlocked ('\n');
+
+  colno = handle_core_registers (ebl, ebl->elf, desc + regs_offset,
+				 reglocs, nregloc);
+  if (colno != 0)
+    putchar_unlocked ('\n');
+}
+
+static void
+handle_notes_data (Ebl *ebl, const GElf_Ehdr *ehdr,
+		   GElf_Off start, Elf_Data *data)
+{
+  fputs_unlocked (gettext ("  Owner          Data size  Type\n"), stdout);
+
+  if (data == NULL)
+    goto bad_note;
+
+  size_t offset = 0;
+  GElf_Nhdr nhdr;
+  size_t name_offset;
+  size_t desc_offset;
+  while (offset < data->d_size
+	 && (offset = gelf_getnote (data, offset,
+				    &nhdr, &name_offset, &desc_offset)) > 0)
+    {
+      const char *name = data->d_buf + name_offset;
+      const char *desc = data->d_buf + desc_offset;
+
+      char buf[100];
+      char buf2[100];
+      printf (gettext ("  %-13.*s  %9" PRId32 "  %s\n"),
+	      (int) nhdr.n_namesz, name, nhdr.n_descsz,
+	      ehdr->e_type == ET_CORE
+	      ? ebl_core_note_type_name (ebl, nhdr.n_type,
+					 buf, sizeof (buf))
+	      : ebl_object_note_type_name (ebl, nhdr.n_type,
+					   buf2, sizeof (buf2)));
+
+      /* Filter out invalid entries.  */
+      if (memchr (name, '\0', nhdr.n_namesz) != NULL
+	  /* XXX For now help broken Linux kernels.  */
+	  || 1)
+	{
+	  if (ehdr->e_type == ET_CORE)
+	    {
+	      if (nhdr.n_type == NT_AUXV)
+		handle_auxv_note (ebl, ebl->elf, nhdr.n_descsz,
+				  start + desc_offset);
+	      else
+		handle_core_note (ebl, &nhdr, desc);
+	    }
+	  else
+	    ebl_object_note (ebl, name, nhdr.n_type, nhdr.n_descsz, desc);
+	}
+    }
+
+  if (offset == data->d_size)
+    return;
+
+ bad_note:
+  error (EXIT_FAILURE, 0,
+	 gettext ("cannot get content of note section: %s"),
+	 elf_errmsg (-1));
+}
 
 static void
 handle_notes (Ebl *ebl, GElf_Ehdr *ehdr)
 {
-  int class = gelf_getclass (ebl->elf);
-  size_t cnt;
+  /* If we have section headers, just look for SHT_NOTE sections.
+     In a debuginfo file, the program headers are not reliable.  */
+  if (shnum != 0)
+    {
+      /* Get the section header string table index.  */
+      size_t shstrndx;
+      if (elf_getshstrndx (ebl->elf, &shstrndx) < 0)
+	error (EXIT_FAILURE, 0,
+	       gettext ("cannot get section header string table index"));
+
+      Elf_Scn *scn = NULL;
+      while ((scn = elf_nextscn (ebl->elf, scn)) != NULL)
+	{
+	  GElf_Shdr shdr_mem;
+	  GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
+
+	  if (shdr == NULL || shdr->sh_type != SHT_NOTE)
+	    /* Not what we are looking for.  */
+	    continue;
+
+	  printf (gettext ("\
+\nNote section [%2zu] '%s' of %" PRIu64 " bytes at offset %#0" PRIx64 ":\n"),
+		  elf_ndxscn (scn),
+		  elf_strptr (ebl->elf, shstrndx, shdr->sh_name),
+		  shdr->sh_size, shdr->sh_offset);
+
+	  handle_notes_data (ebl, ehdr, shdr->sh_offset,
+			     elf_getdata (scn, NULL));
+	}
+      return;
+    }
 
   /* We have to look through the program header to find the note
      sections.  There can be more than one.  */
-  for (cnt = 0; cnt < ehdr->e_phnum; ++cnt)
+  for (size_t cnt = 0; cnt < ehdr->e_phnum; ++cnt)
     {
       GElf_Phdr mem;
       GElf_Phdr *phdr = gelf_getphdr (ebl->elf, cnt, &mem);
@@ -4459,83 +6192,254 @@ handle_notes (Ebl *ebl, GElf_Ehdr *ehdr)
 	continue;
 
       printf (gettext ("\
-\nNote segment of %" PRId64 " bytes at offset %#0" PRIx64 ":\n"),
+\nNote segment of %" PRIu64 " bytes at offset %#0" PRIx64 ":\n"),
 	      phdr->p_filesz, phdr->p_offset);
 
-      char *notemem = gelf_rawchunk (ebl->elf, phdr->p_offset, phdr->p_filesz);
-      if (notemem == NULL)
-	error (EXIT_FAILURE, 0,
-	       gettext ("cannot get content of note section: %s"),
-	       elf_errmsg (-1));
-
-      fputs_unlocked (gettext ("  Owner          Data size  Type\n"), stdout);
-
-
-      /* Handle the note section content.  It consists of one or more
-	 entries each of which consists of five parts:
-
-	 - a 32-bit name length
-	 - a 32-bit descriptor length
-	 - a 32-bit type field
-	 - the NUL-terminated name, length as specified in the first field
-	 - the descriptor, length as specified in the second field
-
-	 The variable sized fields are padded to 32- or 64-bits
-	 depending on whether the file is a 32- or 64-bit ELF file.
-      */
-      size_t align = class == ELFCLASS32 ? 4 : 8;
-#define ALIGNED_LEN(len) (((len) + align - 1) & ~(align - 1))
-
-      size_t idx = 0;
-      while (idx < phdr->p_filesz)
-	{
-	  /* XXX Handle 64-bit note section entries correctly.  */
-	  struct
-	  {
-	    uint32_t namesz;
-	    uint32_t descsz;
-	    uint32_t type;
-	    char name[0];
-	  } *noteentry = (__typeof (noteentry)) (notemem + idx);
-
-	  if (idx + 12 > phdr->p_filesz
-	      || (idx + 12 + ALIGNED_LEN (noteentry->namesz)
-		  + ALIGNED_LEN (noteentry->descsz) > phdr->p_filesz))
-	    /* This entry isn't completely contained in the note
-	       section.  Ignore it.  */
-	    break;
-
-	  char buf[100];
-	  char buf2[100];
-	  printf (gettext ("  %-13.*s  %9" PRId32 "  %s\n"),
-		  (int) noteentry->namesz, noteentry->name,
-		  noteentry->descsz,
-		  ehdr->e_type == ET_CORE
-		  ? ebl_core_note_type_name (ebl, noteentry->type,
-					     buf, sizeof (buf))
-		  : ebl_object_note_type_name (ebl, noteentry->type,
-					       buf2, sizeof (buf2)));
-
-	  /* Filter out invalid entries.  */
-	  if (memchr (noteentry->name, '\0', noteentry->namesz) != NULL
-	      /* XXX For now help broken Linux kernels.  */
-	      || 1)
-	    {
-	      if (ehdr->e_type == ET_CORE)
-		ebl_core_note (ebl, noteentry->name, noteentry->type,
-			       noteentry->descsz,
-			       &noteentry->name[ALIGNED_LEN (noteentry->namesz)]);
-	      else
-		ebl_object_note (ebl, noteentry->name, noteentry->type,
-				 noteentry->descsz,
-				 &noteentry->name[ALIGNED_LEN (noteentry->namesz)]);
-	    }
-
-	  /* Move to the next entry.  */
-	  idx += (12 + ALIGNED_LEN (noteentry->namesz)
-		  + ALIGNED_LEN (noteentry->descsz));
-	}
-
-      gelf_freechunk (ebl->elf, notemem);
+      handle_notes_data (ebl, ehdr, phdr->p_offset,
+			 elf_getdata_rawchunk (ebl->elf,
+					       phdr->p_offset, phdr->p_filesz,
+					       ELF_T_NHDR));
     }
 }
+
+
+static void
+hex_dump (const uint8_t *data, size_t len)
+{
+  size_t pos = 0;
+  while (pos < len)
+    {
+      printf ("  0x%08Zx ", pos);
+
+      const size_t chunk = MIN (len - pos, 16);
+
+      for (size_t i = 0; i < chunk; ++i)
+	if (i % 4 == 3)
+	  printf ("%02x ", data[pos + i]);
+	else
+	  printf ("%02x", data[pos + i]);
+
+      if (chunk < 16)
+	printf ("%*s", (int) ((16 - chunk) * 2 + (16 - chunk + 3) / 4), "");
+
+      for (size_t i = 0; i < chunk; ++i)
+	{
+	  unsigned char b = data[pos + i];
+	  printf ("%c", isprint (b) ? b : '.');
+	}
+
+      putchar ('\n');
+      pos += chunk;
+    }
+}
+
+static void
+dump_data_section (Elf_Scn *scn, const GElf_Shdr *shdr, const char *name)
+{
+  if (shdr->sh_size == 0 || shdr->sh_type == SHT_NOBITS)
+    printf (gettext ("\nSection [%Zu] '%s' has no data to dump.\n"),
+	    elf_ndxscn (scn), name);
+  else
+    {
+      Elf_Data *data = elf_rawdata (scn, NULL);
+      if (data == NULL)
+	error (0, 0, gettext ("cannot get data for section [%Zu] '%s': %s"),
+	       elf_ndxscn (scn), name, elf_errmsg (-1));
+      else
+	{
+	  printf (gettext ("\nHex dump of section [%Zu] '%s', %" PRIu64
+			   " bytes at offset %#0" PRIx64 ":\n"),
+		  elf_ndxscn (scn), name,
+		  shdr->sh_size, shdr->sh_offset);
+	  hex_dump (data->d_buf, data->d_size);
+	}
+    }
+}
+
+static void
+print_string_section (Elf_Scn *scn, const GElf_Shdr *shdr, const char *name)
+{
+  if (shdr->sh_size == 0)
+    printf (gettext ("\nSection [%Zu] '%s' is empty.\n"),
+	    elf_ndxscn (scn), name);
+
+  Elf_Data *data = elf_rawdata (scn, NULL);
+  if (data == NULL)
+    error (0, 0, gettext ("cannot get data for section [%Zu] '%s': %s"),
+	   elf_ndxscn (scn), name, elf_errmsg (-1));
+  else
+    {
+      printf (gettext ("\nString section [%Zu] '%s' contains %" PRIu64
+		       " bytes at offset %#0" PRIx64 ":\n"),
+	      elf_ndxscn (scn), name,
+	      shdr->sh_size, shdr->sh_offset);
+
+      const char *start = data->d_buf;
+      const char *const limit = start + data->d_size;
+      do
+	{
+	  const char *end = memchr (start, '\0', limit - start);
+	  const size_t pos = start - (const char *) data->d_buf;
+	  if (unlikely (end == NULL))
+	    {
+	      printf ("  [%6Zx]- %.*s\n",
+		      pos, (int) (limit - start), start);
+	      break;
+	    }
+	  printf ("  [%6Zx]  %s\n", pos, start);
+	  start = end + 1;
+	} while (start < limit);
+    }
+}
+
+static void
+for_each_section_argument (Elf *elf, const struct section_argument *list,
+			   void (*dump) (Elf_Scn *scn, const GElf_Shdr *shdr,
+					 const char *name))
+{
+  /* Get the section header string table index.  */
+  size_t shstrndx;
+  if (elf_getshstrndx (elf, &shstrndx) < 0)
+    error (EXIT_FAILURE, 0,
+	   gettext ("cannot get section header string table index"));
+
+  for (const struct section_argument *a = list; a != NULL; a = a->next)
+    {
+      Elf_Scn *scn;
+      GElf_Shdr shdr_mem;
+      const char *name = NULL;
+
+      char *endp = NULL;
+      unsigned long int shndx = strtoul (a->arg, &endp, 0);
+      if (endp != a->arg && *endp == '\0')
+	{
+	  scn = elf_getscn (elf, shndx);
+	  if (scn == NULL)
+	    {
+	      error (0, 0, gettext ("\nsection [%lu] does not exist"), shndx);
+	      continue;
+	    }
+
+	  if (gelf_getshdr (scn, &shdr_mem) == NULL)
+	    error (EXIT_FAILURE, 0, gettext ("cannot get section header: %s"),
+		   elf_errmsg (-1));
+	  name = elf_strptr (elf, shstrndx, shdr_mem.sh_name);
+	}
+      else
+	{
+	  /* Need to look up the section by name.  */
+	  scn = NULL;
+	  while ((scn = elf_nextscn (elf, scn)) != NULL)
+	    {
+	      if (gelf_getshdr (scn, &shdr_mem) == NULL)
+		continue;
+	      name = elf_strptr (elf, shstrndx, shdr_mem.sh_name);
+	      if (name == NULL)
+		continue;
+	      if (!strcmp (name, a->arg))
+		break;
+	    }
+
+	  if (unlikely (scn == NULL))
+	    {
+	      error (0, 0, gettext ("\nsection '%s' does not exist"), a->arg);
+	      continue;
+	    }
+	}
+
+      (*dump) (scn, &shdr_mem, name);
+    }
+}
+
+static void
+dump_data (Ebl *ebl)
+{
+  for_each_section_argument (ebl->elf, dump_data_sections, &dump_data_section);
+}
+
+static void
+dump_strings (Ebl *ebl)
+{
+  for_each_section_argument (ebl->elf, string_sections, &print_string_section);
+}
+
+static void
+print_strings (Ebl *ebl)
+{
+  /* Get the section header string table index.  */
+  size_t shstrndx;
+  if (unlikely (elf_getshstrndx (ebl->elf, &shstrndx) < 0))
+    error (EXIT_FAILURE, 0,
+	   gettext ("cannot get section header string table index"));
+
+  Elf_Scn *scn;
+  GElf_Shdr shdr_mem;
+  const char *name;
+  scn = NULL;
+  while ((scn = elf_nextscn (ebl->elf, scn)) != NULL)
+    {
+      if (gelf_getshdr (scn, &shdr_mem) == NULL)
+	continue;
+
+      if (shdr_mem.sh_type != SHT_PROGBITS
+	  || !(shdr_mem.sh_flags & SHF_STRINGS))
+	continue;
+
+      name = elf_strptr (ebl->elf, shstrndx, shdr_mem.sh_name);
+      if (name == NULL)
+	continue;
+
+      print_string_section (scn, &shdr_mem, name);
+    }
+}
+
+static void
+dump_archive_index (Elf *elf, const char *fname)
+{
+  size_t narsym;
+  const Elf_Arsym *arsym = elf_getarsym (elf, &narsym);
+  if (arsym == NULL)
+    {
+      int result = elf_errno ();
+      if (unlikely (result != ELF_E_NO_INDEX))
+	error (EXIT_FAILURE, 0,
+	       gettext ("cannot get symbol index of archive '%s': %s"),
+	       fname, elf_errmsg (result));
+      else
+	printf (gettext ("\nArchive '%s' has no symbol index\n"), fname);
+      return;
+    }
+
+  printf (gettext ("\nIndex of archive '%s' has %Zu entries:\n"),
+	  fname, narsym);
+
+  size_t as_off = 0;
+  for (const Elf_Arsym *s = arsym; s < &arsym[narsym - 1]; ++s)
+    {
+      if (s->as_off != as_off)
+	{
+	  as_off = s->as_off;
+
+	  Elf *subelf;
+	  if (unlikely (elf_rand (elf, as_off) == 0)
+	      || unlikely ((subelf = elf_begin (-1, ELF_C_READ_MMAP, elf))
+			   == NULL))
+#if __GLIBC__ < 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ < 7)
+	    while (1)
+#endif
+	      error (EXIT_FAILURE, 0,
+		     gettext ("cannot extract member at offset %Zu in '%s': %s"),
+		     as_off, fname, elf_errmsg (-1));
+
+	  const Elf_Arhdr *h = elf_getarhdr (subelf);
+
+	  printf (gettext ("Archive member '%s' contains:\n"), h->ar_name);
+
+	  elf_end (subelf);
+	}
+
+      printf ("\t%s\n", s->as_name);
+    }
+}
+
+#include "debugpred.h"

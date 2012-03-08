@@ -1,26 +1,59 @@
 /* Update data structures for changes.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004 Red Hat, Inc.
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006 Red Hat, Inc.
+   This file is part of Red Hat elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2000.
 
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, version 2.
+   Red Hat elfutils is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by the
+   Free Software Foundation; version 2 of the License.
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
+   Red Hat elfutils is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software Foundation,
-   Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
+   You should have received a copy of the GNU General Public License along
+   with Red Hat elfutils; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+
+   In addition, as a special exception, Red Hat, Inc. gives You the
+   additional right to link the code of Red Hat elfutils with code licensed
+   under any Open Source Initiative certified open source license
+   (http://www.opensource.org/licenses/index.php) which requires the
+   distribution of source code with any binary distribution and to
+   distribute linked combinations of the two.  Non-GPL Code permitted under
+   this exception must only link to the code of Red Hat elfutils through
+   those well defined interfaces identified in the file named EXCEPTION
+   found in the source code files (the "Approved Interfaces").  The files
+   of Non-GPL Code may instantiate templates or use macros or inline
+   functions from the Approved Interfaces without causing the resulting
+   work to be covered by the GNU General Public License.  Only Red Hat,
+   Inc. may make changes or additions to the list of Approved Interfaces.
+   Red Hat's grant of this exception is conditioned upon your not adding
+   any new exceptions.  If you wish to add a new Approved Interface or
+   exception, please contact Red Hat.  You must obey the GNU General Public
+   License in all respects for all of the Red Hat elfutils code and other
+   code used in conjunction with Red Hat elfutils except the Non-GPL Code
+   covered by this exception.  If you modify this file, you may extend this
+   exception to your version of the file, but you are not obligated to do
+   so.  If you do not wish to provide this exception without modification,
+   you must delete this exception statement from your version and license
+   this file solely under the GPL without exception.
+
+   Red Hat elfutils is an included package of the Open Invention Network.
+   An included package of the Open Invention Network is a package for which
+   Open Invention Network licensees cross-license their patents.  No patent
+   license is granted, either expressly or impliedly, by designation as an
+   included package.  Should you wish to participate in the Open Invention
+   Network licensing program, please visit www.openinventionnetwork.com
+   <http://www.openinventionnetwork.com>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
 #endif
 
 #include <assert.h>
-//#include <endian.h>
+#include <endian.h>
 #include <libelf.h>
 #include <stdbool.h>
 #include <string.h>
@@ -99,26 +132,33 @@ ELFW(default_ehdr,LIBELFBITS) (Elf *elf, ElfW2(LIBELFBITS,Ehdr) *ehdr,
 
 
 off_t
-internal_function_def
-__elfw2(LIBELFBITS,updatenull) (Elf *elf, int *change_bop, size_t shnum)
+internal_function
+__elfw2(LIBELFBITS,updatenull_wrlock) (Elf *elf, int *change_bop, size_t shnum)
 {
-  ElfW2(LIBELFBITS,Ehdr) *ehdr = INTUSE(elfw2(LIBELFBITS,getehdr)) (elf);
+  ElfW2(LIBELFBITS,Ehdr) *ehdr;
   int changed = 0;
   int ehdr_flags = 0;
-  off_t size;
+
+  ehdr = __elfw2(LIBELFBITS,getehdr_wrlock) (elf);
 
   /* Set the default values.  */
   if (ELFW(default_ehdr,LIBELFBITS) (elf, ehdr, shnum, change_bop) != 0)
     return -1;
 
   /* At least the ELF header is there.  */
-  size = elf_typesize (LIBELFBITS, ELF_T_EHDR, 1);
+  off_t size = elf_typesize (LIBELFBITS, ELF_T_EHDR, 1);
 
   /* Set the program header position.  */
+  if (elf->state.ELFW(elf,LIBELFBITS).phdr == NULL
+      && (ehdr->e_type == ET_EXEC || ehdr->e_type == ET_DYN
+	  || ehdr->e_type == ET_CORE))
+    (void) __elfw2(LIBELFBITS,getphdr_wrlock) (elf);
   if (elf->state.ELFW(elf,LIBELFBITS).phdr != NULL)
     {
-      /* Only executables or shared objects have a program header.  */
-      if (ehdr->e_type != ET_EXEC && unlikely (ehdr->e_type != ET_DYN))
+      /* Only executables, shared objects, and core files have a program
+	 header.  */
+      if (ehdr->e_type != ET_EXEC && ehdr->e_type != ET_DYN
+	  && unlikely (ehdr->e_type != ET_CORE))
 	{
 	  __libelf_seterrno (ELF_E_INVALID_PHDR);
 	  return -1;
@@ -154,31 +194,31 @@ __elfw2(LIBELFBITS,updatenull) (Elf *elf, int *change_bop, size_t shnum)
 	{
 	  /* We have to  fill in the number of sections in the header
 	     of the zeroth section.  */
-	  elf->state.ELFW(elf,LIBELFBITS).scns.data[0].shdr.ELFW(e,LIBELFBITS)->sh_size
-	    = shnum;
-	  elf->state.ELFW(elf,LIBELFBITS).scns.data[0].shdr_flags
-	    |= ELF_F_DIRTY;
-	}
+	  Elf_Scn *scn0 = &elf->state.ELFW(elf,LIBELFBITS).scns.data[0];
 
+	  update_if_changed (scn0->shdr.ELFW(e,LIBELFBITS)->sh_size,
+			     shnum, scn0->shdr_flags);
+	}
 
       /* Go over all sections and find out how large they are.  */
       list = &elf->state.ELFW(elf,LIBELFBITS).scns;
 
+      /* Load the section headers if necessary.  This loads the
+	 headers for all sections.  */
+      if (list->data[1].shdr.ELFW(e,LIBELFBITS) == NULL)
+	(void) __elfw2(LIBELFBITS,getshdr_wrlock) (&list->data[1]);
+
       do
 	{
-	  size_t cnt;
-
-	  for (cnt = first == true; cnt < list->cnt; ++cnt)
+	  for (size_t cnt = first == true; cnt < list->cnt; ++cnt)
 	    {
 	      Elf_Scn *scn = &list->data[cnt];
 	      ElfW2(LIBELFBITS,Shdr) *shdr = scn->shdr.ELFW(e,LIBELFBITS);
 	      off_t offset = 0;
-	      ElfW2(LIBELFBITS,Word) sh_entsize;
-	      ElfW2(LIBELFBITS,Word) sh_align;
 
 	      assert (shdr != NULL);
-	      sh_entsize = shdr->sh_entsize;
-	      sh_align = shdr->sh_addralign ?: 1;
+	      ElfW2(LIBELFBITS,Word) sh_entsize = shdr->sh_entsize;
+	      ElfW2(LIBELFBITS,Word) sh_align = shdr->sh_addralign ?: 1;
 
 	      /* Set the sh_entsize value if we can reliably detect it.  */
 	      switch (shdr->sh_type)
@@ -227,6 +267,11 @@ __elfw2(LIBELFBITS,updatenull) (Elf *elf, int *change_bop, size_t shnum)
 	      update_if_changed (shdr->sh_entsize, sh_entsize,
 				 scn->shdr_flags);
 
+	      if (scn->data_read == 0
+		  && __libelf_set_rawdata_wrlock (scn) != 0)
+		/* Something went wrong.  The error value is already set.  */
+		return -1;
+
 	      /* Iterate over all data blocks.  */
 	      if (list->data[cnt].data_list_rear != NULL)
 		{
@@ -234,28 +279,33 @@ __elfw2(LIBELFBITS,updatenull) (Elf *elf, int *change_bop, size_t shnum)
 
 		  while (dl != NULL)
 		    {
-		      if (unlikely (dl->data.d.d_version == EV_NONE)
-			  || unlikely (dl->data.d.d_version >= EV_NUM))
+		      Elf_Data *data = &dl->data.d;
+		      if (dl == &scn->data_list && data->d_buf == NULL
+			  && scn->rawdata.d.d_buf != NULL)
+			data = &scn->rawdata.d;
+
+		      if (unlikely (data->d_version == EV_NONE)
+			  || unlikely (data->d_version >= EV_NUM))
 			{
 			  __libelf_seterrno (ELF_E_UNKNOWN_VERSION);
 			  return -1;
 			}
 
-		      if (unlikely (! powerof2 (dl->data.d.d_align)))
+		      if (unlikely (! powerof2 (data->d_align)))
 			{
 			  __libelf_seterrno (ELF_E_INVALID_ALIGN);
 			  return -1;
 			}
 
-		      sh_align = MAX (sh_align, dl->data.d.d_align);
+		      sh_align = MAX (sh_align, data->d_align);
 
 		      if (elf->flags & ELF_F_LAYOUT)
 			{
 			  /* The user specified the offset and the size.
 			     All we have to do is check whether this block
 			     fits in the size specified for the section.  */
-			  if (unlikely ((GElf_Word) (dl->data.d.d_off
-						     + dl->data.d.d_size)
+			  if (unlikely ((GElf_Word) (data->d_off
+						     + data->d_size)
 					> shdr->sh_size))
 			    {
 			      __libelf_seterrno (ELF_E_SECTION_TOO_SMALL);
@@ -265,19 +315,22 @@ __elfw2(LIBELFBITS,updatenull) (Elf *elf, int *change_bop, size_t shnum)
 		      else
 			{
 			  /* Determine the padding.  */
-			  offset = ((offset + dl->data.d.d_align - 1)
-				    & ~(dl->data.d.d_align - 1));
+			  offset = ((offset + data->d_align - 1)
+				    & ~(data->d_align - 1));
 
-			  update_if_changed (dl->data.d.d_off, offset,
-					     changed);
+			  update_if_changed (data->d_off, offset, changed);
 
-			  offset += dl->data.d.d_size;
+			  offset += data->d_size;
 			}
 
 		      /* Next data block.  */
 		      dl = dl->next;
 		    }
 		}
+	      else
+		/* Get the size of the section from the raw data.  If
+		   none is available the value is zero.  */
+		offset += scn->rawdata.d.d_size;
 
 	      if (elf->flags & ELF_F_LAYOUT)
 		{
@@ -305,8 +358,18 @@ __elfw2(LIBELFBITS,updatenull) (Elf *elf, int *change_bop, size_t shnum)
 				     scn->shdr_flags);
 
 		  size = (size + sh_align - 1) & ~(sh_align - 1);
+		  int offset_changed = 0;
 		  update_if_changed (shdr->sh_offset, (GElf_Word) size,
-				     changed);
+				     offset_changed);
+		  changed |= offset_changed;
+
+		  if (offset_changed && scn->data_list_rear == NULL)
+		    {
+		      /* The position of the section in the file
+			 changed.  Create the section data list.  */
+		      if (__elf_getdata_rdlock (scn, NULL) == NULL)
+			return -1;
+		    }
 
 		  /* See whether the section size is correct.  */
 		  update_if_changed (shdr->sh_size, (GElf_Word) offset,

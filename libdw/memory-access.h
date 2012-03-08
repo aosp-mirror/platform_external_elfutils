@@ -1,16 +1,52 @@
 /* Unaligned memory access functionality.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004 Red Hat, Inc.
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005 Red Hat, Inc.
+   This file is part of Red Hat elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2001.
 
-   This program is Open Source software; you can redistribute it and/or
-   modify it under the terms of the Open Software License version 1.0 as
-   published by the Open Source Initiative.
+   Red Hat elfutils is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by the
+   Free Software Foundation; version 2 of the License.
 
-   You should have received a copy of the Open Software License along
-   with this program; if not, you may obtain a copy of the Open Software
-   License version 1.0 from http://www.opensource.org/licenses/osl.php or
-   by writing the Open Source Initiative c/o Lawrence Rosen, Esq.,
-   3001 King Ranch Road, Ukiah, CA 95482.   */
+   Red Hat elfutils is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License along
+   with Red Hat elfutils; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+
+   In addition, as a special exception, Red Hat, Inc. gives You the
+   additional right to link the code of Red Hat elfutils with code licensed
+   under any Open Source Initiative certified open source license
+   (http://www.opensource.org/licenses/index.php) which requires the
+   distribution of source code with any binary distribution and to
+   distribute linked combinations of the two.  Non-GPL Code permitted under
+   this exception must only link to the code of Red Hat elfutils through
+   those well defined interfaces identified in the file named EXCEPTION
+   found in the source code files (the "Approved Interfaces").  The files
+   of Non-GPL Code may instantiate templates or use macros or inline
+   functions from the Approved Interfaces without causing the resulting
+   work to be covered by the GNU General Public License.  Only Red Hat,
+   Inc. may make changes or additions to the list of Approved Interfaces.
+   Red Hat's grant of this exception is conditioned upon your not adding
+   any new exceptions.  If you wish to add a new Approved Interface or
+   exception, please contact Red Hat.  You must obey the GNU General Public
+   License in all respects for all of the Red Hat elfutils code and other
+   code used in conjunction with Red Hat elfutils except the Non-GPL Code
+   covered by this exception.  If you modify this file, you may extend this
+   exception to your version of the file, but you are not obligated to do
+   so.  If you do not wish to provide this exception without modification,
+   you must delete this exception statement from your version and license
+   this file solely under the GPL without exception.
+
+   Red Hat elfutils is an included package of the Open Invention Network.
+   An included package of the Open Invention Network is a package for which
+   Open Invention Network licensees cross-license their patents.  No patent
+   license is granted, either expressly or impliedly, by designation as an
+   included package.  Should you wish to participate in the Open Invention
+   Network licensing program, please visit www.openinventionnetwork.com
+   <http://www.openinventionnetwork.com>.  */
 
 #ifndef _MEMORY_ACCESS_H
 #define _MEMORY_ACCESS_H 1
@@ -21,85 +57,87 @@
 
 
 /* Number decoding macros.  See 7.6 Variable Length Data.  */
-#define get_uleb128(var, addr) \
+
+#define get_uleb128_step(var, addr, nth, break)				      \
+    __b = *(addr)++;							      \
+    var |= (uintmax_t) (__b & 0x7f) << (nth * 7);			      \
+    if (likely ((__b & 0x80) == 0))					      \
+      break
+
+#define get_uleb128(var, addr)						      \
   do {									      \
-    unsigned char __b = *((const unsigned char *) addr);		      \
-    addr = (__typeof (addr)) (((uintptr_t) (addr)) + 1);		      \
-    var = __b & 0x7f;							      \
-    if (__b & 0x80)							      \
-      {									      \
-	__b = *((const unsigned char *) addr);				      \
-	addr = (__typeof (addr)) (((uintptr_t) (addr)) + 1);		      \
-	var |= (__b & 0x7f) << 7;					      \
-	if (__b & 0x80)							      \
-	  {								      \
-	    __b = *((const unsigned char *) addr);			      \
-	    addr = (__typeof (addr)) (((uintptr_t) (addr)) + 1);	      \
-	    var |= (__b & 0x7f) << 14;					      \
-	    if (__b & 0x80)						      \
-	      {								      \
-		__b = *((const unsigned char *) addr);			      \
-		addr = (__typeof (addr)) (((uintptr_t) (addr)) + 1);	      \
-		var |= (__b & 0x7f) << 21;				      \
-		if (__b & 0x80)						      \
-		  /* Other implementation set VALUE to UINT_MAX in this	      \
-		     case.  So we better do this as well.  */		      \
-		  var = UINT_MAX;					      \
-	      }								      \
-	  }								      \
-      }									      \
+    unsigned char __b;							      \
+    var = 0;								      \
+    get_uleb128_step (var, addr, 0, break);				      \
+    var = __libdw_get_uleb128 (var, 1, &(addr));			      \
   } while (0)
 
-/* The signed case is a big more complicated.  */
-#define get_sleb128(var, addr) \
+#define get_uleb128_rest_return(var, i, addrp)				      \
   do {									      \
-    unsigned char __b = *((const unsigned char *) addr);		      \
-    addr = (__typeof (addr)) (((uintptr_t) (addr)) + 1);		      \
-    int32_t __res = __b & 0x7f;						      \
-    if ((__b & 0x80) == 0)						      \
+    for (; i < 10; ++i)							      \
       {									      \
-	if (__b & 0x40)							      \
-	  __res |= 0xffffff80;						      \
+	get_uleb128_step (var, *addrp, i, return var);			      \
       }									      \
-    else								      \
-      {									      \
-	__b = *((const unsigned char *) addr);				      \
-	addr = (__typeof (addr)) (((uintptr_t) (addr)) + 1);		      \
-	__res |= (__b & 0x7f) << 7;					      \
-	if ((__b & 0x80) == 0)						      \
-	  {								      \
-	    if (__b & 0x40)						      \
-	      __res |= 0xffffc000;					      \
-	  }								      \
-	else								      \
-	  {								      \
-	    __b = *((const unsigned char *) addr);			      \
-	    addr = (__typeof (addr)) (((uintptr_t) (addr)) + 1);	      \
-	    __res |= (__b & 0x7f) << 14;				      \
-	    if ((__b & 0x80) == 0)					      \
-	      {								      \
-		if (__b & 0x40)						      \
-		  __res |= 0xffe00000;					      \
-	      }								      \
-	    else							      \
-	      {								      \
-		__b = *((const unsigned char *) addr);			      \
-		addr = (__typeof (addr)) (((uintptr_t) (addr)) + 1);	      \
-		__res |= (__b & 0x7f) << 21;				      \
-		if ((__b & 0x80) == 0)					      \
-		  {							      \
-		    if (__b & 0x40)					      \
-		      __res |= 0xf0000000;				      \
-		  }							      \
-		else							      \
-		  /* Other implementation set VALUE to INT_MAX in this	      \
-		     case.  So we better do this as well.  */		      \
-		  __res = INT_MAX;					      \
-	      }								      \
-	  }								      \
-      }									      \
-    var = __res;							      \
+    /* Other implementations set VALUE to UINT_MAX in this		      \
+       case.  So we better do this as well.  */				      \
+    return UINT64_MAX;							      \
   } while (0)
+
+/* The signed case is similar, but we sign-extend the result.  */
+
+#define get_sleb128_step(var, addr, nth, break)				      \
+    __b = *(addr)++;							      \
+    _v |= (uint64_t) (__b & 0x7f) << (nth * 7);				      \
+    if (likely ((__b & 0x80) == 0))					      \
+      {									      \
+	var = (_v << (64 - (nth * 7) - 7) >> (64 - (nth * 7) - 7));	      \
+        break;					 			      \
+      }									      \
+    else do {} while (0)
+
+#define get_sleb128(var, addr)						      \
+  do {									      \
+    unsigned char __b;							      \
+    int64_t _v = 0;							      \
+    get_sleb128_step (var, addr, 0, break);				      \
+    var = __libdw_get_sleb128 (_v, 1, &(addr));				      \
+  } while (0)
+
+#define get_sleb128_rest_return(var, i, addrp)				      \
+  do {									      \
+    for (; i < 9; ++i)							      \
+      {									      \
+	get_sleb128_step (var, *addrp, i, return var);			      \
+      }									      \
+    /* Other implementations set VALUE to INT_MAX in this		      \
+       case.  So we better do this as well.  */				      \
+    return INT64_MAX;							      \
+  } while (0)
+
+#ifdef IS_LIBDW
+extern uint64_t __libdw_get_uleb128 (uint64_t acc, unsigned int i,
+				     const unsigned char **addrp)
+     internal_function attribute_hidden;
+extern int64_t __libdw_get_sleb128 (int64_t acc, unsigned int i,
+				    const unsigned char **addrp)
+     internal_function attribute_hidden;
+#else
+static uint64_t
+__attribute__ ((unused))
+__libdw_get_uleb128 (uint64_t acc, unsigned int i, const unsigned char **addrp)
+{
+  unsigned char __b;
+  get_uleb128_rest_return (acc, i, addrp);
+}
+static int64_t
+__attribute__ ((unused))
+__libdw_get_sleb128 (int64_t acc, unsigned int i, const unsigned char **addrp)
+{
+  unsigned char __b;
+  int64_t _v = acc;
+  get_sleb128_rest_return (acc, i, addrp);
+}
+#endif
 
 
 /* We use simple memory access functions in case the hardware allows it.

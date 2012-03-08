@@ -1,21 +1,34 @@
 /* Align section.
-   Copyright (C) 2002 Red Hat, Inc.
+   Copyright (C) 2002, 2005 Red Hat, Inc.
+   This file is part of Red Hat elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2002.
 
-   This program is Open Source software; you can redistribute it and/or
-   modify it under the terms of the Open Software License version 1.0 as
-   published by the Open Source Initiative.
+   Red Hat elfutils is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by the
+   Free Software Foundation; version 2 of the License.
 
-   You should have received a copy of the Open Software License along
-   with this program; if not, you may obtain a copy of the Open Software
-   License version 1.0 from http://www.opensource.org/licenses/osl.php or
-   by writing the Open Source Initiative c/o Lawrence Rosen, Esq.,
-   3001 King Ranch Road, Ukiah, CA 95482.   */
+   Red Hat elfutils is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License along
+   with Red Hat elfutils; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+
+   Red Hat elfutils is an included package of the Open Invention Network.
+   An included package of the Open Invention Network is a package for which
+   Open Invention Network licensees cross-license their patents.  No patent
+   license is granted, either expressly or impliedly, by designation as an
+   included package.  Should you wish to participate in the Open Invention
+   Network licensing program, please visit www.openinventionnetwork.com
+   <http://www.openinventionnetwork.com>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
 #endif
 
+#include <inttypes.h>
 #include <stdlib.h>
 #include <sys/param.h>
 
@@ -39,6 +52,25 @@ asm_align (asmscn, value)
       return -1;
     }
 
+  if (unlikely (asmscn->ctx->textp))
+    {
+      fprintf (asmscn->ctx->out.file, "\t.align %" PRId32 ", ",
+	       (int32_t) value);
+      if (asmscn->pattern->len == 1)
+	fprintf (asmscn->ctx->out.file, "%02hhx\n", asmscn->pattern->bytes[0]);
+      else
+	{
+	  fputc_unlocked ('"', asmscn->ctx->out.file);
+
+	  for (size_t cnt = 0; cnt < asmscn->pattern->len; ++cnt)
+	    fprintf (asmscn->ctx->out.file, "\\x%02hhx",
+		     asmscn->pattern->bytes[cnt]);
+
+	  fputs_unlocked ("\"\n", asmscn->ctx->out.file);
+	}
+      return 0;
+    }
+
   rwlock_wrlock (asmscn->ctx->lock);
 
   int result = 0;
@@ -47,10 +79,7 @@ asm_align (asmscn, value)
   if ((asmscn->offset & (value - 1)) != 0)
     {
       /* Add fillbytes.  */
-      size_t cnt;
-      size_t byteptr;
-
-      cnt = value - (asmscn->offset & (value - 1));
+      size_t cnt = value - (asmscn->offset & (value - 1));
 
       /* Ensure there is enough room to add the fill bytes.  */
       result = __libasm_ensure_section_space (asmscn, cnt);
@@ -59,7 +88,7 @@ asm_align (asmscn, value)
 
       /* Fill in the bytes.  We align the pattern according to the
 	 current offset.  */
-      byteptr = asmscn->offset % asmscn->pattern->len;
+      size_t byteptr = asmscn->offset % asmscn->pattern->len;
 
       /* Update the total size.  */
       asmscn->offset += cnt;

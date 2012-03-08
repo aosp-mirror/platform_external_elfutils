@@ -1,18 +1,51 @@
 /* Interface for libelf.
-   Copyright (C) 1998, 1999, 2000, 2002, 2004 Red Hat, Inc.
+   Copyright (C) 1998, 1999, 2000, 2002, 2004, 2005, 2006, 2007 Red Hat, Inc.
+   This file is part of Red Hat elfutils.
 
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, version 2.
+   Red Hat elfutils is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by the
+   Free Software Foundation; version 2 of the License.
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
+   Red Hat elfutils is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software Foundation,
-   Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
+   You should have received a copy of the GNU General Public License along
+   with Red Hat elfutils; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+
+   In addition, as a special exception, Red Hat, Inc. gives You the
+   additional right to link the code of Red Hat elfutils with code licensed
+   under any Open Source Initiative certified open source license
+   (http://www.opensource.org/licenses/index.php) which requires the
+   distribution of source code with any binary distribution and to
+   distribute linked combinations of the two.  Non-GPL Code permitted under
+   this exception must only link to the code of Red Hat elfutils through
+   those well defined interfaces identified in the file named EXCEPTION
+   found in the source code files (the "Approved Interfaces").  The files
+   of Non-GPL Code may instantiate templates or use macros or inline
+   functions from the Approved Interfaces without causing the resulting
+   work to be covered by the GNU General Public License.  Only Red Hat,
+   Inc. may make changes or additions to the list of Approved Interfaces.
+   Red Hat's grant of this exception is conditioned upon your not adding
+   any new exceptions.  If you wish to add a new Approved Interface or
+   exception, please contact Red Hat.  You must obey the GNU General Public
+   License in all respects for all of the Red Hat elfutils code and other
+   code used in conjunction with Red Hat elfutils except the Non-GPL Code
+   covered by this exception.  If you modify this file, you may extend this
+   exception to your version of the file, but you are not obligated to do
+   so.  If you do not wish to provide this exception without modification,
+   you must delete this exception statement from your version and license
+   this file solely under the GPL without exception.
+
+   Red Hat elfutils is an included package of the Open Invention Network.
+   An included package of the Open Invention Network is a package for which
+   Open Invention Network licensees cross-license their patents.  No patent
+   license is granted, either expressly or impliedly, by designation as an
+   included package.  Should you wish to participate in the Open Invention
+   Network licensing program, please visit www.openinventionnetwork.com
+   <http://www.openinventionnetwork.com>.  */
 
 #ifndef _LIBELF_H
 #define _LIBELF_H 1
@@ -49,6 +82,8 @@ typedef enum
   ELF_T_SYMINFO,		/* Elf32_Syminfo, Elf64_Syminfo, ... */
   ELF_T_MOVE,			/* Elf32_Move, Elf64_Move, ... */
   ELF_T_LIB,			/* Elf32_Lib, Elf64_Lib, ... */
+  ELF_T_GNUHASH,		/* GNU-style hash section.  */
+  ELF_T_AUXV,			/* Elf32_auxv_t, Elf64_auxv_t, ... */
   /* Keep this the last entry.  */
   ELF_T_NUM
 } Elf_Type;
@@ -60,7 +95,7 @@ typedef struct
   Elf_Type d_type;		/* Type of this piece of data.  */
   unsigned int d_version;	/* ELF version.  */
   size_t d_size;		/* Size in bytes.  */
-  off_t d_off;			/* Offset into section.  */
+  loff_t d_off;			/* Offset into section.  */
   size_t d_align;		/* Alignment in section.  */
 } Elf_Data;
 
@@ -122,7 +157,7 @@ typedef struct
   uid_t ar_uid;			/* User ID.  */
   gid_t ar_gid;			/* Group ID.  */
   mode_t ar_mode;		/* File mode.  */
-  off_t ar_size;		/* File size.  */
+  loff_t ar_size;		/* File size.  */
   char *ar_rawname;		/* Original name of archive member.  */
 } Elf_Arhdr;
 
@@ -163,17 +198,17 @@ extern Elf_Cmd elf_next (Elf *__elf);
 extern int elf_end (Elf *__elf);
 
 /* Update ELF descriptor and write file to disk.  */
-extern off_t elf_update (Elf *__elf, Elf_Cmd __cmd);
+extern loff_t elf_update (Elf *__elf, Elf_Cmd __cmd);
 
 /* Determine what kind of file is associated with ELF.  */
 extern Elf_Kind elf_kind (Elf *__elf) __attribute__ ((__pure__));
 
 /* Get the base offset for an object file.  */
-extern off_t elf_getbase (Elf *__elf);
+extern loff_t elf_getbase (Elf *__elf);
 
 
 /* Retrieve file identification data.  */
-extern char *elf_getident (Elf *__elf, size_t *__ptr);
+extern char *elf_getident (Elf *__elf, size_t *__nbytes);
 
 /* Retrieve class-dependent object file header.  */
 extern Elf32_Ehdr *elf32_getehdr (Elf *__elf);
@@ -199,6 +234,11 @@ extern Elf64_Phdr *elf64_newphdr (Elf *__elf, size_t __cnt);
 /* Get section at INDEX.  */
 extern Elf_Scn *elf_getscn (Elf *__elf, size_t __index);
 
+/* Get section at OFFSET.  */
+extern Elf_Scn *elf32_offscn (Elf *__elf, Elf32_Off __offset);
+/* Similar bug this time the binary calls is ELFCLASS64.  */
+extern Elf_Scn *elf64_offscn (Elf *__elf, Elf64_Off __offset);
+
 /* Get index of section.  */
 extern size_t elf_ndxscn (Elf_Scn *__scn);
 
@@ -207,6 +247,10 @@ extern Elf_Scn *elf_nextscn (Elf *__elf, Elf_Scn *__scn);
 
 /* Create a new section and append it at the end of the table.  */
 extern Elf_Scn *elf_newscn (Elf *__elf);
+
+/* Get the section index of the extended section index table for the
+   given symbol table.  */
+extern int elf_scnshndx (Elf_Scn *__scn);
 
 /* Get the number of sections in the ELF file.  If the file uses more
    sections than can be represented in the e_shnum field of the ELF
@@ -258,6 +302,13 @@ extern Elf_Data *elf_rawdata (Elf_Scn *__scn, Elf_Data *__data);
 /* Create new data descriptor for section SCN.  */
 extern Elf_Data *elf_newdata (Elf_Scn *__scn);
 
+/* Get data translated from a chunk of the file contents as section data
+   would be for TYPE.  The resulting Elf_Data pointer is valid until
+   elf_end (ELF) is called.  */
+extern Elf_Data *elf_getdata_rawchunk (Elf *__elf,
+				       loff_t __offset, size_t __size,
+				       Elf_Type __type);
+
 
 /* Return pointer to string at OFFSET in section INDEX.  */
 extern char *elf_strptr (Elf *__elf, size_t __index, size_t __offset);
@@ -266,18 +317,21 @@ extern char *elf_strptr (Elf *__elf, size_t __index, size_t __offset);
 /* Return header of archive.  */
 extern Elf_Arhdr *elf_getarhdr (Elf *__elf);
 
+/* Return offset in archive for current file ELF.  */
+extern loff_t elf_getaroff (Elf *__elf);
+
 /* Select archive element at OFFSET.  */
 extern size_t elf_rand (Elf *__elf, size_t __offset);
 
-/* Get symbol table of archhive.  */
-extern Elf_Arsym *elf_getarsym (Elf *__elf, size_t *__ptr);
+/* Get symbol table of archive.  */
+extern Elf_Arsym *elf_getarsym (Elf *__elf, size_t *__narsyms);
 
 
 /* Control ELF descriptor.  */
 extern int elf_cntl (Elf *__elf, Elf_Cmd __cmd);
 
 /* Retrieve uninterpreted file contents.  */
-extern char *elf_rawfile (Elf *__elf, size_t *__ptr);
+extern char *elf_rawfile (Elf *__elf, size_t *__nbytes);
 
 
 /* Return size of array of COUNT elements of the type denoted by TYPE
@@ -328,6 +382,10 @@ extern void elf_fill (int __fill);
 
 /* Compute hash value.  */
 extern unsigned long int elf_hash (const char *__string)
+       __attribute__ ((__pure__));
+
+/* Compute hash value using the GNU-specific hash function.  */
+extern unsigned long int elf_gnu_hash (const char *__string)
        __attribute__ ((__pure__));
 
 

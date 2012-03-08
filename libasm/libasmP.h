@@ -1,15 +1,27 @@
 /* Internal definitions for libasm.
-   Copyright (C) 2002, 2004 Red Hat, Inc.
+   Copyright (C) 2002, 2004, 2005 Red Hat, Inc.
+   This file is part of Red Hat elfutils.
 
-   This program is Open Source software; you can redistribute it and/or
-   modify it under the terms of the Open Software License version 1.0 as
-   published by the Open Source Initiative.
+   Red Hat elfutils is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by the
+   Free Software Foundation; version 2 of the License.
 
-   You should have received a copy of the Open Software License along
-   with this program; if not, you may obtain a copy of the Open Software
-   License version 1.0 from http://www.opensource.org/licenses/osl.php or
-   by writing the Open Source Initiative c/o Lawrence Rosen, Esq.,
-   3001 King Ranch Road, Ukiah, CA 95482.   */
+   Red Hat elfutils is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License along
+   with Red Hat elfutils; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+
+   Red Hat elfutils is an included package of the Open Invention Network.
+   An included package of the Open Invention Network is a package for which
+   Open Invention Network licensees cross-license their patents.  No patent
+   license is granted, either expressly or impliedly, by designation as an
+   included package.  Should you wish to participate in the Open Invention
+   Network licensing program, please visit www.openinventionnetwork.com
+   <http://www.openinventionnetwork.com>.  */
 
 #ifndef _LIBASMP_H
 #define _LIBASMP_H 1
@@ -17,7 +29,6 @@
 #include <stdio.h>
 
 #include <libasm.h>
-#include <libebl.h>
 
 /* gettext helper macros.  */
 #define _(Str) dgettext ("elfutils", Str)
@@ -35,6 +46,8 @@ enum
     ASM_E_DUPLSYM,		/* Duplicate symbol definition.  */
     ASM_E_LIBELF,		/* Refer to error in libelf.  */
     ASM_E_TYPE,			/* Invalid section type for operation.  */
+    ASM_E_IOERROR,		/* Error during output of data.  */
+    ASM_E_ENOSUP,		/* No backend support.  */
     ASM_E_NUM			/* Keep this entry as the last.  */
   };
 
@@ -223,6 +236,21 @@ struct AsmScnGrp
 };
 
 
+/* Descriptor for disassembler.   */
+struct DisasmCtx
+{
+  /* Handle for the backend library with the disassembler routine.  */
+  Ebl *ebl;
+
+  /* ELF file containing all the data passed to the function.  This
+     allows to look up symbols.  */
+  Elf *elf;
+
+  /* Callback function to determine symbol names.  */
+  DisasmGetSymCB_t symcb;
+};
+
+
 /* The default fill pattern: one zero byte.  */
 extern const struct FillPattern *__libasm_default_pattern
      attribute_hidden;
@@ -256,6 +284,14 @@ extern int __asm_addint32_internal (AsmScn_t *asmscn, int32_t num)
 extern int __asm_addint64_internal (AsmScn_t *asmscn, int64_t num)
      attribute_hidden;
 
+
+/* Produce disassembly output for given memory and output it using the
+   given callback functions.  */
+extern int __disasm_cb_internal (DisasmCtx_t *ctx, const uint8_t **startp,
+				 const uint8_t *end, GElf_Addr addr,
+				 const char *fmt, DisasmOutputCB_t outcb,
+				 void *outcbarp, void *symcbarg)
+     attribute_hidden;
 
 
 /* Test whether given symbol is an internal symbol and if yes, whether

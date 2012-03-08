@@ -1,15 +1,27 @@
-/* Copyright (C) 2001, 2002, 2003 Red Hat, Inc.
+/* Copyright (C) 2001, 2002, 2003, 2005, 2006, 2008 Red Hat, Inc.
+   This file is part of Red Hat elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2001.
 
-   This program is Open Source software; you can redistribute it and/or
-   modify it under the terms of the Open Software License version 1.0 as
-   published by the Open Source Initiative.
+   Red Hat elfutils is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by the
+   Free Software Foundation; version 2 of the License.
 
-   You should have received a copy of the Open Software License along
-   with this program; if not, you may obtain a copy of the Open Software
-   License version 1.0 from http://www.opensource.org/licenses/osl.php or
-   by writing the Open Source Initiative c/o Lawrence Rosen, Esq.,
-   3001 King Ranch Road, Ukiah, CA 95482.   */
+   Red Hat elfutils is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License along
+   with Red Hat elfutils; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+
+   Red Hat elfutils is an included package of the Open Invention Network.
+   An included package of the Open Invention Network is a package for which
+   Open Invention Network licensees cross-license their patents.  No patent
+   license is granted, either expressly or impliedly, by designation as an
+   included package.  Should you wish to participate in the Open Invention
+   Network licensing program, please visit www.openinventionnetwork.com
+   <http://www.openinventionnetwork.com>.  */
 
 #ifndef LD_H
 #define LD_H	1
@@ -103,6 +115,10 @@ struct usedfiles
      used in a reference.  */
   bool used;
 
+  /* True when file should be added to DT_NEEDED list only when
+     directly referenced.  */
+  bool as_needed;
+
   /* If nonzero this is the archive sequence number which can be used to
      determine whether back refernces from -( -) or GROUP statements
      have to be followed.  */
@@ -158,11 +174,16 @@ struct usedfiles
     Elf32_Word allsectionsidx;
     /* True if the section is used.  */
     bool used;
+    /* True if section is an unused COMDAT section.  */
+    bool unused_comdat;
+    /* True if this is a COMDAT group section.  */
+    bool comdat_group;
     /* Section group number.  This is the index of the SHT_GROUP section.  */
     Elf32_Word grpid;
     /* Pointer back to the containing file information structure.  */
     struct usedfiles *fileinfo;
-    /* List of symbols in this section (set only for merge-able sections).  */
+    /* List of symbols in this section (set only for merge-able sections
+       and group sections).  */
     struct symbol *symbols;
     /* Size of relocations in this section.  Only used for relocation
        sections.  */
@@ -379,14 +400,20 @@ struct callbacks
   DL_CALL_FCT ((state)->callbacks.initialize_pltrel, (state, scn))
 
   /* Finalize the .plt section the what belongs to them.  */
-  void (*finalize_plt) (struct ld_state *, size_t, size_t);
-#define FINALIZE_PLT(state, nsym, nsym_dyn) \
-  DL_CALL_FCT ((state)->callbacks.finalize_plt, (state, nsym, nsym_dyn))
+  void (*finalize_plt) (struct ld_state *, size_t, size_t, struct symbol **);
+#define FINALIZE_PLT(state, nsym, nsym_dyn, ndxtosym) \
+  DL_CALL_FCT ((state)->callbacks.finalize_plt, (state, nsym, nsym_dyn, \
+						 ndxtosym))
 
   /* Create the data structures for the .got section and initialize it.  */
   void (*initialize_got) (struct ld_state *, Elf_Scn *scn);
 #define INITIALIZE_GOT(state, scn) \
   DL_CALL_FCT ((state)->callbacks.initialize_got, (state, scn))
+
+  /* Create the data structures for the .got.plt section and initialize it.  */
+  void (*initialize_gotplt) (struct ld_state *, Elf_Scn *scn);
+#define INITIALIZE_GOTPLT(state, scn) \
+  DL_CALL_FCT ((state)->callbacks.initialize_gotplt, (state, scn))
 
   /* Return the tag corresponding to the native relocation type for
      the platform.  */
@@ -428,6 +455,8 @@ struct symbol
   unsigned int weak:1;
   unsigned int added:1;
   unsigned int merged:1;
+  unsigned int local:1;
+  unsigned int hidden:1;
   /* Nonzero if the symbol is on the from_dso list.  */
   unsigned int on_dsolist:1;
   /* Nonzero if symbol needs copy relocation, reset when the
@@ -464,6 +493,7 @@ struct filename_list
   struct filename_list *next;
   bool group_start;
   bool group_end;
+  bool as_needed;
 };
 
 
@@ -649,15 +679,18 @@ struct scnhead
       scn_normal,		/* Section from the input file(s).  */
       scn_dot_interp,		/* Generated .interp section.  */
       scn_dot_got,		/* Generated .got section.  */
+      scn_dot_gotplt,		/* Generated .got.plt section.  */
       scn_dot_dynrel,		/* Generated .rel.dyn section.  */
       scn_dot_dynamic,		/* Generated .dynamic section.  */
       scn_dot_dynsym,		/* Generated .dynsym section.  */
       scn_dot_dynstr,		/* Generated .dynstr section.  */
       scn_dot_hash,		/* Generated .hash section.  */
+      scn_dot_gnu_hash,		/* Generated .gnu.hash section.  */
       scn_dot_plt,		/* Generated .plt section.  */
       scn_dot_pltrel,		/* Generated .rel.plt section.  */
       scn_dot_version,		/* Generated .gnu.version section.  */
-      scn_dot_version_r		/* Generated .gnu.version_r section.  */
+      scn_dot_version_r,	/* Generated .gnu.version_r section.  */
+      scn_dot_note_gnu_build_id	/* Generated .note.gnu.build-id section.  */
     } kind;
 
   /* True is the section is used in the output.  */
@@ -777,6 +810,10 @@ struct ld_state
 
   /* If true static linking is requested.  */
   bool statically;
+
+  /* If true, add DT_NEEDED entries for following files if they are
+     needed.  */
+  bool as_needed;
 
   /* How to extract elements from archives.  */
   enum extract_rule extract_rule;
@@ -900,8 +937,9 @@ struct ld_state
   Elf32_Word dynsymscnidx;
   /* Dynamic symbol string table section.  */
   Elf32_Word dynstrscnidx;
-  /* Dynamic symbol hash table.  */
+  /* Dynamic symbol hash tables.  */
   size_t hashscnidx;
+  size_t gnuhashscnidx;
 
   /* Procedure linkage table section.  */
   Elf32_Word pltscnidx;
@@ -912,6 +950,8 @@ struct ld_state
 
   /* Global offset table section.  */
   Elf32_Word gotscnidx;
+  /* And the part of the PLT.  */
+  Elf32_Word gotpltscnidx;
 
   /* This section will hole all non-PLT relocations.  */
   Elf32_Word reldynscnidx;
@@ -927,6 +967,11 @@ struct ld_state
   /* Index of next version.  */
   int nextveridx;
 
+  /* TLS segment.  */
+  bool need_tls;
+  XElf_Addr tls_start;
+  XElf_Addr tls_tcb;
+
   /* Hash table for version symbol strings.  Only strings without
      special characters are hashed here.  */
   ld_version_str_tab version_str_tab;
@@ -934,6 +979,14 @@ struct ld_state
      global or local symbol binding is selected as the default.  */
   bool default_bind_local;
   bool default_bind_global;
+
+  /* Execuatable stack selection.  */
+  enum execstack
+    {
+      execstack_false = 0,
+      execstack_true,
+      execstack_false_force
+    } execstack;
 
   /* True if only used sections are used.  */
   bool gc_sections;
@@ -978,14 +1031,28 @@ struct ld_state
   /* Lazy-loading state for dependencies.  */
   bool lazyload;
 
-  /* True is DSOs which are not used in the linking process are not
-     recorded.  */
-  bool ignore_unused_dsos;
+  /* True if an .eh_frame_hdr section should be generated.  */
+  bool eh_frame_hdr;
+
+  /* What hash style to generate.  */
+  enum
+    {
+      hash_style_none = 0,
+      hash_style_sysv = 1,
+#define GENERATE_SYSV_HASH ((ld_state.hash_style & hash_style_sysv) != 0)
+      hash_style_gnu = 2
+#define GENERATE_GNU_HASH ((ld_state.hash_style & hash_style_gnu) != 0)
+    }
+  hash_style;
 
 
   /* True if in executables all global symbols should be exported in
      the dynamic symbol table.  */
   bool export_all_dynamic;
+
+  /* Build-ID style.  NULL is none.  */
+  const char *build_id;
+  Elf32_Word buildidscnidx;
 
   /* If DSO is generated, this is the SONAME.  */
   const char *soname;
@@ -1054,9 +1121,12 @@ extern bool dynamically_linked_p (void);
 /* Helper functions for the architecture specific code.  */
 
 /* Checked whether the symbol is undefined and referenced from a DSO.  */
-extern bool linked_from_dso_p (struct scninfo *scninfo, int symidx);
+extern bool linked_from_dso_p (struct scninfo *scninfo, size_t symidx);
+#ifdef __GNUC_STDC_INLINE__
+__attribute__ ((__gnu_inline__))
+#endif
 extern inline bool
-linked_from_dso_p (struct scninfo *scninfo, int symidx)
+linked_from_dso_p (struct scninfo *scninfo, size_t symidx)
 {
   struct usedfiles *file = scninfo->fileinfo;
 

@@ -1,35 +1,47 @@
 ## Process this file with automake to create Makefile.in
-## Configure input file for elfutils.
 ##
-## Copyright (C) 1996-2001, 2002, 2003, 2004 Red Hat, Inc.
+## Copyright (C) 1996-2006, 2007, 2008 Red Hat, Inc.
+## This file is part of Red Hat elfutils.
 ##
-## This program is free software; you can redistribute it and/or modify
-## it under the terms of the GNU General Public License as published by
-## the Free Software Foundation, version 2.
+## Red Hat elfutils is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by the
+## Free Software Foundation; version 2 of the License.
 ##
-## This program is distributed in the hope that it will be useful,
-## but WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-## GNU General Public License for more details.
+## Red Hat elfutils is distributed in the hope that it will be useful, but
+## WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+## General Public License for more details.
 ##
-## You should have received a copy of the GNU General Public License
-## along with this program; if not, write to the Free Software Foundation,
-## Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+## You should have received a copy of the GNU General Public License along
+## with Red Hat elfutils; if not, write to the Free Software Foundation,
+## Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+##
+## Red Hat elfutils is an included package of the Open Invention Network.
+## An included package of the Open Invention Network is a package for which
+## Open Invention Network licensees cross-license their patents.  No patent
+## license is granted, either expressly or impliedly, by designation as an
+## included package.  Should you wish to participate in the Open Invention
+## Network licensing program, please visit www.openinventionnetwork.com
+## <http://www.openinventionnetwork.com>.
 ##
 DEFS = -D_GNU_SOURCE -DHAVE_CONFIG_H
-# XXX gcc has a bug in that it generates warnings for internal symbols.
-# XXX Remove the conditional when gcc is fxied.
 if MUDFLAP
-AM_CFLAGS = -Wall -Wshadow
+AM_CFLAGS = -fmudflap
 else
-AM_CFLAGS = -Wall -Werror -Wshadow
+AM_CFLAGS =
 endif
+if BUILD_STATIC
+AM_CFLAGS += -fpic
+endif
+AM_CFLAGS += -Wall -Wshadow -Werror -Wunused -Wextra -Wformat=2 -std=gnu99 \
+	     $($(*F)_CFLAGS)
 INCLUDES = -I$(srcdir) -I$(top_srcdir)/lib -I..
 GCC_INCLUDE = -I$(shell $(CC) -print-file-name=include)
 VERSION = 1
 PACKAGE_VERSION = @PACKAGE_VERSION@
 
-LINT = splint
+COMPILE.os = $(filter-out -fprofile-arcs, $(filter-out -ftest-coverage, \
+						       $(COMPILE)))
 
 lib_LIBRARIES = libelf.a
 if !MUDFLAP
@@ -38,8 +50,7 @@ noinst_PROGRAMS = $(noinst_LIBRARIES:_pic.a=.so)
 endif
 include_HEADERS = libelf.h gelf.h nlist.h
 
-euincludedir = $(includedir)/elfutils
-euinclude_HEADERS = elf-knowledge.h
+pkginclude_HEADERS = elf-knowledge.h
 
 libelf_a_SOURCES = elf_version.c elf_hash.c elf_error.c elf_fill.c \
 		   elf_begin.c elf_next.c elf_rand.c elf_end.c elf_kind.c \
@@ -59,6 +70,7 @@ libelf_a_SOURCES = elf_version.c elf_hash.c elf_error.c elf_fill.c \
 		   elf32_getshdr.c elf64_getshdr.c gelf_getshdr.c \
 		   gelf_update_shdr.c \
 		   elf_strptr.c elf_rawdata.c elf_getdata.c elf_newdata.c \
+		   elf_getdata_rawchunk.c \
 		   elf_flagelf.c elf_flagehdr.c elf_flagphdr.c elf_flagscn.c \
 		   elf_flagshdr.c elf_flagdata.c elf_memory.c \
 		   elf_update.c elf32_updatenull.c elf64_updatenull.c \
@@ -71,6 +83,8 @@ libelf_a_SOURCES = elf_version.c elf_hash.c elf_error.c elf_fill.c \
 		   gelf_getdyn.c gelf_update_dyn.c \
 		   gelf_getmove.c gelf_update_move.c \
 		   gelf_getsyminfo.c gelf_update_syminfo.c \
+		   gelf_getauxv.c gelf_update_auxv.c \
+		   gelf_getnote.c \
 		   gelf_xlatetof.c gelf_xlatetom.c \
 		   nlist.c \
 		   gelf_getsymshndx.c gelf_update_symshndx.c \
@@ -79,24 +93,33 @@ libelf_a_SOURCES = elf_version.c elf_hash.c elf_error.c elf_fill.c \
 		   gelf_update_verdaux.c \
 		   elf_getshnum.c elf_getshstrndx.c \
 		   gelf_checksum.c elf32_checksum.c elf64_checksum.c \
-		   gelf_rawchunk.c gelf_freechunk.c \
 		   libelf_crc32.c libelf_next_prime.c \
 		   elf_clone.c \
-		   gelf_getlib.c gelf_update_lib.c
+		   gelf_getlib.c gelf_update_lib.c \
+		   elf32_offscn.c elf64_offscn.c gelf_offscn.c \
+		   elf_getaroff.c \
+		   elf_gnu_hash.c \
+		   elf_scnshndx.c
 
 if !MUDFLAP
 libelf_pic_a_SOURCES =
 am_libelf_pic_a_OBJECTS = $(libelf_a_SOURCES:.c=.os)
 
+libelf_so_LDLIBS =
+if USE_TLS
+libelf_so_LDLIBS += -lpthread
+endif
+
 libelf_so_SOURCES =
 libelf.so: libelf_pic.a libelf.map
-	$(CC) -shared -o $@ -Wl,--whole-archive,$<,--no-whole-archive \
-	      -Wl,--version-script,$(srcdir)/libelf.map,--no-undefined \
-	      -Wl,--soname,$@.$(VERSION),-z-defs
+	$(LINK) -shared -o $@ -Wl,--whole-archive,$<,--no-whole-archive \
+		-Wl,--version-script,$(srcdir)/libelf.map,--no-undefined \
+		-Wl,--soname,$@.$(VERSION),-z,-defs,-z,relro $(libelf_so_LDLIBS)
+	if readelf -d $@ | fgrep -q TEXTREL; then exit 1; fi
 	ln -fs $@ $@.$(VERSION)
 
 %.os: %.c %.o
-	if $(COMPILE) -c -o $@ -fpic -DPIC -DSHARED -MT $@ -MD -MP \
+	if $(COMPILE.os) -c -o $@ -fpic -DPIC -DSHARED -MT $@ -MD -MP \
 	  -MF "$(DEPDIR)/$*.Tpo" `test -f '$<' || echo '$(srcdir)/'`$<; \
 	then cat "$(DEPDIR)/$*.Tpo" >> "$(DEPDIR)/$*.Po"; \
 	     rm -f "$(DEPDIR)/$*.Tpo"; \
@@ -115,13 +138,8 @@ uninstall: uninstall-am
 	rm -f $(DESTDIR)$(libdir)/libelf.so
 endif
 
-.PSEUDO: lint
-lint:
-	$(LINT) $(DEFS) $(INCLUDES) $(GCC_INCLUDE) -f $(top_srcdir)/splint.rc \
-		$(addprefix $(srcdir)/,$(libelf_a_SOURCES))
-
 noinst_HEADERS = elf.h abstract.h common.h exttypes.h gelf_xlate.h libelfP.h \
-		 version_xlate.h dl-hash.h
+		 version_xlate.h gnuhash_xlate.h note_xlate.h dl-hash.h
 EXTRA_DIST = libelf.map
 
-CLEANFILES = $(am_libelf_pic_a_OBJECTS)
+CLEANFILES = $(am_libelf_pic_a_OBJECTS) *.gcno *.gcda libelf.so.$(VERSION)

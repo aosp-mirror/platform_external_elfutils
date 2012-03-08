@@ -1,26 +1,67 @@
 /* Internal interfaces for libelf.
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003 Red Hat, Inc.
+   Copyright (C) 1998-2003, 2005, 2006, 2007 Red Hat, Inc.
+   This file is part of Red Hat elfutils.
    Contributed by Ulrich Drepper <drepper@redhat.com>, 1998.
 
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, version 2.
+   Red Hat elfutils is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by the
+   Free Software Foundation; version 2 of the License.
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
+   Red Hat elfutils is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software Foundation,
-   Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
+   You should have received a copy of the GNU General Public License along
+   with Red Hat elfutils; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+
+   In addition, as a special exception, Red Hat, Inc. gives You the
+   additional right to link the code of Red Hat elfutils with code licensed
+   under any Open Source Initiative certified open source license
+   (http://www.opensource.org/licenses/index.php) which requires the
+   distribution of source code with any binary distribution and to
+   distribute linked combinations of the two.  Non-GPL Code permitted under
+   this exception must only link to the code of Red Hat elfutils through
+   those well defined interfaces identified in the file named EXCEPTION
+   found in the source code files (the "Approved Interfaces").  The files
+   of Non-GPL Code may instantiate templates or use macros or inline
+   functions from the Approved Interfaces without causing the resulting
+   work to be covered by the GNU General Public License.  Only Red Hat,
+   Inc. may make changes or additions to the list of Approved Interfaces.
+   Red Hat's grant of this exception is conditioned upon your not adding
+   any new exceptions.  If you wish to add a new Approved Interface or
+   exception, please contact Red Hat.  You must obey the GNU General Public
+   License in all respects for all of the Red Hat elfutils code and other
+   code used in conjunction with Red Hat elfutils except the Non-GPL Code
+   covered by this exception.  If you modify this file, you may extend this
+   exception to your version of the file, but you are not obligated to do
+   so.  If you do not wish to provide this exception without modification,
+   you must delete this exception statement from your version and license
+   this file solely under the GPL without exception.
+
+   Red Hat elfutils is an included package of the Open Invention Network.
+   An included package of the Open Invention Network is a package for which
+   Open Invention Network licensees cross-license their patents.  No patent
+   license is granted, either expressly or impliedly, by designation as an
+   included package.  Should you wish to participate in the Open Invention
+   Network licensing program, please visit www.openinventionnetwork.com
+   <http://www.openinventionnetwork.com>.  */
 
 #ifndef _LIBELFP_H
 #define _LIBELFP_H 1
 
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
+
 #include <ar.h>
 #include <gelf.h>
+
+#include <errno.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 
 /* gettext helper macros.  */
 #define _(Str) dgettext ("libelf", Str)
@@ -117,6 +158,7 @@ enum
   ELF_E_GROUP_NOT_REL,
   ELF_E_INVALID_PHDR,
   ELF_E_NO_PHDR,
+  ELF_E_INVALID_OFFSET,
   /* Keep this as the last entry.  */
   ELF_E_NUM
 };
@@ -190,6 +232,9 @@ struct Elf_Scn
   int data_read;		/* Nonzero if the section was created by the
 				   user or if the data from the file/memory
 				   is read.  */
+  int shndx_index;		/* Index of the extended section index
+				   table for this symbol table (if this
+				   section is a symbol table).  */
 
   size_t index;			/* Index of this section.  */
   struct Elf *elf;		/* The underlying ELF file.  */
@@ -219,6 +264,18 @@ typedef struct Elf_ScnList
   struct Elf_ScnList *next;	/* Next block of sections.  */
   struct Elf_Scn data[0];	/* Section data.  */
 } Elf_ScnList;
+
+
+/* elf_getdata_rawchunk result.  */
+typedef struct Elf_Data_Chunk
+{
+  Elf_Data_Scn data;
+  union
+  {
+    Elf_Scn dummy_scn;
+    struct Elf_Data_Chunk *next;
+  };
+} Elf_Data_Chunk;
 
 
 /* The ELF descriptor.  */
@@ -279,6 +336,7 @@ struct Elf
       Elf_ScnList *scns_last;	/* Last element in the section list.
 				   If NULL the data has not yet been
 				   read from the file.  */
+      Elf_Data_Chunk *rawchunks; /* List of elf_getdata_rawchunk results.  */
       unsigned int scnincr;	/* Number of sections allocate the last
 				   time.  */
       off64_t sizestr_offset;	/* Offset of the size string in the parent
@@ -298,6 +356,7 @@ struct Elf
       Elf_ScnList *scns_last;	/* Last element in the section list.
 				   If NULL the data has not yet been
 				   read from the file.  */
+      Elf_Data_Chunk *rawchunks; /* List of elf_getdata_rawchunk results.  */
       unsigned int scnincr;	/* Number of sections allocate the last
 				   time.  */
       off64_t sizestr_offset;	/* Offset of the size string in the parent
@@ -323,6 +382,7 @@ struct Elf
       Elf_ScnList *scns_last;	/* Last element in the section list.
 				   If NULL the data has not yet been
 				   read from the file.  */
+      Elf_Data_Chunk *rawchunks; /* List of elf_getdata_rawchunk results.  */
       unsigned int scnincr;	/* Number of sections allocate the last
 				   time.  */
       off64_t sizestr_offset;	/* Offset of the size string in the parent
@@ -358,7 +418,6 @@ struct Elf
   /* There absolutely never must be anything following the union.  */
 };
 
-
 /* Type of the conversion functions.  These functions will convert the
    byte order.  */
 typedef void (*xfct_t) (void *, const void *, size_t, int);
@@ -389,6 +448,22 @@ extern int __libelf_fill_byte attribute_hidden;
 /* Nonzero if the version was set.  */
 extern int __libelf_version_initialized attribute_hidden;
 
+/* Index for __libelf_type_sizes et al.  */
+#if EV_NUM == 2
+# define LIBELF_EV_IDX	0
+#else
+# define LIBELF_EV_IDX	(__libelf_version - 1)
+#endif
+
+#if !ALLOW_UNALIGNED
+/* Array with alignment requirements of the internal types indexed by ELF
+   version, binary class, and type. */
+extern const uint_fast8_t __libelf_type_aligns[EV_NUM - 1][ELFCLASSNUM - 1][ELF_T_NUM] attribute_hidden;
+# define __libelf_type_align(class, type)	\
+    (__libelf_type_aligns[LIBELF_EV_IDX][class - 1][type] ?: 1)
+#else
+# define __libelf_type_align(class, type)	1
+#endif
 
 /* The libelf API does not have such a function but it is still useful.
    Get the memory size for the given type.
@@ -411,7 +486,7 @@ extern Elf *__libelf_read_mmaped_file (int fildes, void *map_address,
 extern void __libelf_seterrno (int value) internal_function;
 
 /* Get the next archive header.  */
-extern int __libelf_next_arhdr (Elf *elf) internal_function;
+extern int __libelf_next_arhdr_wrlock (Elf *elf) internal_function;
 
 /* Read all of the file associated with the descriptor.  */
 extern char *__libelf_readall (Elf *elf) internal_function;
@@ -421,13 +496,14 @@ extern int __libelf_readsections (Elf *elf) internal_function;
 
 /* Store the information for the raw data in the `rawdata_list' element.  */
 extern int __libelf_set_rawdata (Elf_Scn *scn) internal_function;
+extern int __libelf_set_rawdata_wrlock (Elf_Scn *scn) internal_function;
 
 
 /* Helper functions for elf_update.  */
-extern off_t __elf32_updatenull (Elf *elf, int *change_bop, size_t shnum)
-     internal_function;
-extern off_t __elf64_updatenull (Elf *elf, int *change_bop, size_t shnum)
-     internal_function;
+extern off_t __elf32_updatenull_wrlock (Elf *elf, int *change_bop,
+					size_t shnum) internal_function;
+extern off_t __elf64_updatenull_wrlock (Elf *elf, int *change_bop,
+					size_t shnum) internal_function;
 
 extern int __elf32_updatemmap (Elf *elf, int change_bo, size_t shnum)
      internal_function;
@@ -439,31 +515,43 @@ extern int __elf64_updatefile (Elf *elf, int change_bo, size_t shnum)
      internal_function;
 
 
-/* Alias for exported functions to avoid PLT entries.  */
+/* Alias for exported functions to avoid PLT entries, and
+   rdlock/wrlock variants of these functions.  */
+extern int __elf_end_internal (Elf *__elf) attribute_hidden;
 extern Elf *__elf_begin_internal (int __fildes, Elf_Cmd __cmd, Elf *__ref)
      attribute_hidden;
-extern Elf32_Ehdr *__elf32_getehdr_internal (Elf *__elf) attribute_hidden;
-extern Elf64_Ehdr *__elf64_getehdr_internal (Elf *__elf) attribute_hidden;
+extern Elf32_Ehdr *__elf32_getehdr_wrlock (Elf *__elf) internal_function;
+extern Elf64_Ehdr *__elf64_getehdr_wrlock (Elf *__elf) internal_function;
 extern Elf32_Ehdr *__elf32_newehdr_internal (Elf *__elf) attribute_hidden;
 extern Elf64_Ehdr *__elf64_newehdr_internal (Elf *__elf) attribute_hidden;
 extern Elf32_Phdr *__elf32_getphdr_internal (Elf *__elf) attribute_hidden;
 extern Elf64_Phdr *__elf64_getphdr_internal (Elf *__elf) attribute_hidden;
+extern Elf32_Phdr *__elf32_getphdr_wrlock (Elf *__elf) attribute_hidden;
+extern Elf64_Phdr *__elf64_getphdr_wrlock (Elf *__elf) attribute_hidden;
 extern Elf32_Phdr *__elf32_newphdr_internal (Elf *__elf, size_t __cnt)
      attribute_hidden;
 extern Elf64_Phdr *__elf64_newphdr_internal (Elf *__elf, size_t __cnt)
      attribute_hidden;
-extern int __elf_getshnum_internal (Elf *__elf, size_t *__dst)
-     attribute_hidden;
+extern Elf_Scn *__elf32_offscn_internal (Elf *__elf, Elf32_Off __offset)
+  attribute_hidden;
+extern Elf_Scn *__elf64_offscn_internal (Elf *__elf, Elf64_Off __offset)
+  attribute_hidden;
+extern int __elf_getshnum_rdlock (Elf *__elf, size_t *__dst) internal_function;
 extern int __elf_getshstrndx_internal (Elf *__elf, size_t *__dst)
      attribute_hidden;
-extern Elf32_Shdr *__elf32_getshdr_internal (Elf_Scn *__scn) attribute_hidden;
-extern Elf64_Shdr *__elf64_getshdr_internal (Elf_Scn *__scn) attribute_hidden;
+extern Elf32_Shdr *__elf32_getshdr_rdlock (Elf_Scn *__scn) internal_function;
+extern Elf64_Shdr *__elf64_getshdr_rdlock (Elf_Scn *__scn) internal_function;
+extern Elf32_Shdr *__elf32_getshdr_wrlock (Elf_Scn *__scn) internal_function;
+extern Elf64_Shdr *__elf64_getshdr_wrlock (Elf_Scn *__scn) internal_function;
 extern Elf_Scn *__elf_getscn_internal (Elf *__elf, size_t __index)
      attribute_hidden;
 extern Elf_Scn *__elf_nextscn_internal (Elf *__elf, Elf_Scn *__scn)
      attribute_hidden;
+extern int __elf_scnshndx_internal (Elf_Scn *__scn) attribute_hidden;
 extern Elf_Data *__elf_getdata_internal (Elf_Scn *__scn, Elf_Data *__data)
      attribute_hidden;
+extern Elf_Data *__elf_getdata_rdlock (Elf_Scn *__scn, Elf_Data *__data)
+     internal_function;
 extern Elf_Data *__elf_rawdata_internal (Elf_Scn *__scn, Elf_Data *__data)
      attribute_hidden;
 extern char *__elf_strptr_internal (Elf *__elf, size_t __index,
@@ -492,6 +580,8 @@ extern long int __elf32_checksum_internal (Elf *__elf) attribute_hidden;
 extern long int __elf64_checksum_internal (Elf *__elf) attribute_hidden;
 
 
+extern GElf_Ehdr *__gelf_getehdr_rdlock (Elf *__elf, GElf_Ehdr *__dest)
+     internal_function;
 extern size_t __gelf_fsize_internal (Elf *__elf, Elf_Type __type,
 				     size_t __count, unsigned int __version)
      attribute_hidden;
@@ -506,9 +596,8 @@ extern uint32_t __libelf_crc32 (uint32_t crc, unsigned char *buf, size_t len)
 
 
 /* We often have to update a flag iff a value changed.  Make this
-   convenient.  None of the parameters must have a side effect.  */
-#ifdef __GNUC__
-# define update_if_changed(var, exp, flag) \
+   convenient.  */
+#define update_if_changed(var, exp, flag) \
   do {									      \
     __typeof__ (var) *_var = &(var);					      \
     __typeof__ (exp) _exp = (exp);					      \
@@ -518,15 +607,8 @@ extern uint32_t __libelf_crc32 (uint32_t crc, unsigned char *buf, size_t len)
 	(flag) |= ELF_F_DIRTY;						      \
       }									      \
   } while (0)
-#else
-# define update_if_changed(var, exp, flag) \
-  do {									      \
-    if ((var) != (exp))							      \
-      {									      \
-	(var) = (exp);							      \
-	(flag) |= ELF_F_DIRTY;						      \
-      }									      \
-  } while (0)
-#endif
+
+/* Align offset to 4 bytes as needed for note name and descriptor data.  */
+#define NOTE_ALIGN(n)	(((n) + 3) & -4U)
 
 #endif  /* libelfP.h */

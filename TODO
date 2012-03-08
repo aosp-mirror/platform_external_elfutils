@@ -1,7 +1,7 @@
 		      ToDo list for elfutils                      -*-outline-*-
                       ----------------------
 
-Time-stamp: <2003-08-07 12:52:49 drepper>
+Time-stamp: <2008-02-03 14:15:41 drepper>
 
 * mkinstalldirs
 
@@ -23,15 +23,7 @@ Time-stamp: <2003-08-07 12:52:49 drepper>
    remains maintainable.
 
 
-* libdwarf
-
-** Should we do more error checking?
-
-   Most functions don't check whether they get a NULL value passed for
-   a pointer argument.  It could be argued that this is OK since it's
-   a bug inthe program.  But perhaps one could catch the case and return
-   an error which would allow the program using libdwarf to have fewer
-   places with error checking.
+* libdw
 
 ** More memory access checks needed
 
@@ -44,12 +36,6 @@ Time-stamp: <2003-08-07 12:52:49 drepper>
    information so I cannot test it.
 
 ** Rename dwarf_getabbrev
-
-** dwarf_loclist()
-
-   This function and its interface seem to be misdesigned.  The specification
-   is unclear and its changed between v2 and v2.1.  Other implementation
-   implement even different behavior.
 
 
 * nm:
@@ -93,21 +79,21 @@ Time-stamp: <2003-08-07 12:52:49 drepper>
    The old mapping should be reused in that case.  The problem is worse
    for files which are not mapped read-only (archives again).
 
-
 ** size for STT_SECTION entries
 
    The STT_SECTION entries have zero for the size but can easily get
    the size of the section.
+
+** .eh_frame_hdr
+
+   Not implemented at all in the moment except for recognition of the option
+   itself.
 
 * elflint
 
 ** additional checks
 
    1st GOT entry == _DYNAMIC
-
-   if TEXTREL check whether any relocation touches RO segment
-
-   if TEXTREL not set check that no relocation touches RO segment
 
    check versioning info:
 
@@ -116,14 +102,24 @@ Time-stamp: <2003-08-07 12:52:49 drepper>
 
    check whether any relocation is for a merge-able section
 
-** possibly missing tests
+   check TLS relocation depencies
 
-   at most one extended section index table for a symtab
+*** for x86
 
-   no extended section index table != ET_REL
+    check that R_386_TLS_GD is followed by R_386_PLT32 for __tls_get_addr
 
-   no extended section index table for SHT_DYNSYM
+** relax
 
+   prelink generated files
+
+* elfcmp
+
+** treat relocation sections special
+
+   Differences in the relocation sections can be ignored if all
+   the same symbols with the same targets are present and the order
+   of overlapping relocations doesn't change.  There really never
+   should be overlapping relocations but who knows.
 
 * mcs
 

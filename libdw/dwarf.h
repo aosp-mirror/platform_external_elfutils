@@ -1,15 +1,51 @@
 /* This file defines standard DWARF types, structures, and macros.
-   Copyright (C) 2000, 2002 Red Hat, Inc.
+   Copyright (C) 2000, 2002, 2005, 2006, 2007, 2008 Red Hat, Inc.
+   This file is part of Red Hat elfutils.
 
-   This program is Open Source software; you can redistribute it and/or
-   modify it under the terms of the Open Software License version 1.0 as
-   published by the Open Source Initiative.
+   Red Hat elfutils is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by the
+   Free Software Foundation; version 2 of the License.
 
-   You should have received a copy of the Open Software License along
-   with this program; if not, you may obtain a copy of the Open Software
-   License version 1.0 from http://www.opensource.org/licenses/osl.php or
-   by writing the Open Source Initiative c/o Lawrence Rosen, Esq.,
-   3001 King Ranch Road, Ukiah, CA 95482.   */
+   Red Hat elfutils is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License along
+   with Red Hat elfutils; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+
+   In addition, as a special exception, Red Hat, Inc. gives You the
+   additional right to link the code of Red Hat elfutils with code licensed
+   under any Open Source Initiative certified open source license
+   (http://www.opensource.org/licenses/index.php) which requires the
+   distribution of source code with any binary distribution and to
+   distribute linked combinations of the two.  Non-GPL Code permitted under
+   this exception must only link to the code of Red Hat elfutils through
+   those well defined interfaces identified in the file named EXCEPTION
+   found in the source code files (the "Approved Interfaces").  The files
+   of Non-GPL Code may instantiate templates or use macros or inline
+   functions from the Approved Interfaces without causing the resulting
+   work to be covered by the GNU General Public License.  Only Red Hat,
+   Inc. may make changes or additions to the list of Approved Interfaces.
+   Red Hat's grant of this exception is conditioned upon your not adding
+   any new exceptions.  If you wish to add a new Approved Interface or
+   exception, please contact Red Hat.  You must obey the GNU General Public
+   License in all respects for all of the Red Hat elfutils code and other
+   code used in conjunction with Red Hat elfutils except the Non-GPL Code
+   covered by this exception.  If you modify this file, you may extend this
+   exception to your version of the file, but you are not obligated to do
+   so.  If you do not wish to provide this exception without modification,
+   you must delete this exception statement from your version and license
+   this file solely under the GPL without exception.
+
+   Red Hat elfutils is an included package of the Open Invention Network.
+   An included package of the Open Invention Network is a package for which
+   Open Invention Network licensees cross-license their patents.  No patent
+   license is granted, either expressly or impliedly, by designation as an
+   included package.  Should you wish to participate in the Open Invention
+   Network licensing program, please visit www.openinventionnetwork.com
+   <http://www.openinventionnetwork.com>.  */
 
 #ifndef _DWARF_H
 #define	_DWARF_H 1
@@ -57,13 +93,24 @@ enum
     DW_TAG_namelist_item = 0x2c,
     DW_TAG_packed_type = 0x2d,
     DW_TAG_subprogram = 0x2e,
-    DW_TAG_template_type_param = 0x2f,
-    DW_TAG_template_value_param = 0x30,
+    DW_TAG_template_type_parameter = 0x2f,
+    DW_TAG_template_value_parameter = 0x30,
     DW_TAG_thrown_type = 0x31,
     DW_TAG_try_block = 0x32,
     DW_TAG_variant_part = 0x33,
     DW_TAG_variable = 0x34,
     DW_TAG_volatile_type = 0x35,
+    DW_TAG_dwarf_procedure = 0x36,
+    DW_TAG_restrict_type = 0x37,
+    DW_TAG_interface_type = 0x38,
+    DW_TAG_namespace = 0x39,
+    DW_TAG_imported_module = 0x3a,
+    DW_TAG_unspecified_type = 0x3b,
+    DW_TAG_partial_unit = 0x3c,
+    DW_TAG_imported_unit = 0x3d,
+    DW_TAG_mutable_type = 0x3e,
+    DW_TAG_condition = 0x3f,
+    DW_TAG_shared_type = 0x40,
     DW_TAG_lo_user = 0x4080,
     DW_TAG_MIPS_loop = 0x4081,
     DW_TAG_format_label = 0x4101,
@@ -115,7 +162,7 @@ enum
     DW_AT_prototyped = 0x27,
     DW_AT_return_addr = 0x2a,
     DW_AT_start_scope = 0x2c,
-    DW_AT_stride_size = 0x2e,
+    DW_AT_bit_stride = 0x2e,
     DW_AT_upper_bound = 0x2f,
     DW_AT_abstract_origin = 0x31,
     DW_AT_accessibility = 0x32,
@@ -136,7 +183,7 @@ enum
     DW_AT_friend = 0x41,
     DW_AT_identifier_case = 0x42,
     DW_AT_macro_info = 0x43,
-    DW_AT_namelist_items = 0x44,
+    DW_AT_namelist_item = 0x44,
     DW_AT_priority = 0x45,
     DW_AT_segment = 0x46,
     DW_AT_specification = 0x47,
@@ -146,6 +193,34 @@ enum
     DW_AT_variable_parameter = 0x4b,
     DW_AT_virtuality = 0x4c,
     DW_AT_vtable_elem_location = 0x4d,
+    DW_AT_allocated = 0x4e,
+    DW_AT_associated = 0x4f,
+    DW_AT_data_location = 0x50,
+    DW_AT_byte_stride = 0x51,
+    DW_AT_entry_pc = 0x52,
+    DW_AT_use_UTF8 = 0x53,
+    DW_AT_extension = 0x54,
+    DW_AT_ranges = 0x55,
+    DW_AT_trampoline = 0x56,
+    DW_AT_call_column = 0x57,
+    DW_AT_call_file = 0x58,
+    DW_AT_call_line = 0x59,
+    DW_AT_description = 0x5a,
+    DW_AT_binary_scale = 0x5b,
+    DW_AT_decimal_scale = 0x5c,
+    DW_AT_small = 0x5d,
+    DW_AT_decimal_sign = 0x5e,
+    DW_AT_digit_count = 0x5f,
+    DW_AT_picture_string = 0x60,
+    DW_AT_mutable = 0x61,
+    DW_AT_threads_scaled = 0x62,
+    DW_AT_explicit = 0x63,
+    DW_AT_object_pointer = 0x64,
+    DW_AT_endianity = 0x65,
+    DW_AT_elemental = 0x66,
+    DW_AT_pure = 0x67,
+    DW_AT_recursive = 0x68,
+
     DW_AT_lo_user = 0x2000,
     DW_AT_MIPS_fde = 0x2001,
     DW_AT_MIPS_loop_begin = 0x2002,
@@ -343,7 +418,7 @@ enum
     DW_OP_breg30 = 0x8e,	/* Base register 30.  */
     DW_OP_breg31 = 0x8f,	/* Base register 31.  */
     DW_OP_regx = 0x90,		/* Unsigned LEB128 register.  */
-    DW_OP_fbreg = 0x91,		/* Signed LEB128 register.  */
+    DW_OP_fbreg = 0x91,		/* Signed LEB128 offset.  */
     DW_OP_bregx = 0x92,		/* ULEB128 register followed by SLEB128 off. */
     DW_OP_piece = 0x93,		/* ULEB128 size of piece addressed. */
     DW_OP_deref_size = 0x94,	/* 1-byte size of data retrieved.  */
@@ -353,6 +428,9 @@ enum
     DW_OP_call2 = 0x98,
     DW_OP_call4 = 0x99,
     DW_OP_call_ref = 0x9a,
+    DW_OP_form_tls_address = 0x9b,/* TLS offset to address in current thread */
+    DW_OP_call_frame_cfa = 0x9c,/* CFA as determined by CFI.  */
+    DW_OP_bit_piece = 0x9d,	/* ULEB128 size and ULEB128 offset in bits.  */
 
     DW_OP_lo_user = 0xe0,	/* Implementation-defined range start.  */
     DW_OP_hi_user = 0xff	/* Implementation-defined range end.  */
@@ -371,9 +449,39 @@ enum
     DW_ATE_signed_char = 0x6,
     DW_ATE_unsigned = 0x7,
     DW_ATE_unsigned_char = 0x8,
+    DW_ATE_imaginary_float = 0x9,
+    DW_ATE_packed_decimal = 0xa,
+    DW_ATE_numeric_string = 0xb,
+    DW_ATE_edited = 0xc,
+    DW_ATE_signed_fixed = 0xd,
+    DW_ATE_unsigned_fixed = 0xe,
+    DW_ATE_decimal_float = 0xf,
 
     DW_ATE_lo_user = 0x80,
     DW_ATE_hi_user = 0xff
+  };
+
+
+/* DWARF decimal sign encodings.  */
+enum
+  {
+    DW_DS_unsigned = 1,
+    DW_DS_leading_overpunch = 2,
+    DW_DS_trailing_overpunch = 3,
+    DW_DS_leading_separate = 4,
+    DW_DS_trailing_separate = 5,
+  };
+
+
+/* DWARF endianity encodings.  */
+enum
+  {
+    DW_END_default = 0,
+    DW_END_big = 1,
+    DW_END_little = 2,
+
+    DW_END_lo_user = 0x40,
+    DW_END_hi_user = 0xff
   };
 
 
@@ -422,6 +530,11 @@ enum
     DW_LANG_Ada95 = 0x000d,
     DW_LANG_Fortran95 = 0x000e,
     DW_LANG_PL1 = 0x000f,
+    DW_LANG_Objc = 0x0010,
+    DW_LANG_ObjC_plus_plus = 0x0011,
+    DW_LANG_UPC = 0x0012,
+    DW_LANG_D = 0x0013,
+
     DW_LANG_lo_user = 0x8000,
     DW_LANG_Mips_Assembler = 0x8001,
     DW_LANG_hi_user = 0xffff
@@ -488,16 +601,20 @@ enum
     DW_LNS_const_add_pc = 8,
     DW_LNS_fixed_advance_pc = 9,
     DW_LNS_set_prologue_end = 10,
-    DW_LNS_set_epilog_begin = 11
+    DW_LNS_set_epilogue_begin = 11,
+    DW_LNS_set_isa = 12
   };
 
 
-/* DWARF extended opcide encodings.  */
+/* DWARF extended opcode encodings.  */
 enum
   {
     DW_LNE_end_sequence = 1,
     DW_LNE_set_address = 2,
-    DW_LNE_define_file = 3
+    DW_LNE_define_file = 3,
+
+    DW_LNE_lo_user = 128,
+    DW_LNE_hi_user = 255
   };
 
 
@@ -540,6 +657,10 @@ enum
     DW_CFA_offset_extended_sf = 0x11,
     DW_CFA_def_cfa_sf = 0x12,
     DW_CFA_def_cfa_offset_sf = 0x13,
+    DW_CFA_val_offset = 0x14,
+    DW_CFA_val_offset_sf = 0x15,
+    DW_CFA_val_expression = 0x16,
+
     DW_CFA_low_user = 0x1c,
     DW_CFA_MIPS_advance_loc8 = 0x1d,
     DW_CFA_GNU_window_save = 0x2d,
@@ -550,5 +671,20 @@ enum
 
 /* DWARF XXX.  */
 #define DW_ADDR_none	0
+
+/* Section 7.2.2 of the DWARF3 specification defines a range of escape
+   codes that can appear in the length field of certain DWARF structures.
+
+   These defines enumerate the minium and maximum values of this range.
+   Currently only the maximum value is used (to indicate that 64-bit
+   values are going to be used in the dwarf data that accompanies the
+   structure).  The other values are reserved.
+
+   Note: There is a typo in DWARF3 spec (published Dec 20, 2005).  In
+   sections 7.4, 7.5.1, 7.19, 7.20 the minimum escape code is referred to
+   as 0xffffff00 whereas in fact it should be 0xfffffff0.  */
+#define DWARF3_LENGTH_MIN_ESCAPE_CODE 0xfffffff0u
+#define DWARF3_LENGTH_MAX_ESCAPE_CODE 0xffffffffu
+#define DWARF3_LENGTH_64_BIT          DWARF3_LENGTH_MAX_ESCAPE_CODE
 
 #endif	/* dwarf.h */

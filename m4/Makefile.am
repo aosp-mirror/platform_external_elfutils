@@ -1,24 +1,29 @@
 ## Process this file with automake to produce Makefile.in -*-Makefile-*-
-## Configure input file for elfutils.
 ##
-## Copyright (C) 2000, 2001, 2002, 2004 Red Hat, Inc.
+## Copyright (C) 2000, 2001, 2002, 2004, 2005 Red Hat, Inc.
+## This file is part of Red Hat elfutils.
 ##
-## This program is free software; you can redistribute it and/or modify
-## it under the terms of the GNU General Public License as published by
-## the Free Software Foundation, version 2.
+## Red Hat elfutils is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by the
+## Free Software Foundation; version 2 of the License.
 ##
-## This program is distributed in the hope that it will be useful,
-## but WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-## GNU General Public License for more details.
+## Red Hat elfutils is distributed in the hope that it will be useful, but
+## WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+## General Public License for more details.
 ##
-## You should have received a copy of the GNU General Public License
-## along with this program; if not, write to the Free Software Foundation,
-## Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+## You should have received a copy of the GNU General Public License along
+## with Red Hat elfutils; if not, write to the Free Software Foundation,
+## Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+##
+## Red Hat elfutils is an included package of the Open Invention Network.
+## An included package of the Open Invention Network is a package for which
+## Open Invention Network licensees cross-license their patents.  No patent
+## license is granted, either expressly or impliedly, by designation as an
+## included package.  Should you wish to participate in the Open Invention
+## Network licensing program, please visit www.openinventionnetwork.com
+## <http://www.openinventionnetwork.com>.
 ##
 
 ##m4-files-begin
-EXTRA_DIST = isc-posix.m4 codeset.m4 gettext.m4 glibc21.m4 iconv.m4 \
-	     lcmessage.m4 lib-ld.m4 lib-link.m4 lib-prefix.m4 \
-	     progtest.m4 iconv.m4 intdiv0.m4 inttypes-pri.m4 inttypes.m4 \
-	     uintmax_t.m4 inttypes_h.m4 stdint_h.m4 ulonglong.m4
+EXTRA_DIST = codeset.m4 gettext.m4 iconv.m4 lcmessage.m4 progtest.m4

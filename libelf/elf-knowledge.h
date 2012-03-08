@@ -1,49 +1,71 @@
 /* Accumulation of various pieces of knowledge about ELF.
-   Copyright (C) 2000, 2001, 2002, 2003 Red Hat, Inc.
+   Copyright (C) 2000, 2001, 2002, 2003, 2005 Red Hat, Inc.
+   This file is part of Red Hat elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2000.
 
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, version 2.
+   Red Hat elfutils is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by the
+   Free Software Foundation; version 2 of the License.
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
+   Red Hat elfutils is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software Foundation,
-   Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
+   You should have received a copy of the GNU General Public License along
+   with Red Hat elfutils; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+
+   In addition, as a special exception, Red Hat, Inc. gives You the
+   additional right to link the code of Red Hat elfutils with code licensed
+   under any Open Source Initiative certified open source license
+   (http://www.opensource.org/licenses/index.php) which requires the
+   distribution of source code with any binary distribution and to
+   distribute linked combinations of the two.  Non-GPL Code permitted under
+   this exception must only link to the code of Red Hat elfutils through
+   those well defined interfaces identified in the file named EXCEPTION
+   found in the source code files (the "Approved Interfaces").  The files
+   of Non-GPL Code may instantiate templates or use macros or inline
+   functions from the Approved Interfaces without causing the resulting
+   work to be covered by the GNU General Public License.  Only Red Hat,
+   Inc. may make changes or additions to the list of Approved Interfaces.
+   Red Hat's grant of this exception is conditioned upon your not adding
+   any new exceptions.  If you wish to add a new Approved Interface or
+   exception, please contact Red Hat.  You must obey the GNU General Public
+   License in all respects for all of the Red Hat elfutils code and other
+   code used in conjunction with Red Hat elfutils except the Non-GPL Code
+   covered by this exception.  If you modify this file, you may extend this
+   exception to your version of the file, but you are not obligated to do
+   so.  If you do not wish to provide this exception without modification,
+   you must delete this exception statement from your version and license
+   this file solely under the GPL without exception.
+
+   Red Hat elfutils is an included package of the Open Invention Network.
+   An included package of the Open Invention Network is a package for which
+   Open Invention Network licensees cross-license their patents.  No patent
+   license is granted, either expressly or impliedly, by designation as an
+   included package.  Should you wish to participate in the Open Invention
+   Network licensing program, please visit www.openinventionnetwork.com
+   <http://www.openinventionnetwork.com>.  */
 
 #ifndef _ELF_KNOWLEDGE_H
 #define _ELF_KNOWLEDGE_H	1
 
+#include <stdbool.h>
+
 
 /* Test whether a section can be stripped or not.  */
-#define SECTION_STRIP_P(ebl, elf, ehdr, shdr, name, remove_comment, remove_debug) \
-  (/* Sections which are allocated are not removed.  */			      \
-   ((shdr)->sh_flags & SHF_ALLOC) == 0					      \
+#define SECTION_STRIP_P(shdr, name, remove_comment) \
+  /* Sections which are allocated are not removed.  */			      \
+  (((shdr)->sh_flags & SHF_ALLOC) == 0					      \
    /* We never remove .note sections.  */				      \
    && (shdr)->sh_type != SHT_NOTE					      \
-   /* If only debug information should be removed check the name.  There      \
-      is unfortunately no way.  */					      \
-   && (!remove_debug							      \
-       || ebl_debugscn_p (ebl, name)					      \
-       || (((shdr)->sh_type == SHT_RELA || (shdr)->sh_type == SHT_REL)	      \
-	   && ({ Elf_Scn *scn_l = elf_getscn (elf, (shdr)->sh_info);	      \
-		 GElf_Shdr shdr_mem_l;					      \
-		 GElf_Shdr *shdr_l = gelf_getshdr (scn_l, &shdr_mem_l);	      \
-		 const char *s_l;					      \
-		 shdr_l != NULL						      \
-		   && (s_l = elf_strptr (elf,				      \
-					 ((GElf_Ehdr *) (ehdr))->e_shstrndx,  \
-					 shdr_l->sh_name)) != NULL	      \
-		   && ebl_debugscn_p (ebl, s_l); })))			      \
-   && ((shdr)->sh_type != SHT_PROGBITS					      \
-   /* Never remove .gnu.warning.* sections.  */				      \
+   && (((shdr)->sh_type) != SHT_PROGBITS				      \
+       /* Never remove .gnu.warning.* sections.  */			      \
        || (strncmp (name, ".gnu.warning.", sizeof ".gnu.warning." - 1) != 0   \
-   /* We remove .comment sections only if explicitly told to do so.  */	      \
-	   && ((remove_comment) || strcmp (name, ".comment") != 0)))	      \
+	   /* We remove .comment sections only if explicitly told to do so. */\
+	   && (remove_comment						      \
+	       || strcmp (name, ".comment") != 0)))			      \
    /* So far we do not remove any of the non-standard sections.		      \
       XXX Maybe in future.  */						      \
    && (shdr)->sh_type < SHT_NUM)

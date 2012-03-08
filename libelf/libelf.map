@@ -55,7 +55,6 @@ ELFUTILS_1.0 {
     elf_update;
     elf_version;
     gelf_checksum;
-    gelf_freechunk;
     gelf_fsize;
     gelf_getclass;
     gelf_getdyn;
@@ -75,7 +74,6 @@ ELFUTILS_1.0 {
     gelf_getversym;
     gelf_newehdr;
     gelf_newphdr;
-    gelf_rawchunk;
     gelf_update_dyn;
     gelf_update_ehdr;
     gelf_update_move;
@@ -104,3 +102,29 @@ ELFUTILS_1.1 {
     gelf_getlib;
     gelf_update_lib;
 } ELFUTILS_1.0;
+
+ELFUTILS_1.1.1 {
+  global:
+    elf32_offscn;
+    elf64_offscn;
+    gelf_offscn;
+    elf_getaroff;
+} ELFUTILS_1.1;
+
+ELFUTILS_1.2 {
+  global:
+    elf_gnu_hash;
+} ELFUTILS_1.1.1;
+
+ELFUTILS_1.3 {
+  global:
+    elf_getdata_rawchunk;
+    gelf_getauxv;
+    gelf_update_auxv;
+    gelf_getnote;
+} ELFUTILS_1.2;
+
+ELFUTILS_1.4 {
+  global:
+    elf_scnshndx;
+} ELFUTILS_1.3;

@@ -1,15 +1,27 @@
 /* Interface for libasm.
-   Copyright (C) 2002 Red Hat, Inc.
+   Copyright (C) 2002, 2005, 2008 Red Hat, Inc.
+   This file is part of Red Hat elfutils.
 
-   This program is Open Source software; you can redistribute it and/or
-   modify it under the terms of the Open Software License version 1.0 as
-   published by the Open Source Initiative.
+   Red Hat elfutils is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by the
+   Free Software Foundation; version 2 of the License.
 
-   You should have received a copy of the Open Software License along
-   with this program; if not, you may obtain a copy of the Open Software
-   License version 1.0 from http://www.opensource.org/licenses/osl.php or
-   by writing the Open Source Initiative c/o Lawrence Rosen, Esq.,
-   3001 King Ranch Road, Ukiah, CA 95482.   */
+   Red Hat elfutils is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License along
+   with Red Hat elfutils; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+
+   Red Hat elfutils is an included package of the Open Invention Network.
+   An included package of the Open Invention Network is a package for which
+   Open Invention Network licensees cross-license their patents.  No patent
+   license is granted, either expressly or impliedly, by designation as an
+   included package.  Should you wish to participate in the Open Invention
+   Network licensing program, please visit www.openinventionnetwork.com
+   <http://www.openinventionnetwork.com>.  */
 
 #ifndef _LIBASM_H
 #define _LIBASM_H 1
@@ -17,7 +29,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include <gelf.h>
+#include <libebl.h>
 
 
 /* Opaque type for the assembler context descriptor.  */
@@ -33,6 +45,20 @@ typedef struct AsmScnGrp AsmScnGrp_t;
 typedef struct AsmSym AsmSym_t;
 
 
+/* Opaque type for the disassembler context descriptor.  */
+typedef struct DisasmCtx DisasmCtx_t;
+
+/* Type used for callback functions to retrieve symbol name.  The
+   symbol reference is in the section designated by the second parameter
+   at an offset described by the first parameter.  The value is the
+   third parameter.  */
+typedef int (*DisasmGetSymCB_t) (GElf_Addr, Elf32_Word, GElf_Addr, char **,
+				 size_t *, void *);
+
+/* Output function callback.  */
+typedef int (*DisasmOutputCB_t) (char *, size_t, void *);
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -43,8 +69,7 @@ extern "C" {
    corresponds to an EM_ constant from <elf.h>, KLASS specifies the
    class (32- or 64-bit), and DATA specifies the byte order (little or
    big endian).  */
-extern AsmCtx_t *asm_begin (const char *fname, bool textp, int machine,
-			    int klass, int data);
+extern AsmCtx_t *asm_begin (const char *fname, Ebl *ebl, bool textp);
 
 /* Abort the operation on the assembler context and free all resources.  */
 extern int asm_abort (AsmCtx_t *ctx);
@@ -147,6 +172,25 @@ extern int asm_errno (void);
    behaviour is similar to the last case except that not NULL but a legal
    string is returned.  */
 extern const char *asm_errmsg (int __error);
+
+
+/* Create context descriptor for disassembler.  */
+extern DisasmCtx_t *disasm_begin (Ebl *ebl, Elf *elf, DisasmGetSymCB_t symcb);
+
+/* Release descriptor for disassembler.  */
+extern int disasm_end (DisasmCtx_t *ctx);
+
+/* Produce of disassembly output for given memory, store text in
+   provided buffer.  */
+extern int disasm_str (DisasmCtx_t *ctx, const uint8_t **startp,
+		       const uint8_t *end, GElf_Addr addr, const char *fmt,
+		       char **bufp, size_t len, void *symcbarg);
+
+/* Produce disassembly output for given memory and output it using the
+   given callback functions.  */
+extern int disasm_cb (DisasmCtx_t *ctx, const uint8_t **startp,
+		      const uint8_t *end, GElf_Addr addr, const char *fmt,
+		      DisasmOutputCB_t outcb, void *outcbarg, void *symcbarg);
 
 #ifdef __cplusplus
 }

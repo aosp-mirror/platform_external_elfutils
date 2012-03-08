@@ -1,16 +1,28 @@
 /* Print size information from ELF file.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004 Red Hat, Inc.
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Red Hat, Inc.
+   This file is part of Red Hat elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2000.
 
-   This program is Open Source software; you can redistribute it and/or
-   modify it under the terms of the Open Software License version 1.0 as
-   published by the Open Source Initiative.
+   Red Hat elfutils is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by the
+   Free Software Foundation; version 2 of the License.
 
-   You should have received a copy of the Open Software License along
-   with this program; if not, you may obtain a copy of the Open Software
-   License version 1.0 from http://www.opensource.org/licenses/osl.php or
-   by writing the Open Source Initiative c/o Lawrence Rosen, Esq.,
-   3001 King Ranch Road, Ukiah, CA 95482.   */
+   Red Hat elfutils is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License along
+   with Red Hat elfutils; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+
+   Red Hat elfutils is an included package of the Open Invention Network.
+   An included package of the Open Invention Network is a package for which
+   Open Invention Network licensees cross-license their patents.  No patent
+   license is granted, either expressly or impliedly, by designation as an
+   included package.  Should you wish to participate in the Open Invention
+   Network licensing program, please visit www.openinventionnetwork.com
+   <http://www.openinventionnetwork.com>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -40,6 +52,9 @@
 static void print_version (FILE *stream, struct argp_state *state);
 void (*argp_program_version_hook) (FILE *, struct argp_state *) = print_version;
 
+/* Bug report address.  */
+const char *argp_program_bug_address = PACKAGE_BUGREPORT;
+
 
 /* Values for the parameters which have no short form.  */
 #define OPT_FORMAT	0x100
@@ -48,20 +63,25 @@ void (*argp_program_version_hook) (FILE *, struct argp_state *) = print_version;
 /* Definitions of arguments for argp functions.  */
 static const struct argp_option options[] =
 {
-  { NULL, 0, NULL, 0, N_("Output format:") },
-  { "format", OPT_FORMAT, "FORMAT", 0, N_("Use the output format FORMAT.  FORMAT can be `bsd' or `sysv'.  The default is `bsd'") },
-  { NULL, 'A', NULL, 0, N_("Same as `--format=sysv'") },
-  { NULL, 'B', NULL, 0, N_("Same as `--format=bsd'") },
-  { "radix", OPT_RADIX, "RADIX", 0, N_("Use RADIX for printing symbol values") },
-  { NULL, 'd', NULL, 0, N_("Same as `--radix=10'") },
-  { NULL, 'o', NULL, 0, N_("Same as `--radix=8'") },
-  { NULL, 'x', NULL, 0, N_("Same as `--radix=16'") },
-  { NULL, 'f', NULL, 0, N_("Similar to `--format=sysv' output but in one line") },
+  { NULL, 0, NULL, 0, N_("Output format:"), 0 },
+  { "format", OPT_FORMAT, "FORMAT", 0,
+    N_("Use the output format FORMAT.  FORMAT can be `bsd' or `sysv'.  "
+       "The default is `bsd'"), 0 },
+  { NULL, 'A', NULL, 0, N_("Same as `--format=sysv'"), 0 },
+  { NULL, 'B', NULL, 0, N_("Same as `--format=bsd'"), 0 },
+  { "radix", OPT_RADIX, "RADIX", 0, N_("Use RADIX for printing symbol values"),
+    0},
+  { NULL, 'd', NULL, 0, N_("Same as `--radix=10'"), 0 },
+  { NULL, 'o', NULL, 0, N_("Same as `--radix=8'"), 0 },
+  { NULL, 'x', NULL, 0, N_("Same as `--radix=16'"), 0 },
+  { NULL, 'f', NULL, 0,
+    N_("Similar to `--format=sysv' output but in one line"), 0 },
 
-  { NULL, 0, NULL, 0, N_("Output options:") },
-  { NULL, 'F', NULL, 0, N_("Print size and permission flags for loadable segments") },
-  { "totals", 't', NULL, 0, N_("Display the total sizes (bsd only)") },
-  { NULL, 0, NULL, 0, NULL }
+  { NULL, 0, NULL, 0, N_("Output options:"), 0 },
+  { NULL, 'F', NULL, 0,
+    N_("Print size and permission flags for loadable segments"), 0 },
+  { "totals", 't', NULL, 0, N_("Display the total sizes (bsd only)"), 0 },
+  { NULL, 0, NULL, 0, NULL, 0 }
 };
 
 /* Short description of program.  */
@@ -74,13 +94,10 @@ static const char args_doc[] = N_("[FILE...]");
 /* Prototype for option handler.  */
 static error_t parse_opt (int key, char *arg, struct argp_state *state);
 
-/* Function to print some extra text in the help message.  */
-static char *more_help (int key, const char *text, void *input);
-
 /* Data structure to communicate with argp functions.  */
 static struct argp argp =
 {
-  options, parse_opt, args_doc, doc, NULL, more_help
+  options, parse_opt, args_doc, doc, NULL, NULL, NULL
 };
 
 
@@ -98,7 +115,7 @@ static void show_bsd_totals (void);
 
 #define INTERNAL_ERROR(fname) \
   error (EXIT_FAILURE, 0, gettext ("%s: INTERNAL ERROR %d (%s-%s): %s"),      \
-	 fname, __LINE__, VERSION, __DATE__, elf_errmsg (-1))
+	 fname, __LINE__, PACKAGE_VERSION, __DATE__, elf_errmsg (-1))
 
 
 /* User-selectable options.  */
@@ -163,10 +180,10 @@ main (int argc, char *argv[])
   setlocale (LC_ALL, "");
 
   /* Make sure the message catalog can be found.  */
-  bindtextdomain (PACKAGE, LOCALEDIR);
+  bindtextdomain (PACKAGE_TARNAME, LOCALEDIR);
 
   /* Initialize the message catalog.  */
-  textdomain (PACKAGE);
+  textdomain (PACKAGE_TARNAME);
 
   /* Parse and process arguments.  */
   argp_parse (&argp, argc, argv, 0, &remaining, NULL);
@@ -196,21 +213,22 @@ main (int argc, char *argv[])
 
 /* Print the version information.  */
 static void
-print_version (FILE *stream, struct argp_state *state)
+print_version (FILE *stream, struct argp_state *state __attribute__ ((unused)))
 {
-  fprintf (stream, "size (%s) %s\n", PACKAGE_NAME, VERSION);
+  fprintf (stream, "size (%s) %s\n", PACKAGE_NAME, PACKAGE_VERSION);
   fprintf (stream, gettext ("\
 Copyright (C) %s Red Hat, Inc.\n\
 This is free software; see the source for copying conditions.  There is NO\n\
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\
-"), "2004");
+"), "2008");
   fprintf (stream, gettext ("Written by %s.\n"), "Ulrich Drepper");
 }
 
 
 /* Handle program arguments.  */
 static error_t
-parse_opt (int key, char *arg, struct argp_state *state)
+parse_opt (int key, char *arg,
+	   struct argp_state *state __attribute__ ((unused)))
 {
   switch (key)
     {
@@ -245,7 +263,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
     case OPT_FORMAT:
       if (strcmp (arg, "bsd") == 0 || strcmp (arg, "berkeley") == 0)
 	format = format_bsd;
-      else if (strcmp (arg, "sysv") == 0)
+      else if (likely (strcmp (arg, "sysv") == 0))
 	format = format_sysv;
       else
 	error (EXIT_FAILURE, 0, gettext ("Invalid format: %s"), arg);
@@ -273,63 +291,38 @@ parse_opt (int key, char *arg, struct argp_state *state)
 }
 
 
-static char *
-more_help (int key, const char *text, void *input)
-{
-  char *buf;
-
-  switch (key)
-    {
-    case ARGP_KEY_HELP_EXTRA:
-      /* We print some extra information.  */
-      if (asprintf (&buf, gettext ("Please report bugs to %s.\n"),
-		    PACKAGE_BUGREPORT) < 0)
-	buf = NULL;
-      return buf;
-
-    default:
-      break;
-    }
-  return (char *) text;
-}
-
-
+/* Open the file and determine the type.  */
 static int
 process_file (const char *fname)
 {
-  /* Open the file and determine the type.  */
-  int fd;
-  Elf *elf;
-
-  /* Open the file.  */
-  fd = open (fname, O_RDONLY);
-  if (fd == -1)
+  int fd = open (fname, O_RDONLY);
+  if (unlikely (fd == -1))
     {
-      error (0, errno, fname);
+      error (0, errno, gettext ("cannot open '%s'"), fname);
       return 1;
     }
 
   /* Now get the ELF descriptor.  */
-  elf = elf_begin (fd, ELF_C_READ_MMAP, NULL);
-  if (elf != NULL)
+  Elf *elf = elf_begin (fd, ELF_C_READ_MMAP, NULL);
+  if (likely (elf != NULL))
     {
       if (elf_kind (elf) == ELF_K_ELF)
 	{
 	  handle_elf (elf, NULL, fname);
 
-	  if (elf_end (elf) != 0)
+	  if (unlikely (elf_end (elf) != 0))
 	    INTERNAL_ERROR (fname);
 
-	  if (close (fd) != 0)
-	    error (EXIT_FAILURE, errno, gettext ("while close `%s'"), fname);
+	  if (unlikely (close (fd) != 0))
+	    error (EXIT_FAILURE, errno, gettext ("while closing '%s'"), fname);
 
 	  return 0;
 	}
-      else
+      else if (likely (elf_kind (elf) == ELF_K_AR))
 	return handle_ar (fd, elf, NULL, fname);
 
       /* We cannot handle this type.  Close the descriptor anyway.  */
-      if (elf_end (elf) != 0)
+      if (unlikely (elf_end (elf) != 0))
 	INTERNAL_ERROR (fname);
     }
 
@@ -366,12 +359,9 @@ print_header (Elf *elf)
 static int
 handle_ar (int fd, Elf *elf, const char *prefix, const char *fname)
 {
-  Elf *subelf;
-  Elf_Cmd cmd = ELF_C_READ_MMAP;
   size_t prefix_len = prefix == NULL ? 0 : strlen (prefix);
   size_t fname_len = strlen (fname) + 1;
   char new_prefix[prefix_len + 1 + fname_len];
-  int result = 0;
   char *cp = new_prefix;
 
   /* Create the full name of the file.  */
@@ -383,6 +373,9 @@ handle_ar (int fd, Elf *elf, const char *prefix, const char *fname)
   memcpy (cp, fname, fname_len);
 
   /* Process all the files contained in the archive.  */
+  int result = 0;
+  Elf *subelf;
+  Elf_Cmd cmd = ELF_C_READ_MMAP;
   while ((subelf = elf_begin (fd, cmd, elf)) != NULL)
     {
       /* The the header for this element.  */
@@ -390,21 +383,21 @@ handle_ar (int fd, Elf *elf, const char *prefix, const char *fname)
 
       if (elf_kind (subelf) == ELF_K_ELF)
 	handle_elf (subelf, new_prefix, arhdr->ar_name);
-      else if (elf_kind (subelf) == ELF_K_AR)
+      else if (likely (elf_kind (subelf) == ELF_K_AR))
 	result |= handle_ar (fd, subelf, new_prefix, arhdr->ar_name);
       /* else signal error??? */
 
       /* Get next archive element.  */
       cmd = elf_next (subelf);
-      if (elf_end (subelf) != 0)
+      if (unlikely (elf_end (subelf) != 0))
 	INTERNAL_ERROR (fname);
     }
 
-  if (elf_end (elf) != 0)
+  if (unlikely (elf_end (elf) != 0))
     INTERNAL_ERROR (fname);
 
-  if (close (fd) != 0)
-    error (EXIT_FAILURE, errno, gettext ("while closing `%s'"), fname);
+  if (unlikely  (close (fd) != 0))
+    error (EXIT_FAILURE, errno, gettext ("while closing '%s'"), fname);
 
   return result;
 }
@@ -415,22 +408,20 @@ static void
 show_sysv (Elf *elf, const char *prefix, const char *fname,
 	   const char *fullname)
 {
-  size_t shstrndx;
-  Elf_Scn *scn = NULL;
-  GElf_Shdr shdr_mem;
   int maxlen = 10;
-  int digits = length_map[gelf_getclass (elf) - 1][radix];
-  const char *fmtstr;
-  GElf_Off total = 0;
+  const int digits = length_map[gelf_getclass (elf) - 1][radix];
 
   /* Get the section header string table index.  */
-  if (elf_getshstrndx (elf, &shstrndx) < 0)
+  size_t shstrndx;
+  if (unlikely (elf_getshstrndx (elf, &shstrndx) < 0))
     error (EXIT_FAILURE, 0,
 	   gettext ("cannot get section header string table index"));
 
   /* First round over the sections: determine the longest section name.  */
+  Elf_Scn *scn = NULL;
   while ((scn = elf_nextscn (elf, scn)) != NULL)
     {
+      GElf_Shdr shdr_mem;
       GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
 
       if (shdr == NULL)
@@ -439,7 +430,8 @@ show_sysv (Elf *elf, const char *prefix, const char *fname,
       /* Ignore all sections which are not used at runtime.  */
       if ((shdr->sh_flags & SHF_ALLOC) != 0)
 	maxlen = MAX (maxlen,
-		      strlen (elf_strptr (elf, shstrndx, shdr->sh_name)));
+		      (int) strlen (elf_strptr (elf, shstrndx,
+						shdr->sh_name)));
     }
 
   fputs_unlocked (fname, stdout);
@@ -450,6 +442,7 @@ show_sysv (Elf *elf, const char *prefix, const char *fname,
 	  digits - 2, sgettext ("sysv|size"),
 	  digits, sgettext ("sysv|addr"));
 
+  const char *fmtstr;
   if (radix == radix_hex)
     fmtstr = "%-*s %*" PRIx64 " %*" PRIx64 "\n";
   else if (radix == radix_decimal)
@@ -458,8 +451,10 @@ show_sysv (Elf *elf, const char *prefix, const char *fname,
     fmtstr = "%-*s %*" PRIo64 " %*" PRIo64 "\n";
 
   /* Iterate over all sections.  */
+  GElf_Off total = 0;
   while ((scn = elf_nextscn (elf, scn)) != NULL)
     {
+      GElf_Shdr shdr_mem;
       GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
 
       /* Ignore all sections which are not used at runtime.  */
@@ -488,21 +483,15 @@ show_sysv (Elf *elf, const char *prefix, const char *fname,
 
 /* Show sizes in SysV format in one line.  */
 static void
-show_sysv_one_line (Elf *elf, const char *prefix, const char *fname,
-		    const char *fullname)
+show_sysv_one_line (Elf *elf)
 {
-  size_t shstrndx;
-  Elf_Scn *scn = NULL;
-  GElf_Shdr shdr_mem;
-  const char *fmtstr;
-  GElf_Off total = 0;
-  int first = 1;
-
   /* Get the section header string table index.  */
-  if (elf_getshstrndx (elf, &shstrndx) < 0)
+  size_t shstrndx;
+  if (unlikely (elf_getshstrndx (elf, &shstrndx) < 0))
     error (EXIT_FAILURE, 0,
 	   gettext ("cannot get section header string table index"));
 
+  const char *fmtstr;
   if (radix == radix_hex)
     fmtstr = "%" PRIx64 "(%s)";
   else if (radix == radix_decimal)
@@ -511,8 +500,12 @@ show_sysv_one_line (Elf *elf, const char *prefix, const char *fname,
     fmtstr = "%" PRIo64 "(%s)";
 
   /* Iterate over all sections.  */
+  GElf_Off total = 0;
+  bool first = true;
+  Elf_Scn *scn = NULL;
   while ((scn = elf_nextscn (elf, scn)) != NULL)
     {
+      GElf_Shdr shdr_mem;
       GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
 
       /* Ignore all sections which are not used at runtime.  */
@@ -521,7 +514,7 @@ show_sysv_one_line (Elf *elf, const char *prefix, const char *fname,
 
       if (! first)
 	fputs_unlocked (" + ", stdout);
-      first = 0;
+      first = false;
 
       printf (fmtstr, shdr->sh_size,
 	      elf_strptr (elf, shstrndx, shdr->sh_name));
@@ -549,17 +542,17 @@ static void
 show_bsd (Elf *elf, const char *prefix, const char *fname,
 	  const char *fullname)
 {
-  Elf_Scn *scn = NULL;
-  GElf_Shdr shdr_mem;
   GElf_Off textsize = 0;
   GElf_Off datasize = 0;
   GElf_Off bsssize = 0;
-  int ddigits = length_map[gelf_getclass (elf) - 1][radix_decimal];
-  int xdigits = length_map[gelf_getclass (elf) - 1][radix_hex];
+  const int ddigits = length_map[gelf_getclass (elf) - 1][radix_decimal];
+  const int xdigits = length_map[gelf_getclass (elf) - 1][radix_hex];
 
   /* Iterate over all sections.  */
+  Elf_Scn *scn = NULL;
   while ((scn = elf_nextscn (elf, scn)) != NULL)
     {
+      GElf_Shdr shdr_mem;
       GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
 
       if (shdr == NULL)
@@ -617,20 +610,16 @@ show_bsd_totals (void)
 
 /* Show size and permission of loadable segments.  */
 static void
-show_segments (Elf *elf, const char *prefix, const char *fname,
-	       const char *fullname)
+show_segments (Elf *elf, const char *fullname)
 {
   GElf_Ehdr ehdr_mem;
-  GElf_Ehdr *ehdr;
-  size_t cnt;
-  GElf_Off total = 0;
-  int first = 1;
-
-  ehdr = gelf_getehdr (elf, &ehdr_mem);
+  GElf_Ehdr *ehdr = gelf_getehdr (elf, &ehdr_mem);
   if (ehdr == NULL)
     INTERNAL_ERROR (fullname);
 
-  for (cnt = 0; cnt < ehdr->e_phnum; ++cnt)
+  GElf_Off total = 0;
+  bool first = true;
+  for (size_t cnt = 0; cnt < ehdr->e_phnum; ++cnt)
     {
       GElf_Phdr phdr_mem;
       GElf_Phdr *phdr;
@@ -645,7 +634,7 @@ show_segments (Elf *elf, const char *prefix, const char *fname,
 
       if (! first)
 	fputs_unlocked (" + ", stdout);
-      first = 0;
+      first = false;
 
       printf (radix == radix_hex ? "%" PRIx64 "(%c%c%c)"
 	      : (radix == radix_decimal ? "%" PRId64 "(%c%c%c)"
@@ -686,9 +675,9 @@ handle_elf (Elf *elf, const char *prefix, const char *fname)
   if (format == format_sysv)
     show_sysv (elf, prefix, fname, fullname);
   else if (format == format_sysv_one_line)
-    show_sysv_one_line (elf, prefix, fname, fullname);
+    show_sysv_one_line (elf);
   else if (format == format_segments)
-    show_segments (elf, prefix, fname, fullname);
+    show_segments (elf, fullname);
   else
     {
       print_header (elf);
@@ -696,3 +685,6 @@ handle_elf (Elf *elf, const char *prefix, const char *fname)
       show_bsd (elf, prefix, fname, fullname);
     }
 }
+
+
+#include "debugpred.h"

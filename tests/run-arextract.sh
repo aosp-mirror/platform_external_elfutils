@@ -1,31 +1,45 @@
 #! /bin/sh
-# Copyright (C) 1999, 2000, 2002 Red Hat, Inc.
+# Copyright (C) 1999, 2000, 2002, 2005, 2006 Red Hat, Inc.
+# This file is part of Red Hat elfutils.
 # Written by Ulrich Drepper <drepper@redhat.com>, 1999.
 #
-# This program is Open Source software; you can redistribute it and/or
-# modify it under the terms of the Open Software License version 1.0 as
-# published by the Open Source Initiative.
+# Red Hat elfutils is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by the
+# Free Software Foundation; version 2 of the License.
 #
-# You should have received a copy of the Open Software License along
-# with this program; if not, you may obtain a copy of the Open Software
-# License version 1.0 from http://www.opensource.org/licenses/osl.php or
-# by writing the Open Source Initiative c/o Lawrence Rosen, Esq.,
-# 3001 King Ranch Road, Ukiah, CA 95482.
+# Red Hat elfutils is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with Red Hat elfutils; if not, write to the Free Software Foundation,
+# Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+#
+# Red Hat elfutils is an included package of the Open Invention Network.
+# An included package of the Open Invention Network is a package for which
+# Open Invention Network licensees cross-license their patents.  No patent
+# license is granted, either expressly or impliedly, by designation as an
+# included package.  Should you wish to participate in the Open Invention
+# Network licensing program, please visit www.openinventionnetwork.com
+# <http://www.openinventionnetwork.com>.
 
-archive=../libelf/.libs/libelf.a
-test -f $archive || archive=../libelf/libelf.a
+. $srcdir/test-subr.sh
+
+tempfiles arextract.test
+
+archive=../libelf/libelf.a
 if test -f $archive; then
     # The file is really available (i.e., no shared-only built).
     echo -n "Extracting symbols... $ac_c"
 
     # The files we are looking at.
     for f in ../libelf/*.o; do
-	./arextract $archive `basename $f` arextract.test || exit 1
+	testrun ./arextract $archive `basename $f` arextract.test || exit 1
 	cmp $f arextract.test || {
 	    echo "Extraction of $1 failed"
 	    exit 1
 	}
-	rm -f ${objpfx}arextract.test
     done
 
     echo "done"

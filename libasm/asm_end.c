@@ -1,16 +1,28 @@
 /* Finalize operations on the assembler context, free all resources.
-   Copyright (C) 2002, 2003 Red Hat, Inc.
+   Copyright (C) 2002, 2003, 2005 Red Hat, Inc.
+   This file is part of Red Hat elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2002.
 
-   This program is Open Source software; you can redistribute it and/or
-   modify it under the terms of the Open Software License version 1.0 as
-   published by the Open Source Initiative.
+   Red Hat elfutils is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by the
+   Free Software Foundation; version 2 of the License.
 
-   You should have received a copy of the Open Software License along
-   with this program; if not, you may obtain a copy of the Open Software
-   License version 1.0 from http://www.opensource.org/licenses/osl.php or
-   by writing the Open Source Initiative c/o Lawrence Rosen, Esq.,
-   3001 King Ranch Road, Ukiah, CA 95482.   */
+   Red Hat elfutils is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License along
+   with Red Hat elfutils; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
+
+   Red Hat elfutils is an included package of the Open Invention Network.
+   An included package of the Open Invention Network is a package for which
+   Open Invention Network licensees cross-license their patents.  No patent
+   license is granted, either expressly or impliedly, by designation as an
+   included package.  Should you wish to participate in the Open Invention
+   Network licensing program, please visit www.openinventionnetwork.com
+   <http://www.openinventionnetwork.com>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -31,9 +43,14 @@
 
 
 static int
-text_end (AsmCtx_t *ctx)
+text_end (AsmCtx_t *ctx __attribute__ ((unused)))
 {
-  // XXX Does anything have to be done?
+  if (fclose (ctx->out.file) != 0)
+    {
+      __libasm_seterrno (ASM_E_IOERROR);
+      return -1;
+    }
+
   return 0;
 }
 
@@ -93,9 +110,10 @@ binary_end (AsmCtx_t *ctx)
 		Elf_Data *newdata = elf_newdata (scn);
 
 		if (newdata == NULL)
-		  error (EXIT_FAILURE, 0,
-			 _("cannot create section for output file: %s"),
-			 elf_errmsg (-1));
+		  {
+		    __libasm_seterrno (ASM_E_LIBELF);
+		    return -1;
+		  }
 
 		newdata->d_buf = content->data;
 		newdata->d_type = ELF_T_BYTE;
@@ -114,26 +132,19 @@ binary_end (AsmCtx_t *ctx)
   /* Create the symbol table if necessary.  */
   if (ctx->nsymbol_tab > 0)
     {
-      Elf_Scn *symscn;
-      Elf_Scn *strscn;
-      AsmSym_t *sym;
-      int ptr_local;
-      int ptr_nonlocal;
-      GElf_Sym syment;
-      uint32_t *xshndx = NULL;
-      void *runp;
-
       /* Create the symbol table and string table section names.  */
       symscn_strent = ebl_strtabadd (ctx->section_strtab, ".symtab", 8);
       strscn_strent = ebl_strtabadd (ctx->section_strtab, ".strtab", 8);
 
       /* Create the symbol string table section.  */
-      strscn = elf_newscn (ctx->out.elf);
+      Elf_Scn *strscn = elf_newscn (ctx->out.elf);
       strtabdata = elf_newdata (strscn);
       shdr = gelf_getshdr (strscn, &shdr_mem);
       if (strtabdata == NULL || shdr == NULL)
-	error (EXIT_FAILURE, 0, _("cannot create section for output file: %s"),
-	       elf_errmsg (-1));
+	{
+	  __libasm_seterrno (ASM_E_LIBELF);
+	  return -1;
+	}
       strscnndx = elf_ndxscn (strscn);
 
       ebl_strtabfinalize (ctx->symbol_strtab, strtabdata);
@@ -144,12 +155,14 @@ binary_end (AsmCtx_t *ctx)
       (void) gelf_update_shdr (strscn, shdr);
 
       /* Create the symbol table section.  */
-      symscn = elf_newscn (ctx->out.elf);
+      Elf_Scn *symscn = elf_newscn (ctx->out.elf);
       data = elf_newdata (symscn);
       shdr = gelf_getshdr (symscn, &shdr_mem);
       if (data == NULL || shdr == NULL)
-	error (EXIT_FAILURE, 0, _("cannot create section for output file: %s"),
-	       elf_errmsg (-1));
+	{
+	  __libasm_seterrno (ASM_E_LIBELF);
+	  return -1;
+	}
       symscnndx = elf_ndxscn (symscn);
 
       /* We know how many symbols there will be in the symbol table.  */
@@ -163,20 +176,19 @@ binary_end (AsmCtx_t *ctx)
       data->d_off = 0;
 
       /* Clear the first entry.  */
+      GElf_Sym syment;
       memset (&syment, '\0', sizeof (syment));
       (void) gelf_update_sym (data, 0, &syment);
 
       /* Iterate over the symbol table.  */
-      runp = NULL;
-      ptr_local = 1;		/* Start with index 1; zero remains unused.  */
-      ptr_nonlocal = ctx->nsymbol_tab;
+      void *runp = NULL;
+      int ptr_local = 1;	/* Start with index 1; zero remains unused.  */
+      int ptr_nonlocal = ctx->nsymbol_tab;
+      uint32_t *xshndx = NULL;
+      AsmSym_t *sym;
       while ((sym = asm_symbol_tab_iterate (&ctx->symbol_tab, &runp)) != NULL)
 	if (asm_emit_symbol_p (ebl_string (sym->strent)))
 	  {
-	    int ptr;
-	    Elf32_Word ndx;
-	    Elf_Scn *scn;
-
 	    assert (ptr_local <= ptr_nonlocal);
 
 	    syment.st_name = ebl_strtaboffset (sym->strent);
@@ -187,14 +199,15 @@ binary_end (AsmCtx_t *ctx)
 
 	    /* Add local symbols at the beginning, the other from
 	       the end.  */
-	    ptr = sym->binding == STB_LOCAL ? ptr_local++ : ptr_nonlocal--;
+	    int ptr = sym->binding == STB_LOCAL ? ptr_local++ : ptr_nonlocal--;
 
 	    /* Determine the section index.  We have to handle the
 	       overflow correctly.  */
-	    scn = (sym->scn->subsection_id == 0
-		   ? sym->scn->data.main.scn
-		   : sym->scn->data.up->data.main.scn);
+	    Elf_Scn *scn = (sym->scn->subsection_id == 0
+			    ? sym->scn->data.main.scn
+			    : sym->scn->data.up->data.main.scn);
 
+	    Elf32_Word ndx;
 	    if (unlikely (scn == ASM_ABS_SCN))
 	      ndx = SHN_ABS;
 	    else if (unlikely (scn == ASM_COM_SCN))
@@ -206,15 +219,15 @@ binary_end (AsmCtx_t *ctx)
 		    /* The extended section index section does not yet
 		       exist.  */
 		    Elf_Scn *xndxscn;
-		    size_t symscnndx = elf_ndxscn (symscn);
 
 		    xndxscn = elf_newscn (ctx->out.elf);
 		    xndxdata = elf_newdata (xndxscn);
 		    shdr = gelf_getshdr (xndxscn, &shdr_mem);
 		    if (xndxdata == NULL || shdr == NULL)
-		      error (EXIT_FAILURE, 0, _("\
-cannot create extended section index table: %s"),
-			     elf_errmsg (-1));
+		      {
+			__libasm_seterrno (ASM_E_LIBELF);
+			return -1;
+		      }
 		    xndxscnndx = elf_ndxscn (xndxscn);
 
 		    shdr->sh_type = SHT_SYMTAB_SHNDX;
@@ -276,8 +289,10 @@ cannot create extended section index table: %s"),
   shstrtabdata = elf_newdata (shstrscn);
   shdr = gelf_getshdr (shstrscn, &shdr_mem);
   if (shstrscn == NULL || shstrtabdata == NULL || shdr == NULL)
-    error (EXIT_FAILURE, 0, _("cannot create section for output file: %s"),
-	   elf_errmsg (-1));
+    {
+      __libasm_seterrno (ASM_E_LIBELF);
+      return -1;
+    }
 
 
   /* Add the name of the section header string table.  */
@@ -300,9 +315,6 @@ cannot create extended section index table: %s"),
       do
 	{
 	  Elf_Scn *scn;
-	  GElf_Shdr shdr_mem;
-	  GElf_Shdr *shdr;
-	  Elf_Data *data;
 	  Elf32_Word *grpdata;
 
 	  scn = runp->scn;
@@ -312,9 +324,10 @@ cannot create extended section index table: %s"),
 
 	  data = elf_newdata (scn);
 	  if (data == NULL)
-	    error (EXIT_FAILURE, 0,
-		   _("cannot create section group for output file: %s"),
-		   elf_errmsg (-1));
+	    {
+	      __libasm_seterrno (ASM_E_LIBELF);
+	      return -1;
+	    }
 
 	  /* It is correct to use 'elf32_fsize' instead of 'gelf_fsize'
 	     here.  */

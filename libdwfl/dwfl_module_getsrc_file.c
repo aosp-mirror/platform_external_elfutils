@@ -50,7 +50,6 @@
 #include "libdwflP.h"
 #include "../libdw/libdwP.h"
 
-
 int
 dwfl_module_getsrc_file (Dwfl_Module *mod,
 			 const char *fname, int lineno, int column,

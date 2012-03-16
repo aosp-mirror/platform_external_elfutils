@@ -53,10 +53,6 @@
 #include <unistd.h>
 #include "system.h"
 
-/* ANDROID_CHANGE_BEGIN */
-#include <AndroidFixup.h>
-/* ANDROID_CHANGE_END */
-
 /* Try to open64 [DIR/][SUBDIR/]DEBUGLINK, return file descriptor or -1.
    On success, *DEBUGINFO_FILE_NAME has the malloc'd name of the open file.  */
 static int

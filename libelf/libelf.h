@@ -95,7 +95,13 @@ typedef struct
   Elf_Type d_type;		/* Type of this piece of data.  */
   unsigned int d_version;	/* ELF version.  */
   size_t d_size;		/* Size in bytes.  */
+  /* ANDROID_CHANGE_BEGIN */
+#if 0
   loff_t d_off;			/* Offset into section.  */
+#else
+  off_t d_off;			/* Offset into section.  */
+#endif
+  /* ANDROID_CHANGE_END */
   size_t d_align;		/* Alignment in section.  */
 } Elf_Data;
 
@@ -157,7 +163,13 @@ typedef struct
   uid_t ar_uid;			/* User ID.  */
   gid_t ar_gid;			/* Group ID.  */
   mode_t ar_mode;		/* File mode.  */
+  /* ANDROID_CHANGE_BEGIN */
+#if 0
   loff_t ar_size;		/* File size.  */
+#else
+  off_t ar_size;		/* File size.  */
+#endif
+  /* ANDROID_CHANGE_END */
   char *ar_rawname;		/* Original name of archive member.  */
 } Elf_Arhdr;
 
@@ -198,13 +210,25 @@ extern Elf_Cmd elf_next (Elf *__elf);
 extern int elf_end (Elf *__elf);
 
 /* Update ELF descriptor and write file to disk.  */
-extern loff_t elf_update (Elf *__elf, Elf_Cmd __cmd);
+/* ANDROID_CHANGE_BEGIN */
+#if 0
+extern off_t elf_update (Elf *__elf, Elf_Cmd __cmd);
+#else
+#endif
+/* ANDROID_CHANGE_END */
+
 
 /* Determine what kind of file is associated with ELF.  */
 extern Elf_Kind elf_kind (Elf *__elf) __attribute__ ((__pure__));
 
 /* Get the base offset for an object file.  */
+/* ANDROID_CHANGE_BEGIN */
+#if 0
 extern loff_t elf_getbase (Elf *__elf);
+#else
+extern off_t elf_getbase (Elf *__elf);
+#endif
+/* ANDROID_CHANGE_END */
 
 
 /* Retrieve file identification data.  */
@@ -305,9 +329,17 @@ extern Elf_Data *elf_newdata (Elf_Scn *__scn);
 /* Get data translated from a chunk of the file contents as section data
    would be for TYPE.  The resulting Elf_Data pointer is valid until
    elf_end (ELF) is called.  */
+/* ANDROID_CHANGE_BEGIN */
+#if 0
 extern Elf_Data *elf_getdata_rawchunk (Elf *__elf,
 				       loff_t __offset, size_t __size,
 				       Elf_Type __type);
+#else
+extern Elf_Data *elf_getdata_rawchunk (Elf *__elf,
+				       off_t __offset, size_t __size,
+				       Elf_Type __type);
+#endif
+/* ANDROID_CHANGE_END */
 
 
 /* Return pointer to string at OFFSET in section INDEX.  */
@@ -318,7 +350,13 @@ extern char *elf_strptr (Elf *__elf, size_t __index, size_t __offset);
 extern Elf_Arhdr *elf_getarhdr (Elf *__elf);
 
 /* Return offset in archive for current file ELF.  */
+/* ANDROID_CHANGE_BEGIN */
+#if 0
 extern loff_t elf_getaroff (Elf *__elf);
+#else
+extern off_t elf_getaroff (Elf *__elf);
+#endif
+/* ANDROID_CHANGE_END */
 
 /* Select archive element at OFFSET.  */
 extern size_t elf_rand (Elf *__elf, size_t __offset);

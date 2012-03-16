@@ -53,10 +53,6 @@
 #include <unistd.h>
 #include "../libdw/libdwP.h"	/* DWARF_E_* values are here.  */
 
-/* ANDROID_CHANGE_BEGIN */
-#include <AndroidFixup.h>
-/* ANDROID_CHANGE_END */
-
 /* Open libelf FILE->fd and compute the load base of ELF as loaded in MOD.
    When we return success, FILE->elf and FILE->bias are set up.  */
 static inline Dwfl_Error

@@ -59,7 +59,6 @@
 
 #include "libdwP.h"
 
-
 int
 dwarf_getsrc_file (Dwarf *dbg, const char *fname, int lineno, int column,
 		   Dwarf_Line ***srcsp, size_t *nsrcs)

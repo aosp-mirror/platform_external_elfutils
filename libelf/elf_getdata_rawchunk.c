@@ -64,7 +64,13 @@
 Elf_Data *
 elf_getdata_rawchunk (elf, offset, size, type)
      Elf *elf;
+     /* ANDROID_CHANGE_BEGIN */
+#if 0
      off64_t offset;
+#else
+     off_t offset;
+#endif
+     /* ANDROID_CHANGE_END */
      size_t size;
      Elf_Type type;
 {
@@ -78,8 +84,15 @@ elf_getdata_rawchunk (elf, offset, size, type)
       return NULL;
     }
 
+   /* ANDROID_CHANGE_BEGIN */
+#if 0
   if (unlikely (size > elf->maximum_size
 		|| (off64_t) (elf->maximum_size - size) < offset))
+#else
+  if (unlikely (size > elf->maximum_size
+		|| (off_t) (elf->maximum_size - size) < offset))
+#endif
+   /* ANDROID_CHANGE_END */
     {
       /* Invalid request.  */
       __libelf_seterrno (ELF_E_INVALID_OP);

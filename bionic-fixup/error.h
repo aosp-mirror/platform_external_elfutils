@@ -14,11 +14,23 @@
  * limitations under the License.
  */
 
-#ifndef ELFUTILS_ENDIAN_H
-#define ELFUTILS_ENDIAN_H
+#ifndef ELFUTILS_ERROR_H
+#define ELFUTILS_ERROR_H
 
-#define __LITTLE_ENDIAN (1234)
-#define __BIG_ENDIAN    (4321)
-#define __BYTE_ORDER    __LITTLE_ENDIAN
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
 
-#endif /* ELFUTILS_ENDIAN_H */
+static inline void __attribute__((noreturn))
+error(int status, int errnum, const char *fmt, ...)
+{
+        va_list lst;
+        va_start(lst, fmt);
+        vfprintf(stderr, fmt, lst);
+        fprintf(stderr, "error %d: %s\n", errnum, strerror(errno));
+        va_end(lst);
+        exit(status);
+}
+
+#endif /* ELFUTILS_ERROR_H */

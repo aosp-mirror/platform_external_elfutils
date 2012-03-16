@@ -51,10 +51,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-/* ANDROID_CHANGE_BEGIN */
-#include <AndroidFixup.h>
-/* ANDROID_CHANGE_END */
-
 /* Since dwfl_report_elf lays out the sections already, this will only be
    called when the section headers of the debuginfo file are being
    consulted instead, or for the section placed at 0.  With binutils

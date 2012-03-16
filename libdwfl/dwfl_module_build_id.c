@@ -145,6 +145,7 @@ int
 __dwfl_module_build_id (Dwfl_Module *mod,
 			const unsigned char **bits, GElf_Addr *vaddr)
 #else
+int
 dwfl_module_build_id (Dwfl_Module *mod,
 		      const unsigned char **bits, GElf_Addr *vaddr)
 #endif

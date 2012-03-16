@@ -238,13 +238,7 @@ dwarf_getpubnames (dbg, callback, arg, offset)
 	  gl.die_offset += dbg->pubnames_sets[cnt].cu_offset;
 
 	  gl.name = (char *) readp;
-          /* ANDROID_CHANGE_BEGIN */
-#ifdef __BIONIC__
-	  readp = gl.name + strlen(gl.name) + 1;
-#else
 	  readp = (unsigned char *) rawmemchr (gl.name, '\0') + 1;
-#endif
-          /* ANDROID_CHANGE_END */
 
 	  /* We found name and DIE offset.  Report it.  */
 	  if (callback (dbg, &gl, arg) != DWARF_CB_OK)

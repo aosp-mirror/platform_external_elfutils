@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-#ifndef ELFUTILS_ENDIAN_H
-#define ELFUTILS_ENDIAN_H
+#ifndef ELFUTILS_BIONIC_FIXUP_STDIO_EXT_H
+#define ELFUTILS_BIONIC_FIXUP_STDIO_EXT_H
 
-#define __LITTLE_ENDIAN (1234)
-#define __BIG_ENDIAN    (4321)
-#define __BYTE_ORDER    __LITTLE_ENDIAN
+/* intentionally blank */
 
-#endif /* ELFUTILS_ENDIAN_H */
+#endif  /* ELFUTILS_BIONIC_FIXUP_STDIO_EXT_H */

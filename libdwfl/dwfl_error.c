@@ -218,7 +218,14 @@ dwfl_errmsg (error)
   switch (error &~ 0xffff)
     {
     case OTHER_ERROR (ERRNO):
+      /* ANDROID_CHANGE_BEGIN */
+#ifdef __BIONIC__
+      strerror_r (error & 0xffff, "bad", 0);
+      return NULL;
+#else
       return strerror_r (error & 0xffff, "bad", 0);
+#endif
+      /* ANDROID_CHANGE_END */
     case OTHER_ERROR (LIBELF):
       return elf_errmsg (error & 0xffff);
     case OTHER_ERROR (LIBDW):

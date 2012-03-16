@@ -52,10 +52,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-/* ANDROID_CHANGE_BEGIN */
-#include <AndroidFixup.h>
-/* ANDROID_CHANGE_END */
-
 int
 internal_function
 __libdwfl_open_by_build_id (Dwfl_Module *mod, bool debug, char **file_name)

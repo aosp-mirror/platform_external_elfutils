@@ -85,7 +85,7 @@ __libdwfl_open_by_build_id (Dwfl_Module *mod, bool debug, char **file_name)
   const Dwfl_Callbacks *const cb = mod->dwfl->callbacks;
 
 /* ANDROID_CHANGE_BEGIN */
-#ifdef __BIONIC__
+#if defined(__BIONIC__) || defined(__APPLE__)
   char *path = strdup ((cb->debuginfo_path ? *cb->debuginfo_path : NULL)
 			?: DEFAULT_DEBUGINFO_PATH);
 #else

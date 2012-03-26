@@ -145,7 +145,7 @@ find_debuginfo_in_path (Dwfl_Module *mod, const char *file_name,
 
   const Dwfl_Callbacks *const cb = mod->dwfl->callbacks;
 /* ANDROID_CHANGE_BEGIN */
-#ifdef __BIONIC__
+#if defined(__BIONIC__) || defined(__APPLE__)
   char *path = strdup ((cb->debuginfo_path ? *cb->debuginfo_path : NULL)
 			?: DEFAULT_DEBUGINFO_PATH);
 #else
@@ -163,7 +163,7 @@ find_debuginfo_in_path (Dwfl_Module *mod, const char *file_name,
     }
 
   /* ANDROID_CHANGE_BEGIN */
-#ifdef __BIONIC__
+#if defined(__BIONIC__) || defined(__APPLE__)
   char *file_dirname = (file_basename == file_name ? NULL
 			: strndup (file_name, file_basename - 1 - file_name));
 #else

@@ -72,4 +72,26 @@ static inline char *dcgettext (char *__domainname, char *__msgid, int __category
         return NULL;
 }
 
+/* workaround for canonicalize_file_name */
+#define canonicalize_file_name(path) realpath(path, NULL)
+
+/* workaround for open64 */
+#define open64(path, flags)     open(path, flags)
+
+/* rawmemchr */
+static inline void *rawmemchr(const void *s, int c)
+{
+    const unsigned char *ptr = s;
+    while (1) {
+        if (*ptr == c) return (void *) ptr;
+        ptr++;
+    }
+}
+
+#define strndup(str, size) strdup(str)
+
+static void tdestroy(void *root, void (*free_node)(void *nodep))
+{
+}
+
 #endif /* ANDROID_FIXUP_H */

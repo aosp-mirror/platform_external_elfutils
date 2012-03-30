@@ -184,7 +184,7 @@ LOCAL_CFLAGS += -Wno-pointer-arith
 
 LOCAL_CFLAGS += -include $(LOCAL_PATH)/../bionic-fixup/AndroidFixup.h
 
-LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_TAGS := eng
 
 LOCAL_MODULE := libelf
 

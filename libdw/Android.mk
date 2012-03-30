@@ -139,7 +139,7 @@ LOCAL_CFLAGS += -DHAVE_CONFIG_H -std=gnu99 -D_GNU_SOURCE -DIS_LIBDW
 # to fix machine-dependent issues
 LOCAL_CFLAGS += -include $(LOCAL_PATH)/../host-$(HOST_OS)-fixup/AndroidFixup.h
 
-LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_TAGS := eng
 
 LOCAL_MODULE:= libdw
 
@@ -172,7 +172,7 @@ LOCAL_CFLAGS += -DHAVE_CONFIG_H -std=gnu99 -DIS_LIBDW -Werror
 # to suppress the "pointer of type ‘void *’ used in arithmetic" warning
 LOCAL_CFLAGS += -Wno-pointer-arith
 
-LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_TAGS := eng
 
 LOCAL_MODULE:= libdw
 

@@ -501,7 +501,7 @@ find_symtab (Dwfl_Module *mod)
 
   /* First see if the main ELF file has the debugging information.  */
   Elf_Scn *symscn = NULL, *xndxscn = NULL;
-  GElf_Word strshndx;
+  GElf_Word strshndx = 0;
   mod->symerr = load_symtab (&mod->main, &mod->symfile, &symscn,
 			     &xndxscn, &mod->syments, &strshndx);
   switch (mod->symerr)

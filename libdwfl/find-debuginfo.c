@@ -205,7 +205,9 @@ find_debuginfo_in_path (Dwfl_Module *mod, const char *file_name,
 	  break;
 	}
 
-      char *fname;
+/* ANDROID_CHANGE_BEGIN */
+      char *fname = NULL;
+/* ANDROID_CHANGE_END */
       int fd = try_open (dir, subdir, debuglink_file, &fname);
       if (fd < 0)
 	switch (errno)

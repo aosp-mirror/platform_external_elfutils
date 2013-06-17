@@ -44,6 +44,6 @@ ssize_t getline(char **lineptr, size_t *n, FILE *stream)
     /* Write the NULL character */
     (*lineptr)[len-1] = '\0';
 
-    /* Return the length of the new buffer */
-    return len;
+    /* Return the length of the new buffer not counting the null character */
+    return len-1;
 }

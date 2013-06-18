@@ -151,10 +151,6 @@ include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES := $(LIBDW_SRC_FILES)
 
-# missing utility functions in bionic
-LOCAL_SRC_FILES += \
-	../bionic-fixup/getline.c \
-
 LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/.. \
 	$(LOCAL_PATH)/../lib \

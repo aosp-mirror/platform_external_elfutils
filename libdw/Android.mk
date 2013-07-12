@@ -128,8 +128,6 @@ LOCAL_C_INCLUDES := \
 
 ifeq ($(HOST_OS),darwin)
 	LOCAL_CFLAGS += -fnested-functions
-	LOCAL_SRC_FILES += \
-		../host-darwin-fixup/getline.c
 endif
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../host-$(HOST_OS)-fixup

@@ -35,8 +35,10 @@ LIBDWFL_SRC_FILES := \
 	dwfl_error.c \
 	dwfl_module.c \
 	dwfl_module_addrdie.c \
+	dwfl_module_addrsym.c \
 	dwfl_module_build_id.c \
 	dwfl_module_getdwarf.c \
+	dwfl_module_getsym.c \
 	dwfl_report_elf.c \
 	find-debuginfo.c \
 	offline.c \

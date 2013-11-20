@@ -163,8 +163,13 @@ find_debuginfo_in_path (Dwfl_Module *mod, const char *file_name,
      indicated by the debug directory path setting.  */
 
   const Dwfl_Callbacks *const cb = mod->dwfl->callbacks;
+#if defined(__BIONIC__) || defined(__APPLE__)
+  char *path = strdup ((cb->debuginfo_path ? *cb->debuginfo_path : NULL)
+			?: DEFAULT_DEBUGINFO_PATH);
+#else
   char *path = strdupa ((cb->debuginfo_path ? *cb->debuginfo_path : NULL)
 			?: DEFAULT_DEBUGINFO_PATH);
+#endif
 
   /* A leading - or + in the whole path sets whether to check file CRCs.  */
   bool defcheck = true;
@@ -184,8 +189,14 @@ find_debuginfo_in_path (Dwfl_Module *mod, const char *file_name,
       main_stat.st_ino = 0;
     }
 
+#if defined(__BIONIC__) || defined(__APPLE__)
+  char *file_dirname = (file_basename == file_name ? NULL
+			: strndup (file_name, file_basename - 1 - file_name));
+#else
   char *file_dirname = (file_basename == file_name ? NULL
 			: strndupa (file_name, file_basename - 1 - file_name));
+#endif
+
   char *p;
   while ((p = strsep (&path, ":")) != NULL)
     {
@@ -229,11 +240,19 @@ find_debuginfo_in_path (Dwfl_Module *mod, const char *file_name,
 	  case ENOTDIR:
 	    continue;
 	  default:
+#if defined(__BIONIC__) || defined(__APPLE__)
+            free(path);
+            free(file_dirname);
+#endif
 	    return -1;
 	  }
       if (validate (mod, fd, check, debuglink_crc))
 	{
 	  *debuginfo_file_name = fname;
+#if defined(__BIONIC__) || defined(__APPLE__)
+          free(path);
+          free(file_dirname);
+#endif
 	  return fd;
 	}
       free (fname);
@@ -242,6 +261,10 @@ find_debuginfo_in_path (Dwfl_Module *mod, const char *file_name,
 
   /* No dice.  */
   errno = 0;
+#if defined(__BIONIC__) || defined(__APPLE__)
+  free(path);
+  free(file_dirname);
+#endif
   return -1;
 }
 

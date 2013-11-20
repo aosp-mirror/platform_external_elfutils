@@ -84,8 +84,13 @@ __libdwfl_open_by_build_id (Dwfl_Module *mod, bool debug, char **file_name)
 	    ".debug");
 
   const Dwfl_Callbacks *const cb = mod->dwfl->callbacks;
+#if defined(__BIONIC__) || defined(__APPLE__)
+  char *path = strdup ((cb->debuginfo_path ? *cb->debuginfo_path : NULL)
+			?: DEFAULT_DEBUGINFO_PATH);
+#else
   char *path = strdupa ((cb->debuginfo_path ? *cb->debuginfo_path : NULL)
 			?: DEFAULT_DEBUGINFO_PATH);
+#endif
 
   int fd = -1;
   char *dir;
@@ -118,6 +123,10 @@ __libdwfl_open_by_build_id (Dwfl_Module *mod, bool debug, char **file_name)
 	}
       free (name);
     }
+
+#if defined(__BIONIC__) || defined(__APPLE__)
+    free(path);
+#endif
 
   /* If we simply found nothing, clear errno.  If we had some other error
      with the file, report that.  Possibly this should treat other errors

@@ -163,7 +163,12 @@ dwfl_errmsg (error)
   switch (error &~ 0xffff)
     {
     case OTHER_ERROR (ERRNO):
+#ifdef __BIONIC__
+      strerror_r (error & 0xffff, "bad", 0);
+      return "bad";
+#else
       return strerror_r (error & 0xffff, "bad", 0);
+#endif
     case OTHER_ERROR (LIBELF):
       return elf_errmsg (error & 0xffff);
     case OTHER_ERROR (LIBDW):

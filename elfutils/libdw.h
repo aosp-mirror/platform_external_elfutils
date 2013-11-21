@@ -1,5 +1,5 @@
 /* Interfaces for libdw.
-   Copyright (C) 2002, 2004, 2005, 2006, 2007, 2008 Red Hat, Inc.
+   Copyright (C) 2002-2010 Red Hat, Inc.
    This file is part of Red Hat elfutils.
 
    Red Hat elfutils is free software; you can redistribute it and/or modify
@@ -190,6 +190,72 @@ typedef struct
 } Dwarf_Op;
 
 
+/* This describes one Common Information Entry read from a CFI section.
+   Pointers here point into the DATA->d_buf block passed to dwarf_next_cfi.  */
+typedef struct
+{
+  Dwarf_Off CIE_id;	 /* Always DW_CIE_ID_64 in Dwarf_CIE structures.  */
+
+  /* Instruction stream describing initial state used by FDEs.  If
+     we did not understand the whole augmentation string and it did
+     not use 'z', then there might be more augmentation data here
+     (and in FDEs) before the actual instructions.  */
+  const uint8_t *initial_instructions;
+  const uint8_t *initial_instructions_end;
+
+  Dwarf_Word code_alignment_factor;
+  Dwarf_Sword data_alignment_factor;
+  Dwarf_Word return_address_register;
+
+  const char *augmentation;	/* Augmentation string.  */
+
+  /* Augmentation data, might be NULL.  The size is correct only if
+     we understood the augmentation string sufficiently.  */
+  const uint8_t *augmentation_data;
+  size_t augmentation_data_size;
+  size_t fde_augmentation_data_size;
+} Dwarf_CIE;
+
+/* This describes one Frame Description Entry read from a CFI section.
+   Pointers here point into the DATA->d_buf block passed to dwarf_next_cfi.  */
+typedef struct
+{
+  /* Section offset of CIE this FDE refers to.  This will never be
+     DW_CIE_ID_64 in an FDE.  If this value is DW_CIE_ID_64, this is
+     actually a Dwarf_CIE structure.  */
+  Dwarf_Off CIE_pointer;
+
+  /* We can't really decode anything further without looking up the CIE
+     and checking its augmentation string.  Here follows the encoded
+     initial_location and address_range, then any augmentation data,
+     then the instruction stream.  This FDE describes PC locations in
+     the byte range [initial_location, initial_location+address_range).
+     When the CIE augmentation string uses 'z', the augmentation data is
+     a DW_FORM_block (self-sized).  Otherwise, when we understand the
+     augmentation string completely, fde_augmentation_data_size gives
+     the number of bytes of augmentation data before the instructions.  */
+  const uint8_t *start;
+  const uint8_t *end;
+} Dwarf_FDE;
+
+/* Each entry in a CFI section is either a CIE described by Dwarf_CIE or
+   an FDE described by Dward_FDE.  Check CIE_id to see which you have.  */
+typedef union
+{
+  Dwarf_Off CIE_id;	 /* Always DW_CIE_ID_64 in Dwarf_CIE structures.  */
+  Dwarf_CIE cie;
+  Dwarf_FDE fde;
+} Dwarf_CFI_Entry;
+
+#define dwarf_cfi_cie_p(entry)	((entry)->cie.CIE_id == DW_CIE_ID_64)
+
+/* Opaque type representing a frame state described by CFI.  */
+typedef struct Dwarf_Frame_s Dwarf_Frame;
+
+/* Opaque type representing a CFI section found in a DWARF or ELF file.  */
+typedef struct Dwarf_CFI_s Dwarf_CFI;
+
+
 /* Handle for debug sessions.  */
 typedef struct Dwarf Dwarf;
 
@@ -222,16 +288,72 @@ extern int dwarf_end (Dwarf *dwarf);
 /* Get the data block for the .debug_info section.  */
 extern Elf_Data *dwarf_getscn_info (Dwarf *dwarf);
 
-/* Read the header for the DWARF CU header.  */
+/* Read the header for the DWARF CU.  */
 extern int dwarf_nextcu (Dwarf *dwarf, Dwarf_Off off, Dwarf_Off *next_off,
 			 size_t *header_sizep, Dwarf_Off *abbrev_offsetp,
 			 uint8_t *address_sizep, uint8_t *offset_sizep)
      __nonnull_attribute__ (3);
 
+/* Read the header of a DWARF CU or type unit.  If TYPE_SIGNATUREP is not
+   null, this reads a type unit from the .debug_types section; otherwise
+   this reads a CU from the .debug_info section.  */
+extern int dwarf_next_unit (Dwarf *dwarf, Dwarf_Off off, Dwarf_Off *next_off,
+			    size_t *header_sizep, Dwarf_Half *versionp,
+			    Dwarf_Off *abbrev_offsetp,
+			    uint8_t *address_sizep, uint8_t *offset_sizep,
+			    uint64_t *type_signaturep, Dwarf_Off *type_offsetp)
+     __nonnull_attribute__ (3);
 
-/* Return DIE at given offset.  */
+
+/* Decode one DWARF CFI entry (CIE or FDE) from the raw section data.
+   The E_IDENT from the originating ELF file indicates the address
+   size and byte order used in the CFI section contained in DATA;
+   EH_FRAME_P should be true for .eh_frame format and false for
+   .debug_frame format.  OFFSET is the byte position in the section
+   to start at; on return *NEXT_OFFSET is filled in with the byte
+   position immediately after this entry.
+
+   On success, returns 0 and fills in *ENTRY; use dwarf_cfi_cie_p to
+   see whether ENTRY->cie or ENTRY->fde is valid.
+
+   On errors, returns -1.  Some format errors will permit safely
+   skipping to the next CFI entry though the current one is unusable.
+   In that case, *NEXT_OFF will be updated before a -1 return.
+
+   If there are no more CFI entries left in the section,
+   returns 1 and sets *NEXT_OFFSET to (Dwarf_Off) -1.  */
+extern int dwarf_next_cfi (const unsigned char e_ident[],
+			   Elf_Data *data, bool eh_frame_p,
+			   Dwarf_Off offset, Dwarf_Off *next_offset,
+			   Dwarf_CFI_Entry *entry)
+  __nonnull_attribute__ (1, 2, 5, 6);
+
+/* Use the CFI in the DWARF .debug_frame section.
+   Returns NULL if there is no such section (not an error).
+   The pointer returned can be used until dwarf_end is called on DWARF,
+   and must not be passed to dwarf_cfi_end.
+   Calling this more than once returns the same pointer.  */
+extern Dwarf_CFI *dwarf_getcfi (Dwarf *dwarf);
+
+/* Use the CFI in the ELF file's exception-handling data.
+   Returns NULL if there is no such data.
+   The pointer returned can be used until elf_end is called on ELF,
+   and must be passed to dwarf_cfi_end before then.
+   Calling this more than once allocates independent data structures.  */
+extern Dwarf_CFI *dwarf_getcfi_elf (Elf *elf);
+
+/* Release resources allocated by dwarf_getcfi_elf.  */
+extern int dwarf_cfi_end (Dwarf_CFI *cache);
+
+
+/* Return DIE at given offset in .debug_info section.  */
 extern Dwarf_Die *dwarf_offdie (Dwarf *dbg, Dwarf_Off offset,
 				Dwarf_Die *result) __nonnull_attribute__ (3);
+
+/* Return DIE at given offset in .debug_types section.  */
+extern Dwarf_Die *dwarf_offdie_types (Dwarf *dbg, Dwarf_Off offset,
+				      Dwarf_Die *result)
+     __nonnull_attribute__ (3);
 
 /* Return offset of DIE.  */
 extern Dwarf_Off dwarf_dieoffset (Dwarf_Die *die);
@@ -257,7 +379,7 @@ extern int dwarf_child (Dwarf_Die *die, Dwarf_Die *result)
    Returns 1 if no sibling could be found and, if RESULT is not
    the same as DIE, it sets RESULT->addr to the address of the
    (non-sibling) DIE that follows this one, or NULL if this DIE
-   was the last one in the cokmpilation unit.  */
+   was the last one in the compilation unit.  */
 extern int dwarf_siblingof (Dwarf_Die *die, Dwarf_Die *result)
      __nonnull_attribute__ (2);
 
@@ -456,6 +578,9 @@ extern int dwarf_getsrc_file (Dwarf *dbg, const char *fname, int line, int col,
 /* Return line address.  */
 extern int dwarf_lineaddr (Dwarf_Line *line, Dwarf_Addr *addrp);
 
+/* Return line VLIW operation index.  */
+extern int dwarf_lineop_index (Dwarf_Line *line, unsigned int *op_indexp);
+
 /* Return line number.  */
 extern int dwarf_lineno (Dwarf_Line *line, int *linep)
      __nonnull_attribute__ (2);
@@ -482,6 +607,14 @@ extern int dwarf_lineprologueend (Dwarf_Line *line, bool *flagp)
 
 /* Return true if record is for beginning of epilogue.  */
 extern int dwarf_lineepiloguebegin (Dwarf_Line *line, bool *flagp)
+     __nonnull_attribute__ (2);
+
+/* Return instruction-set architecture in this record.  */
+extern int dwarf_lineisa (Dwarf_Line *line, unsigned int *isap)
+     __nonnull_attribute__ (2);
+
+/* Return code path discriminator in this record.  */
+extern int dwarf_linediscriminator (Dwarf_Line *line, unsigned int *discp)
      __nonnull_attribute__ (2);
 
 
@@ -517,6 +650,30 @@ extern int dwarf_getlocation (Dwarf_Attribute *attr, Dwarf_Op **expr,
 extern int dwarf_getlocation_addr (Dwarf_Attribute *attr, Dwarf_Addr address,
 				   Dwarf_Op **exprs, size_t *exprlens,
 				   size_t nlocs);
+
+/* Return the block associated with a DW_OP_implicit_value operation.
+   The OP pointer must point into an expression that dwarf_getlocation
+   or dwarf_getlocation_addr has returned given the same ATTR.  */
+extern int dwarf_getlocation_implicit_value (Dwarf_Attribute *attr,
+					     const Dwarf_Op *op,
+					     Dwarf_Block *return_block)
+  __nonnull_attribute__ (2, 3);
+
+/* Return the attribute indicated by a DW_OP_GNU_implicit_pointer operation.
+   The OP pointer must point into an expression that dwarf_getlocation
+   or dwarf_getlocation_addr has returned given the same ATTR.
+   The result is the DW_AT_location or DW_AT_const_value attribute
+   of the OP->number DIE.  */
+extern int dwarf_getlocation_implicit_pointer (Dwarf_Attribute *attr,
+					       const Dwarf_Op *op,
+					       Dwarf_Attribute *result)
+  __nonnull_attribute__ (2, 3);
+
+
+/* Compute the byte-size of a type DIE according to DWARF rules.
+   For most types, this is just DW_AT_byte_size.
+   For DW_TAG_array_type it can apply much more complex rules.  */
+extern int dwarf_aggregate_size (Dwarf_Die *die, Dwarf_Word *size);
 
 
 /* Return scope DIEs containing PC address.
@@ -624,6 +781,59 @@ extern int dwarf_macro_param1 (Dwarf_Macro *macro, Dwarf_Word *paramp)
 /* Return second macro parameter.  */
 extern int dwarf_macro_param2 (Dwarf_Macro *macro, Dwarf_Word *paramp,
 			       const char **strp);
+
+
+/* Compute what's known about a call frame when the PC is at ADDRESS.
+   Returns 0 for success or -1 for errors.
+   On success, *FRAME is a malloc'd pointer.  */
+extern int dwarf_cfi_addrframe (Dwarf_CFI *cache,
+				Dwarf_Addr address, Dwarf_Frame **frame)
+  __nonnull_attribute__ (3);
+
+/* Return the DWARF register number used in FRAME to denote
+   the return address in FRAME's caller frame.  The remaining
+   arguments can be non-null to fill in more information.
+
+   Fill [*START, *END) with the PC range to which FRAME's information applies.
+   Fill in *SIGNALP to indicate whether this is a signal-handling frame.
+   If true, this is the implicit call frame that calls a signal handler.
+   This frame's "caller" is actually the interrupted state, not a call;
+   its return address is an exact PC, not a PC after a call instruction.  */
+extern int dwarf_frame_info (Dwarf_Frame *frame,
+			     Dwarf_Addr *start, Dwarf_Addr *end, bool *signalp);
+
+/* Return a DWARF expression that yields the Canonical Frame Address at
+   this frame state.  Returns -1 for errors, or zero for success, with
+   *NOPS set to the number of operations stored at *OPS.  That pointer
+   can be used only as long as FRAME is alive and unchanged.  *NOPS is
+   zero if the CFA cannot be determined here.  Note that if nonempty,
+   *OPS is a DWARF expression, not a location description--append
+   DW_OP_stack_value to a get a location description for the CFA.  */
+extern int dwarf_frame_cfa (Dwarf_Frame *frame, Dwarf_Op **ops, size_t *nops)
+  __nonnull_attribute__ (2);
+
+/* Deliver a DWARF location description that yields the location or
+   value of DWARF register number REGNO in the state described by FRAME.
+
+   Returns -1 for errors or zero for success, setting *NOPS to the
+   number of operations in the array stored at *OPS.  Note the last
+   operation is DW_OP_stack_value if there is no mutable location but
+   only a computable value.
+
+   *NOPS zero with *OPS set to OPS_MEM means CFI says the caller's
+   REGNO is "undefined", i.e. it's call-clobbered and cannot be recovered.
+
+   *NOPS zero with *OPS set to a null pointer means CFI says the
+   caller's REGNO is "same_value", i.e. this frame did not change it;
+   ask the caller frame where to find it.
+
+   For common simple expressions *OPS is OPS_MEM.  For arbitrary DWARF
+   expressions in the CFI, *OPS is an internal pointer that can be used as
+   long as the Dwarf_CFI used to create FRAME remains alive.  */
+extern int dwarf_frame_register (Dwarf_Frame *frame, int regno,
+				 Dwarf_Op ops_mem[3],
+				 Dwarf_Op **ops, size_t *nops)
+  __nonnull_attribute__ (3, 4, 5);
 
 
 /* Return error code of last failing function call.  This value is kept

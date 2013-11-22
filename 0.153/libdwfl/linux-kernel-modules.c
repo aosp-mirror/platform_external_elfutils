@@ -50,6 +50,9 @@
 /* We include this before config.h because it can't handle _FILE_OFFSET_BITS.
    Everything we need here is fine if its declarations just come first.  */
 
+/* TODO ANDROID - defined in AndroidConfig.h. */
+#undef _FILE_OFFSET_BITS
+
 #include <fts.h>
 
 #include <config.h>

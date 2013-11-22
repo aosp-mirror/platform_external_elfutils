@@ -1,5 +1,5 @@
 /* Interfaces for libdwfl.
-   Copyright (C) 2005, 2006, 2007, 2008 Red Hat, Inc.
+   Copyright (C) 2005-2010 Red Hat, Inc.
    This file is part of Red Hat elfutils.
 
    Red Hat elfutils is free software; you can redistribute it and/or modify
@@ -359,6 +359,15 @@ extern int dwfl_linux_kernel_report_offline (Dwfl *dwfl, const char *release,
 					     int (*predicate) (const char *,
 							       const char *));
 
+/* Examine an ET_CORE file and report modules based on its contents.
+   This can follow a dwfl_report_offline call to bootstrap the
+   DT_DEBUG method of following the dynamic linker link_map chain, in
+   case the core file does not contain enough of the executable's text
+   segment to locate its PT_DYNAMIC in the dump.  This might call
+   dwfl_report_elf on file names found in the dump if reading some
+   link_map files is the only way to ascertain those modules' addresses.
+   Returns the number of modules reported, or -1 for errors.  */
+extern int dwfl_core_file_report (Dwfl *dwfl, Elf *elf);
 
 /* Call dwfl_report_module for each file mapped into the address space of PID.
    Returns zero on success, -1 if dwfl_report_module failed,
@@ -423,10 +432,11 @@ extern int dwfl_module_getsymtab (Dwfl_Module *mod);
 
 /* Fetch one entry from the module's symbol table.  On errors, returns
    NULL.  If successful, fills in *SYM and returns the string for st_name.
-   This works like gelf_getsym except that st_value is always adjusted
-   to an absolute value based on the module's location.  If SHNDXP is
-   non-null, it's set with the section index (whether from st_shndx or
-   extended index table).  */
+   This works like gelf_getsym except that st_value is always adjusted to
+   an absolute value based on the module's location, when the symbol is in
+   an SHF_ALLOC section.  If SHNDXP is non-null, it's set with the section
+   index (whether from st_shndx or extended index table); in case of a
+   symbol in a non-allocated section, *SHNDXP is instead set to -1.  */
 extern const char *dwfl_module_getsym (Dwfl_Module *mod, int ndx,
 				       GElf_Sym *sym, GElf_Word *shndxp)
   __nonnull_attribute__ (3);
@@ -517,6 +527,9 @@ extern const char *dwfl_lineinfo (Dwfl_Line *line, Dwarf_Addr *addr,
 				  int *linep, int *colp,
 				  Dwarf_Word *mtime, Dwarf_Word *length);
 
+  /* Return the equivalent Dwarf_Line and the bias to apply to its address.  */
+extern Dwarf_Line *dwfl_dwarf_line (Dwfl_Line *line, Dwarf_Addr *bias);
+
 /* Return the compilation directory (AT_comp_dir) from this line's CU.  */
 extern const char *dwfl_line_comp_dir (Dwfl_Line *line);
 
@@ -549,6 +562,20 @@ extern int dwfl_module_register_names (Dwfl_Module *mod,
 							const char *regname,
 							int bits, int type),
 				       void *arg);
+
+
+/* Find the CFI for this module.  Returns NULL if there is no CFI.
+   On success, fills in *BIAS with the difference between addresses
+   within the loaded module and those in the CFI referring to it.
+   The pointer returned can be used until the module is cleaned up.
+   Calling these more than once returns the same pointers.
+
+   dwfl_module_dwarf_cfi gets the '.debug_frame' information found with the
+   rest of the DWARF information.  dwfl_module_eh_cfi gets the '.eh_frame'
+   information found linked into the text.  A module might have either or
+   both.  */
+extern Dwarf_CFI *dwfl_module_dwarf_cfi (Dwfl_Module *mod, Dwarf_Addr *bias);
+extern Dwarf_CFI *dwfl_module_eh_cfi (Dwfl_Module *mod, Dwarf_Addr *bias);
 
 
 #ifdef __cplusplus

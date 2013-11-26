@@ -232,4 +232,6 @@ const xfct_t __elf_xfctstom[EV_NUM - 1][EV_NUM - 1][ELFCLASSNUM - 1][ELF_T_NUM] 
 /* For now we only handle the case where the memory representation is the
    same as the file representation.  Should this change we have to define
    separate functions.  For now reuse them.  */
+#ifndef __APPLE__
 strong_alias (__elf_xfctstom, __elf_xfctstof)
+#endif

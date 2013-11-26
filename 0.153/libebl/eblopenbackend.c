@@ -196,8 +196,13 @@ static bool default_object_note (const char *name, uint32_t type,
 				 uint32_t descsz, const char *desc);
 static bool default_debugscn_p (const char *name);
 static bool default_copy_reloc_p (int reloc);
+#ifndef __APPLE__
 static bool default_none_reloc_p (int reloc);
 static bool default_relative_reloc_p (int reloc);
+#else
+#define default_none_reloc_p            default_copy_reloc_p
+#define default_relative_reloc_p        default_copy_reloc_p
+#endif
 static bool default_check_special_symbol (Elf *elf, GElf_Ehdr *ehdr,
 					  const GElf_Sym *sym,
 					  const char *name,
@@ -687,8 +692,10 @@ default_copy_reloc_p (int reloc __attribute__ ((unused)))
 {
   return false;
 }
+#ifndef __APPLE__
 strong_alias (default_copy_reloc_p, default_none_reloc_p)
 strong_alias (default_copy_reloc_p, default_relative_reloc_p)
+#endif
 
 static bool
 default_check_special_symbol (Elf *elf __attribute__ ((unused)),

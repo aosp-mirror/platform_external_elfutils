@@ -202,4 +202,6 @@ elf_getshdrstrndx (elf, dst)
 }
 INTDEF(elf_getshdrstrndx)
 /* Alias for the deprecated name.  */
+#ifndef __APPLE__
 strong_alias (elf_getshdrstrndx, elf_getshstrndx)
+#endif

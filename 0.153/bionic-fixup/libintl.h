@@ -17,6 +17,9 @@
 #ifndef ELFUTILS_LIBINTL_H
 #define ELFUTILS_LIBINTL_H
 
-/* intentionally blank */
+/* no internalization */
+#define gettext(x)      (x)
+
+char * dgettext (const char * domainname, const char * msgid);
 
 #endif /* ELFUTILS_LIBINTL_H */

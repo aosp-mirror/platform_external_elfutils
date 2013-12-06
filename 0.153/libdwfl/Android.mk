@@ -46,12 +46,7 @@ LIBDWFL_SRC_FILES := \
 	open.c \
 	relocate.c
 
-LOCAL_SRC_FILES := $(LIBDWFL_SRC_FILES) \
-	dwfl_addrdwarf.c \
-	dwfl_addrmodule.c \
-	dwfl_module_report_build_id.c \
-	linux-kernel-modules.c \
-	segment.c
+LOCAL_SRC_FILES := $(LIBDWFL_SRC_FILES)
 
 LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/.. \

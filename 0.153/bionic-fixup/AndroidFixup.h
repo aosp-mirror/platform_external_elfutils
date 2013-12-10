@@ -19,8 +19,6 @@
 
 #include <libgen.h> // for basename
 
-#define off_t           loff_t
-
 #ifndef MAX
 #define MAX(x,y)        ((x) > (y) ? (x) : (y))
 #endif

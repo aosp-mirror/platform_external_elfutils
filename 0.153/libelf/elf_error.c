@@ -62,7 +62,11 @@
 
 
 /* The error number.  */
+#ifdef __APPLE__
+static int global_error;
+#else
 static __thread int global_error;
+#endif
 
 
 int

@@ -88,5 +88,7 @@ elfw2(LIBELFBITS, fsize) (type, count, version)
 	  * __libelf_type_sizes[0][ELFW(ELFCLASS,LIBELFBITS) - 1][type]);
 #endif
 }
+#ifndef __APPLE__
 #define local_strong_alias(n1, n2) strong_alias (n1, n2)
 local_strong_alias (elfw2(LIBELFBITS, fsize), __elfw2(LIBELFBITS, msize))
+#endif

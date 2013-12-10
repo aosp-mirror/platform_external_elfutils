@@ -95,6 +95,7 @@ dwarf_begin (fd, cmd)
   elf = elf_begin (fd, elfcmd, NULL);
   if (elf == NULL)
     {
+#ifndef __APPLE__
       /* Test why the `elf_begin" call failed.  */
       struct stat64 st;
 
@@ -104,6 +105,9 @@ dwarf_begin (fd, cmd)
 	__libdw_seterrno (DWARF_E_INVALID_FILE);
       else
 	__libdw_seterrno (DWARF_E_IO_ERROR);
+#else
+      __libdw_seterrno (DWARF_E_IO_ERROR);
+#endif
     }
   else
     {

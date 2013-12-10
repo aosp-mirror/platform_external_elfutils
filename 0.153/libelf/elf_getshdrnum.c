@@ -107,5 +107,7 @@ elf_getshdrnum (elf, dst)
 
   return result;
 }
+#ifndef __APPLE__
 /* Alias for the deprecated name.  */
 strong_alias (elf_getshdrnum, elf_getshnum)
+#endif

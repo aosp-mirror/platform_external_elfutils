@@ -19,14 +19,6 @@
 
 #include <libgen.h> // for basename
 
-#ifndef MAX
-#define MAX(x,y)        ((x) > (y) ? (x) : (y))
-#endif
-
-#ifndef MIN
-#define MIN(x,y)        ((x) < (y) ? (x) : (y))
-#endif
-
 /* workaround for stpcpy */
 static inline char *stpcpy(char *dst, const char *src)
 {

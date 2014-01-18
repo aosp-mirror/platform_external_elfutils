@@ -58,7 +58,4 @@ static inline void *rawmemchr(const void *s, int c)
 /* workaround for canonicalize_file_name */
 #define canonicalize_file_name(path) realpath(path, NULL)
 
-/* workaround for open64 */
-#define open64(path, flags)     open(path, ((flags) | O_LARGEFILE))
-
 #endif /* ANDROID_FIXUP_H */

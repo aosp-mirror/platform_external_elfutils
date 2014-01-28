@@ -19,7 +19,6 @@
 
 /* no internalization */
 #define gettext(x)      (x)
-
-char * dgettext (const char * domainname, const char * msgid);
+#define dgettext(x,y)   (y)
 
 #endif /* ELFUTILS_LIBINTL_H */

@@ -19,17 +19,6 @@
 
 #include <libgen.h> // for basename
 
-/* workaround for stpcpy */
-static inline char *stpcpy(char *dst, const char *src)
-{
-    while (*src) {
-        *dst++ = *src++;
-    }
-    // Need to copy the NULL terminator
-    *dst = *src;
-    return dst;
-}
-
 /* _mempcpy and mempcpy */
 #ifndef __mempcpy
 #define __mempcpy(dest, src, n)  mempcpy(dest, src, n)

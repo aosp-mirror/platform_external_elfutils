@@ -154,6 +154,9 @@ ifeq ($(HOST_OS),darwin)
 	LOCAL_CFLAGS += -fnested-functions
 endif
 
+# can't build libelf with clang
+LOCAL_CLANG := false
+
 # to fix machine-dependent issues
 LOCAL_CFLAGS += -include $(LOCAL_PATH)/../host-$(HOST_OS)-fixup/AndroidFixup.h
 

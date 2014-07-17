@@ -67,6 +67,9 @@ ifeq ($(HOST_OS),darwin)
 	LOCAL_CFLAGS += -fnested-functions
 endif
 
+# libdwfl is one of the few libs that will never compile with clang
+LOCAL_CLANG := false
+
 # to fix machine-dependent issues
 LOCAL_CFLAGS += -include $(LOCAL_PATH)/../host-$(HOST_OS)-fixup/AndroidFixup.h
 

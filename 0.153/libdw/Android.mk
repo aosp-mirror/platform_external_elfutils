@@ -139,6 +139,9 @@ ifeq ($(HOST_OS),darwin)
 	LOCAL_CFLAGS += -fnested-functions
 endif
 
+# can't build libdw with clang
+LOCAL_CLANG := false
+
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../host-$(HOST_OS)-fixup
 
 LOCAL_CFLAGS += -DHAVE_CONFIG_H -std=gnu99 -D_GNU_SOURCE -DIS_LIBDW

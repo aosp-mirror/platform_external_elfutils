@@ -26,6 +26,8 @@ ifdef cur_platform
 include $(CLEAR_VARS)
 
 LIBDWFL_SRC_FILES := \
+	dwfl_addrdwarf.c \
+	dwfl_addrmodule.c \
 	dwfl_begin.c \
 	dwfl_build_id_find_elf.c \
 	dwfl_build_id_find_debuginfo.c \
@@ -35,16 +37,19 @@ LIBDWFL_SRC_FILES := \
 	dwfl_module_addrdie.c \
 	dwfl_module_addrsym.c \
 	dwfl_module_build_id.c \
+	dwfl_report_elf.c \
 	dwfl_module_getdwarf.c \
 	dwfl_module_getsym.c \
-	dwfl_report_elf.c \
+	dwfl_module_report_build_id.c \
 	find-debuginfo.c \
 	image-header.c \
 	libdwfl_crc32.c \
 	libdwfl_crc32_file.c \
+	linux-kernel-modules.c \
 	offline.c \
 	open.c \
-	relocate.c
+	relocate.c \
+	segment.c \
 
 LOCAL_SRC_FILES := $(LIBDWFL_SRC_FILES)
 

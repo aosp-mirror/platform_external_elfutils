@@ -14,7 +14,7 @@
 
 LOCAL_PATH := $(call my-dir)
 
-supported_platforms := linux darwin
+supported_platforms := linux
 cur_platform := $(filter $(HOST_OS),$(supported_platforms))
 
 ifdef cur_platform
@@ -67,10 +67,6 @@ LOCAL_CFLAGS += -DHAVE_CONFIG_H -std=gnu99 -D_GNU_SOURCE
 
 # to suppress the "pointer of type ‘void *’ used in arithmetic" warning
 LOCAL_CFLAGS += -Wno-pointer-arith
-
-ifeq ($(HOST_OS),darwin)
-	LOCAL_CFLAGS += -fnested-functions
-endif
 
 # libdwfl is one of the few libs that will never compile with clang
 LOCAL_CLANG := false

@@ -14,7 +14,7 @@
 
 LOCAL_PATH := $(call my-dir)
 
-supported_platforms := linux darwin
+supported_platforms := linux
 cur_platform := $(filter $(HOST_OS),$(supported_platforms))
 
 ifdef cur_platform
@@ -134,10 +134,6 @@ LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/../lib \
 	$(LOCAL_PATH)/../libdw \
 	$(LOCAL_PATH)/../libelf
-
-ifeq ($(HOST_OS),darwin)
-	LOCAL_CFLAGS += -fnested-functions
-endif
 
 # can't build libdw with clang
 LOCAL_CLANG := false

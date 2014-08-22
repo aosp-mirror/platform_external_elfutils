@@ -14,17 +14,6 @@
 
 LOCAL_PATH := $(call my-dir)
 
-supported_platforms := linux
-cur_platform := $(filter $(HOST_OS),$(supported_platforms))
-
-ifdef cur_platform
-
-#
-# host libdw
-#
-
-include $(CLEAR_VARS)
-
 LIBDW_SRC_FILES := \
         cfi.c \
         cie.c \
@@ -127,6 +116,14 @@ LIBDW_SRC_FILES := \
         libdw_visit_scopes.c \
         memory-access.c
 
+ifeq ($(HOST_OS),linux)
+
+#
+# host libdw
+#
+
+include $(CLEAR_VARS)
+
 LOCAL_SRC_FILES := $(LIBDW_SRC_FILES)
 
 LOCAL_C_INCLUDES := \
@@ -151,6 +148,8 @@ LOCAL_CFLAGS += -Wno-pointer-arith
 LOCAL_MODULE:= libdw
 
 include $(BUILD_HOST_STATIC_LIBRARY)
+
+endif # linux
 
 #
 # target libdw
@@ -180,5 +179,3 @@ LOCAL_MODULE_TAGS := eng
 LOCAL_MODULE:= libdw
 
 include $(BUILD_STATIC_LIBRARY)
-
-endif #cur_platform

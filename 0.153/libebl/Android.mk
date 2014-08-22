@@ -14,17 +14,6 @@
 
 LOCAL_PATH := $(call my-dir)
 
-supported_platforms := linux
-cur_platform := $(filter $(HOST_OS),$(supported_platforms))
-
-ifdef cur_platform
-
-#
-# host libebl
-#
-#
-include $(CLEAR_VARS)
-
 LIBEBL_SRC_FILES := \
         eblabicfi.c \
         eblauxvinfo.c \
@@ -71,6 +60,14 @@ LIBEBL_SRC_FILES := \
         ebl_syscall_abi.c \
         eblsysvhashentrysize.c
 
+ifeq ($(HOST_OS),linux)
+
+#
+# host libebl
+#
+#
+include $(CLEAR_VARS)
+
 LOCAL_SRC_FILES := $(LIBEBL_SRC_FILES)
 
 LOCAL_C_INCLUDES := \
@@ -92,6 +89,8 @@ LOCAL_CLANG := false
 LOCAL_MODULE:= libebl
 
 include $(BUILD_HOST_STATIC_LIBRARY)
+
+endif # linux
 
 #
 # target libebl
@@ -118,5 +117,3 @@ LOCAL_CFLAGS += -DHAVE_CONFIG_H -std=gnu99 -Werror
 LOCAL_MODULE:= libebl
 
 include $(BUILD_STATIC_LIBRARY)
-
-endif #cur_platform

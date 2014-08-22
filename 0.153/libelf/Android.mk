@@ -14,17 +14,6 @@
 
 LOCAL_PATH := $(call my-dir)
 
-supported_platforms := linux
-cur_platform := $(filter $(HOST_OS),$(supported_platforms))
-
-ifdef cur_platform
-
-#
-# host libelf
-#
-
-include $(CLEAR_VARS)
-
 LIBELF_SRC_FILES := \
 	elf32_checksum.c \
 	elf32_fsize.c \
@@ -136,6 +125,14 @@ LIBELF_SRC_FILES := \
 	libelf_next_prime.c \
 	nlist.c
 
+ifeq ($(HOST_OS),linux)
+
+#
+# host libelf
+#
+
+include $(CLEAR_VARS)
+
 LOCAL_SRC_FILES := $(LIBELF_SRC_FILES)
 
 LOCAL_C_INCLUDES := \
@@ -159,6 +156,8 @@ LOCAL_CFLAGS += -include $(LOCAL_PATH)/../host-$(HOST_OS)-fixup/AndroidFixup.h
 LOCAL_MODULE := libelf
 
 include $(BUILD_HOST_STATIC_LIBRARY)
+
+endif # linux
 
 #
 # target libelf
@@ -185,5 +184,3 @@ LOCAL_CFLAGS += -include $(LOCAL_PATH)/../bionic-fixup/AndroidFixup.h
 LOCAL_MODULE := libelf
 
 include $(BUILD_STATIC_LIBRARY)
-
-endif #cur_platform

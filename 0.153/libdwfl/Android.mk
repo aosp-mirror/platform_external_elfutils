@@ -14,17 +14,6 @@
 
 LOCAL_PATH := $(call my-dir)
 
-supported_platforms := linux
-cur_platform := $(filter $(HOST_OS),$(supported_platforms))
-
-ifdef cur_platform
-
-#
-# host libdwfl
-#
-
-include $(CLEAR_VARS)
-
 LIBDWFL_SRC_FILES := \
 	dwfl_addrdwarf.c \
 	dwfl_addrmodule.c \
@@ -50,6 +39,14 @@ LIBDWFL_SRC_FILES := \
 	open.c \
 	relocate.c \
 	segment.c \
+
+ifeq ($(HOST_OS),linux)
+
+#
+# host libdwfl
+#
+
+include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES := $(LIBDWFL_SRC_FILES)
 
@@ -78,6 +75,8 @@ LOCAL_MODULE:= libdwfl
 
 include $(BUILD_HOST_STATIC_LIBRARY)
 
+endif # linux
+
 #
 # target libdwfl
 #
@@ -94,7 +93,6 @@ LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/../libdw \
 	$(LOCAL_PATH)/../libelf
 
-
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../bionic-fixup
 
 LOCAL_CFLAGS += -include $(LOCAL_PATH)/../bionic-fixup/AndroidFixup.h
@@ -107,5 +105,3 @@ LOCAL_CFLAGS += -Wno-pointer-arith
 LOCAL_MODULE:= libdwfl
 
 include $(BUILD_STATIC_LIBRARY)
-
-endif #cur_platform

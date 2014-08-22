@@ -14,7 +14,7 @@
 
 LOCAL_PATH := $(call my-dir)
 
-supported_platforms := linux darwin
+supported_platforms := linux
 cur_platform := $(filter $(HOST_OS),$(supported_platforms))
 
 ifdef cur_platform
@@ -84,10 +84,6 @@ LOCAL_C_INCLUDES := \
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../host-$(HOST_OS)-fixup
 
 LOCAL_CFLAGS += -DHAVE_CONFIG_H -std=gnu99 -D_GNU_SOURCE
-
-ifeq ($(HOST_OS),darwin)
-LOCAL_CFLAGS += -Wno-int-conversion
-endif
 
 LOCAL_CFLAGS += -include $(LOCAL_PATH)/../host-$(HOST_OS)-fixup/AndroidFixup.h
 

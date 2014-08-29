@@ -124,6 +124,9 @@ ifeq ($(HOST_OS),linux)
 
 include $(CLEAR_VARS)
 
+# Clang has no nested functions.
+LOCAL_CLANG := false
+
 LOCAL_SRC_FILES := $(LIBDW_SRC_FILES)
 
 LOCAL_C_INCLUDES := \
@@ -131,9 +134,6 @@ LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/../lib \
 	$(LOCAL_PATH)/../libdw \
 	$(LOCAL_PATH)/../libelf
-
-# can't build libdw with clang
-LOCAL_CLANG := false
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../host-$(HOST_OS)-fixup
 
@@ -156,6 +156,9 @@ endif # linux
 #
 
 include $(CLEAR_VARS)
+
+# Clang has no nested functions.
+LOCAL_CLANG := false
 
 LOCAL_SRC_FILES := $(LIBDW_SRC_FILES)
 

@@ -68,6 +68,9 @@ ifeq ($(HOST_OS),linux)
 #
 include $(CLEAR_VARS)
 
+# Disable clang like other elfutils libraries.
+LOCAL_CLANG := false
+
 LOCAL_SRC_FILES := $(LIBEBL_SRC_FILES)
 
 LOCAL_C_INCLUDES := \
@@ -95,6 +98,9 @@ endif # linux
 #
 
 include $(CLEAR_VARS)
+
+# Disable clang like other elfutils libraries.
+LOCAL_CLANG := false
 
 LOCAL_SRC_FILES := $(LIBEBL_SRC_FILES)
 

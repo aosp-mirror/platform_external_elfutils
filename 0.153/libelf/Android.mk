@@ -23,6 +23,7 @@ LIBELF_SRC_FILES := \
 	elf32_newehdr.c \
 	elf32_newphdr.c \
 	elf32_offscn.c \
+	elf32_updatefile.c \
 	elf32_updatenull.c \
 	elf32_xlatetof.c \
 	elf32_xlatetom.c \
@@ -34,6 +35,7 @@ LIBELF_SRC_FILES := \
 	elf64_newehdr.c \
 	elf64_newphdr.c \
 	elf64_offscn.c \
+	elf64_updatefile.c \
 	elf64_updatenull.c \
 	elf64_xlatetof.c \
 	elf64_xlatetom.c \

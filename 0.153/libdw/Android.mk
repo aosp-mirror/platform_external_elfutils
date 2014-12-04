@@ -62,6 +62,7 @@ LIBDW_SRC_FILES := \
         dwarf_getattrcnt.c \
         dwarf_getattrs.c \
         dwarf_getcfi.c \
+        dwarf_getcfi_elf.c \
         dwarf_getelf.c \
         dwarf_getfuncs.c \
         dwarf_getlocation.c \

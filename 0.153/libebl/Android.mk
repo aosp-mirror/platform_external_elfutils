@@ -81,11 +81,7 @@ LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/../libelf \
 	$(LOCAL_PATH)/../libdw
 
-LOCAL_C_INCLUDES += $(LOCAL_PATH)/../host-$(HOST_OS)-fixup
-
 LOCAL_CFLAGS += -DHAVE_CONFIG_H -std=gnu99 -D_GNU_SOURCE
-
-LOCAL_CFLAGS += -include $(LOCAL_PATH)/../host-$(HOST_OS)-fixup/AndroidFixup.h
 
 LOCAL_CLANG := false
 

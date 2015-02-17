@@ -145,15 +145,10 @@ LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/../lib \
 	$(LOCAL_PATH)/../libelf
 
-LOCAL_C_INCLUDES += $(LOCAL_PATH)/../host-$(HOST_OS)-fixup
-
 LOCAL_CFLAGS += -DHAVE_CONFIG_H -std=gnu99 -D_GNU_SOURCE
 
 # to suppress the "pointer of type ‘void *’ used in arithmetic" warning
 LOCAL_CFLAGS += -Wno-pointer-arith
-
-# to fix machine-dependent issues
-LOCAL_CFLAGS += -include $(LOCAL_PATH)/../host-$(HOST_OS)-fixup/AndroidFixup.h
 
 LOCAL_MODULE := libelf
 

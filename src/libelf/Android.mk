@@ -143,7 +143,6 @@ LOCAL_SRC_FILES := $(LIBELF_SRC_FILES)
 LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/.. \
 	$(LOCAL_PATH)/../lib \
-	$(LOCAL_PATH)/../libelf
 
 LOCAL_CFLAGS += -DHAVE_CONFIG_H -std=gnu99 -D_GNU_SOURCE
 
@@ -151,6 +150,8 @@ LOCAL_CFLAGS += -DHAVE_CONFIG_H -std=gnu99 -D_GNU_SOURCE
 LOCAL_CFLAGS += -Wno-pointer-arith
 
 LOCAL_MODULE := libelf
+
+LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)
 
 include $(BUILD_HOST_STATIC_LIBRARY)
 
@@ -170,7 +171,6 @@ LOCAL_SRC_FILES := $(LIBELF_SRC_FILES)
 LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/.. \
 	$(LOCAL_PATH)/../lib \
-	$(LOCAL_PATH)/../libelf
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../bionic-fixup
 
@@ -182,5 +182,7 @@ LOCAL_CFLAGS += -Wno-pointer-arith
 LOCAL_CFLAGS += -include $(LOCAL_PATH)/../bionic-fixup/AndroidFixup.h
 
 LOCAL_MODULE := libelf
+
+LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)
 
 include $(BUILD_STATIC_LIBRARY)

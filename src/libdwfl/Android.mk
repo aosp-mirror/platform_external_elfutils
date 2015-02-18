@@ -72,6 +72,8 @@ LOCAL_CFLAGS += -Wno-unused-but-set-variable
 
 LOCAL_MODULE:= libdwfl
 
+LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)
+
 include $(BUILD_HOST_STATIC_LIBRARY)
 
 endif # linux
@@ -108,5 +110,7 @@ LOCAL_CFLAGS += -Wno-pointer-arith
 LOCAL_CFLAGS += -Wno-unused-but-set-variable
 
 LOCAL_MODULE:= libdwfl
+
+LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)
 
 include $(BUILD_STATIC_LIBRARY)

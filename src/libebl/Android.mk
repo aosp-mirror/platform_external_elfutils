@@ -87,6 +87,8 @@ LOCAL_CLANG := false
 
 LOCAL_MODULE:= libebl
 
+LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)
+
 include $(BUILD_HOST_STATIC_LIBRARY)
 
 endif # linux
@@ -117,5 +119,7 @@ LOCAL_CFLAGS += -include $(LOCAL_PATH)/../bionic-fixup/AndroidFixup.h
 LOCAL_CFLAGS += -DHAVE_CONFIG_H -std=gnu99 -Werror
 
 LOCAL_MODULE:= libebl
+
+LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)
 
 include $(BUILD_STATIC_LIBRARY)

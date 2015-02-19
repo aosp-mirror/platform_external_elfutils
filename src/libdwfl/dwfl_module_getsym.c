@@ -1,57 +1,38 @@
 /* Find debugging and symbol information for a module in libdwfl.
-   Copyright (C) 2006-2010 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   Copyright (C) 2006-2014 Red Hat, Inc.
+   This file is part of elfutils.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of either
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+     * the GNU Lesser General Public License as published by the Free
+       Software Foundation; either version 3 of the License, or (at
+       your option) any later version
+
+   or
+
+     * the GNU General Public License as published by the Free
+       Software Foundation; either version 2 of the License, or (at
+       your option) any later version
+
+   or both in parallel, as here.
+
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   In addition, as a special exception, Red Hat, Inc. gives You the
-   additional right to link the code of Red Hat elfutils with code licensed
-   under any Open Source Initiative certified open source license
-   (http://www.opensource.org/licenses/index.php) which requires the
-   distribution of source code with any binary distribution and to
-   distribute linked combinations of the two.  Non-GPL Code permitted under
-   this exception must only link to the code of Red Hat elfutils through
-   those well defined interfaces identified in the file named EXCEPTION
-   found in the source code files (the "Approved Interfaces").  The files
-   of Non-GPL Code may instantiate templates or use macros or inline
-   functions from the Approved Interfaces without causing the resulting
-   work to be covered by the GNU General Public License.  Only Red Hat,
-   Inc. may make changes or additions to the list of Approved Interfaces.
-   Red Hat's grant of this exception is conditioned upon your not adding
-   any new exceptions.  If you wish to add a new Approved Interface or
-   exception, please contact Red Hat.  You must obey the GNU General Public
-   License in all respects for all of the Red Hat elfutils code and other
-   code used in conjunction with Red Hat elfutils except the Non-GPL Code
-   covered by this exception.  If you modify this file, you may extend this
-   exception to your version of the file, but you are not obligated to do
-   so.  If you do not wish to provide this exception without modification,
-   you must delete this exception statement from your version and license
-   this file solely under the GPL without exception.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received copies of the GNU General Public License and
+   the GNU Lesser General Public License along with this program.  If
+   not, see <http://www.gnu.org/licenses/>.  */
 
 #include "libdwflP.h"
 
 const char *
-dwfl_module_getsym (Dwfl_Module *mod, int ndx,
-		    GElf_Sym *sym, GElf_Word *shndxp)
+internal_function
+__libdwfl_getsym (Dwfl_Module *mod, int ndx, GElf_Sym *sym, GElf_Addr *addr,
+		  GElf_Word *shndxp, Elf **elfp, Dwarf_Addr *biasp,
+		  bool *resolved, bool adjust_st_value)
 {
   if (unlikely (mod == NULL))
     return NULL;
@@ -63,8 +44,56 @@ dwfl_module_getsym (Dwfl_Module *mod, int ndx,
 	return NULL;
     }
 
+  /* All local symbols should come before all global symbols.  If we
+     have an auxiliary table make sure all the main locals come first,
+     then all aux locals, then all main globals and finally all aux globals.
+     And skip the auxiliary table zero undefined entry.  */
   GElf_Word shndx;
-  sym = gelf_getsymshndx (mod->symdata, mod->symxndxdata, ndx, sym, &shndx);
+  int tndx = ndx;
+  int skip_aux_zero = (mod->syments > 0 && mod->aux_syments > 0) ? 1 : 0;
+  Elf *elf;
+  Elf_Data *symdata;
+  Elf_Data *symxndxdata;
+  Elf_Data *symstrdata;
+  if (mod->aux_symdata == NULL
+      || ndx < mod->first_global)
+    {
+      /* main symbol table (locals).  */
+      tndx = ndx;
+      elf = mod->symfile->elf;
+      symdata = mod->symdata;
+      symxndxdata = mod->symxndxdata;
+      symstrdata = mod->symstrdata;
+    }
+  else if (ndx < mod->first_global + mod->aux_first_global - skip_aux_zero)
+    {
+      /* aux symbol table (locals).  */
+      tndx = ndx - mod->first_global + skip_aux_zero;
+      elf = mod->aux_sym.elf;
+      symdata = mod->aux_symdata;
+      symxndxdata = mod->aux_symxndxdata;
+      symstrdata = mod->aux_symstrdata;
+    }
+  else if ((size_t) ndx < mod->syments + mod->aux_first_global - skip_aux_zero)
+    {
+      /* main symbol table (globals).  */
+      tndx = ndx - mod->aux_first_global + skip_aux_zero;
+      elf = mod->symfile->elf;
+      symdata = mod->symdata;
+      symxndxdata = mod->symxndxdata;
+      symstrdata = mod->symstrdata;
+    }
+  else
+    {
+      /* aux symbol table (globals).  */
+      tndx = ndx - mod->syments + skip_aux_zero;
+      elf = mod->aux_sym.elf;
+      symdata = mod->aux_symdata;
+      symxndxdata = mod->aux_symxndxdata;
+      symstrdata = mod->aux_symstrdata;
+    }
+  sym = gelf_getsymshndx (symdata, symxndxdata, tndx, sym, &shndx);
+
   if (unlikely (sym == NULL))
     {
       __libdwfl_seterrno (DWFL_E_LIBELF);
@@ -81,9 +110,35 @@ dwfl_module_getsym (Dwfl_Module *mod, int ndx,
 	  || (sym->st_shndx < SHN_LORESERVE && sym->st_shndx != SHN_UNDEF)))
     {
       GElf_Shdr shdr_mem;
-      GElf_Shdr *shdr = gelf_getshdr (elf_getscn (mod->symfile->elf, shndx),
-				      &shdr_mem);
+      GElf_Shdr *shdr = gelf_getshdr (elf_getscn (elf, shndx), &shdr_mem);
       alloc = unlikely (shdr == NULL) || (shdr->sh_flags & SHF_ALLOC);
+    }
+
+  /* In case of an value in an allocated section the main Elf Ebl
+     might know where the real value is (e.g. for function
+     descriptors).  */
+
+  char *ident;
+  GElf_Addr st_value = sym->st_value & ebl_func_addr_mask (mod->ebl);
+  *resolved = false;
+  if (! adjust_st_value && mod->e_type != ET_REL && alloc
+      && (GELF_ST_TYPE (sym->st_info) == STT_FUNC
+	  || (GELF_ST_TYPE (sym->st_info) == STT_GNU_IFUNC
+	      && (ident = elf_getident (elf, NULL)) != NULL
+	      && ident[EI_OSABI] == ELFOSABI_LINUX)))
+    {
+      if (likely (__libdwfl_module_getebl (mod) == DWFL_E_NOERROR))
+	{
+	  if (elf != mod->main.elf)
+	    {
+	      st_value = dwfl_adjusted_st_value (mod, elf, st_value);
+	      st_value = dwfl_deadjust_st_value (mod, mod->main.elf, st_value);
+	    }
+
+	  *resolved = ebl_resolve_sym_value (mod->ebl, &st_value);
+	  if (! *resolved)
+	    st_value = sym->st_value;
+	}
     }
 
   if (shndxp != NULL)
@@ -103,9 +158,9 @@ dwfl_module_getsym (Dwfl_Module *mod, int ndx,
 	  /* In an ET_REL file, the symbol table values are relative
 	     to the section, not to the module's load base.  */
 	  size_t symshstrndx = SHN_UNDEF;
-	  Dwfl_Error result = __libdwfl_relocate_value (mod, mod->symfile->elf,
+	  Dwfl_Error result = __libdwfl_relocate_value (mod, elf,
 							&symshstrndx,
-							shndx, &sym->st_value);
+							shndx, &st_value);
 	  if (unlikely (result != DWFL_E_NOERROR))
 	    {
 	      __libdwfl_seterrno (result);
@@ -114,15 +169,48 @@ dwfl_module_getsym (Dwfl_Module *mod, int ndx,
 	}
       else if (alloc)
 	/* Apply the bias to the symbol value.  */
-	sym->st_value = dwfl_adjusted_st_value (mod, sym->st_value);
+	st_value = dwfl_adjusted_st_value (mod,
+					   *resolved ? mod->main.elf : elf,
+					   st_value);
       break;
     }
 
-  if (unlikely (sym->st_name >= mod->symstrdata->d_size))
+  if (adjust_st_value)
+    sym->st_value = st_value;
+
+  if (addr != NULL)
+    *addr = st_value;
+
+  if (unlikely (sym->st_name >= symstrdata->d_size))
     {
       __libdwfl_seterrno (DWFL_E_BADSTROFF);
       return NULL;
     }
-  return (const char *) mod->symstrdata->d_buf + sym->st_name;
+  if (elfp)
+    *elfp = elf;
+  if (biasp)
+    *biasp = dwfl_adjusted_st_value (mod, elf, 0);
+  return (const char *) symstrdata->d_buf + sym->st_name;
+}
+
+const char *
+dwfl_module_getsym_info (Dwfl_Module *mod, int ndx,
+			 GElf_Sym *sym, GElf_Addr *addr,
+			 GElf_Word *shndxp,
+			 Elf **elfp, Dwarf_Addr *bias)
+{
+  bool resolved;
+  return __libdwfl_getsym (mod, ndx, sym, addr, shndxp, elfp, bias,
+			   &resolved, false);
+}
+INTDEF (dwfl_module_getsym_info)
+
+const char *
+dwfl_module_getsym (Dwfl_Module *mod, int ndx,
+		    GElf_Sym *sym, GElf_Word *shndxp)
+{
+  bool resolved;
+  return __libdwfl_getsym (mod, ndx, sym, NULL, shndxp, NULL, NULL,
+			   &resolved, true);
 }
 INTDEF (dwfl_module_getsym)

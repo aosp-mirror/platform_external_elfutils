@@ -1,28 +1,31 @@
 /* PPC64 specific symbolic name handling.
-   Copyright (C) 2004, 2005 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   Copyright (C) 2004, 2005, 2014 Red Hat, Inc.
+   This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2004.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of either
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+     * the GNU Lesser General Public License as published by the Free
+       Software Foundation; either version 3 of the License, or (at
+       your option) any later version
+
+   or
+
+     * the GNU General Public License as published by the Free
+       Software Foundation; either version 2 of the License, or (at
+       your option) any later version
+
+   or both in parallel, as here.
+
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received copies of the GNU General Public License and
+   the GNU Lesser General Public License along with this program.  If
+   not, see <http://www.gnu.org/licenses/>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -69,6 +72,8 @@ ppc64_dynamic_tag_name (int64_t tag, char *buf __attribute__ ((unused)),
       return "PPC64_OPD";
     case DT_PPC64_OPDSZ:
       return "PPC64_OPDSZ";
+    case DT_PPC64_OPT:
+      return "PPC64_OPT";
     default:
       break;
     }
@@ -81,7 +86,8 @@ ppc64_dynamic_tag_check (int64_t tag)
 {
   return (tag == DT_PPC64_GLINK
 	  || tag == DT_PPC64_OPD
-	  || tag == DT_PPC64_OPDSZ);
+	  || tag == DT_PPC64_OPDSZ
+	  || tag == DT_PPC64_OPT);
 }
 
 
@@ -102,8 +108,23 @@ ppc64_check_special_symbol (Elf *elf, GElf_Ehdr *ehdr,
 
 /* Check if backend uses a bss PLT in this file.  */
 bool
-ppc64_bss_plt_p (Elf *elf __attribute__ ((unused)),
-		 GElf_Ehdr *ehdr __attribute__ ((unused)))
+ppc64_bss_plt_p (Elf *elf __attribute__ ((unused)))
 {
   return true;
+}
+
+/* Check whether machine flags are valid.  PPC64 has three possible values:
+   0 - for unspecified ABI, or not using any specific ABI features.
+   1 - for the original ELF PPC64 ABI using function descriptors.
+   2 - for the revised ELFv2 PPC64 ABI without function descriptors.  */
+bool
+ppc64_machine_flag_check (GElf_Word flags)
+{
+  return flags == 0 || flags == 1 || flags == 2;
+}
+
+bool
+ppc64_check_st_other_bits (unsigned char st_other)
+{
+  return (PPC64_LOCAL_ENTRY_OFFSET (st_other) != 0);
 }

@@ -1,51 +1,30 @@
 /* Find the debuginfo file for a module from its build ID.
-   Copyright (C) 2007, 2009 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   Copyright (C) 2007, 2009, 2014 Red Hat, Inc.
+   This file is part of elfutils.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of either
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+     * the GNU Lesser General Public License as published by the Free
+       Software Foundation; either version 3 of the License, or (at
+       your option) any later version
+
+   or
+
+     * the GNU General Public License as published by the Free
+       Software Foundation; either version 2 of the License, or (at
+       your option) any later version
+
+   or both in parallel, as here.
+
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   In addition, as a special exception, Red Hat, Inc. gives You the
-   additional right to link the code of Red Hat elfutils with code licensed
-   under any Open Source Initiative certified open source license
-   (http://www.opensource.org/licenses/index.php) which requires the
-   distribution of source code with any binary distribution and to
-   distribute linked combinations of the two.  Non-GPL Code permitted under
-   this exception must only link to the code of Red Hat elfutils through
-   those well defined interfaces identified in the file named EXCEPTION
-   found in the source code files (the "Approved Interfaces").  The files
-   of Non-GPL Code may instantiate templates or use macros or inline
-   functions from the Approved Interfaces without causing the resulting
-   work to be covered by the GNU General Public License.  Only Red Hat,
-   Inc. may make changes or additions to the list of Approved Interfaces.
-   Red Hat's grant of this exception is conditioned upon your not adding
-   any new exceptions.  If you wish to add a new Approved Interface or
-   exception, please contact Red Hat.  You must obey the GNU General Public
-   License in all respects for all of the Red Hat elfutils code and other
-   code used in conjunction with Red Hat elfutils except the Non-GPL Code
-   covered by this exception.  If you modify this file, you may extend this
-   exception to your version of the file, but you are not obligated to do
-   so.  If you do not wish to provide this exception without modification,
-   you must delete this exception statement from your version and license
-   this file solely under the GPL without exception.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received copies of the GNU General Public License and
+   the GNU Lesser General Public License along with this program.  If
+   not, see <http://www.gnu.org/licenses/>.  */
 
 #include "libdwflP.h"
 #include <unistd.h>
@@ -62,10 +41,61 @@ dwfl_build_id_find_debuginfo (Dwfl_Module *mod,
 			      char **debuginfo_file_name)
 {
   int fd = -1;
+
+  /* Are we looking for a separate debug file for the main file or for
+     an alternate (dwz multi) debug file?  Alternatively we could check
+     whether the dwbias == -1.  */
+  if (mod->dw != NULL)
+    {
+      const void *build_id;
+      const char *altname;
+      ssize_t build_id_len = INTUSE(dwelf_dwarf_gnu_debugaltlink) (mod->dw,
+								   &altname,
+								   &build_id);
+      if (build_id_len > 0)
+	fd = __libdwfl_open_by_build_id (mod, true, debuginfo_file_name,
+					 build_id_len, build_id);
+
+      if (fd >= 0)
+	{
+	  /* We need to open an Elf handle on the file so we can check its
+	     build ID note for validation.  Backdoor the handle into the
+	     module data structure since we had to open it early anyway.  */
+	  Dwfl_Error error = __libdw_open_file (&fd, &mod->alt_elf,
+						true, false);
+	  if (error != DWFL_E_NOERROR)
+	    __libdwfl_seterrno (error);
+	  else
+	    {
+	      const void *alt_build_id;
+	      ssize_t alt_len = INTUSE(dwelf_elf_gnu_build_id) (mod->alt_elf,
+								&alt_build_id);
+	      if (alt_len > 0 && alt_len == build_id_len
+		  && memcmp (build_id, alt_build_id, alt_len) == 0)
+		return fd;
+	      else
+		{
+		  /* A mismatch!  */
+		  elf_end (mod->alt_elf);
+		  mod->alt_elf = NULL;
+		  close (fd);
+		  fd = -1;
+		}
+	      free (*debuginfo_file_name);
+	      *debuginfo_file_name = NULL;
+	      errno = 0;
+	    }
+	}
+      return fd;
+    }
+
+  /* We don't even have the Dwarf yet and it isn't in the main file.
+     Try to find separate debug file now using the module build id.  */
   const unsigned char *bits;
   GElf_Addr vaddr;
+
   if (INTUSE(dwfl_module_build_id) (mod, &bits, &vaddr) > 0)
-    fd = __libdwfl_open_by_build_id (mod, true, debuginfo_file_name);
+    fd = __libdwfl_open_mod_by_build_id (mod, true, debuginfo_file_name);
   if (fd >= 0)
     {
       /* We need to open an Elf handle on the file so we can check its

@@ -1,58 +1,35 @@
 /* Standard libdwfl callbacks for debugging the running Linux kernel.
-   Copyright (C) 2005-2011 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   Copyright (C) 2005-2011, 2013, 2014 Red Hat, Inc.
+   This file is part of elfutils.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of either
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+     * the GNU Lesser General Public License as published by the Free
+       Software Foundation; either version 3 of the License, or (at
+       your option) any later version
+
+   or
+
+     * the GNU General Public License as published by the Free
+       Software Foundation; either version 2 of the License, or (at
+       your option) any later version
+
+   or both in parallel, as here.
+
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   In addition, as a special exception, Red Hat, Inc. gives You the
-   additional right to link the code of Red Hat elfutils with code licensed
-   under any Open Source Initiative certified open source license
-   (http://www.opensource.org/licenses/index.php) which requires the
-   distribution of source code with any binary distribution and to
-   distribute linked combinations of the two.  Non-GPL Code permitted under
-   this exception must only link to the code of Red Hat elfutils through
-   those well defined interfaces identified in the file named EXCEPTION
-   found in the source code files (the "Approved Interfaces").  The files
-   of Non-GPL Code may instantiate templates or use macros or inline
-   functions from the Approved Interfaces without causing the resulting
-   work to be covered by the GNU General Public License.  Only Red Hat,
-   Inc. may make changes or additions to the list of Approved Interfaces.
-   Red Hat's grant of this exception is conditioned upon your not adding
-   any new exceptions.  If you wish to add a new Approved Interface or
-   exception, please contact Red Hat.  You must obey the GNU General Public
-   License in all respects for all of the Red Hat elfutils code and other
-   code used in conjunction with Red Hat elfutils except the Non-GPL Code
-   covered by this exception.  If you modify this file, you may extend this
-   exception to your version of the file, but you are not obligated to do
-   so.  If you do not wish to provide this exception without modification,
-   you must delete this exception statement from your version and license
-   this file solely under the GPL without exception.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received copies of the GNU General Public License and
+   the GNU Lesser General Public License along with this program.  If
+   not, see <http://www.gnu.org/licenses/>.  */
 
 /* We include this before config.h because it can't handle _FILE_OFFSET_BITS.
    Everything we need here is fine if its declarations just come first.  */
 
-/* TODO ANDROID - defined in AndroidConfig.h. */
-#undef _FILE_OFFSET_BITS
-
+#undef _FILE_OFFSET_BITS  // Undo the damage caused by AndroidConfig.h.
 #include <fts.h>
 
 #include <config.h>
@@ -112,23 +89,22 @@ try_kernel_name (Dwfl *dwfl, char **fname, bool try_debug)
 
   if (fd < 0)
     {
-      char *debugfname = NULL;
       Dwfl_Module fakemod = { .dwfl = dwfl };
       /* First try the file's unadorned basename as DEBUGLINK_FILE,
 	 to look for "vmlinux" files.  */
       fd = INTUSE(dwfl_standard_find_debuginfo) (&fakemod, NULL, NULL, 0,
 						 *fname, basename (*fname), 0,
-						 &debugfname);
+						 &fakemod.debug.name);
       if (fd < 0 && try_debug)
 	/* Next, let the call use the default of basename + ".debug",
 	   to look for "vmlinux.debug" files.  */
 	fd = INTUSE(dwfl_standard_find_debuginfo) (&fakemod, NULL, NULL, 0,
 						   *fname, NULL, 0,
-						   &debugfname);
-      if (debugfname != NULL)
+						   &fakemod.debug.name);
+      if (fakemod.debug.name != NULL)
 	{
 	  free (*fname);
-	  *fname = debugfname;
+	  *fname = fakemod.debug.name;
 	}
     }
 
@@ -240,8 +216,14 @@ report_kernel (Dwfl *dwfl, const char **release,
 
       if (report)
 	{
+	  /* Note that on some architectures (e.g. x86_64) the vmlinux
+	     is ET_EXEC, while on others (e.g. ppc64) it is ET_DYN.
+	     In both cases the phdr p_vaddr load address will be non-zero.
+	     We want the image to be placed as if it was ET_DYN, so
+	     pass true for add_p_vaddr which will do the right thing
+	     (in combination with a zero base) in either case.  */
 	  Dwfl_Module *mod = INTUSE(dwfl_report_elf) (dwfl, KERNEL_MODNAME,
-						      fname, fd, 0);
+						      fname, fd, 0, true);
 	  if (mod == NULL)
 	    result = -1;
 	  else
@@ -249,11 +231,11 @@ report_kernel (Dwfl *dwfl, const char **release,
 	    mod->e_type = ET_DYN;
 	}
 
+      free (fname);
+
       if (!report || result < 0)
 	close (fd);
     }
-
-  free (fname);
 
   return result;
 }
@@ -269,9 +251,10 @@ report_kernel_archive (Dwfl *dwfl, const char **release,
     return result;
 
   char *archive;
-  if (unlikely ((*release)[0] == '/'
-		? asprintf (&archive, "%s/debug.a", *release)
-		: asprintf (&archive, MODULEDIRFMT "/debug.a", *release)) < 0)
+  int res = (((*release)[0] == '/')
+	     ? asprintf (&archive, "%s/debug.a", *release)
+	     : asprintf (&archive, MODULEDIRFMT "/debug.a", *release));
+  if (unlikely (res < 0))
     return ENOMEM;
 
   int fd = try_kernel_name (dwfl, &archive, false);
@@ -319,6 +302,9 @@ check_suffix (const FTSENT *f, size_t namelen)
 #endif
 #if USE_BZLIB
   TRY (".ko.bz2");
+#endif
+#if USE_LZMA
+  TRY (".ko.xz");
 #endif
 
   return 0;

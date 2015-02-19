@@ -1,3 +1,884 @@
+2014-12-18  Ulrich Drepper  <drepper@gmail.com>
+
+	* Makefile.am: Suppress output of textrel_check command.
+
+2014-12-17  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_cfa_program): Add bounds check before each op that
+	takes at least one argument.
+
+2014-12-16  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_decoded_line_section): Print dwarf_errmsg if
+	dwarf_onesrcline or dwarf_linesrc fails.
+
+2014-12-16  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_debug_line_section): Correct overflow check for
+	unit_length.
+	(print_debug_aranges_section): Correct overflow check for length.
+
+2014-12-15  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (notice_listptr): Return false if offset doesn't fit
+	in 61-bits.
+	(attr_callback): Warn if loclist or rangelist offset doesn't fit.
+
+2014-12-15  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_ops): Don't assert when addr_size or ref_size
+	is not 4 or 8, just report invalid data.
+
+2014-12-15  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_gdb_index_section): Add more bounds checks.
+
+2014-12-15  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_debug_line_section): Check there is enough room
+	for DW_LNE_set_address argument. Make sure there is enough room
+	for the the initial unit_length.
+
+2014-12-14  Mark Wielaard  <mjw@redhat.com>
+
+	* elflint.c (check_attributes): Call get_uleb128 with end pointer.
+	* readelf.c (print_attributes): Likewise.
+	(print_ops): Likewise and also for get_sleb128.
+	(print_cfa_program): Likewise and add more readp bounds checks.
+	(read_encoded): Likewise.
+	(print_debug_frame_section): Likewise.
+	(print_debug_line_section): Likewise.
+	(print_debug_macinfo_section): Likewise.
+	(print_debug_macro_section): Likewise.
+	(print_debug_exception_table): Likewise.
+
+2014-12-16  Mark Wielaard  <mjw@redhat.com>
+
+	* elfcmp.c (compare_Elf32_Word): Make sure (unsigned) Elf32_Word
+	difference doesn't wrap around before returning as int.
+
+2014-12-11  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_debug_exception_table): Check TType base offset
+	and Action table are sane.
+
+2014-12-11  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_debug_frame_section): Check number of augmentation
+	chars to print.
+
+2014-12-09  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (handle_file_note): Check count fits data section and
+	doesn't overflow fptr.
+
+2014-12-08  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_debug_exception_table): Report invalid data if
+	action table doesn't immediately follow call site table.
+
+2014-12-10  Josh Stone  <jistone@redhat.com>
+
+	* addr2line.c (get_diename): New, get linkage_name or name.
+	* addr2line.c (print_dwarf_function): Use get_diename.
+	* addr2line.c (handle_address): Likewise.
+	* addr2line.c (print_diesym): Removed.
+
+2014-12-10  Josh Stone  <jistone@redhat.com>
+
+	* addr2line.c (handle_address): Find the proper inline parents.
+
+2014-12-07  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_debug_line_section): max_ops_per_instr cannot
+	be zero.
+
+2014-12-07  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_ops): Handle zero ref_size for DW_OP_call_ref
+	and DW_OP_GNU_implicit_pointer.
+
+2014-12-04  Mark Wielaard  <mjw@redhat.com>
+
+	* objdump.c (show_relocs_x): Make sure destshdr exists.
+	(show_relocs_rel): Don't rely on shdr->sh_entsize, use gelf_fsize.
+	(show_relocs_rela): Likewise.
+	(show_relocs): Make sure destshdr, symshdr and symdata exists.
+
+2014-11-30  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (handle_sysv_hash64): Fix overflow check.
+
+2014-11-28  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (handle_relocs_rel): Don't reuse destshdr to store
+	section header of a relocation against a STT_SECTION symbol. Use
+	a new local variable secshdr.
+	(handle_relocs_rela): Likewise.
+
+2014-11-26  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_debug_aranges_section): Cast Dwarf_Word length
+	to ptrdiff_t for comparison.
+
+2014-11-24  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_debug_line_section): Check line_range is not zero
+	before usage.
+
+2014-11-23  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_debug_aranges_section): Check length to catch
+	nexthdr overflow.
+
+2014-11-21  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_attributes): Guard against empty section.
+	Document attribute format. Break when vendor name isn't terminated.
+	Add overflow check for subsection_len. Handle both gnu and non-gnu
+	attribute tags.
+
+2014-11-22  Mark Wielaard  <mjw@redhat.com>
+
+	* elflint.c (check_sections): Call ebl_bss_plt_p without ehdr.
+	* findtextrel.c (process_file): Use elf_getphdrnum.
+	* readelf.c (process_elf_file): Remove redundant ehdr->e_phoff check.
+	(print_phdr): Check phnum.
+	* size.c (show_segments): Use elf_getphdrnum.
+	* strip.c (handle_elf): Likewise.
+	* unstrip.c (copy_elf): Likewise.
+	(copy_elided_sections): Likewise.
+	(handle_file): Likewise.
+
+2014-11-18  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_cfa_program): Fix sanity check of DW_FORM_block
+	length.
+
+2014-11-17  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (handle_verneed): Check vna_next and vn_next exist.
+	(handle_verdef): Check vda_next and vd_next exist.
+	(handle_versym): Check vd_next, vna_next and vn_next exist.
+	Check vername and filename are not NULL before use.
+
+2014-11-17  Mark Wielaard  <mjw@redhat.com>
+
+	* elfcmp.c (main): Check section names are NULL before use.
+	* objdump.c (section_match): Likewise.
+	* size.c (show_sysv): Likewise.
+
+2014-11-17  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_debug_frame_section): Warn if ptr_size is not 4
+	or 8 instead of just calling print_cfa_program.
+
+2014-11-16  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf (process_elf_file): Set phnum to zero if there aren't
+	actually any pheaders.
+	(print_phdr): Check there actually is a phdr.
+
+2014-11-16  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_cfa_program): Check block len before calling
+	print_ops.
+
+2014-11-14  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_debug_frame_section): Sanity Check CIE
+	unit_length and augmentationlen.
+
+2014-11-14  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (handle_versym): Check def == NULL before use.
+
+2014-11-08  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (handle_versym): Initialize vername and filename array
+	elements.
+
+2014-11-07  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (handle_sysv_hash): Sanity check section contents.
+	(handle_sysv_hash64): Likewise.
+	(handle_gnu_hash): Likewise.
+
+2014-09-14  Petr Machata  <pmachata@redhat.com>
+
+	* readelf.c (handle_relocs_rela): Typo fix, test DESTSHDR properly.
+
+2014-09-12  Petr Machata  <pmachata@redhat.com>
+
+	* readelf.c (encoded_ptr_size): In the switch statement, change
+	magic constants 3 and 4 to DW_EH_PE_* counterparts.  Still accept
+	0.  Print diagnostic for anything else.
+
+2014-08-25  Josh Stone  <jistone@redhat.com>
+
+	* Makefile.am: Prevent premature @AR@ replacement in a sed expression.
+
+2014-07-04  Menanteau Guy  <menantea@linux.vnet.ibm.com>
+	    Mark Wielaard  <mjw@redhat.com>
+
+	* elflint (check_symtab): Add ".TOC." to the list of possibly
+	dangling symbols because of sourceware PR13621.
+
+2014-06-14  Mark Wielaard  <mjw@redhat.com>
+
+	* elflint (check_symtab): Use ebl_func_addr_mask on st_value.
+
+2014-05-27  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_debug): Skip section if name is NULL.
+
+2014-05-26  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (handle_relocs_rela): Print header like handle_relocs_rel
+	does, when sh_info == 0.
+
+2014-05-26  Mark Wielaard  <mjw@redhat.com>
+
+	* unstrip.c (find_alloc_sections_prelink): Allow non-split .bss
+	section when sh_size of the original and undo .bss section are equal.
+
+2014-05-26  Mark Wielaard  <mjw@redhat.com>
+
+	* unstrip.c (options): Add --force, -F.
+	(struct arg_info): Add bool force.
+	(parse_opt): Handle 'F', set force.
+	(handle_explicit_files): Add force argument, add warn function,
+	separate check ehdr field checks, use warn.
+	(handle_dwfl_module): Add force argument, pass on to
+	handle_explicit_files.
+	(handle_output_dir_module): Add force argument, pass on to
+	handle_dwfl_module.
+	(handle_implicit_modules): Pass info->force to handle_dwfl_module and
+	handle_output_dir_module.
+	(main): Pass info.force to handle_explicit_files.
+
+2014-05-19  Mark Wielaard  <mjw@redhat.com>
+
+	* elflint.c (check_reloc_shdr): Check ebl_check_reloc_target_type.
+
+2014-05-01  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (find_no_debuginfo): Call dwfl_standard_find_debuginfo
+	if looking for alternate debug file.
+
+2014-04-11  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am (AM_CPPFLAGS): Add -I libdwelf.
+
+2014-04-22  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (handle_core_item): Make sure variable length array
+	contains at least enough space for terminating zero char.
+
+2014-04-22  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_gdb_index_section): Use unsigned int for 31 bits
+	left shift.
+
+2014-03-13  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am: Remove no_mudflap.os. Remove libmudflap from all
+	LDADD lines.
+	* strings.c (process_chunk): Remove _MUDFLAP condition.
+
+2014-04-09  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_debug_aranges_section): Don't get the raw section
+	data, use the possibly decompressed .[z]debug sectiondata.
+	(print_debug_ranges_section): Likewise.
+	(print_debug_frame_section): Likewise.
+	(print_debug_line_section): Likewise.
+	(print_debug_loc_section): Likewise.
+	(print_debug_macinfo_section): Likewise.
+	(print_debug_macro_section): Likewise.
+
+2014-04-10  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (buf_read_ulong): Pass actual long size to convert.
+
+2014-03-05  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (attr_callback): Print DW_FORM_sdata values as signed
+	numbers.
+
+2014-02-24  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf (print_phdr): Check there is a SHT_PROGBITS section at the
+	offset given by p_offsets for a PT_INTERP segment before trying to
+	display the interpreter string.
+
+2014-02-07  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_phdr): Check phdr->p_filesz and make sure
+	interpreter string is zero terminated before calling printf.
+
+2014-01-22  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am (nm_no_Wformat): Removed.
+	(size_no_Wformat): Likewise.
+	(strings_no_Wformat): Likewise.
+	(addr2line_no_Wformat): Likewise.
+	* size.c (show_sysv): Use fmtstr directly as literal in printf.
+	(show_sysv_one_line): Likewise.
+	* strings.c (locfmt): Removed.
+	(radix): New static enum.
+	(parse_opt): Set radix, not locfmt.
+	(process_chunk_mb): Use fmtstr directly as literal in printf based
+	on radix.
+	(process_chunk): Likewise.
+	* nm.c (show_symbols_sysv): Use fmtstr directly as literal in printf.
+	(show_symbols_bsd): Likewise.
+	(show_symbols_posix): Likewise.
+
+2014-01-21  Mark Wielaard  <mjw@redhat.com>
+
+	* stack.c (show_inlines): New static boolean.
+	(print_frame): New function split out from...
+	(print_frames): ..here. If show_inlines is true and we found a
+	DIE for the frame address, call print_inline_frames otherwise
+	call print_frame. Keep track of and track frame_nr.
+	(print_inline_frames): New function.
+	(parse_opt): Handle '-i'.
+	(main): Add 'i' to options.
+
+2014-01-27  Mark Wielaard  <mjw@redhat.com>
+
+	* stack.c (maxframes): Initialize to 256.
+	(main): Document new default in options. Document magic number
+	used in frames.allocated initialization.
+
+2014-01-20  Mark Wielaard  <mjw@redhat.com>
+
+	* stack.c (show_debugname): New static boolean.
+	(die_name): New function.
+	(print_frames): If show_debugname is true set symname to the
+	first function-like DIE with a name in scope for the address in
+	the debuginfo.
+	(parse_opt): Handle '-d'.
+	(main): Add 'd' to options.
+
+2014-01-20  Mark Wielaard  <mjw@redhat.com>
+
+	* addr2line.c (handle_address): Initialize scopes to NULL.
+
+2014-01-17  Roland McGrath  <roland@redhat.com>
+
+	* strip.c (handle_elf): Check for bogus values in sh_link, sh_info,
+	st_shndx, e_shstrndx, and SHT_GROUP or SHT_SYMTAB_SHNDX data.
+	Don't use assert on input values, instead bail with "illformed" error.
+
+2014-01-17  Roland McGrath  <roland@redhat.com>
+
+	* readelf.c (handle_dynamic, handle_symtab): Check for bogus sh_link.
+	(handle_verneed, handle_verdef, handle_versym, handle_hash): Likewise.
+	(handle_scngrp): Check for bogus sh_info.
+
+2014-01-17  Jakub Jelinek  <jakub@redhat.com>
+
+	* elflint.c (section_name): Return "<invalid>" instead of
+	crashing on invalid section name.
+	(check_symtab, is_rel_dyn, check_rela, check_rel, check_dynamic,
+	check_symtab_shndx, check_hash, check_versym): Robustify.
+	(check_hash): Don't check entries beyond end of section.
+	(check_note): Don't crash if gelf_rawchunk fails.
+
+2014-01-17  Petr Machata  <pmachata@redhat.com>
+
+	* readelf.c (handle_dynamic, handle_relocs_rel)
+	(handle_relocs_rela, handle_versym, print_liblist):
+	Use gelf_fsize instead of relying on shdr->sh_entsize.
+
+2014-01-14  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_debug_macro_section): Clear vendor array before
+	use.
+
+2014-01-15  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	Fix corruption of non-C++ symbols by the demangler.
+	* nm.c (show_symbols_sysv, show_symbols_bsd, show_symbols_posix)
+	(show_symbols): Check for _Z.
+	* stack.c (print_frames) <USE_DEMANGLE>: Check for _Z.
+
+2014-01-02  Mark Wielaard  <mjw@redhat.com>
+
+	* stack.c (show_raw): Declare unconditionally.
+	(parse_opt): Handle '-r' unconditionally.
+	(main): Show "raw" option even without USE_DEMANGLE.
+
+2014-01-02  Mark Wielaard  <mjw@redhat.com>
+
+	* stack.c (print_frames): Print 0x before build-id hex-offset.
+
+2014-01-02  Mark Wielaard  <mjw@redhat.com>
+
+	* stack.c (maxframes): Increase to 2048.
+	(struct frames): Add allocated field.
+	(frame_callback): If frames used is frames allocated, realloc.
+	(print_frames): Show an error if maxframes has been reached.
+	(parse_opt): Allow -n 0 for unlimited frames.
+	(main): Document -n 0 and new default 2048 frames. Allocate initial
+	number of frames with malloc.
+
+2013-12-30  Mark Wielaard  <mjw@redhat.com>
+
+	* stack.c (parse_opt): Explicitly call dwfl_linux_proc_attach
+	or dwfl_core_file_attach and check for errors.
+
+2013-12-28  Mark Wielaard  <mjw@redhat.com>
+
+	* stack.c (print_frames): Remove address width code and use...
+	(get_addr_width): ...this new function.
+	(show_modules): New static boolean.
+	(module_callback): New static function.
+	(parse_opt): Handle '-l'.
+	(main): Add 'l' to options. If show_modules then use dwfl_getmodules
+	with module_callback to show all detected modules and possible
+	build_id, elf and dwarf files.
+
+2013-12-27  Mark Wielaard  <mjw@redhat.com>
+
+	* stack.c (frames_shown): New static boolean.
+	(EXIT_OK,EXIT_ERROR,EXIT_BAD,EXIT_USAGES): New defines.
+	(frame_callback): Return -1 on error. Don't print error.
+	(print_frames): Add arguments, tid, dwflerr and what. Print tid.
+	If there was an error report it with address and module if possible.
+	Record whether any frames were actually printed.
+	(thread_callback): Collect tid and err, pass it to print_frames.
+	(parse_opt): Use EXIT_BAD for errors. On ARGP_KEY_END print errno
+	if dwfl_linux_proc_report returned it. Check whether we are properly
+	attached with dwfl_pid.
+	(main): Document exit status. Don't report DWARF_CB_ABORT from
+	callbacks as error. Pass real errors to print_frames. Return
+	EXIT_BAD if no frames could be shown. Return EXIT_ERROR if there
+	were any non-fatal errors.
+
+2013-12-23  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am (stack_LDADD): Add demanglelib.
+	* stack.c (show_quiet): New static boolean, default false.
+	(show_raw): Likewise.
+	(demangle_buffer_len): New static size_t.
+	(demangle_buffer): New static char *.
+	(print_frames): Don't resolve pc name if show_quiet. Demangle name
+	unless show_raw.
+	(parse_opt): Handle '-q' and '-r'.
+	(main): Add 'q' and 'r' to options. Free demangle_buffer.
+
+2013-12-23  Mark Wielaard  <mjw@redhat.com>
+
+	* stack.c (OPT_DEBUGINFO): New define.
+	(OPT_COREFILE): Likewise.
+	(pid): New static.
+	(core_fd): Likewise.
+	(core): Likewise.
+	(exec): Likewise.
+	(debuginfo_path): Likewise.
+	(parse_opt): Handle '-p', '--core', '-e' and '--debuginfo-path'.
+	Do argument sanity checking. Setup Dwfl.
+	(main): Add 'p', 'core', 'e' and 'debuginfo-path' to options.
+	Remove argp_child children, simplify argp doc, remove custom
+	usage message and construction of dwfl with dwfl_standard_argp.
+	Use pid directly as tid. close core and core_fd if opened. Print
+	pid of process or core.
+
+2013-12-23  Mark Wielaard  <mjw@redhat.com>
+
+	* stack.c (show_build_id): New static boolean.
+	(print_frames): Print module build-id, load address and pc offset
+	if show_build_id is true.
+	(parse_opt): Handle '-b'.
+	(main): Add -b to options.
+
+2013-12-22  Mark Wielaard  <mjw@redhat.com>
+
+	* stack.c (maxframes): New static unsigned. Initialize to 64.
+	(struct frame): New struct.
+	(struct frames): Likewise.
+	(dwfl): New static Dwfl pointer.
+	(frame_callback): Use arg as struct frames and fill it next frame.
+	Return DWARF_CB_ABORT when maxframes has been reached. Move
+	printing of frame to...
+	(print_frames): ...here. New function.
+	(thread_callback): Use arg as struct frames and set frames to zero.
+	Call print_frames.
+	(parse_opt): Handle '-n'.
+	(main): Add -n to options. Allocate frames using maxframes. Pass
+	frames to frame_callback and thread_callback.
+
+2013-12-20  Mark Wielaard  <mjw@redhat.com>
+
+	* stack.c (show_one_tid): New static boolean.
+	(parse_opt): Handle '-1'.
+	(main): Add -1 to options. Call dwfl_getthread_frames when
+	show_one_tid is true.
+
+2013-12-18  Mark Wielaard  <mjw@redhat.com>
+
+	* addr2line.c (options): Add symbol-sections, 'x'.
+	(show_symbol_sections): New static bool.
+	(parse_opt): Handle 'x'.
+	(print_addrsym): Use dwfl_module_addrinfo value.r
+	Also show section of address with show_symbol_sections.
+	(find_symbol): Use dwfl_module_getsym_info and set value.
+	(handle_address): Request value and use it instead of sym.st_value.
+	* readelf.c (format_dwarf_addr): Use dwfl_module_addrinfo to get
+	name and offset.
+
+2013-12-17  Masatake YAMATO  <yamato@redhat.com>
+	    Mark Wielaard  <mjw@redhat.com>
+
+	* stack.c (show_activation, show_module, show_source): New variables.
+	(parse_opt): Set show_activation if -a option is given.
+	Set show_module if -m option is given. Set show_source if -s option
+	is given. Set all show booleans when -v option is given.
+	(main): Added `-a', `-m', `-s', and `-v' to the help message.
+	(frame_callback): Print module and source file information.
+
+2013-11-25  Petr Machata  <pmachata@redhat.com>
+
+	* elflint.c (valid_e_machine): Add EM_AARCH64.
+
+2013-11-14  Petr Machata  <pmachata@redhat.com>
+
+	* readelf.c (handle_core_item) <'h'>: New branch for handling
+	fields that shouldn't be displayed.
+
+2013-11-10  Mark Wielaard  <mjw@redhat.com>
+
+	* stack.c: Use ARGP_PROGRAM_VERSION_HOOK_DEF and
+	ARGP_PROGRAM_BUG_ADDRESS_DEF.
+	(print_version): New function.
+
+2013-11-09  Mark Wielaard  <mjw@redhat.com>
+
+	* arlib.c (arlib_init): Call snprintf before using the result
+	with memcpy.
+	(arlib_finalize): Likewise.
+	* nm.c (show_symbols_sysv): Don't modify cnt inside assert.
+
+2013-11-07  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* Makefile.am (bin_PROGRAMS): Add stack.
+	(stack_LDADD): New.
+	* stack.c: New file.
+
+2013-11-05  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_debug_ranges_section): Cast address to size_t
+	before comparison.
+	(print_debug_loc_section): Likewise.
+
+2013-10-18  Mark Wielaard  <mjw@redhat.com>
+
+	* ar.c (main): Correct operation check when instance_specifed is set.
+
+2013-09-26  Petr Machata  <pmachata@redhat.com>
+
+	* readelf.c (handle_file_note): New function.
+	(handle_notes_data): Call it to handle NT_FILE notes.
+
+2013-09-26  Petr Machata  <pmachata@redhat.com>
+
+	* readelf.c (handle_siginfo_note): New function.
+	(handle_notes_data): Call it to handle NT_SIGINFO notes.
+	(buf_read_int, buf_read_ulong, buf_has_data): New functions.
+
+2013-08-13  Mark Wielaard  <mjw@redhat.com>
+
+	* addr2line.c (options): Add "inlines", 'i'.
+	(show_inlines): New bool.
+	(parse_opt): Handle 'i'.
+	(print_diesym): New static function.
+	(print_src): New function taking code from...
+	(handle_address): here. Call print_src. Print inlines.
+
+2013-08-12  Mark Wielaard  <mjw@redhat.com>
+
+	* addr2line.c (main): If there is a newline char at end of buf,
+	then remove it.
+
+2013-07-05  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_ops): Take CU as argument, use it to print
+	parameter_ref DIE offset.
+	(struct listptr): Replace base field with cu.
+	(listptr_base): New function.
+	(compare_listptr): Use listptr_base.
+	(notice_listptr): Take CU as argument.
+	(skip_listptr_hole): Likewise.
+	(print_debug_ranges_section): Pass NULL as CU to skip_listptr_hole.
+	(print_cfa_program): Pass NULL as CU to print_ops.
+	(struct attrcb_args): Replace cu_base field with cu.
+	(attr_callback): Pass cu not cu_base to notice_listptr.
+	(print_debug_units): Don't calculate base, just set cu.
+	(print_debug_loc_section): Pass cu to skip_listptr_hole and
+	print_ops.
+
+2013-05-06  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_ops): Format first DW_OP_GNU_implicit_pointer
+	argument as DIE offset.
+
+2013-04-24  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am: Use AM_CPPFLAGS instead of INCLUDES.
+
+2013-03-25  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (argp_options): Add decodedline.
+	(decodedline): New boolean initialized to false.
+	(parse_opt): Set decodedline when arg is decodedline.
+	(print_decoded_line_section): New function.
+	(print_debug_line_section): Call print_decoded_line_section when
+	decodedline is true.
+
+2013-03-25  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (argp_option): Add decodedaranges.
+	(decodedaranges): New boolean initialized to false.
+	(parse_opt): Set decodedaranges when arg is decodedaranges.
+	(print_debug_aranges_section): Reimplemented and original
+	implementation renamed to...
+	(print_decoded_aranges_section): this.
+
+2013-03-25  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (attrcb_args): Add Dwarf_Die.
+	(attr_callback): When highpc is in constant form also print as
+	address.
+	(print_debug_units): Set args.die.
+
+2013-03-19  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_gdb_index_section): Free format_dwarf_addr results.
+
+2013-03-18  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_gdb_index_section): Accept version 8.
+
+2013-03-01  Mark Wielaard  <mjw@redhat.com>
+
+	* findtextrel.c (process_file): Release ELF and close file when not
+	text relocations are found.
+	* strip.c (handle_elf): Track memory used for .debuglink section data
+	and free when done.
+
+2013-02-24  Mark Wielaard  <mjw@redhat.com>
+
+	* elflint.c (check_symtab): Add __bss_start__ to the list of symbols
+	allowed to have out of section values because of GNU ld bugs.
+
+2013-02-06  Mark Wielaard  <mjw@redhat.com>
+
+	* elflint.c (check_symtab): Add __bss_start and __TMC_END__ to the
+	list of symbols allowed to have out of section values because of
+	GNU ld bugs in either .symtab or .dynsym, but only when they are
+	zero sized.
+
+2013-01-24  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (argp_option): Add unresolved-address-offsets, U.
+	(print_unresolved_addresses): New static.
+	(parse_opt): Handle 'U', set print_unprocessed_values.
+	(format_dwarf_addr): Take and handle new raw argument.
+	(print_ops): Call format_dwarf_addr with raw offset values.
+	(print_debug_ranges_section): Likewise.
+	(print_debug_frame_section): Likewise.
+	(attr_callback): Likewise.
+	(print_debug_line_section): Likewise.
+	(print_debug_loc_section): Likewise.
+	(print_gdb_index_section): Likewise.
+
+2013-01-18  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (struct listptr): Add base Dwarf_Addr field.
+	(compare_listptr): Warn for same offset with different base.
+	(notice_listptr): Take base argument and set it.
+	(skip_listptr_hole): Likewise.
+	(struct attrcb_args): Removed unused cu_offset field.
+	Add cu_base Dwarf_Addr field.
+	(attr_callback): Call notice_listptr with cbargs->cu_base.
+	(print_debug_units): Set args.cu_base.
+	(print_debug_ranges_section): Get base and use for format_dwarf_addr.
+	(print_debug_loc_section): Likewise.
+
+2013-01-29  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* readelf.c (handle_core_items): Limit special repeated items handling
+	to single-item formats '\n', 'b' and 'B', assert OFFSET 0 there.
+
+2012-12-18  Mark Wielaard  <mark@bordewijk.wildebeest.org>
+
+	* readelf.c (ELF_INPUT_SECTION): New argp key value.
+	(argp_option): Add elf-section.
+	(elf_input_section): New static.
+	(parse_opt): Handle ELF_INPUT_SECTION and set elf_input_section.
+	(open_input_section): New function.
+	(process_file): Call open_input_section if elf_input_section set.
+
+2013-01-13  David Abdurachmanov  <David.Abdurachmanov@cern.ch>
+
+	ar.c (do_oper_delete): Fix num passed to memset.
+
+2012-12-21  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_debug_frame_section): Adjust FDE start address
+	if pcrel before feeding it to format_dwarf_addr.
+
+2012-12-21  Mark Wielaard  <mjw@redhat.com>
+
+	* addr2line.c (main): Call dwfl_end.
+
+2012-12-11  Roland McGrath  <roland@hack.frob.com>
+
+	* nm.c (show_symbols_sysv): Fix size passed to snprintf for invalid
+	sh_name case.
+	Reported by David Abdurachmanov <David.Abdurachmanov@cern.ch>.
+
+2012-10-16  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_ops): DW_OP_skip and DW_OP_bra targets are
+	calculated beginning after the operand and 2-byte constant.
+
+2012-10-12  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* readelf.c (ITEM_WRAP_COLUMN, REGISTER_WRAP_COLUMN): Merge to ...
+	(WRAP_COLUMN): ... here.
+	(print_core_item): Remove parameter format_max.  Update function
+	comment.  Replace FORMAT_MAX by the real output width.
+	(handle_core_item): Remove the FORMAT_MAX values in TYPES, DO_TYPE,
+	calls of print_core_item, remove variable maxfmt, change
+	ITEM_WRAP_COLUMN to WRAP_COLUMN.
+	(handle_core_register): Remove the FORMAT_MAX values in TYPES, BITS,
+	calls of print_core_item, change REGISTER_WRAP_COLUMN to WRAP_COLUMN.
+
+2012-10-11  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* readelf.c (handle_core_item) <b>: Make run an outer block variable.
+	Increase run only if LASTBIT != 0.  Print last element only if RUN > 0.
+
+2012-08-27  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_debug_macro_section): Print offset as PRIx64.
+
+2012-08-27  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (register_info): Handle loc == NULL.
+
+2012-08-22  Jeff Kenton  <jkenton@tilera.com>
+
+	* elflint.c (valid_e_machine): Add EM_TILEGX and EM_TILEPRO.
+
+2012-08-16  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (dwarf_tag_name): Renamed from dwarf_tag_string.
+	Uses new dwarf_tag_string or adds ??? or lo_user+%#x when
+	appropriate.
+	(dwarf_attr_name): Likewise.
+	(dwarf_form_name): Likewise.
+	(dwarf_lang_name): Likewise.
+	(dwarf_inline_name): Likewise.
+	(dwarf_encoding_name): Likewise.
+	(dwarf_access_name): Likewise.
+	(dwarf_visibility_name): Likewise.
+	(dwarf_virtuality_name): Likewise.
+	(dwarf_identifier_case_name): Likewise.
+	(dwarf_calling_convention_name): Likewise.
+	(dwarf_ordering_name): Likewise.
+	(dwarf_discr_list_name): Likewise.
+	(print_ops): Remove KNOWN.  Use dwarf_locexpr_opcode_string.
+	(attr_callback): Call new dwarf_foobar_name instead of old
+	dwarf_foobar_string functions.
+	(dwarf_tag_string): New function using known-dwarf.h macros.
+	(dwarf_attr_string): Likewise.
+	(dwarf_form_string): Likewise.
+	(dwarf_lang_string): Likewise.
+	(dwarf_inline_string): Likewise.
+	(dwarf_encoding_string): Likewise.
+	(dwarf_access_string): Likewise.
+	(dwarf_visibility_string): Likewise.
+	(dwarf_virtuality_string): Likewise.
+	(dwarf_identifier_case_string): Likewise.
+	(dwarf_calling_convention_string): Likewise.
+	(dwarf_ordering_string): Likewise.
+	(dwarf_discr_list_string): Likewise.
+	(dwarf_locexpr_opcode_string): Likewise.
+
+2012-06-27  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (dwarf_form_string): Handle DW_FORM_GNU_ref_alt and
+	DW_FORM_GNU_strp_alt.
+	(attr_callback): Likewise.
+
+2012-07-30  Petr Machata  <pmachata@redhat.com>
+
+	* nm.c (show_symbols_bsd): Reorder arguments in {S,}FMTSTRS (and
+	corresponding printf) so that those that are referenced by only
+	one of the formatting strings are at the end.
+
+2012-07-29  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (dwarf_lang_string): Use DW_LANG_ObjC, not DW_LANG_Objc.
+	(print_ops): Use known[op], not op_name, for DW_OP_GNU_parameter_ref.
+
+2012-07-19  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_ops): Handle DW_OP_GNU_parameter_ref.
+
+2012-07-11  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (options): Add macro to help of debug-dump.
+	(section_e): Add section_macro.
+	(section_all): Add section_macro.
+	(parse_opt): Handle macro.
+	(print_debug_macro_section): New function.
+	(print_debug): Add NEW_SECTION (macro).
+
+2012-07-10  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_gdb_index_section): Add version 7 support.
+	Keep track of cu_nr. Print kind and static/global flag for each
+	symbol. When a symbol is in the TU list add 'T'.
+
+2012-06-26  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (dwarf_attr_string): Add DW_AT_GNU_macros.
+
+2012-06-22  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_ops): Cast printf PRIu/x64 arguments to uint64_t
+	for gcc 4.7 -Wformat.
+
+2012-05-09  Roland McGrath  <roland@hack.frob.com>
+
+	* elflint (check_sections): Allow zero sized sections at (filesz) end
+	of segment. And make check overflow-proofed.
+
+2012-04-24  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_ops): Add DW_OP_GNU_push_tls_address,
+	DW_OP_GNU_uinit and DW_OP_GNU_encoded_addr.
+
+2012-03-28  Roland McGrath  <roland@hack.frob.com>
+
+	* elflint.c (special_sections): Accept SHF_INFO_LINK for reloc sections.
+
+2012-03-28  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_debug_abbrev_section): Check there is Dwarf
+	section data.
+	(print_debug_str_section): Likewise.
+
+2012-03-21  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_gdb_index_section): Accept version 6.
+
 2012-01-31  Mark Wielaard  <mjw@redhat.com>
 
 	* readelf.c (attr_callback): Don't special case DW_FORM_sec_offset.

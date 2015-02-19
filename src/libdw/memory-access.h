@@ -1,52 +1,31 @@
 /* Unaligned memory access functionality.
-   Copyright (C) 2000-2010 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   Copyright (C) 2000-2014 Red Hat, Inc.
+   This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2001.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of either
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+     * the GNU Lesser General Public License as published by the Free
+       Software Foundation; either version 3 of the License, or (at
+       your option) any later version
+
+   or
+
+     * the GNU General Public License as published by the Free
+       Software Foundation; either version 2 of the License, or (at
+       your option) any later version
+
+   or both in parallel, as here.
+
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   In addition, as a special exception, Red Hat, Inc. gives You the
-   additional right to link the code of Red Hat elfutils with code licensed
-   under any Open Source Initiative certified open source license
-   (http://www.opensource.org/licenses/index.php) which requires the
-   distribution of source code with any binary distribution and to
-   distribute linked combinations of the two.  Non-GPL Code permitted under
-   this exception must only link to the code of Red Hat elfutils through
-   those well defined interfaces identified in the file named EXCEPTION
-   found in the source code files (the "Approved Interfaces").  The files
-   of Non-GPL Code may instantiate templates or use macros or inline
-   functions from the Approved Interfaces without causing the resulting
-   work to be covered by the GNU General Public License.  Only Red Hat,
-   Inc. may make changes or additions to the list of Approved Interfaces.
-   Red Hat's grant of this exception is conditioned upon your not adding
-   any new exceptions.  If you wish to add a new Approved Interface or
-   exception, please contact Red Hat.  You must obey the GNU General Public
-   License in all respects for all of the Red Hat elfutils code and other
-   code used in conjunction with Red Hat elfutils except the Non-GPL Code
-   covered by this exception.  If you modify this file, you may extend this
-   exception to your version of the file, but you are not obligated to do
-   so.  If you do not wish to provide this exception without modification,
-   you must delete this exception statement from your version and license
-   this file solely under the GPL without exception.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received copies of the GNU General Public License and
+   the GNU Lesser General Public License along with this program.  If
+   not, see <http://www.gnu.org/licenses/>.  */
 
 #ifndef _MEMORY_ACCESS_H
 #define _MEMORY_ACCESS_H 1
@@ -58,90 +37,76 @@
 
 /* Number decoding macros.  See 7.6 Variable Length Data.  */
 
-#define get_uleb128_step(var, addr, nth, break)				      \
-    __b = *(addr)++;							      \
-    var |= (uintmax_t) (__b & 0x7f) << (nth * 7);			      \
+#define len_leb128(var) ((8 * sizeof (var) + 6) / 7)
+
+static inline size_t
+__libdw_max_len_leb128 (const unsigned char *addr, const unsigned char *end)
+{
+  const size_t type_len = len_leb128 (uint64_t);
+  const size_t pointer_len = likely (addr < end) ? end - addr : 0;
+  return likely (type_len <= pointer_len) ? type_len : pointer_len;
+}
+
+#define get_uleb128_step(var, addr, nth)				      \
+  do {									      \
+    unsigned char __b = *(addr)++;					      \
+    (var) |= (typeof (var)) (__b & 0x7f) << ((nth) * 7);		      \
     if (likely ((__b & 0x80) == 0))					      \
-      break
-
-#define get_uleb128(var, addr)						      \
-  do {									      \
-    unsigned char __b;							      \
-    var = 0;								      \
-    get_uleb128_step (var, addr, 0, break);				      \
-    var = __libdw_get_uleb128 (var, 1, &(addr));			      \
+      return (var);							      \
   } while (0)
 
-#define get_uleb128_rest_return(var, i, addrp)				      \
-  do {									      \
-    for (; i < 10; ++i)							      \
-      {									      \
-	get_uleb128_step (var, *addrp, i, return var);			      \
-      }									      \
-    /* Other implementations set VALUE to UINT_MAX in this		      \
-       case.  So we better do this as well.  */				      \
-    return UINT64_MAX;							      \
-  } while (0)
+static inline uint64_t
+__libdw_get_uleb128 (const unsigned char **addrp, const unsigned char *end)
+{
+  uint64_t acc = 0;
+
+  /* Unroll the first step to help the compiler optimize
+     for the common single-byte case.  */
+  get_uleb128_step (acc, *addrp, 0);
+
+  const size_t max = __libdw_max_len_leb128 (*addrp - 1, end);
+  for (size_t i = 1; i < max; ++i)
+    get_uleb128_step (acc, *addrp, i);
+  /* Other implementations set VALUE to UINT_MAX in this
+     case.  So we better do this as well.  */
+  return UINT64_MAX;
+}
+
+/* Note, addr needs to me smaller than end. */
+#define get_uleb128(var, addr, end) ((var) = __libdw_get_uleb128 (&(addr), end))
 
 /* The signed case is similar, but we sign-extend the result.  */
 
-#define get_sleb128_step(var, addr, nth, break)				      \
-    __b = *(addr)++;							      \
-    _v |= (uint64_t) (__b & 0x7f) << (nth * 7);				      \
+#define get_sleb128_step(var, addr, nth)				      \
+  do {									      \
+    unsigned char __b = *(addr)++;					      \
     if (likely ((__b & 0x80) == 0))					      \
       {									      \
-	var = (_v << (64 - (nth * 7) - 7)) >> (64 - (nth * 7) - 7);	      \
-        break;					 			      \
+	struct { signed int i:7; } __s = { .i = __b };			      \
+	(var) |= (typeof (var)) __s.i * ((typeof (var)) 1 << ((nth) * 7));    \
+	return (var);							      \
       }									      \
-    else do {} while (0)
-
-#define get_sleb128(var, addr)						      \
-  do {									      \
-    unsigned char __b;							      \
-    int64_t _v = 0;							      \
-    get_sleb128_step (var, addr, 0, break);				      \
-    var = __libdw_get_sleb128 (_v, 1, &(addr));				      \
+    (var) |= (typeof (var)) (__b & 0x7f) << ((nth) * 7);		      \
   } while (0)
 
-#define get_sleb128_rest_return(var, i, addrp)				      \
-  do {									      \
-    for (; i < 9; ++i)							      \
-      {									      \
-	get_sleb128_step (var, *addrp, i, return var);			      \
-      }									      \
-    __b = *(*addrp)++;							      \
-    if (likely ((__b & 0x80) == 0))					      \
-      return var | ((uint64_t) __b << 63);				      \
-    else								      \
-      /* Other implementations set VALUE to INT_MAX in this		      \
-	 case.  So we better do this as well.  */			      \
-      return INT64_MAX;							      \
-  } while (0)
-
-#ifdef IS_LIBDW
-extern uint64_t __libdw_get_uleb128 (uint64_t acc, unsigned int i,
-				     const unsigned char **addrp)
-     internal_function attribute_hidden;
-extern int64_t __libdw_get_sleb128 (int64_t acc, unsigned int i,
-				    const unsigned char **addrp)
-     internal_function attribute_hidden;
-#else
-static inline uint64_t
-__attribute__ ((unused))
-__libdw_get_uleb128 (uint64_t acc, unsigned int i, const unsigned char **addrp)
-{
-  unsigned char __b;
-  get_uleb128_rest_return (acc, i, addrp);
-}
 static inline int64_t
-__attribute__ ((unused))
-__libdw_get_sleb128 (int64_t acc, unsigned int i, const unsigned char **addrp)
+__libdw_get_sleb128 (const unsigned char **addrp, const unsigned char *end)
 {
-  unsigned char __b;
-  int64_t _v = acc;
-  get_sleb128_rest_return (acc, i, addrp);
+  int64_t acc = 0;
+
+  /* Unroll the first step to help the compiler optimize
+     for the common single-byte case.  */
+  get_sleb128_step (acc, *addrp, 0);
+
+  const size_t max = __libdw_max_len_leb128 (*addrp - 1, end);
+  for (size_t i = 1; i < max; ++i)
+    get_sleb128_step (acc, *addrp, i);
+  /* Other implementations set VALUE to INT_MAX in this
+     case.  So we better do this as well.  */
+  return INT64_MAX;
 }
-#endif
+
+#define get_sleb128(var, addr, end) ((var) = __libdw_get_sleb128 (&(addr), end))
 
 
 /* We use simple memory access functions in case the hardware allows it.
@@ -168,6 +133,8 @@ __libdw_get_sleb128 (int64_t acc, unsigned int i, const unsigned char **addrp)
    ? (int32_t) bswap_32 (*((const int32_t *) (Addr)))			      \
    : *((const int32_t *) (Addr)))
 
+# define read_8ubyte_unaligned_noncvt(Addr) \
+   *((const uint64_t *) (Addr))
 # define read_8ubyte_unaligned(Dbg, Addr) \
   (unlikely ((Dbg)->other_byte_order)					      \
    ? bswap_64 (*((const uint64_t *) (Addr)))				      \
@@ -244,6 +211,12 @@ read_4sbyte_unaligned_1 (bool other_byte_order, const void *p)
 }
 
 static inline uint64_t
+read_8ubyte_unaligned_noncvt (const void *p)
+{
+  const union unaligned *up = p;
+  return up->u8;
+}
+static inline uint64_t
 read_8ubyte_unaligned_1 (bool other_byte_order, const void *p)
 {
   const union unaligned *up = p;
@@ -261,17 +234,6 @@ read_8sbyte_unaligned_1 (bool other_byte_order, const void *p)
 }
 
 #endif	/* allow unaligned */
-
-
-#define read_ubyte_unaligned(Nbytes, Dbg, Addr) \
-  ((Nbytes) == 2 ? read_2ubyte_unaligned (Dbg, Addr)			      \
-   : (Nbytes) == 4 ? read_4ubyte_unaligned (Dbg, Addr)			      \
-   : read_8ubyte_unaligned (Dbg, Addr))
-
-#define read_sbyte_unaligned(Nbytes, Dbg, Addr) \
-  ((Nbytes) == 2 ? read_2sbyte_unaligned (Dbg, Addr)			      \
-   : (Nbytes) == 4 ? read_4sbyte_unaligned (Dbg, Addr)			      \
-   : read_8sbyte_unaligned (Dbg, Addr))
 
 
 #define read_2ubyte_unaligned_inc(Dbg, Addr) \
@@ -302,14 +264,9 @@ read_8sbyte_unaligned_1 (bool other_byte_order, const void *p)
      t_; })
 
 
-#define read_ubyte_unaligned_inc(Nbytes, Dbg, Addr) \
-  ((Nbytes) == 2 ? read_2ubyte_unaligned_inc (Dbg, Addr)		      \
-   : (Nbytes) == 4 ? read_4ubyte_unaligned_inc (Dbg, Addr)		      \
-   : read_8ubyte_unaligned_inc (Dbg, Addr))
-
-#define read_sbyte_unaligned_inc(Nbytes, Dbg, Addr) \
-  ((Nbytes) == 2 ? read_2sbyte_unaligned_inc (Dbg, Addr)		      \
-   : (Nbytes) == 4 ? read_4sbyte_unaligned_inc (Dbg, Addr)		      \
-   : read_8sbyte_unaligned_inc (Dbg, Addr))
+#define read_addr_unaligned_inc(Nbytes, Dbg, Addr)			\
+  (assert ((Nbytes) == 4 || (Nbytes) == 8),				\
+    ((Nbytes) == 4 ? read_4ubyte_unaligned_inc (Dbg, Addr)		\
+     : read_8ubyte_unaligned_inc (Dbg, Addr)))
 
 #endif	/* memory-access.h */

@@ -28,7 +28,7 @@
 #define FLEX_SCANNER
 #define YY_FLEX_MAJOR_VERSION 2
 #define YY_FLEX_MINOR_VERSION 5
-#define YY_FLEX_SUBMINOR_VERSION 35
+#define YY_FLEX_SUBMINOR_VERSION 37
 #if YY_FLEX_SUBMINOR_VERSION > 0
 #define FLEX_BETA
 #endif
@@ -73,7 +73,6 @@ typedef int flex_int32_t;
 typedef unsigned char flex_uint8_t; 
 typedef unsigned short int flex_uint16_t;
 typedef unsigned int flex_uint32_t;
-#endif /* ! C99 */
 
 /* Limits of integral types. */
 #ifndef INT8_MIN
@@ -103,6 +102,8 @@ typedef unsigned int flex_uint32_t;
 #ifndef UINT32_MAX
 #define UINT32_MAX             (4294967295U)
 #endif
+
+#endif /* ! C99 */
 
 #endif /* ! FLEXINT_H */
 
@@ -172,7 +173,12 @@ typedef unsigned int flex_uint32_t;
 typedef struct yy_buffer_state *YY_BUFFER_STATE;
 #endif
 
-extern int ldleng;
+#ifndef YY_TYPEDEF_YY_SIZE_T
+#define YY_TYPEDEF_YY_SIZE_T
+typedef size_t yy_size_t;
+#endif
+
+extern yy_size_t ldleng;
 
 extern FILE *ldin, *ldout;
 
@@ -211,11 +217,6 @@ extern FILE *ldin, *ldout;
 
 #define unput(c) yyunput( c, (yytext_ptr)  )
 
-#ifndef YY_TYPEDEF_YY_SIZE_T
-#define YY_TYPEDEF_YY_SIZE_T
-typedef size_t yy_size_t;
-#endif
-
 #ifndef YY_STRUCT_YY_BUFFER_STATE
 #define YY_STRUCT_YY_BUFFER_STATE
 struct yy_buffer_state
@@ -233,7 +234,7 @@ struct yy_buffer_state
 	/* Number of characters read into yy_ch_buf, not including EOB
 	 * characters.
 	 */
-	int yy_n_chars;
+	yy_size_t yy_n_chars;
 
 	/* Whether we "own" the buffer - i.e., we know we created it,
 	 * and can realloc() it to grow it, and should free() it to
@@ -303,8 +304,8 @@ static YY_BUFFER_STATE * yy_buffer_stack = 0; /**< Stack as an array. */
 
 /* yy_hold_char holds the character lost when ldtext is formed. */
 static char yy_hold_char;
-static int yy_n_chars;		/* number of characters read into yy_ch_buf */
-int ldleng;
+static yy_size_t yy_n_chars;		/* number of characters read into yy_ch_buf */
+yy_size_t ldleng;
 
 /* Points to current character in buffer. */
 static char *yy_c_buf_p = (char *) 0;
@@ -332,7 +333,7 @@ static void ld_init_buffer (YY_BUFFER_STATE b,FILE *file  );
 
 YY_BUFFER_STATE ld_scan_buffer (char *base,yy_size_t size  );
 YY_BUFFER_STATE ld_scan_string (yyconst char *yy_str  );
-YY_BUFFER_STATE ld_scan_bytes (yyconst char *bytes,int len  );
+YY_BUFFER_STATE ld_scan_bytes (yyconst char *bytes,yy_size_t len  );
 
 void *ldalloc (yy_size_t  );
 void *ldrealloc (void *,yy_size_t  );
@@ -364,7 +365,7 @@ void ldfree (void *  );
 
 /* Begin user sect3 */
 
-#define ldwrap(n) 1
+#define ldwrap() 1
 #define YY_SKIP_YYWRAP
 
 typedef unsigned char YY_CHAR;
@@ -1072,32 +1073,24 @@ int ld_flex_debug = 0;
 #define YY_MORE_ADJ 0
 #define YY_RESTORE_YY_MORE_OFFSET
 char *ldtext;
-#line 1 "ldlex.l"
-#line 2 "ldlex.l"
+#line 1 "/home/mark/src/elfutils/src/ldlex.l"
+#line 2 "/home/mark/src/elfutils/src/ldlex.l"
 /* Copyright (C) 2001, 2002, 2003, 2004, 2005, 2008 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2001.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3 of the License, or
+   (at your option) any later version.
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -1153,7 +1146,7 @@ static int pop_state (void);
 static int handle_ifdef (void);
 static void invalid_char (int ch);
 
-#line 1157 "ldlex.c"
+#line 1150 "ldlex.c"
 
 #define INITIAL 0
 #define IGNORE 1
@@ -1193,7 +1186,7 @@ FILE *ldget_out (void );
 
 void ldset_out  (FILE * out_str  );
 
-int ldget_leng (void );
+yy_size_t ldget_leng (void );
 
 char *ldget_text (void );
 
@@ -1254,7 +1247,7 @@ static int input (void );
 	if ( YY_CURRENT_BUFFER_LVALUE->yy_is_interactive ) \
 		{ \
 		int c = '*'; \
-		unsigned n; \
+		size_t n; \
 		for ( n = 0; n < max_size && \
 			     (c = getc( ldin )) != EOF && c != '\n'; ++n ) \
 			buf[n] = (char) c; \
@@ -1339,7 +1332,7 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
     
-#line 96 "ldlex.l"
+#line 88 "/home/mark/src/elfutils/src/ldlex.l"
 
 				if (unlikely (ld_scan_version_script))
 				  {
@@ -1347,7 +1340,7 @@ YY_DECL
 				    return kVERSION_SCRIPT;
 				  }
 
-#line 1351 "ldlex.c"
+#line 1344 "ldlex.c"
 
 	if ( !(yy_init) )
 		{
@@ -1418,7 +1411,7 @@ yy_find_action:
 
 		if ( yy_act != YY_END_OF_BUFFER && yy_rule_can_match_eol[yy_act] )
 			{
-			int yyl;
+			yy_size_t yyl;
 			for ( yyl = 0; yyl < ldleng; ++yyl )
 				if ( ldtext[yyl] == '\n' )
 					   
@@ -1443,7 +1436,7 @@ case 1:
 (yy_c_buf_p) = yy_cp = yy_bp + 6;
 YY_DO_BEFORE_ACTION; /* set up ldtext again */
 YY_RULE_SETUP
-#line 103 "ldlex.l"
+#line 95 "/home/mark/src/elfutils/src/ldlex.l"
 { BEGIN (handle_ifdef ()); }
 	YY_BREAK
 case 2:
@@ -1452,7 +1445,7 @@ case 2:
 (yy_c_buf_p) = yy_cp = yy_bp + 5;
 YY_DO_BEFORE_ACTION; /* set up ldtext again */
 YY_RULE_SETUP
-#line 104 "ldlex.l"
+#line 96 "/home/mark/src/elfutils/src/ldlex.l"
 { eat_to_eol (true);
 				  push_state (skip_to_endif);
 				  BEGIN (IGNORE); }
@@ -1463,7 +1456,7 @@ case 3:
 (yy_c_buf_p) = yy_cp = yy_bp + 8;
 YY_DO_BEFORE_ACTION; /* set up ldtext again */
 YY_RULE_SETUP
-#line 107 "ldlex.l"
+#line 99 "/home/mark/src/elfutils/src/ldlex.l"
 { eat_to_eol (false);
 				  push_state (skip_to_endif);
 				  BEGIN (IGNORE); }
@@ -1474,7 +1467,7 @@ case 4:
 (yy_c_buf_p) = yy_cp = yy_bp + 6;
 YY_DO_BEFORE_ACTION; /* set up ldtext again */
 YY_RULE_SETUP
-#line 110 "ldlex.l"
+#line 102 "/home/mark/src/elfutils/src/ldlex.l"
 { eat_to_eol (true) ; }
 	YY_BREAK
 case 5:
@@ -1483,7 +1476,7 @@ case 5:
 (yy_c_buf_p) = yy_cp = yy_bp + 6;
 YY_DO_BEFORE_ACTION; /* set up ldtext again */
 YY_RULE_SETUP
-#line 112 "ldlex.l"
+#line 104 "/home/mark/src/elfutils/src/ldlex.l"
 { eat_to_eol (false);
 				  push_state (skip_to_endif); }
 	YY_BREAK
@@ -1493,7 +1486,7 @@ case 6:
 (yy_c_buf_p) = yy_cp = yy_bp + 5;
 YY_DO_BEFORE_ACTION; /* set up ldtext again */
 YY_RULE_SETUP
-#line 114 "ldlex.l"
+#line 106 "/home/mark/src/elfutils/src/ldlex.l"
 { eat_to_eol (true);
 				  assert (prepdepth > 0);
 				  if (prepstate[prepdepth - 1] == skip_if)
@@ -1510,7 +1503,7 @@ case 7:
 (yy_c_buf_p) = yy_cp = yy_bp + 8;
 YY_DO_BEFORE_ACTION; /* set up ldtext again */
 YY_RULE_SETUP
-#line 123 "ldlex.l"
+#line 115 "/home/mark/src/elfutils/src/ldlex.l"
 { assert (prepdepth > 0);
 				  if (prepstate[prepdepth - 1] == skip_if)
 				    {
@@ -1526,114 +1519,114 @@ case 8:
 (yy_c_buf_p) = yy_cp = yy_bp + 6;
 YY_DO_BEFORE_ACTION; /* set up ldtext again */
 YY_RULE_SETUP
-#line 131 "ldlex.l"
+#line 123 "/home/mark/src/elfutils/src/ldlex.l"
 { eat_to_eol (true);
 				  BEGIN (pop_state ()); }
 	YY_BREAK
 case 9:
 /* rule 9 can match eol */
 YY_RULE_SETUP
-#line 133 "ldlex.l"
+#line 125 "/home/mark/src/elfutils/src/ldlex.l"
 { /* nothing */ }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 136 "ldlex.l"
+#line 128 "/home/mark/src/elfutils/src/ldlex.l"
 { eat_comment (); }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 138 "ldlex.l"
+#line 130 "/home/mark/src/elfutils/src/ldlex.l"
 { return kALIGN; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 139 "ldlex.l"
+#line 131 "/home/mark/src/elfutils/src/ldlex.l"
 { return kAS_NEEDED; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 140 "ldlex.l"
+#line 132 "/home/mark/src/elfutils/src/ldlex.l"
 { return kENTRY; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 141 "ldlex.l"
+#line 133 "/home/mark/src/elfutils/src/ldlex.l"
 { return kEXCLUDE_FILE; }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 142 "ldlex.l"
+#line 134 "/home/mark/src/elfutils/src/ldlex.l"
 { return kGLOBAL; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 143 "ldlex.l"
+#line 135 "/home/mark/src/elfutils/src/ldlex.l"
 { return kGROUP; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 144 "ldlex.l"
+#line 136 "/home/mark/src/elfutils/src/ldlex.l"
 { return kINPUT; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 145 "ldlex.l"
+#line 137 "/home/mark/src/elfutils/src/ldlex.l"
 { return kINTERP; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 146 "ldlex.l"
+#line 138 "/home/mark/src/elfutils/src/ldlex.l"
 { return kKEEP; }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 147 "ldlex.l"
+#line 139 "/home/mark/src/elfutils/src/ldlex.l"
 { return kLOCAL; }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 148 "ldlex.l"
+#line 140 "/home/mark/src/elfutils/src/ldlex.l"
 { return kOUTPUT_FORMAT; }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 149 "ldlex.l"
+#line 141 "/home/mark/src/elfutils/src/ldlex.l"
 { return kPAGESIZE; }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 150 "ldlex.l"
+#line 142 "/home/mark/src/elfutils/src/ldlex.l"
 { return kPROVIDE; }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 151 "ldlex.l"
+#line 143 "/home/mark/src/elfutils/src/ldlex.l"
 { return kSEARCH_DIR; }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 152 "ldlex.l"
+#line 144 "/home/mark/src/elfutils/src/ldlex.l"
 { return kSEGMENT; }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 153 "ldlex.l"
+#line 145 "/home/mark/src/elfutils/src/ldlex.l"
 { return kSIZEOF_HEADERS; }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 154 "ldlex.l"
+#line 146 "/home/mark/src/elfutils/src/ldlex.l"
 { return kSORT; }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 155 "ldlex.l"
+#line 147 "/home/mark/src/elfutils/src/ldlex.l"
 { return kVERSION; }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 157 "ldlex.l"
+#line 149 "/home/mark/src/elfutils/src/ldlex.l"
 { int cnt = 1 ;
 				  ldlval.num = 0;
 				  while (cnt < ldleng - 1)
@@ -1642,82 +1635,82 @@ YY_RULE_SETUP
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 163 "ldlex.l"
+#line 155 "/home/mark/src/elfutils/src/ldlex.l"
 { return '{'; }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 164 "ldlex.l"
+#line 156 "/home/mark/src/elfutils/src/ldlex.l"
 { return '}'; }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 165 "ldlex.l"
+#line 157 "/home/mark/src/elfutils/src/ldlex.l"
 { return '('; }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 166 "ldlex.l"
+#line 158 "/home/mark/src/elfutils/src/ldlex.l"
 { return ')'; }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 167 "ldlex.l"
+#line 159 "/home/mark/src/elfutils/src/ldlex.l"
 { return ':'; }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 168 "ldlex.l"
+#line 160 "/home/mark/src/elfutils/src/ldlex.l"
 { return ';'; }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 169 "ldlex.l"
+#line 161 "/home/mark/src/elfutils/src/ldlex.l"
 { return '='; }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 170 "ldlex.l"
+#line 162 "/home/mark/src/elfutils/src/ldlex.l"
 { ldlval.op = exp_plus; return kADD_OP; }
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 171 "ldlex.l"
+#line 163 "/home/mark/src/elfutils/src/ldlex.l"
 { ldlval.op = exp_minus; return kADD_OP; }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 172 "ldlex.l"
+#line 164 "/home/mark/src/elfutils/src/ldlex.l"
 { return '*'; }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 173 "ldlex.l"
+#line 165 "/home/mark/src/elfutils/src/ldlex.l"
 { ldlval.op = exp_div; return kMUL_OP; }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 174 "ldlex.l"
+#line 166 "/home/mark/src/elfutils/src/ldlex.l"
 { ldlval.op = exp_mod; return kMUL_OP; }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 175 "ldlex.l"
+#line 167 "/home/mark/src/elfutils/src/ldlex.l"
 { return '&'; }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 176 "ldlex.l"
+#line 168 "/home/mark/src/elfutils/src/ldlex.l"
 { return '|'; }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 178 "ldlex.l"
+#line 170 "/home/mark/src/elfutils/src/ldlex.l"
 { return ','; }
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 180 "ldlex.l"
+#line 172 "/home/mark/src/elfutils/src/ldlex.l"
 { char *endp;
 				  ldlval.num = strtoumax (ldtext, &endp, 0);
 				  if (*endp != '\0')
@@ -1734,14 +1727,14 @@ YY_RULE_SETUP
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 194 "ldlex.l"
+#line 186 "/home/mark/src/elfutils/src/ldlex.l"
 { ldlval.str = obstack_strndup (&ld_state.smem,
 								ldtext, ldleng);
 				  return kID; }
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 198 "ldlex.l"
+#line 190 "/home/mark/src/elfutils/src/ldlex.l"
 { ldlval.str = obstack_strndup (&ld_state.smem,
 								ldtext, ldleng);
 				  return kFILENAME; }
@@ -1749,20 +1742,20 @@ YY_RULE_SETUP
 case 48:
 /* rule 48 can match eol */
 YY_RULE_SETUP
-#line 202 "ldlex.l"
+#line 194 "/home/mark/src/elfutils/src/ldlex.l"
 { /* IGNORE */ }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 204 "ldlex.l"
+#line 196 "/home/mark/src/elfutils/src/ldlex.l"
 { invalid_char (*ldtext); }
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 206 "ldlex.l"
+#line 198 "/home/mark/src/elfutils/src/ldlex.l"
 ECHO;
 	YY_BREAK
-#line 1766 "ldlex.c"
+#line 1759 "ldlex.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(IGNORE):
 	yyterminate();
@@ -1950,21 +1943,21 @@ static int yy_get_next_buffer (void)
 
 	else
 		{
-			int num_to_read =
+			yy_size_t num_to_read =
 			YY_CURRENT_BUFFER_LVALUE->yy_buf_size - number_to_move - 1;
 
 		while ( num_to_read <= 0 )
 			{ /* Not enough room in the buffer - grow it. */
 
 			/* just a shorter name for the current buffer */
-			YY_BUFFER_STATE b = YY_CURRENT_BUFFER;
+			YY_BUFFER_STATE b = YY_CURRENT_BUFFER_LVALUE;
 
 			int yy_c_buf_p_offset =
 				(int) ((yy_c_buf_p) - b->yy_ch_buf);
 
 			if ( b->yy_is_our_buffer )
 				{
-				int new_size = b->yy_buf_size * 2;
+				yy_size_t new_size = b->yy_buf_size * 2;
 
 				if ( new_size <= 0 )
 					b->yy_buf_size += b->yy_buf_size / 8;
@@ -1995,7 +1988,7 @@ static int yy_get_next_buffer (void)
 
 		/* Read in more data. */
 		YY_INPUT( (&YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[number_to_move]),
-			(yy_n_chars), (size_t) num_to_read );
+			(yy_n_chars), num_to_read );
 
 		YY_CURRENT_BUFFER_LVALUE->yy_n_chars = (yy_n_chars);
 		}
@@ -2091,7 +2084,7 @@ static int yy_get_next_buffer (void)
 	yy_current_state = yy_nxt[yy_base[yy_current_state] + (unsigned int) yy_c];
 	yy_is_jam = (yy_current_state == 218);
 
-	return yy_is_jam ? 0 : yy_current_state;
+		return yy_is_jam ? 0 : yy_current_state;
 }
 
     static void yyunput (int c, register char * yy_bp )
@@ -2106,7 +2099,7 @@ static int yy_get_next_buffer (void)
 	if ( yy_cp < YY_CURRENT_BUFFER_LVALUE->yy_ch_buf + 2 )
 		{ /* need to shift things up to make room */
 		/* +2 for EOB chars. */
-		register int number_to_move = (yy_n_chars) + 2;
+		register yy_size_t number_to_move = (yy_n_chars) + 2;
 		register char *dest = &YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[
 					YY_CURRENT_BUFFER_LVALUE->yy_buf_size + 2];
 		register char *source =
@@ -2159,7 +2152,7 @@ static int yy_get_next_buffer (void)
 
 		else
 			{ /* need more input */
-			int offset = (yy_c_buf_p) - (yytext_ptr);
+			yy_size_t offset = (yy_c_buf_p) - (yytext_ptr);
 			++(yy_c_buf_p);
 
 			switch ( yy_get_next_buffer(  ) )
@@ -2437,7 +2430,7 @@ void ldpop_buffer_state (void)
  */
 static void ldensure_buffer_stack (void)
 {
-	int num_to_alloc;
+	yy_size_t num_to_alloc;
     
 	if (!(yy_buffer_stack)) {
 
@@ -2529,17 +2522,17 @@ YY_BUFFER_STATE ld_scan_string (yyconst char * yystr )
 
 /** Setup the input buffer state to scan the given bytes. The next call to ldlex() will
  * scan from a @e copy of @a bytes.
- * @param bytes the byte buffer to scan
- * @param len the number of bytes in the buffer pointed to by @a bytes.
+ * @param yybytes the byte buffer to scan
+ * @param _yybytes_len the number of bytes in the buffer pointed to by @a bytes.
  * 
  * @return the newly allocated buffer state object.
  */
-YY_BUFFER_STATE ld_scan_bytes  (yyconst char * yybytes, int  _yybytes_len )
+YY_BUFFER_STATE ld_scan_bytes  (yyconst char * yybytes, yy_size_t  _yybytes_len )
 {
 	YY_BUFFER_STATE b;
 	char *buf;
 	yy_size_t n;
-	int i;
+	yy_size_t i;
     
 	/* Get memory for full buffer, including space for trailing EOB's. */
 	n = _yybytes_len + 2;
@@ -2621,7 +2614,7 @@ FILE *ldget_out  (void)
 /** Get the length of the current token.
  * 
  */
-int ldget_leng  (void)
+yy_size_t ldget_leng  (void)
 {
         return ldleng;
 }
@@ -2772,7 +2765,7 @@ void ldfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 206 "ldlex.l"
+#line 198 "/home/mark/src/elfutils/src/ldlex.l"
 
 
 

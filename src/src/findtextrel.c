@@ -1,28 +1,20 @@
 /* Locate source files or functions which caused text relocations.
-   Copyright (C) 2005-2010, 2012 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   Copyright (C) 2005-2010, 2012, 2014 Red Hat, Inc.
+   This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2005.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3 of the License, or
+   (at your option) any later version.
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -319,7 +311,7 @@ process_file (const char *fname, bool more_than_one)
   if (!have_textrel)
     {
       error (0, 0, gettext ("no text relocations reported in '%s'"), fname);
-      return 1;
+      goto err_elf_close;
     }
 
   int fd2 = -1;
@@ -332,14 +324,20 @@ process_file (const char *fname, bool more_than_one)
   if (segments == NULL)
     error (1, errno, gettext ("while reading ELF file"));
 
-  for (int i = 0; i < ehdr->e_phnum; ++i)
+  size_t phnum;
+  if (elf_getphdrnum (elf, &phnum) != 0)
+    error (1, 0, gettext ("cannot get program header count: %s"),
+           elf_errmsg (-1));
+
+
+  for (size_t i = 0; i < phnum; ++i)
     {
       GElf_Phdr phdr_mem;
       GElf_Phdr *phdr = gelf_getphdr (elf, i, &phdr_mem);
       if (phdr == NULL)
 	{
 	  error (0, 0,
-		 gettext ("cannot get program header index at offset %d: %s"),
+		 gettext ("cannot get program header index at offset %zd: %s"),
 		 i, elf_errmsg (-1));
 	  result = 1;
 	  goto next;
@@ -357,7 +355,7 @@ process_file (const char *fname, bool more_than_one)
 	      if (segments == NULL)
 		{
 		  error (0, 0, gettext ("\
-cannot get program header index at offset %d: %s"),
+cannot get program header index at offset %zd: %s"),
 			 i, elf_errmsg (-1));
 		  result = 1;
 		  goto next;

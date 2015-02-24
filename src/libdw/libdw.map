@@ -254,3 +254,71 @@ ELFUTILS_0.149 {
 
     dwfl_dwarf_line;
 } ELFUTILS_0.148;
+
+ELFUTILS_0.156 {
+  global:
+    # Replaced ELFUTILS_0.122 version, which has a wrapper without add_p_vaddr.
+    dwfl_report_elf;
+} ELFUTILS_0.149;
+
+ELFUTILS_0.157 {
+  global:
+    dwarf_getlocations;
+    dwarf_getlocation_die;
+    dwarf_getlocation_attr;
+} ELFUTILS_0.156;
+
+ELFUTILS_0.158 {
+  global:
+    # Replaced ELFUTILS_0.146 version, which has a wrapper without executable.
+    dwfl_core_file_report;
+
+    dwfl_attach_state;
+    dwfl_pid;
+    dwfl_thread_dwfl;
+    dwfl_thread_tid;
+    dwfl_frame_thread;
+    dwfl_thread_state_registers;
+    dwfl_thread_state_register_pc;
+    dwfl_getthread_frames;
+    dwfl_getthreads;
+    dwfl_thread_getframes;
+    dwfl_frame_pc;
+
+    dwfl_module_getsymtab_first_global;
+    dwfl_module_addrinfo;
+    dwfl_module_getsym_info;
+
+    dwfl_core_file_attach;
+    dwfl_linux_proc_attach;
+} ELFUTILS_0.157;
+
+ELFUTILS_0.159 {
+  global:
+    dwarf_getalt;
+    dwarf_setalt;
+    dwelf_dwarf_gnu_debugaltlink;
+    dwelf_elf_gnu_debuglink;
+    dwelf_elf_gnu_build_id;
+} ELFUTILS_0.158;
+
+ELFUTILS_0.160 {
+  global:
+    dwarf_cu_getdwarf;
+    dwarf_cu_die;
+} ELFUTILS_0.159;
+
+ELFUTILS_0.161 {
+  global:
+    dwarf_peel_type;
+
+    # Replaced ELFUTILS_0.144 version.  Both versions point to the
+    # same implementation, but users of the new symbol version can
+    # presume that it uses dwarf_peel_type.
+    dwarf_aggregate_size;
+
+    dwarf_getmacros_off;
+    dwarf_macro_getsrcfiles;
+    dwarf_macro_getparamcnt;
+    dwarf_macro_param;
+} ELFUTILS_0.160;

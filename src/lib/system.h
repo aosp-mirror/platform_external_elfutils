@@ -1,50 +1,30 @@
 /* Declarations for common convenience functions.
    Copyright (C) 2006-2011 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   This file is part of elfutils.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of either
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+     * the GNU Lesser General Public License as published by the Free
+       Software Foundation; either version 3 of the License, or (at
+       your option) any later version
+
+   or
+
+     * the GNU General Public License as published by the Free
+       Software Foundation; either version 2 of the License, or (at
+       your option) any later version
+
+   or both in parallel, as here.
+
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   In addition, as a special exception, Red Hat, Inc. gives You the
-   additional right to link the code of Red Hat elfutils with code licensed
-   under an Open Source Initiative certified open source license
-   (http://www.opensource.org/licenses/index.php) and to distribute linked
-   combinations including the two.  Non-GPL Code permitted under this
-   exception must only link to the code of Red Hat elfutils through those
-   well defined interfaces identified in the file named EXCEPTION found in
-   the source code files (the "Approved Interfaces").  The files of Non-GPL
-   Code may instantiate templates or use macros or inline functions from
-   the Approved Interfaces without causing the resulting work to be covered
-   by the GNU General Public License.  Only Red Hat, Inc. may make changes
-   or additions to the list of Approved Interfaces.  Red Hat's grant of
-   this exception is conditioned upon your not adding any new exceptions.
-   If you wish to add a new Approved Interface or exception, please contact
-   Red Hat.  You must obey the GNU General Public License in all respects
-   for all of the Red Hat elfutils code and other code used in conjunction
-   with Red Hat elfutils except the Non-GPL Code covered by this exception.
-   If you modify this file, you may extend this exception to your version
-   of the file, but you are not obligated to do so.  If you do not wish to
-   provide this exception without modification, you must delete this
-   exception statement from your version and license this file solely under
-   the GPL without exception.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received copies of the GNU General Public License and
+   the GNU Lesser General Public License along with this program.  If
+   not, see <http://www.gnu.org/licenses/>.  */
 
 #ifndef LIB_SYSTEM_H
 #define LIB_SYSTEM_H	1
@@ -54,13 +34,18 @@
 #include <stdint.h>
 #include <endian.h>
 #include <byteswap.h>
+#include <unistd.h>
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 # define LE32(n)	(n)
+# define LE64(n)	(n)
 # define BE32(n)	bswap_32 (n)
+# define BE64(n)	bswap_64 (n)
 #elif __BYTE_ORDER == __BIG_ENDIAN
 # define BE32(n)	(n)
+# define BE64(n)	(n)
 # define LE32(n)	bswap_32 (n)
+# define LE64(n)	bswap_64 (n)
 #else
 # error "Unknown byte order"
 #endif
@@ -84,12 +69,61 @@ extern int crc32_file (int fd, uint32_t *resp);
 #define gettext_noop(Str) Str
 
 
-#define pwrite_retry(fd, buf,  len, off) \
-  TEMP_FAILURE_RETRY (pwrite (fd, buf, len, off))
-#define write_retry(fd, buf, n) \
-     TEMP_FAILURE_RETRY (write (fd, buf, n))
-#define pread_retry(fd, buf,  len, off) \
-  TEMP_FAILURE_RETRY (pread (fd, buf, len, off))
+static inline ssize_t __attribute__ ((unused))
+pwrite_retry (int fd, const void *buf, size_t len, off_t off)
+{
+  ssize_t recvd = 0;
+
+  do
+    {
+      ssize_t ret = TEMP_FAILURE_RETRY (pwrite (fd, buf + recvd, len - recvd,
+						off + recvd));
+      if (ret <= 0)
+	return ret < 0 ? ret : recvd;
+
+      recvd += ret;
+    }
+  while ((size_t) recvd < len);
+
+  return recvd;
+}
+
+static inline ssize_t __attribute__ ((unused))
+write_retry (int fd, const void *buf, size_t len)
+{
+  ssize_t recvd = 0;
+
+  do
+    {
+      ssize_t ret = TEMP_FAILURE_RETRY (write (fd, buf + recvd, len - recvd));
+      if (ret <= 0)
+	return ret < 0 ? ret : recvd;
+
+      recvd += ret;
+    }
+  while ((size_t) recvd < len);
+
+  return recvd;
+}
+
+static inline ssize_t __attribute__ ((unused))
+pread_retry (int fd, void *buf, size_t len, off_t off)
+{
+  ssize_t recvd = 0;
+
+  do
+    {
+      ssize_t ret = TEMP_FAILURE_RETRY (pread (fd, buf + recvd, len - recvd,
+					       off + recvd));
+      if (ret <= 0)
+	return ret < 0 ? ret : recvd;
+
+      recvd += ret;
+    }
+  while ((size_t) recvd < len);
+
+  return recvd;
+}
 
 
 /* We need define two variables, argp_program_version_hook and
@@ -140,5 +174,12 @@ extern char *color_tls;
 extern char *color_weak;
 
 extern const char color_off[];
+
+/* A static assertion.  This will cause a compile-time error if EXPR,
+   which must be a compile-time constant, is false.  */
+
+#define eu_static_assert(expr)						\
+  extern int never_defined_just_used_for_checking[(expr) ? 1 : -1]	\
+    __attribute__ ((unused))
 
 #endif /* system.h */

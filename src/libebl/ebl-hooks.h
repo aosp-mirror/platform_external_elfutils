@@ -1,51 +1,30 @@
 /* Backend hook signatures internal interface for libebl.
-   Copyright (C) 2000-2011 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   Copyright (C) 2000-2011, 2013, 2014 Red Hat, Inc.
+   This file is part of elfutils.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of either
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+     * the GNU Lesser General Public License as published by the Free
+       Software Foundation; either version 3 of the License, or (at
+       your option) any later version
+
+   or
+
+     * the GNU General Public License as published by the Free
+       Software Foundation; either version 2 of the License, or (at
+       your option) any later version
+
+   or both in parallel, as here.
+
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   In addition, as a special exception, Red Hat, Inc. gives You the
-   additional right to link the code of Red Hat elfutils with code licensed
-   under any Open Source Initiative certified open source license
-   (http://www.opensource.org/licenses/index.php) which requires the
-   distribution of source code with any binary distribution and to
-   distribute linked combinations of the two.  Non-GPL Code permitted under
-   this exception must only link to the code of Red Hat elfutils through
-   those well defined interfaces identified in the file named EXCEPTION
-   found in the source code files (the "Approved Interfaces").  The files
-   of Non-GPL Code may instantiate templates or use macros or inline
-   functions from the Approved Interfaces without causing the resulting
-   work to be covered by the GNU General Public License.  Only Red Hat,
-   Inc. may make changes or additions to the list of Approved Interfaces.
-   Red Hat's grant of this exception is conditioned upon your not adding
-   any new exceptions.  If you wish to add a new Approved Interface or
-   exception, please contact Red Hat.  You must obey the GNU General Public
-   License in all respects for all of the Red Hat elfutils code and other
-   code used in conjunction with Red Hat elfutils except the Non-GPL Code
-   covered by this exception.  If you modify this file, you may extend this
-   exception to your version of the file, but you are not obligated to do
-   so.  If you do not wish to provide this exception without modification,
-   you must delete this exception statement from your version and license
-   this file solely under the GPL without exception.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received copies of the GNU General Public License and
+   the GNU Lesser General Public License along with this program.  If
+   not, see <http://www.gnu.org/licenses/>.  */
 
 /* Return symbol representaton of object file type.  */
 const char *EBLHOOK(object_type_name) (int, char *, size_t);
@@ -126,6 +105,9 @@ bool EBLHOOK(object_note) (const char *, uint32_t, uint32_t, const char *);
 bool EBLHOOK(check_object_attribute) (Ebl *, const char *, int, uint64_t,
 				      const char **, const char **);
 
+/* Check reloc target section type.  */
+bool EBLHOOK(check_reloc_target_type) (Ebl *, Elf64_Word);
+
 /* Describe auxv element type.  */
 int EBLHOOK(auxv_info) (GElf_Xword, const char **, const char **);
 
@@ -150,7 +132,7 @@ bool EBLHOOK(check_special_symbol) (Elf *, GElf_Ehdr *, const GElf_Sym *,
 bool EBLHOOK(check_st_other_bits) (unsigned char st_other);
 
 /* Check if backend uses a bss PLT in this file.  */
-bool EBLHOOK(bss_plt_p) (Elf *, GElf_Ehdr *);
+bool EBLHOOK(bss_plt_p) (Elf *);
 
 /* Return location expression to find return value given the
    DW_AT_type DIE of a DW_TAG_subprogram DIE.  */
@@ -172,8 +154,42 @@ int EBLHOOK(disasm) (const uint8_t **startp, const uint8_t *end,
 		     GElf_Addr addr, const char *fmt, DisasmOutputCB_t outcb,
 		     DisasmGetSymCB_t symcb, void *outcbarg, void *symcbarg);
 
-/* Supply the machine-specific state of CFI before CIE initial programs.  */
+/* Supply the machine-specific state of CFI before CIE initial programs.
+   Function returns 0 on success and -1 on error.  */
 int EBLHOOK(abi_cfi) (Ebl *ebl, Dwarf_CIE *abi_info);
+
+/* Fetch process data from live TID and call SETFUNC one or more times.
+   Method should be present only when EBL_FRAME_NREGS > 0, otherwise the
+   backend doesn't support unwinding.  */
+bool EBLHOOK(set_initial_registers_tid) (pid_t tid,
+					 ebl_tid_registers_t *setfunc,
+					 void *arg);
+
+/* Convert *REGNO as is in DWARF to a lower range suitable for
+   Dwarf_Frame->REGS indexing.  */
+bool EBLHOOK(dwarf_to_regno) (Ebl *ebl, unsigned *regno);
+
+/* Optionally modify *PC as fetched from inferior data into valid PC
+   instruction pointer.  */
+void EBLHOOK(normalize_pc) (Ebl *ebl, Dwarf_Addr *pc);
+
+/* Get previous frame state for an existing frame state.  Method is called only
+   if unwinder could not find CFI for current PC.  PC is for the
+   existing frame.  SETFUNC sets register in the previous frame.  GETFUNC gets
+   register from the existing frame.  Note that GETFUNC vs. SETFUNC act on
+   a disjunct set of registers.  READFUNC reads memory.  ARG has to be passed
+   for SETFUNC, GETFUNC and READFUNC.  *SIGNAL_FRAMEP is initialized to false,
+   it can be set to true if existing frame is a signal frame.  SIGNAL_FRAMEP is
+   never NULL.  */
+bool EBLHOOK(unwind) (Ebl *ebl, Dwarf_Addr pc, ebl_tid_registers_t *setfunc,
+		      ebl_tid_registers_get_t *getfunc,
+		      ebl_pid_memory_read_t *readfunc, void *arg,
+		      bool *signal_framep);
+
+/* Returns true if the value can be resolved to an address in an
+   allocated section, which will be returned in *ADDR.
+   (e.g. function descriptor resolving)  */
+bool EBLHOOK(resolve_sym_value) (Ebl *ebl, GElf_Addr *addr);
 
 /* Destructor for ELF backend handle.  */
 void EBLHOOK(destr) (struct ebl *);

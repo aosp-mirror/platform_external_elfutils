@@ -1,51 +1,30 @@
 /* Relocate debug information.
-   Copyright (C) 2005-2010 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   Copyright (C) 2005-2011, 2014 Red Hat, Inc.
+   This file is part of elfutils.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of either
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+     * the GNU Lesser General Public License as published by the Free
+       Software Foundation; either version 3 of the License, or (at
+       your option) any later version
+
+   or
+
+     * the GNU General Public License as published by the Free
+       Software Foundation; either version 2 of the License, or (at
+       your option) any later version
+
+   or both in parallel, as here.
+
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   In addition, as a special exception, Red Hat, Inc. gives You the
-   additional right to link the code of Red Hat elfutils with code licensed
-   under any Open Source Initiative certified open source license
-   (http://www.opensource.org/licenses/index.php) which requires the
-   distribution of source code with any binary distribution and to
-   distribute linked combinations of the two.  Non-GPL Code permitted under
-   this exception must only link to the code of Red Hat elfutils through
-   those well defined interfaces identified in the file named EXCEPTION
-   found in the source code files (the "Approved Interfaces").  The files
-   of Non-GPL Code may instantiate templates or use macros or inline
-   functions from the Approved Interfaces without causing the resulting
-   work to be covered by the GNU General Public License.  Only Red Hat,
-   Inc. may make changes or additions to the list of Approved Interfaces.
-   Red Hat's grant of this exception is conditioned upon your not adding
-   any new exceptions.  If you wish to add a new Approved Interface or
-   exception, please contact Red Hat.  You must obey the GNU General Public
-   License in all respects for all of the Red Hat elfutils code and other
-   code used in conjunction with Red Hat elfutils except the Non-GPL Code
-   covered by this exception.  If you modify this file, you may extend this
-   exception to your version of the file, but you are not obligated to do
-   so.  If you do not wish to provide this exception without modification,
-   you must delete this exception statement from your version and license
-   this file solely under the GPL without exception.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received copies of the GNU General Public License and
+   the GNU Lesser General Public License along with this program.  If
+   not, see <http://www.gnu.org/licenses/>.  */
 
 #include "libdwflP.h"
 
@@ -59,7 +38,11 @@ internal_function
 __libdwfl_relocate_value (Dwfl_Module *mod, Elf *elf, size_t *shstrndx,
 			  Elf32_Word shndx, GElf_Addr *value)
 {
-  assert (mod->e_type == ET_REL);
+  /* No adjustment needed for section zero, it is never loaded.
+     Handle it first, just in case the ELF file has strange section
+     zero flags set.  */
+  if (shndx == 0)
+    return DWFL_E_NOERROR;
 
   Elf_Scn *refscn = elf_getscn (elf, shndx);
   GElf_Shdr refshdr_mem, *refshdr = gelf_getshdr (refscn, &refshdr_mem);
@@ -223,7 +206,8 @@ resolve_symbol (Dwfl_Module *referer, struct reloc_symtab_cache *symtab,
 	  symtab->symstrdata = elf_getdata (elf_getscn (symtab->symelf,
 							symtab->strtabndx),
 					    NULL);
-	  if (unlikely (symtab->symstrdata == NULL))
+	  if (unlikely (symtab->symstrdata == NULL
+			|| symtab->symstrdata->d_buf == NULL))
 	    return DWFL_E_LIBELF;
 	}
       if (unlikely (sym->st_name >= symtab->symstrdata->d_size))
@@ -275,7 +259,8 @@ resolve_symbol (Dwfl_Module *referer, struct reloc_symtab_cache *symtab,
 
 		if (m->e_type != ET_REL)
 		  {
-		    sym->st_value = dwfl_adjusted_st_value (m, sym->st_value);
+		    sym->st_value = dwfl_adjusted_st_value (m, m->symfile->elf,
+							    sym->st_value);
 		    return DWFL_E_NOERROR;
 		  }
 
@@ -318,6 +303,46 @@ relocate_section (Dwfl_Module *mod, Elf *relocated, const GElf_Ehdr *ehdr,
   Elf_Data *tdata = elf_rawdata (tscn, NULL);
   if (tdata == NULL)
     return DWFL_E_LIBELF;
+
+  /* If either the section that needs the relocation applied, or the
+     section that the relocations come from overlap one of the ehdrs,
+     shdrs or phdrs data then we refuse to do the relocations.  It
+     isn't illegal for ELF section data to overlap the header data,
+     but updating the (relocation) data might corrupt the in-memory
+     libelf headers causing strange corruptions or errors.  */
+  size_t ehsize = gelf_fsize (relocated, ELF_T_EHDR, 1, EV_CURRENT);
+  if (unlikely (shdr->sh_offset < ehsize
+		|| tshdr->sh_offset < ehsize))
+    return DWFL_E_BADELF;
+
+  GElf_Off shdrs_start = ehdr->e_shoff;
+  size_t shnums;
+  if (elf_getshdrnum (relocated, &shnums) < 0)
+    return DWFL_E_LIBELF;
+  /* Overflows will have been checked by elf_getshdrnum/get|rawdata.  */
+  size_t shentsize = gelf_fsize (relocated, ELF_T_SHDR, 1, EV_CURRENT);
+  GElf_Off shdrs_end = shdrs_start + shnums * shentsize;
+  if (unlikely ((shdrs_start < shdr->sh_offset + shdr->sh_size
+		 && shdr->sh_offset < shdrs_end)
+		|| (shdrs_start < tshdr->sh_offset + tshdr->sh_size
+		    && tshdr->sh_offset < shdrs_end)))
+    return DWFL_E_BADELF;
+
+  GElf_Off phdrs_start = ehdr->e_phoff;
+  size_t phnums;
+  if (elf_getphdrnum (relocated, &phnums) < 0)
+    return DWFL_E_LIBELF;
+  if (phdrs_start != 0 && phnums != 0)
+    {
+      /* Overflows will have been checked by elf_getphdrnum/get|rawdata.  */
+      size_t phentsize = gelf_fsize (relocated, ELF_T_PHDR, 1, EV_CURRENT);
+      GElf_Off phdrs_end = phdrs_start + phnums * phentsize;
+      if (unlikely ((phdrs_start < shdr->sh_offset + shdr->sh_size
+		     && shdr->sh_offset < phdrs_end)
+		    || (phdrs_start < tshdr->sh_offset + tshdr->sh_size
+			&& tshdr->sh_offset < phdrs_end)))
+	return DWFL_E_BADELF;
+    }
 
   /* Apply one relocation.  Returns true for any invalid data.  */
   Dwfl_Error relocate (GElf_Addr offset, const GElf_Sxword *addend,
@@ -387,7 +412,7 @@ relocate_section (Dwfl_Module *mod, Elf *relocated, const GElf_Ehdr *ehdr,
 	return DWFL_E_BADRELTYPE;
       }
 
-    if (offset + size > tdata->d_size)
+    if (offset > tdata->d_size || tdata->d_size - offset < size)
       return DWFL_E_BADRELOFF;
 
 #define DO_TYPE(NAME, Name) GElf_##Name Name;
@@ -478,7 +503,10 @@ relocate_section (Dwfl_Module *mod, Elf *relocated, const GElf_Ehdr *ehdr,
       }
   }
 
-  size_t nrels = shdr->sh_size / shdr->sh_entsize;
+  size_t sh_entsize
+    = gelf_fsize (relocated, shdr->sh_type == SHT_REL ? ELF_T_REL : ELF_T_RELA,
+		  1, EV_CURRENT);
+  size_t nrels = shdr->sh_size / sh_entsize;
   size_t complete = 0;
   if (shdr->sh_type == SHT_REL)
     for (size_t relidx = 0; !result && relidx < nrels; ++relidx)
@@ -580,7 +608,7 @@ relocate_section (Dwfl_Module *mod, Elf *relocated, const GElf_Ehdr *ehdr,
 	  nrels = next;
 	}
 
-      shdr->sh_size = reldata->d_size = nrels * shdr->sh_entsize;
+      shdr->sh_size = reldata->d_size = nrels * sh_entsize;
       gelf_update_shdr (scn, shdr);
     }
 

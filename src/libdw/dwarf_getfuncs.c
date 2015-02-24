@@ -1,52 +1,31 @@
 /* Get function information.
-   Copyright (C) 2005 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   Copyright (C) 2005, 2013 Red Hat, Inc.
+   This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2005.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of either
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+     * the GNU Lesser General Public License as published by the Free
+       Software Foundation; either version 3 of the License, or (at
+       your option) any later version
+
+   or
+
+     * the GNU General Public License as published by the Free
+       Software Foundation; either version 2 of the License, or (at
+       your option) any later version
+
+   or both in parallel, as here.
+
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   In addition, as a special exception, Red Hat, Inc. gives You the
-   additional right to link the code of Red Hat elfutils with code licensed
-   under any Open Source Initiative certified open source license
-   (http://www.opensource.org/licenses/index.php) which requires the
-   distribution of source code with any binary distribution and to
-   distribute linked combinations of the two.  Non-GPL Code permitted under
-   this exception must only link to the code of Red Hat elfutils through
-   those well defined interfaces identified in the file named EXCEPTION
-   found in the source code files (the "Approved Interfaces").  The files
-   of Non-GPL Code may instantiate templates or use macros or inline
-   functions from the Approved Interfaces without causing the resulting
-   work to be covered by the GNU General Public License.  Only Red Hat,
-   Inc. may make changes or additions to the list of Approved Interfaces.
-   Red Hat's grant of this exception is conditioned upon your not adding
-   any new exceptions.  If you wish to add a new Approved Interface or
-   exception, please contact Red Hat.  You must obey the GNU General Public
-   License in all respects for all of the Red Hat elfutils code and other
-   code used in conjunction with Red Hat elfutils except the Non-GPL Code
-   covered by this exception.  If you modify this file, you may extend this
-   exception to your version of the file, but you are not obligated to do
-   so.  If you do not wish to provide this exception without modification,
-   you must delete this exception statement from your version and license
-   this file solely under the GPL without exception.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received copies of the GNU General Public License and
+   the GNU Lesser General Public License along with this program.  If
+   not, see <http://www.gnu.org/licenses/>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -56,6 +35,63 @@
 #include "libdwP.h"
 
 
+struct visitor_info
+{
+  /* The user callback of dwarf_getfuncs.  */
+  int (*callback) (Dwarf_Die *, void *);
+
+  /* The user arg value to dwarf_getfuncs.  */
+  void *arg;
+
+  /* Addr of the DIE offset where to (re)start the search.  Zero for all.  */
+  void *start_addr;
+
+  /* Last subprogram DIE addr seen.  */
+  void *last_addr;
+
+  /* The CU only contains C functions.  Allows pruning of most subtrees.  */
+  bool c_cu;
+};
+
+static int
+tree_visitor (unsigned int depth __attribute__ ((unused)),
+	      struct Dwarf_Die_Chain *chain, void *arg)
+{
+  struct visitor_info *const v = arg;
+  Dwarf_Die *die = &chain->die;
+  void *start_addr = v->start_addr;
+  void *die_addr = die->addr;
+
+  /* Pure C CUs can only contain defining subprogram DIEs as direct
+     children of the CU DIE or as nested function inside a normal C
+     code constructs.  */
+  int tag = INTUSE(dwarf_tag) (die);
+  if (v->c_cu
+      && tag != DW_TAG_subprogram
+      && tag != DW_TAG_lexical_block
+      && tag != DW_TAG_inlined_subroutine)
+    {
+      chain->prune = true;
+      return DWARF_CB_OK;
+    }
+
+  /* Skip all DIEs till we found the (re)start addr.  */
+  if (start_addr != NULL)
+    {
+      if (die_addr == start_addr)
+	v->start_addr = NULL;
+      return DWARF_CB_OK;
+    }
+
+  /* If this isn't a (defining) subprogram entity, skip DIE.  */
+  if (tag != DW_TAG_subprogram
+      || INTUSE(dwarf_hasattr) (die, DW_AT_declaration))
+    return DWARF_CB_OK;
+
+  v->last_addr = die_addr;
+  return (*v->callback) (die, v->arg);
+}
+
 ptrdiff_t
 dwarf_getfuncs (Dwarf_Die *cudie, int (*callback) (Dwarf_Die *, void *),
 		void *arg, ptrdiff_t offset)
@@ -64,31 +100,19 @@ dwarf_getfuncs (Dwarf_Die *cudie, int (*callback) (Dwarf_Die *, void *),
 		|| INTUSE(dwarf_tag) (cudie) != DW_TAG_compile_unit))
     return -1;
 
-  Dwarf_Die die_mem;
-  Dwarf_Die *die;
+  int lang = INTUSE(dwarf_srclang) (cudie);
+  bool c_cu = (lang == DW_LANG_C89
+	       || lang == DW_LANG_C
+	       || lang == DW_LANG_C99
+	       || lang == DW_LANG_C11);
 
-  int res;
-  if (offset == 0)
-    res = INTUSE(dwarf_child) (cudie, &die_mem);
+  struct visitor_info v = { callback, arg, (void *) offset, NULL, c_cu };
+  struct Dwarf_Die_Chain chain = { .die = CUDIE (cudie->cu),
+				   .parent = NULL };
+  int res = __libdw_visit_scopes (0, &chain, &tree_visitor, NULL, &v);
+
+  if (res == DWARF_CB_ABORT)
+    return (ptrdiff_t) v.last_addr;
   else
-    {
-      die = INTUSE(dwarf_offdie) (cudie->cu->dbg, offset, &die_mem);
-      res = INTUSE(dwarf_siblingof) (die, &die_mem);
-    }
-  die = res != 0 ? NULL : &die_mem;
-
-  while (die != NULL)
-    {
-      if (INTUSE(dwarf_tag) (die) == DW_TAG_subprogram)
-	{
-	  if (callback (die, arg) != DWARF_CB_OK)
-	    return INTUSE(dwarf_dieoffset) (die);
-	}
-
-      if (INTUSE(dwarf_siblingof) (die, &die_mem) != 0)
-	break;
-    }
-
-  /* That's all.  */
-  return 0;
+    return res;
 }

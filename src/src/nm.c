@@ -1,28 +1,20 @@
 /* Print symbol information from ELF file in human-readable form.
-   Copyright (C) 2000-2008, 2009, 2011, 2012 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   Copyright (C) 2000-2008, 2009, 2011, 2012, 2014 Red Hat, Inc.
+   This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2000.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3 of the License, or
+   (at your option) any later version.
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -771,14 +763,16 @@ show_symbols_sysv (Ebl *ebl, GElf_Word strndx, const char *fullname,
     {
       GElf_Shdr shdr_mem;
 
-      assert (elf_ndxscn (scn) == cnt++);
+      assert (elf_ndxscn (scn) == cnt);
+      cnt++;
 
       char *name = elf_strptr (ebl->elf, shstrndx,
 			       gelf_getshdr (scn, &shdr_mem)->sh_name);
       if (unlikely (name == NULL))
 	{
-	  name = alloca (sizeof "[invalid sh_name 0x12345678]");
-	  snprintf (name, sizeof name, "[invalid sh_name %#" PRIx32 "]",
+	  const size_t bufsz = sizeof "[invalid sh_name 0x12345678]";
+	  name = alloca (bufsz);
+	  snprintf (name, bufsz, "[invalid sh_name %#" PRIx32 "]",
 		    gelf_getshdr (scn, &shdr_mem)->sh_name);
 	}
       scnnames[elf_ndxscn (scn)] = name;
@@ -800,15 +794,6 @@ show_symbols_sysv (Ebl *ebl, GElf_Word strndx, const char *fullname,
 	  /* TRANS: the "sysv|" parts makes the string unique.  */
 	  longest_where, sgettext ("sysv|Line"));
 
-  /* Which format string to use (different radix for numbers).  */
-  const char *number_fmtstr;
-  if (radix == radix_hex)
-    number_fmtstr = "%0*" PRIx64;
-  else if (radix == radix_decimal)
-    number_fmtstr = "%0*" PRId64;
-  else
-    number_fmtstr = "%0*" PRIo64;
-
 #ifdef USE_DEMANGLE
   size_t demangle_buffer_len = 0;
   char *demangle_buffer = NULL;
@@ -826,8 +811,8 @@ show_symbols_sysv (Ebl *ebl, GElf_Word strndx, const char *fullname,
 				     symstrbuf, sizeof symstrbuf);
 
 #ifdef USE_DEMANGLE
-      /* Demangle if necessary.  */
-      if (demangle)
+      /* Demangle if necessary.  Require GNU v3 ABI by the "_Z" prefix.  */
+      if (demangle && symstr[0] == '_' && symstr[1] == 'Z')
 	{
 	  int status = -1;
 	  char *dmsymstr = __cxa_demangle (symstr, demangle_buffer,
@@ -856,9 +841,15 @@ show_symbols_sysv (Ebl *ebl, GElf_Word strndx, const char *fullname,
 	addressbuf[0] = sizebuf[0] = '\0';
       else
 	{
-	  snprintf (addressbuf, sizeof (addressbuf), number_fmtstr,
+	  snprintf (addressbuf, sizeof (addressbuf),
+		    (radix == radix_hex ? "%0*" PRIx64
+		     : (radix == radix_decimal ? "%0*" PRId64
+			: "%0*" PRIo64)),
 		    digits, syms[cnt].sym.st_value);
-	  snprintf (sizebuf, sizeof (sizebuf), number_fmtstr,
+	  snprintf (sizebuf, sizeof (sizebuf),
+		    (radix == radix_hex ? "%0*" PRIx64
+		     : (radix == radix_decimal ? "%0*" PRId64
+			: "%0*" PRIo64)),
 		    digits, syms[cnt].sym.st_size);
 	}
 
@@ -935,19 +926,6 @@ show_symbols_bsd (Elf *elf, const GElf_Ehdr *ehdr, GElf_Word strndx,
   if (prefix != NULL && ! print_file_name)
     printf ("\n%s:\n", fname);
 
-  static const char *const fmtstrs[] =
-    {
-      [radix_hex] = "%8$s%2$0*1$" PRIx64 "%10$s %9$s%3$c%4$s %5$s",
-      [radix_decimal] = "%8$s%*" PRId64 "%10$s %9$s%3$c%4$s %5$s",
-      [radix_octal] = "%8$s%2$0*1$" PRIo64 "%10$s %9$s%3$c%4$s %5$s"
-    };
-  static const char *const sfmtstrs[] =
-    {
-      [radix_hex] = "%8$s%2$0*1$" PRIx64 "%10$s %7$0*6$" PRIx64 " %9$s%3$c%4$s %5$s",
-      [radix_decimal] = "%8$s%2$*1$" PRId64 "%10$s %7$*6$" PRId64 " %9$s%3$c%4$s %5$s",
-      [radix_octal] = "%8$s%2$0*1$" PRIo64 "%10$s %7$0*6$" PRIo64 " %9$s%3$c%4$s %5$s"
-    };
-
 #ifdef USE_DEMANGLE
   size_t demangle_buffer_len = 0;
   char *demangle_buffer = NULL;
@@ -971,8 +949,8 @@ show_symbols_bsd (Elf *elf, const GElf_Ehdr *ehdr, GElf_Word strndx,
 	continue;
 
 #ifdef USE_DEMANGLE
-      /* Demangle if necessary.  */
-      if (demangle)
+      /* Demangle if necessary.  Require GNU v3 ABI by the "_Z" prefix.  */
+      if (demangle && symstr[0] == '_' && symstr[1] == 'Z')
 	{
 	  int status = -1;
 	  char *dmsymstr = __cxa_demangle (symstr, demangle_buffer,
@@ -1022,16 +1000,41 @@ show_symbols_bsd (Elf *elf, const GElf_Ehdr *ehdr, GElf_Word strndx,
 	      else
 		color = color_symbol;
 	    }
-
-	  printf (print_size && syms[cnt].sym.st_size != 0
-		  ? sfmtstrs[radix] : fmtstrs[radix],
-		  digits, syms[cnt].sym.st_value,
-		  class_type_char (elf, ehdr, &syms[cnt].sym), marker,
-		  symstr,
-		  digits, (uint64_t) syms[cnt].sym.st_size,
-		  color_mode ? color_address : "",
-		  color,
-		  color_mode ? color_off : "");
+	  if (print_size && syms[cnt].sym.st_size != 0)
+	    {
+#define HEXFMT "%6$s%2$0*1$" PRIx64 "%8$s %10$0*9$" PRIx64 " %7$s%3$c%4$s %5$s"
+#define DECFMT "%6$s%2$*1$" PRId64 "%8$s %10$*9$" PRId64 " %7$s%3$c%4$s %5$s"
+#define OCTFMT "%6$s%2$0*1$" PRIo64 "%8$s %10$0*9$" PRIo64 " %7$s%3$c%4$s %5$s"
+	      printf ((radix == radix_hex ? HEXFMT
+		       : (radix == radix_decimal ? DECFMT : OCTFMT)),
+		      digits, syms[cnt].sym.st_value,
+		      class_type_char (elf, ehdr, &syms[cnt].sym), marker,
+		      symstr,
+		      color_mode ? color_address : "",
+		      color,
+		      color_mode ? color_off : "",
+		      digits, (uint64_t) syms[cnt].sym.st_size);
+#undef HEXFMT
+#undef DECFMT
+#undef OCTFMT
+	    }
+	  else
+	    {
+#define HEXFMT "%6$s%2$0*1$" PRIx64 "%8$s %7$s%3$c%4$s %5$s"
+#define DECFMT "%6$s%2$*1$" PRId64 "%8$s %7$s%3$c%4$s %5$s"
+#define OCTFMT "%6$s%2$0*1$" PRIo64 "%8$s %7$s%3$c%4$s %5$s"
+	      printf ((radix == radix_hex ? HEXFMT
+		       : (radix == radix_decimal ? DECFMT : OCTFMT)),
+		      digits, syms[cnt].sym.st_value,
+		      class_type_char (elf, ehdr, &syms[cnt].sym), marker,
+		      symstr,
+		      color_mode ? color_address : "",
+		      color,
+		      color_mode ? color_off : "");
+#undef HEXFMT
+#undef DECFMT
+#undef OCTFMT
+	    }
 	}
 
       if (color_mode)
@@ -1052,14 +1055,6 @@ show_symbols_posix (Elf *elf, const GElf_Ehdr *ehdr, GElf_Word strndx,
 {
   if (prefix != NULL && ! print_file_name)
     printf ("%s:\n", fullname);
-
-  const char *fmtstr;
-  if (radix == radix_hex)
-    fmtstr = "%s %c%s %0*" PRIx64 " %0*" PRIx64 "\n";
-  else if (radix == radix_decimal)
-    fmtstr = "%s %c%s %*" PRId64 " %*" PRId64 "\n";
-  else
-    fmtstr = "%s %c%s %0*" PRIo64 " %0*" PRIo64 "\n";
 
   int digits = length_map[gelf_getclass (elf) - 1][radix];
 
@@ -1082,8 +1077,8 @@ show_symbols_posix (Elf *elf, const GElf_Ehdr *ehdr, GElf_Word strndx,
 	continue;
 
 #ifdef USE_DEMANGLE
-      /* Demangle if necessary.  */
-      if (demangle)
+      /* Demangle if necessary.  Require GNU v3 ABI by the "_Z" prefix.  */
+      if (demangle && symstr[0] == '_' && symstr[1] == 'Z')
 	{
 	  int status = -1;
 	  char *dmsymstr = __cxa_demangle (symstr, demangle_buffer,
@@ -1102,7 +1097,11 @@ show_symbols_posix (Elf *elf, const GElf_Ehdr *ehdr, GElf_Word strndx,
 	  putchar_unlocked (' ');
 	}
 
-      printf (fmtstr,
+      printf ((radix == radix_hex
+	       ? "%s %c%s %0*" PRIx64 " %0*" PRIx64 "\n"
+	       : (radix == radix_decimal
+		  ? "%s %c%s %*" PRId64 " %*" PRId64 "\n"
+		  : "%s %c%s %0*" PRIo64 " %0*" PRIo64 "\n")),
 	      symstr,
 	      class_type_char (elf, ehdr, &syms[cnt].sym),
 	      mark_special
@@ -1250,8 +1249,8 @@ show_symbols (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, Elf_Scn *xndxscn,
 	    continue;
 
 #ifdef USE_DEMANGLE
-	  /* Demangle if necessary.  */
-	  if (demangle)
+	  /* Demangle if necessary.  Require GNU v3 ABI by the "_Z" prefix.  */
+	  if (demangle && symstr[0] == '_' && symstr[1] == 'Z')
 	    {
 	      int status = -1;
 	      char *dmsymstr = __cxa_demangle (symstr, demangle_buffer,

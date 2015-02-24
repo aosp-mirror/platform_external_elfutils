@@ -1,3 +1,19 @@
+2014-12-18  Ulrich Drepper  <drepper@gmail.com>
+
+	* Makefile.am: Suppress output of textrel_check command.
+
+2014-11-27  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am (libasm.so): Use textrel_check.
+
+2014-04-13  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am: Remove !MUDFLAP conditions.
+
+2013-04-24  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am: Use AM_CPPFLAGS instead of INCLUDES.
+
 2011-02-08  Roland McGrath  <roland@redhat.com>
 
 	* asm_newscn.c (asm_newscn): Remove unused variable.

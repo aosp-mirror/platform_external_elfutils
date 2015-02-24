@@ -1,3 +1,118 @@
+2014-11-22  Mark Wielaard  <mjw@redhat.com>
+
+	* ebl-hooks.h (bss_plt_p): Remove ehdr argument.
+	* eblbsspltp.c (ebl_bss_plt_p): Likewise.
+	* eblopenbackend.c (default_bss_plt_p): Likewise.
+	* libebl.h (ebl_bss_plt_p): Likewise.
+
+2014-11-17  Mark Wielaard  <mjw@redhat.com>
+
+	* ebldebugscnp.c (ebl_debugscn_p): Check name is not NULL.
+
+2014-06-17  Mark Wielaard  <mjw@redhat.com>
+
+	* eblinitreg.c (ebl_func_addr_mask): New function.
+	* libebl.h (ebl_func_addr_mask): Define.
+	* libeblP.h (struct ebl): Add func_addr_mask.
+
+2014-05-19  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am (gen_SOURCES): Add eblcheckreloctargettype.c.
+	* eblcheckreloctargettype.c: New file.
+	* ebl-hooks.h (check_reloc_target_type): New hook.
+	* eblopenbackend.c (default_check_reloc_target_type): New function.
+	(fill_defaults): Assign default_check_reloc_target_type to
+	check_reloc_target_type.
+	* libebl.h (ebl_check_reloc_target_type): New function definition.
+
+2013-12-18  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am (gen_SOURCES): Add eblresolvesym.c.
+	* ebl-hooks.h (resolve_sym_value): New entry.
+	* eblresolvesym.c: New file.
+	* libebl.h (ebl_resolve_sym_value): New definition.
+	* libeblP.h (fd_addr): New field.
+	(fd_data): Likewise.
+
+2013-12-18  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	unwinder: s390 and s390x
+	* Makefile.am (gen_SOURCES): Add eblnormalizepc.c and eblunwind.c.
+	* ebl-hooks.h (normalize_pc, unwind): New.
+	* eblnormalizepc.c: New file.
+	* eblunwind.c: New file.
+	* libebl.h (Ebl_Register_Location): Add field pc_register.
+	(ebl_normalize_pc): New declaration.
+	(ebl_tid_registers_get_t, ebl_pid_memory_read_t): New definitions.
+	(ebl_unwind): New declaration.
+
+2013-12-15  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	unwinder: ppc and ppc64
+	* Makefile.am (gen_SOURCES): Add ebldwarftoregno.c.
+	* ebl-hooks.h (dwarf_to_regno): New.
+	* ebldwarftoregno.c: New file.
+	* libebl.h (Ebl_Core_Item): New field pc_register.
+	(ebl_tid_registers_t): Add FIRSTREG -1 to the comment.
+	(ebl_dwarf_to_regno): New.
+
+2013-11-25  Petr Machata  <pmachata@redhat.com>
+
+	* eblopenbackend.c (machines): Add entry for AArch64.
+
+2013-11-14  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	Code cleanup: Remove const in prototype
+	* libebl.h (ebl_tid_registers_t): Remove const from firstreg.
+
+2013-11-07  Jan Kratochvil  <jan.kratochvil@redhat.com>
+	    Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am (gen_SOURCES): Add eblinitreg.c.
+	* ebl-hooks.h (set_initial_registers_tid): New entry.
+	* eblinitreg.c: New file.
+	* libebl.h (ebl_tid_registers_t): New definition.
+	(ebl_set_initial_registers_tid, ebl_frame_nregs): New declarations.
+	* libeblP.h (struct ebl): New entry frame_nregs.
+
+2013-10-06  Mark Wielaard  <mjw@redhat.com>
+
+	* libebl.h (ebl_abi_cfi): Document restrictions using register
+	rules.
+
+2013-09-26  Petr Machata  <pmachata@redhat.com>
+
+	* eblcorenotetypename.c: Handle NT_ARM_TLS, NT_ARM_HW_BREAK,
+	NT_ARM_HW_WATCH, NT_SIGINFO, NT_FILE.
+
+2013-09-25  Mark Wielaard  <mjw@redhat.com>
+
+	* eblsectionstripp.c (ebl_section_strip_p): Check shdr_l is not NULL.
+
+2013-04-24  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am: Use AM_CPPFLAGS instead of INCLUDES.
+
+2012-10-12  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* ebl-hooks.h (abi_cfi): Extend its comment for return value.
+	* eblopenbackend.c (default_abi_cfi): Return -1.
+	* libebl.h (ebl_abi_cfi): Extend its comment for return value.
+
+2012-08-30  Petr Machata  <pmachata@redhat.com>
+
+	* eblcorenotetypename.c: Handle PPC_VSX, X86_XSTATE,
+	S390_HIGH_GPRS, S390_TIMER, S390_TODCMP, S390_TODPREG, S390_CTRS,
+	S390_PREFIX, S390_LAST_BREAK, S390_SYSTEM_CALL, and ARM_VFP.
+
+2012-08-22  Jeff Kenton  <jkenton@tilera.com>
+
+	* eblopenbackend.c (machines): Add tilegx.
+
+2011-06-26  Mark Wielaard  <mjw@redhat.com>
+
+	* eblopenbackend.c (default_debugscn_p): Add .debug_macro.
+
 2011-04-26  Mark Wielaard  <mjw@redhat.com>
 
 	* libebl.h (ebl_object_note_type_name): Add const char *name arg.

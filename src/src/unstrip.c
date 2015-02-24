@@ -1,28 +1,20 @@
 /* Combine stripped files with separate symbols and debug information.
-   Copyright (C) 2007-2012 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   Copyright (C) 2007-2012, 2014 Red Hat, Inc.
+   This file is part of elfutils.
    Written by Roland McGrath <roland@redhat.com>, 2007.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3 of the License, or
+   (at your option) any later version.
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* TODO:
 
@@ -90,6 +82,9 @@ static const struct argp_option options[] =
     N_("Apply relocations to section contents in ET_REL files"), 0 },
   { "list-only", 'n', NULL, 0,
     N_("Only list module and file names, build IDs"), 0 },
+ { "force", 'F', NULL, 0,
+    N_("Force combining files even if some ELF headers don't seem to match"),
+   0 },
   { NULL, 0, NULL, 0, NULL, 0 }
 };
 
@@ -105,6 +100,7 @@ struct arg_info
   bool modnames;
   bool match_files;
   bool relocate;
+  bool force;
 };
 
 /* Handle program arguments.  */
@@ -154,6 +150,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
       break;
     case 'R':
       info->relocate = true;
+      break;
+    case 'F':
+      info->force = true;
       break;
 
     case ARGP_KEY_ARGS:
@@ -242,7 +241,7 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\
 #define ELF_CHECK(call, msg)						      \
   do									      \
     {									      \
-      if (!(call)) 							      \
+      if (unlikely (!(call)))						      \
 	error (EXIT_FAILURE, 0, msg, elf_errmsg (-1));			      \
     } while (0)
 
@@ -258,13 +257,17 @@ copy_elf (Elf *outelf, Elf *inelf)
   ELF_CHECK (gelf_update_ehdr (outelf, ehdr),
 	     _("cannot copy ELF header: %s"));
 
-  if (ehdr->e_phnum > 0)
+  size_t phnum;
+  ELF_CHECK (elf_getphdrnum (inelf, &phnum) == 0,
+	     _("cannot get number of program headers: %s"));
+
+  if (phnum > 0)
     {
-      ELF_CHECK (gelf_newphdr (outelf, ehdr->e_phnum),
+      ELF_CHECK (gelf_newphdr (outelf, phnum),
 		 _("cannot create program headers: %s"));
 
       GElf_Phdr phdr_mem;
-      for (uint_fast16_t i = 0; i < ehdr->e_phnum; ++i)
+      for (size_t i = 0; i < phnum; ++i)
 	ELF_CHECK (gelf_update_phdr (outelf, i,
 				     gelf_getphdr (inelf, i, &phdr_mem)),
 		   _("cannot copy program header: %s"));
@@ -1126,10 +1129,11 @@ find_alloc_sections_prelink (Elf *debug, Elf_Data *debug_shstrtab,
 		      && (sec->shdr.sh_type == undo_sec->shdr.sh_type
 			  || (sec->shdr.sh_type == SHT_PROGBITS
 			      && undo_sec->shdr.sh_type == SHT_NOBITS))
-		      && sec->shdr.sh_size < undo_sec->shdr.sh_size
+		      && sec->shdr.sh_size <= undo_sec->shdr.sh_size
 		      && (!strcmp (sec->name, ".bss")
 			  || !strcmp (sec->name, ".sbss"))
-		      && (split_bss = sec) > sections)))
+		      && (sec->shdr.sh_size == undo_sec->shdr.sh_size
+			  || (split_bss = sec) > sections))))
 	    {
 	      sec->outscn = undo_sec->outscn;
 	      undo_sec = NULL;
@@ -1823,12 +1827,16 @@ more sections in stripped file than debug file -- arguments reversed?"));
     }
   while (skip_reloc);
 
-  if (stripped_ehdr->e_phnum > 0)
-    ELF_CHECK (gelf_newphdr (unstripped, stripped_ehdr->e_phnum),
+  size_t phnum;
+  ELF_CHECK (elf_getphdrnum (stripped, &phnum) == 0,
+	     _("cannot get number of program headers: %s"));
+
+  if (phnum > 0)
+    ELF_CHECK (gelf_newphdr (unstripped, phnum),
 	       _("cannot create program headers: %s"));
 
   /* Copy each program header from the stripped file.  */
-  for (uint_fast16_t i = 0; i < stripped_ehdr->e_phnum; ++i)
+  for (size_t i = 0; i < phnum; ++i)
     {
       GElf_Phdr phdr_mem;
       GElf_Phdr *phdr = gelf_getphdr (stripped, i, &phdr_mem);
@@ -1863,11 +1871,15 @@ handle_file (const char *output_file, bool create_dirs,
 	     Elf *stripped, const GElf_Ehdr *stripped_ehdr,
 	     Elf *unstripped)
 {
+  size_t phnum;
+  ELF_CHECK (elf_getphdrnum (stripped, &phnum) == 0,
+	     _("cannot get number of program headers: %s"));
+
   /* Determine the address bias between the debuginfo file and the main
      file, which may have been modified by prelinking.  */
   GElf_Addr bias = 0;
   if (unstripped != NULL)
-    for (uint_fast16_t i = 0; i < stripped_ehdr->e_phnum; ++i)
+    for (size_t i = 0; i < phnum; ++i)
       {
 	GElf_Phdr phdr_mem;
 	GElf_Phdr *phdr = gelf_getphdr (stripped, i, &phdr_mem);
@@ -1943,9 +1955,20 @@ open_file (const char *file, bool writable)
 
 /* Handle a pair of files we need to open by name.  */
 static void
-handle_explicit_files (const char *output_file, bool create_dirs,
+handle_explicit_files (const char *output_file, bool create_dirs, bool force,
 		       const char *stripped_file, const char *unstripped_file)
 {
+
+  /* Warn, and exit if not forced to continue, if some ELF header
+     sanity check for the stripped and unstripped files failed.  */
+  void warn (const char *msg)
+  {
+    error (force ? 0 : EXIT_FAILURE, 0, "%s'%s' and '%s' %s%s.",
+	   force ? _("WARNING: ") : "",
+	   stripped_file, unstripped_file, msg,
+	   force ? "" : _(", use --force"));
+  }
+
   int stripped_fd = open_file (stripped_file, false);
   Elf *stripped = elf_begin (stripped_fd, ELF_C_READ, NULL);
   GElf_Ehdr stripped_ehdr;
@@ -1964,12 +1987,18 @@ handle_explicit_files (const char *output_file, bool create_dirs,
       ELF_CHECK (gelf_getehdr (unstripped, &unstripped_ehdr),
 		 _("cannot create ELF descriptor: %s"));
 
-      if (memcmp (stripped_ehdr.e_ident, unstripped_ehdr.e_ident, EI_NIDENT)
-	  || stripped_ehdr.e_type != unstripped_ehdr.e_type
-	  || stripped_ehdr.e_machine != unstripped_ehdr.e_machine
-	  || stripped_ehdr.e_phnum != unstripped_ehdr.e_phnum)
-	error (EXIT_FAILURE, 0, _("'%s' and '%s' do not seem to match"),
-	       stripped_file, unstripped_file);
+      if (memcmp (stripped_ehdr.e_ident,
+		  unstripped_ehdr.e_ident, EI_NIDENT) != 0)
+	warn (_("ELF header identification (e_ident) different"));
+
+      if (stripped_ehdr.e_type != unstripped_ehdr.e_type)
+	warn (_("ELF header type (e_type) different"));
+
+      if (stripped_ehdr.e_machine != unstripped_ehdr.e_machine)
+	warn (_("ELF header machine type (e_machine) different"));
+
+      if (stripped_ehdr.e_phnum < unstripped_ehdr.e_phnum)
+	warn (_("stripped program header (e_phnum) smaller than unstripped"));
     }
 
   handle_file (output_file, create_dirs, stripped, &stripped_ehdr, unstripped);
@@ -1984,7 +2013,7 @@ handle_explicit_files (const char *output_file, bool create_dirs,
 
 /* Handle a pair of files opened implicitly by libdwfl for one module.  */
 static void
-handle_dwfl_module (const char *output_file, bool create_dirs,
+handle_dwfl_module (const char *output_file, bool create_dirs, bool force,
 		    Dwfl_Module *mod, bool all, bool ignore, bool relocate)
 {
   GElf_Addr bias;
@@ -2056,7 +2085,7 @@ handle_dwfl_module (const char *output_file, bool create_dirs,
 	  (void) dwfl_module_info (mod, NULL, NULL, NULL, NULL, NULL,
 				   &stripped_file, &unstripped_file);
 
-	  handle_explicit_files (output_file, create_dirs,
+	  handle_explicit_files (output_file, create_dirs, force,
 				 stripped_file, unstripped_file);
 	  return;
 	}
@@ -2076,7 +2105,7 @@ handle_dwfl_module (const char *output_file, bool create_dirs,
 
 /* Handle one module being written to the output directory.  */
 static void
-handle_output_dir_module (const char *output_dir, Dwfl_Module *mod,
+handle_output_dir_module (const char *output_dir, Dwfl_Module *mod, bool force,
 			  bool all, bool ignore, bool modnames, bool relocate)
 {
   if (! modnames)
@@ -2097,7 +2126,7 @@ handle_output_dir_module (const char *output_dir, Dwfl_Module *mod,
   if (asprintf (&output_file, "%s/%s", output_dir, modnames ? name : file) < 0)
     error (EXIT_FAILURE, 0, _("memory exhausted"));
 
-  handle_dwfl_module (output_file, true, mod, all, ignore, relocate);
+  handle_dwfl_module (output_file, true, force, mod, all, ignore, relocate);
 }
 
 
@@ -2209,12 +2238,12 @@ handle_implicit_modules (const struct arg_info *info)
     {
       if (next (offset) != 0)
 	error (EXIT_FAILURE, 0, _("matched more than one module"));
-      handle_dwfl_module (info->output_file, false, mmi.found,
+      handle_dwfl_module (info->output_file, false, info->force, mmi.found,
 			  info->all, info->ignore, info->relocate);
     }
   else
     do
-      handle_output_dir_module (info->output_dir, mmi.found,
+      handle_output_dir_module (info->output_dir, mmi.found, info->force,
 				info->all, info->ignore,
 				info->modnames, info->relocate);
     while ((offset = next (offset)) > 0);
@@ -2304,11 +2333,12 @@ or - if no debuginfo was found, or . if FILE contains the debug information.\
 	  char *file;
 	  if (asprintf (&file, "%s/%s", info.output_dir, info.args[0]) < 0)
 	    error (EXIT_FAILURE, 0, _("memory exhausted"));
-	  handle_explicit_files (file, true, info.args[0], info.args[1]);
+	  handle_explicit_files (file, true, info.force,
+				 info.args[0], info.args[1]);
 	  free (file);
 	}
       else
-	handle_explicit_files (info.output_file, false,
+	handle_explicit_files (info.output_file, false, info.force,
 			       info.args[0], info.args[1]);
     }
   else

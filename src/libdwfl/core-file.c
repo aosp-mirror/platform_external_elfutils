@@ -1,51 +1,30 @@
 /* Core file handling.
-   Copyright (C) 2008-2010 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   Copyright (C) 2008-2010, 2013 Red Hat, Inc.
+   This file is part of elfutils.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of either
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+     * the GNU Lesser General Public License as published by the Free
+       Software Foundation; either version 3 of the License, or (at
+       your option) any later version
+
+   or
+
+     * the GNU General Public License as published by the Free
+       Software Foundation; either version 2 of the License, or (at
+       your option) any later version
+
+   or both in parallel, as here.
+
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   In addition, as a special exception, Red Hat, Inc. gives You the
-   additional right to link the code of Red Hat elfutils with code licensed
-   under any Open Source Initiative certified open source license
-   (http://www.opensource.org/licenses/index.php) which requires the
-   distribution of source code with any binary distribution and to
-   distribute linked combinations of the two.  Non-GPL Code permitted under
-   this exception must only link to the code of Red Hat elfutils through
-   those well defined interfaces identified in the file named EXCEPTION
-   found in the source code files (the "Approved Interfaces").  The files
-   of Non-GPL Code may instantiate templates or use macros or inline
-   functions from the Approved Interfaces without causing the resulting
-   work to be covered by the GNU General Public License.  Only Red Hat,
-   Inc. may make changes or additions to the list of Approved Interfaces.
-   Red Hat's grant of this exception is conditioned upon your not adding
-   any new exceptions.  If you wish to add a new Approved Interface or
-   exception, please contact Red Hat.  You must obey the GNU General Public
-   License in all respects for all of the Red Hat elfutils code and other
-   code used in conjunction with Red Hat elfutils except the Non-GPL Code
-   covered by this exception.  If you modify this file, you may extend this
-   exception to your version of the file, but you are not obligated to do
-   so.  If you do not wish to provide this exception without modification,
-   you must delete this exception statement from your version and license
-   this file solely under the GPL without exception.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received copies of the GNU General Public License and
+   the GNU Lesser General Public License along with this program.  If
+   not, see <http://www.gnu.org/licenses/>.  */
 
 #include <config.h>
 #include "../libelf/libelfP.h"	/* For NOTE_ALIGN.  */
@@ -402,8 +381,46 @@ dwfl_elf_phdr_memory_callback (Dwfl *dwfl, int ndx,
   return true;
 }
 
+/* Free the contents of R_DEBUG_INFO without the R_DEBUG_INFO memory itself.  */
+
+static void
+clear_r_debug_info (struct r_debug_info *r_debug_info)
+{
+  while (r_debug_info->module != NULL)
+    {
+      struct r_debug_info_module *module = r_debug_info->module;
+      r_debug_info->module = module->next;
+      elf_end (module->elf);
+      if (module->fd != -1)
+	close (module->fd);
+      free (module);
+    }
+}
+
+bool
+internal_function
+__libdwfl_dynamic_vaddr_get (Elf *elf, GElf_Addr *vaddrp)
+{
+  size_t phnum;
+  if (unlikely (elf_getphdrnum (elf, &phnum) != 0))
+    return false;
+  for (size_t i = 0; i < phnum; ++i)
+    {
+      GElf_Phdr phdr_mem;
+      GElf_Phdr *phdr = gelf_getphdr (elf, i, &phdr_mem);
+      if (unlikely (phdr == NULL))
+	return false;
+      if (phdr->p_type == PT_DYNAMIC)
+	{
+	  *vaddrp = phdr->p_vaddr;
+	  return true;
+	}
+    }
+  return false;
+}
+
 int
-dwfl_core_file_report (Dwfl *dwfl, Elf *elf)
+dwfl_core_file_report (Dwfl *dwfl, Elf *elf, const char *executable)
 {
   size_t phnum;
   if (unlikely (elf_getphdrnum (elf, &phnum) != 0))
@@ -412,36 +429,31 @@ dwfl_core_file_report (Dwfl *dwfl, Elf *elf)
       return -1;
     }
 
+  free (dwfl->executable_for_core);
+  if (executable == NULL)
+    dwfl->executable_for_core = NULL;
+  else
+    {
+      dwfl->executable_for_core = strdup (executable);
+      if (dwfl->executable_for_core == NULL)
+	{
+	  __libdwfl_seterrno (DWFL_E_NOMEM);
+	  return -1;
+	}
+    }
+
   /* First report each PT_LOAD segment.  */
   GElf_Phdr notes_phdr;
   int ndx = dwfl_report_core_segments (dwfl, elf, phnum, &notes_phdr);
   if (unlikely (ndx <= 0))
     return ndx;
 
-  /* Now sniff segment contents for modules.  */
-  int sniffed = 0;
-  ndx = 0;
-  do
-    {
-      int seg = dwfl_segment_report_module (dwfl, ndx, NULL,
-					    &dwfl_elf_phdr_memory_callback, elf,
-					    core_file_read_eagerly, elf);
-      if (unlikely (seg < 0))
-	return seg;
-      if (seg > ndx)
-	{
-	  ndx = seg;
-	  ++sniffed;
-	}
-      else
-	++ndx;
-    }
-  while (ndx < (int) phnum);
-
   /* Next, we should follow the chain from DT_DEBUG.  */
 
   const void *auxv = NULL;
+  const void *note_file = NULL;
   size_t auxv_size = 0;
+  size_t note_file_size = 0;
   if (likely (notes_phdr.p_type == PT_NOTE))
     {
       /* PT_NOTE -> NT_AUXV -> AT_PHDR -> PT_DYNAMIC -> DT_DEBUG */
@@ -458,13 +470,19 @@ dwfl_core_file_report (Dwfl *dwfl, Elf *elf)
 	  size_t desc_pos;
 	  while ((pos = gelf_getnote (notes, pos, &nhdr,
 				      &name_pos, &desc_pos)) > 0)
-	    if (nhdr.n_type == NT_AUXV
-		&& nhdr.n_namesz == sizeof "CORE"
+	    if (nhdr.n_namesz == sizeof "CORE"
 		&& !memcmp (notes->d_buf + name_pos, "CORE", sizeof "CORE"))
 	      {
-		auxv = notes->d_buf + desc_pos;
-		auxv_size = nhdr.n_descsz;
-		break;
+		if (nhdr.n_type == NT_AUXV)
+		  {
+		    auxv = notes->d_buf + desc_pos;
+		    auxv_size = nhdr.n_descsz;
+		  }
+		if (nhdr.n_type == NT_FILE)
+		  {
+		    note_file = notes->d_buf + desc_pos;
+		    note_file_size = nhdr.n_descsz;
+		  }
 	      }
 	}
     }
@@ -472,13 +490,100 @@ dwfl_core_file_report (Dwfl *dwfl, Elf *elf)
   /* Now we have NT_AUXV contents.  From here on this processing could be
      used for a live process with auxv read from /proc.  */
 
-  int listed = dwfl_link_map_report (dwfl, auxv, auxv_size,
-				     dwfl_elf_phdr_memory_callback, elf);
+  struct r_debug_info r_debug_info;
+  memset (&r_debug_info, 0, sizeof r_debug_info);
+  int retval = dwfl_link_map_report (dwfl, auxv, auxv_size,
+				     dwfl_elf_phdr_memory_callback, elf,
+				     &r_debug_info);
+  int listed = retval > 0 ? retval : 0;
+
+  /* Now sniff segment contents for modules hinted by information gathered
+     from DT_DEBUG.  */
+
+  ndx = 0;
+  do
+    {
+      int seg = dwfl_segment_report_module (dwfl, ndx, NULL,
+					    &dwfl_elf_phdr_memory_callback, elf,
+					    core_file_read_eagerly, elf,
+					    note_file, note_file_size,
+					    &r_debug_info);
+      if (unlikely (seg < 0))
+	{
+	  clear_r_debug_info (&r_debug_info);
+	  return seg;
+	}
+      if (seg > ndx)
+	{
+	  ndx = seg;
+	  ++listed;
+	}
+      else
+	++ndx;
+    }
+  while (ndx < (int) phnum);
+
+  /* Now report the modules from dwfl_link_map_report which were not filtered
+     out by dwfl_segment_report_module.  */
+
+  Dwfl_Module **lastmodp = &dwfl->modulelist;
+  while (*lastmodp != NULL)
+    lastmodp = &(*lastmodp)->next;
+  for (struct r_debug_info_module *module = r_debug_info.module;
+       module != NULL; module = module->next)
+    {
+      if (module->elf == NULL)
+	continue;
+      GElf_Addr file_dynamic_vaddr;
+      if (! __libdwfl_dynamic_vaddr_get (module->elf, &file_dynamic_vaddr))
+	continue;
+      Dwfl_Module *mod;
+      mod = __libdwfl_report_elf (dwfl, basename (module->name), module->name,
+				  module->fd, module->elf,
+				  module->l_ld - file_dynamic_vaddr,
+				  true, true);
+      if (mod == NULL)
+	continue;
+      ++listed;
+      module->elf = NULL;
+      module->fd = -1;
+      /* Move this module to the end of the list, so that we end
+	 up with a list in the same order as the link_map chain.  */
+      if (mod->next != NULL)
+	{
+	  if (*lastmodp != mod)
+	    {
+	      lastmodp = &dwfl->modulelist;
+	      while (*lastmodp != mod)
+		lastmodp = &(*lastmodp)->next;
+	    }
+	  *lastmodp = mod->next;
+	  mod->next = NULL;
+	  while (*lastmodp != NULL)
+	    lastmodp = &(*lastmodp)->next;
+	  *lastmodp = mod;
+	}
+      lastmodp = &mod->next;
+    }
+
+  clear_r_debug_info (&r_debug_info);
 
   /* We return the number of modules we found if we found any.
      If we found none, we return -1 instead of 0 if there was an
-     error rather than just nothing found.  If link_map handling
-     failed, we still have the sniffed modules.  */
-  return sniffed == 0 || listed > sniffed ? listed : sniffed;
+     error rather than just nothing found.  */
+  return listed > 0 ? listed : retval;
 }
 INTDEF (dwfl_core_file_report)
+NEW_VERSION (dwfl_core_file_report, ELFUTILS_0.158)
+
+#ifdef SHARED
+int _compat_without_executable_dwfl_core_file_report (Dwfl *dwfl, Elf *elf);
+COMPAT_VERSION_NEWPROTO (dwfl_core_file_report, ELFUTILS_0.146,
+			 without_executable)
+
+int
+_compat_without_executable_dwfl_core_file_report (Dwfl *dwfl, Elf *elf)
+{
+  return dwfl_core_file_report (dwfl, elf, NULL);
+}
+#endif

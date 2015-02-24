@@ -1,3 +1,43 @@
+2014-12-18  Mark Wielaard  <mjw@redhat.com>
+
+	* *.po: Update for 0.161.
+
+2014-08-25  Mark Wielaard  <mjw@redhat.com>
+
+	* *.po: Update for 0.160.
+
+2014-05-20  Mark Wielaard  <mjw@redhat.com>
+
+	* *.po: Regenerated.
+
+2014-05-17  Mark Wielaard  <mjw@redhat.com>
+
+	* *.po: Update for 0.159.
+
+2014-01-03  Mark Wielaard  <mjw@redhat.com>
+
+	* *.po: Update for 0.158.
+
+2013-07-30  Mark Wielaard  <mjw@redhat.com>
+
+	* *.po: Update for 0.157.
+
+2013-07-25  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* *.po: Update for 0.156.
+
+2013-04-24  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.in.in: Upgrade to gettext-0.18.2.
+
+2012-08-27  Mark Wielaard  <mjw@redhat.com>
+
+	* *.po: Update for 0.155.
+
+2012-06-22  Mark Wielaard  <mjw@redhat.com>
+
+	* *.po: Update for 0.154.
+
 2012-02-23  Mark Wielaard  <mjw@redhat.com>
 
 	* *.po: Update for 0.153.

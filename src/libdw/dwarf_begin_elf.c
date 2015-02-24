@@ -1,63 +1,46 @@
 /* Create descriptor from ELF descriptor for processing file.
-   Copyright (C) 2002-2011 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   Copyright (C) 2002-2011, 2014 Red Hat, Inc.
+   This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2002.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of either
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+     * the GNU Lesser General Public License as published by the Free
+       Software Foundation; either version 3 of the License, or (at
+       your option) any later version
+
+   or
+
+     * the GNU General Public License as published by the Free
+       Software Foundation; either version 2 of the License, or (at
+       your option) any later version
+
+   or both in parallel, as here.
+
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   In addition, as a special exception, Red Hat, Inc. gives You the
-   additional right to link the code of Red Hat elfutils with code licensed
-   under any Open Source Initiative certified open source license
-   (http://www.opensource.org/licenses/index.php) which requires the
-   distribution of source code with any binary distribution and to
-   distribute linked combinations of the two.  Non-GPL Code permitted under
-   this exception must only link to the code of Red Hat elfutils through
-   those well defined interfaces identified in the file named EXCEPTION
-   found in the source code files (the "Approved Interfaces").  The files
-   of Non-GPL Code may instantiate templates or use macros or inline
-   functions from the Approved Interfaces without causing the resulting
-   work to be covered by the GNU General Public License.  Only Red Hat,
-   Inc. may make changes or additions to the list of Approved Interfaces.
-   Red Hat's grant of this exception is conditioned upon your not adding
-   any new exceptions.  If you wish to add a new Approved Interface or
-   exception, please contact Red Hat.  You must obey the GNU General Public
-   License in all respects for all of the Red Hat elfutils code and other
-   code used in conjunction with Red Hat elfutils except the Non-GPL Code
-   covered by this exception.  If you modify this file, you may extend this
-   exception to your version of the file, but you are not obligated to do
-   so.  If you do not wish to provide this exception without modification,
-   you must delete this exception statement from your version and license
-   this file solely under the GPL without exception.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received copies of the GNU General Public License and
+   the GNU Lesser General Public License along with this program.  If
+   not, see <http://www.gnu.org/licenses/>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
 #endif
 
+#include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 #include "libdwP.h"
 
@@ -70,7 +53,7 @@
 
 
 /* Section names.  */
-static const char dwarf_scnnames[IDX_last][17] =
+static const char dwarf_scnnames[IDX_last][18] =
 {
   [IDX_debug_info] = ".debug_info",
   [IDX_debug_types] = ".debug_types",
@@ -82,10 +65,11 @@ static const char dwarf_scnnames[IDX_last][17] =
   [IDX_debug_pubnames] = ".debug_pubnames",
   [IDX_debug_str] = ".debug_str",
   [IDX_debug_macinfo] = ".debug_macinfo",
-  [IDX_debug_ranges] = ".debug_ranges"
+  [IDX_debug_macro] = ".debug_macro",
+  [IDX_debug_ranges] = ".debug_ranges",
+  [IDX_gnu_debugaltlink] = ".gnu_debugaltlink"
 };
 #define ndwarf_scnnames (sizeof (dwarf_scnnames) / sizeof (dwarf_scnnames[0]))
-
 
 static Dwarf *
 check_section (Dwarf *result, GElf_Ehdr *ehdr, Elf_Scn *scn, bool inscngrp)
@@ -96,9 +80,9 @@ check_section (Dwarf *result, GElf_Ehdr *ehdr, Elf_Scn *scn, bool inscngrp)
   /* Get the section header data.  */
   shdr = gelf_getshdr (scn, &shdr_mem);
   if (shdr == NULL)
-    /* This should never happen.  If it does something is
-       wrong in the libelf library.  */
-    abort ();
+    /* We may read /proc/PID/mem with only program headers mapped and section
+       headers out of the mapped pages.  */
+    goto err;
 
   /* Ignore any SHT_NOBITS sections.  Debugging sections should not
      have been stripped, but in case of a corrupt file we won't try
@@ -124,12 +108,13 @@ check_section (Dwarf *result, GElf_Ehdr *ehdr, Elf_Scn *scn, bool inscngrp)
     {
       /* The section name must be valid.  Otherwise is the ELF file
 	 invalid.  */
+    err:
       __libdw_free_zdata (result);
+      Dwarf_Sig8_Hash_free (&result->sig8_hash);
       __libdw_seterrno (DWARF_E_INVALID_ELF);
       free (result);
       return NULL;
     }
-
 
   /* Recognize the various sections.  Most names start with .debug_.  */
   size_t cnt;
@@ -173,6 +158,12 @@ check_section (Dwarf *result, GElf_Ehdr *ehdr, Elf_Scn *scn, bool inscngrp)
 	    uint64_t size;
 	    memcpy (&size, data->d_buf + 4, sizeof size);
 	    size = be64toh (size);
+
+	    /* Check for unsigned overflow so malloc always allocated
+	       enough memory for both the Elf_Data header and the
+	       uncompressed section data.  */
+	    if (unlikely (sizeof (Elf_Data) + size < size))
+	      break;
 
 	    Elf_Data *zdata = malloc (sizeof (Elf_Data) + size);
 	    if (unlikely (zdata == NULL))
@@ -238,9 +229,32 @@ valid_p (Dwarf *result)
       && unlikely (result->sectiondata[IDX_debug_info] == NULL))
     {
       __libdw_free_zdata (result);
+      Dwarf_Sig8_Hash_free (&result->sig8_hash);
       __libdw_seterrno (DWARF_E_NO_DWARF);
       free (result);
       result = NULL;
+    }
+
+  if (result != NULL && result->sectiondata[IDX_debug_loc] != NULL)
+    {
+      result->fake_loc_cu = (Dwarf_CU *) calloc (1, sizeof (Dwarf_CU));
+      if (unlikely (result->fake_loc_cu == NULL))
+	{
+	  __libdw_free_zdata (result);
+	  Dwarf_Sig8_Hash_free (&result->sig8_hash);
+	  __libdw_seterrno (DWARF_E_NOMEM);
+	  free (result);
+	  result = NULL;
+	}
+      else
+	{
+	  result->fake_loc_cu->dbg = result;
+	  result->fake_loc_cu->startp
+	    = result->sectiondata[IDX_debug_loc]->d_buf;
+	  result->fake_loc_cu->endp
+	    = (result->sectiondata[IDX_debug_loc]->d_buf
+	       + result->sectiondata[IDX_debug_loc]->d_size);
+	}
     }
 
   return result;
@@ -269,6 +283,7 @@ scngrp_read (Dwarf *result, Elf *elf, GElf_Ehdr *ehdr, Elf_Scn *scngrp)
     {
       /* We cannot read the section content.  Fail!  */
       __libdw_free_zdata (result);
+      Dwarf_Sig8_Hash_free (&result->sig8_hash);
       free (result);
       return NULL;
     }
@@ -285,6 +300,7 @@ scngrp_read (Dwarf *result, Elf *elf, GElf_Ehdr *ehdr, Elf_Scn *scngrp)
 	  /* A section group refers to a non-existing section.  Should
 	     never happen.  */
 	  __libdw_free_zdata (result);
+	  Dwarf_Sig8_Hash_free (&result->sig8_hash);
 	  __libdw_seterrno (DWARF_E_INVALID_ELF);
 	  free (result);
 	  return NULL;
@@ -365,11 +381,13 @@ dwarf_begin_elf (elf, cmd, scngrp)
     }
   else if (cmd == DWARF_C_WRITE)
     {
+      Dwarf_Sig8_Hash_free (&result->sig8_hash);
       __libdw_seterrno (DWARF_E_UNIMPL);
       free (result);
       return NULL;
     }
 
+  Dwarf_Sig8_Hash_free (&result->sig8_hash);
   __libdw_seterrno (DWARF_E_INVALID_CMD);
   free (result);
   return NULL;

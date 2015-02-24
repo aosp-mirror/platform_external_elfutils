@@ -1,31 +1,35 @@
 /* Common interface for libebl modules.
-   Copyright (C) 2000, 2001, 2002, 2003, 2005 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   Copyright (C) 2000, 2001, 2002, 2003, 2005, 2013, 2014 Red Hat, Inc.
+   This file is part of elfutils.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of either
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+     * the GNU Lesser General Public License as published by the Free
+       Software Foundation; either version 3 of the License, or (at
+       your option) any later version
+
+   or
+
+     * the GNU General Public License as published by the Free
+       Software Foundation; either version 2 of the License, or (at
+       your option) any later version
+
+   or both in parallel, as here.
+
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received copies of the GNU General Public License and
+   the GNU Lesser General Public License along with this program.  If
+   not, see <http://www.gnu.org/licenses/>.  */
 
 #ifndef _LIBEBL_CPU_H
 #define _LIBEBL_CPU_H 1
 
+#include <dwarf.h>
 #include <libeblP.h>
 
 #define EBLHOOK(name)	EBLHOOK_1(BACKEND, name)
@@ -42,5 +46,31 @@ extern const char *EBLHOOK(init) (Elf *elf, GElf_Half machine,
 
 extern bool (*generic_debugscn_p) (const char *) attribute_hidden;
 
+/* Helper for retval.  Return dwarf_tag (die), but calls return -1
+   if there where previous errors that leave die NULL.  */
+#define DWARF_TAG_OR_RETURN(die)  \
+  ({ Dwarf_Die *_die = (die);	  \
+     if (_die == NULL) return -1; \
+     dwarf_tag (_die); })
+
+/* Get a type die corresponding to DIE.  Peel CV qualifiers off
+   it.  */
+static inline int
+dwarf_peeled_die_type (Dwarf_Die *die, Dwarf_Die *result)
+{
+  Dwarf_Attribute attr_mem;
+  Dwarf_Attribute *attr = dwarf_attr_integrate (die, DW_AT_type, &attr_mem);
+  if (attr == NULL)
+    /* The function has no return value, like a `void' function in C.  */
+    return 0;
+
+  if (dwarf_formref_die (attr, result) == NULL)
+    return -1;
+
+  if (dwarf_peel_type (result, result) != 0)
+    return -1;
+
+  return DWARF_TAG_OR_RETURN (result);
+}
 
 #endif	/* libebl_CPU.h */

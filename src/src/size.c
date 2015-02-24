@@ -1,28 +1,20 @@
 /* Print size information from ELF file.
-   Copyright (C) 2000-2007,2009,2012 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   Copyright (C) 2000-2007,2009,2012,2014 Red Hat, Inc.
+   This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2000.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3 of the License, or
+   (at your option) any later version.
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -435,10 +427,9 @@ show_sysv (Elf *elf, const char *prefix, const char *fname,
 	INTERNAL_ERROR (fullname);
 
       /* Ignore all sections which are not used at runtime.  */
-      if ((shdr->sh_flags & SHF_ALLOC) != 0)
-	maxlen = MAX (maxlen,
-		      (int) strlen (elf_strptr (elf, shstrndx,
-						shdr->sh_name)));
+      const char *name = elf_strptr (elf, shstrndx, shdr->sh_name);
+      if (name != NULL && (shdr->sh_flags & SHF_ALLOC) != 0)
+	maxlen = MAX (maxlen, (int) strlen (name));
     }
 
   fputs_unlocked (fname, stdout);
@@ -448,14 +439,6 @@ show_sysv (Elf *elf, const char *prefix, const char *fname,
 	  maxlen, sgettext ("sysv|section"),
 	  digits - 2, sgettext ("sysv|size"),
 	  digits, sgettext ("sysv|addr"));
-
-  const char *fmtstr;
-  if (radix == radix_hex)
-    fmtstr = "%-*s %*" PRIx64 " %*" PRIx64 "\n";
-  else if (radix == radix_decimal)
-    fmtstr = "%-*s %*" PRId64 " %*" PRId64 "\n";
-  else
-    fmtstr = "%-*s %*" PRIo64 " %*" PRIo64 "\n";
 
   /* Iterate over all sections.  */
   GElf_Off total = 0;
@@ -467,7 +450,11 @@ show_sysv (Elf *elf, const char *prefix, const char *fname,
       /* Ignore all sections which are not used at runtime.  */
       if ((shdr->sh_flags & SHF_ALLOC) != 0)
 	{
-	  printf (fmtstr,
+	  printf ((radix == radix_hex
+		   ? "%-*s %*" PRIx64 " %*" PRIx64 "\n"
+		   : (radix == radix_decimal
+		      ? "%-*s %*" PRId64 " %*" PRId64 "\n"
+		      : "%-*s %*" PRIo64 " %*" PRIo64 "\n")),
 		  maxlen, elf_strptr (elf, shstrndx, shdr->sh_name),
 		  digits - 2, shdr->sh_size,
 		  digits, shdr->sh_addr);
@@ -498,14 +485,6 @@ show_sysv_one_line (Elf *elf)
     error (EXIT_FAILURE, 0,
 	   gettext ("cannot get section header string table index"));
 
-  const char *fmtstr;
-  if (radix == radix_hex)
-    fmtstr = "%" PRIx64 "(%s)";
-  else if (radix == radix_decimal)
-    fmtstr = "%" PRId64 "(%s)";
-  else
-    fmtstr = "%" PRIo64 "(%s)";
-
   /* Iterate over all sections.  */
   GElf_Off total = 0;
   bool first = true;
@@ -523,8 +502,10 @@ show_sysv_one_line (Elf *elf)
 	fputs_unlocked (" + ", stdout);
       first = false;
 
-      printf (fmtstr, shdr->sh_size,
-	      elf_strptr (elf, shstrndx, shdr->sh_name));
+      printf ((radix == radix_hex ? "%" PRIx64 "(%s)"
+	       : (radix == radix_decimal ? "%" PRId64 "(%s)"
+		  : "%" PRIo64 "(%s)")),
+	      shdr->sh_size, elf_strptr (elf, shstrndx, shdr->sh_name));
 
       total += shdr->sh_size;
     }
@@ -619,14 +600,13 @@ show_bsd_totals (void)
 static void
 show_segments (Elf *elf, const char *fullname)
 {
-  GElf_Ehdr ehdr_mem;
-  GElf_Ehdr *ehdr = gelf_getehdr (elf, &ehdr_mem);
-  if (ehdr == NULL)
+  size_t phnum;
+  if (elf_getphdrnum (elf, &phnum) != 0)
     INTERNAL_ERROR (fullname);
 
   GElf_Off total = 0;
   bool first = true;
-  for (size_t cnt = 0; cnt < ehdr->e_phnum; ++cnt)
+  for (size_t cnt = 0; cnt < phnum; ++cnt)
     {
       GElf_Phdr phdr_mem;
       GElf_Phdr *phdr;

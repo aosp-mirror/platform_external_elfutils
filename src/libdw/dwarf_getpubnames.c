@@ -1,52 +1,31 @@
 /* Get public symbol information.
    Copyright (C) 2002, 2003, 2004, 2005, 2008 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2002.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of either
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+     * the GNU Lesser General Public License as published by the Free
+       Software Foundation; either version 3 of the License, or (at
+       your option) any later version
+
+   or
+
+     * the GNU General Public License as published by the Free
+       Software Foundation; either version 2 of the License, or (at
+       your option) any later version
+
+   or both in parallel, as here.
+
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   In addition, as a special exception, Red Hat, Inc. gives You the
-   additional right to link the code of Red Hat elfutils with code licensed
-   under any Open Source Initiative certified open source license
-   (http://www.opensource.org/licenses/index.php) which requires the
-   distribution of source code with any binary distribution and to
-   distribute linked combinations of the two.  Non-GPL Code permitted under
-   this exception must only link to the code of Red Hat elfutils through
-   those well defined interfaces identified in the file named EXCEPTION
-   found in the source code files (the "Approved Interfaces").  The files
-   of Non-GPL Code may instantiate templates or use macros or inline
-   functions from the Approved Interfaces without causing the resulting
-   work to be covered by the GNU General Public License.  Only Red Hat,
-   Inc. may make changes or additions to the list of Approved Interfaces.
-   Red Hat's grant of this exception is conditioned upon your not adding
-   any new exceptions.  If you wish to add a new Approved Interface or
-   exception, please contact Red Hat.  You must obey the GNU General Public
-   License in all respects for all of the Red Hat elfutils code and other
-   code used in conjunction with Red Hat elfutils except the Non-GPL Code
-   covered by this exception.  If you modify this file, you may extend this
-   exception to your version of the file, but you are not obligated to do
-   so.  If you do not wish to provide this exception without modification,
-   you must delete this exception statement from your version and license
-   this file solely under the GPL without exception.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received copies of the GNU General Public License and
+   the GNU Lesser General Public License along with this program.  If
+   not, see <http://www.gnu.org/licenses/>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -109,9 +88,11 @@ get_offsets (Dwarf *dbg)
       /* Now we know the offset of the first offset/name pair.  */
       mem[cnt].set_start = readp + 2 + 2 * len_bytes - startp;
       mem[cnt].address_len = len_bytes;
-      if (mem[cnt].set_start >= dbg->sectiondata[IDX_debug_pubnames]->d_size)
+      size_t max_size = dbg->sectiondata[IDX_debug_pubnames]->d_size;
+      if (mem[cnt].set_start >= max_size
+	  || len - (2 + 2 * len_bytes) > max_size - mem[cnt].set_start)
 	/* Something wrong, the first entry is beyond the end of
-	   the section.  */
+	   the section.  Or the length of the whole unit is too big.  */
 	break;
 
       /* Read the version.  It better be two for now.  */
@@ -123,7 +104,8 @@ get_offsets (Dwarf *dbg)
 	}
 
       /* Get the CU offset.  */
-      if (__libdw_read_offset (dbg, IDX_debug_pubnames, readp + 2, len_bytes,
+      if (__libdw_read_offset (dbg, dbg, IDX_debug_pubnames,
+			       readp + 2, len_bytes,
 			       &mem[cnt].cu_offset, IDX_debug_info, 3))
 	/* Error has been already set in reader.  */
 	goto err_return;
@@ -143,7 +125,7 @@ get_offsets (Dwarf *dbg)
       readp += len;
     }
 
-  if (mem == NULL)
+  if (mem == NULL || cnt == 0)
     {
       __libdw_seterrno (DWARF_E_NO_ENTRY);
       return -1;
@@ -204,6 +186,8 @@ dwarf_getpubnames (dbg, callback, arg, offset)
 
   unsigned char *startp
     = (unsigned char *) dbg->sectiondata[IDX_debug_pubnames]->d_buf;
+  unsigned char *endp
+    = startp + dbg->sectiondata[IDX_debug_pubnames]->d_size;
   unsigned char *readp = startp + offset;
   while (1)
     {
@@ -215,6 +199,8 @@ dwarf_getpubnames (dbg, callback, arg, offset)
       while (1)
 	{
 	  /* READP points to the next offset/name pair.  */
+	  if (readp + dbg->pubnames_sets[cnt].address_len > endp)
+	    goto invalid_dwarf;
 	  if (dbg->pubnames_sets[cnt].address_len == 4)
 	    gl.die_offset = read_4ubyte_unaligned_inc (dbg, readp);
 	  else
@@ -228,7 +214,14 @@ dwarf_getpubnames (dbg, callback, arg, offset)
 	  gl.die_offset += dbg->pubnames_sets[cnt].cu_offset;
 
 	  gl.name = (char *) readp;
-	  readp = (unsigned char *) rawmemchr (gl.name, '\0') + 1;
+	  readp = (unsigned char *) memchr (gl.name, '\0', endp - readp);
+	  if (unlikely (readp == NULL))
+	    {
+	    invalid_dwarf:
+	      __libdw_seterrno (DWARF_E_INVALID_DWARF);
+	      return -1l;
+	    }
+	  readp++;
 
 	  /* We found name and DIE offset.  Report it.  */
 	  if (callback (dbg, &gl, arg) != DWARF_CB_OK)

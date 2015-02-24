@@ -1,52 +1,31 @@
 /* Return symbol table of archive.
-   Copyright (C) 1998, 1999, 2000, 2002, 2005 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   Copyright (C) 1998-2000, 2002, 2005, 2009, 2012, 2014 Red Hat, Inc.
+   This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 1998.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of either
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+     * the GNU Lesser General Public License as published by the Free
+       Software Foundation; either version 3 of the License, or (at
+       your option) any later version
+
+   or
+
+     * the GNU General Public License as published by the Free
+       Software Foundation; either version 2 of the License, or (at
+       your option) any later version
+
+   or both in parallel, as here.
+
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   In addition, as a special exception, Red Hat, Inc. gives You the
-   additional right to link the code of Red Hat elfutils with code licensed
-   under any Open Source Initiative certified open source license
-   (http://www.opensource.org/licenses/index.php) which requires the
-   distribution of source code with any binary distribution and to
-   distribute linked combinations of the two.  Non-GPL Code permitted under
-   this exception must only link to the code of Red Hat elfutils through
-   those well defined interfaces identified in the file named EXCEPTION
-   found in the source code files (the "Approved Interfaces").  The files
-   of Non-GPL Code may instantiate templates or use macros or inline
-   functions from the Approved Interfaces without causing the resulting
-   work to be covered by the GNU General Public License.  Only Red Hat,
-   Inc. may make changes or additions to the list of Approved Interfaces.
-   Red Hat's grant of this exception is conditioned upon your not adding
-   any new exceptions.  If you wish to add a new Approved Interface or
-   exception, please contact Red Hat.  You must obey the GNU General Public
-   License in all respects for all of the Red Hat elfutils code and other
-   code used in conjunction with Red Hat elfutils except the Non-GPL Code
-   covered by this exception.  If you modify this file, you may extend this
-   exception to your version of the file, but you are not obligated to do
-   so.  If you do not wish to provide this exception without modification,
-   you must delete this exception statement from your version and license
-   this file solely under the GPL without exception.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received copies of the GNU General Public License and
+   the GNU Lesser General Public License along with this program.  If
+   not, see <http://www.gnu.org/licenses/>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -56,6 +35,7 @@
 #include <byteswap.h>
 #include <endian.h>
 #include <errno.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -65,6 +45,33 @@
 #include <dl-hash.h>
 #include "libelfP.h"
 
+
+static int
+read_number_entries (uint64_t *nump, Elf *elf, size_t *offp, bool index64_p)
+{
+  union u
+  {
+    uint64_t ret64;
+    uint32_t ret32;
+  } u;
+
+  size_t w = index64_p ? 8 : 4;
+  if (elf->map_address != NULL)
+    /* Use memcpy instead of pointer dereference so as not to assume the
+       field is naturally aligned within the file.  */
+    memcpy (&u, elf->map_address + *offp, sizeof u);
+  else if ((size_t) pread_retry (elf->fildes, &u, w, *offp) != w)
+    return -1;
+
+  *offp += w;
+
+  if (__BYTE_ORDER == __LITTLE_ENDIAN)
+    *nump = index64_p ? bswap_64 (u.ret64) : bswap_32 (u.ret32);
+  else
+    *nump = index64_p ? u.ret64 : u.ret32;
+
+  return 0;
+}
 
 Elf_Arsym *
 elf_getarsym (elf, ptr)
@@ -137,11 +144,17 @@ elf_getarsym (elf, ptr)
 	  goto out;
 	}
 
-      /* Now test whether this is the index.  It is denoted by the
-	 name being "/ ".
+      bool index64_p;
+      /* Now test whether this is the index.  If the name is "/", this
+	 is 32-bit index, if it's "/SYM64/", it's 64-bit index.
+
 	 XXX This is not entirely true.  There are some more forms.
 	 Which of them shall we handle?  */
-      if (memcmp (index_hdr->ar_name, "/               ", 16) != 0)
+      if (memcmp (index_hdr->ar_name, "/               ", 16) == 0)
+	index64_p = false;
+      else if (memcmp (index_hdr->ar_name, "/SYM64/         ", 16) == 0)
+	index64_p = true;
+      else
 	{
 	  /* If the index is not the first entry, there is no index.
 
@@ -149,27 +162,18 @@ elf_getarsym (elf, ptr)
 	  __libelf_seterrno (ELF_E_NO_INDEX);
 	  goto out;
 	}
+      int w = index64_p ? 8 : 4;
 
       /* We have an archive.  The first word in there is the number of
 	 entries in the table.  */
-      uint32_t n;
-      if (elf->map_address == NULL)
+      uint64_t n;
+      size_t off = elf->start_offset + SARMAG + sizeof (struct ar_hdr);
+      if (read_number_entries (&n, elf, &off, index64_p) < 0)
 	{
-	  if (pread_retry (elf->fildes, &n, sizeof (n),
-			   elf->start_offset + SARMAG + sizeof (struct ar_hdr))
-	      != sizeof (n))
-	    {
-	      /* Cannot read the number of entries.  */
-	      __libelf_seterrno (ELF_E_NO_INDEX);
-	      goto out;
-	    }
+	  /* Cannot read the number of entries.  */
+	  __libelf_seterrno (ELF_E_NO_INDEX);
+	  goto out;
 	}
-      else
-	n = *(uint32_t *) (elf->map_address + elf->start_offset
-			   + SARMAG + sizeof (struct ar_hdr));
-
-      if (__BYTE_ORDER == __LITTLE_ENDIAN)
-	n = bswap_32 (n);
 
       /* Now we can perform some first tests on whether all the data
 	 needed for the index is available.  */
@@ -178,8 +182,12 @@ elf_getarsym (elf, ptr)
       tmpbuf[10] = '\0';
       size_t index_size = atol (tmpbuf);
 
-      if (SARMAG + sizeof (struct ar_hdr) + index_size > elf->maximum_size
-	  || n * sizeof (uint32_t) > index_size)
+      if (index_size > elf->maximum_size
+	  || elf->maximum_size - index_size < SARMAG + sizeof (struct ar_hdr)
+#if SIZE_MAX <= 4294967295U
+	  || n >= SIZE_MAX / sizeof (Elf_Arsym)
+#endif
+	  || n > index_size / w)
 	{
 	  /* This index table cannot be right since it does not fit into
 	     the file.  */
@@ -192,14 +200,19 @@ elf_getarsym (elf, ptr)
       elf->state.ar.ar_sym = (Elf_Arsym *) malloc (ar_sym_len);
       if (elf->state.ar.ar_sym != NULL)
 	{
-	  uint32_t *file_data;
+	  union
+	  {
+	    uint32_t u32[n];
+	    uint64_t u64[n];
+	  } *file_data;
 	  char *str_data;
+	  size_t sz = n * w;
 
 	  if (elf->map_address == NULL)
 	    {
-	      file_data = (uint32_t *) alloca (n * sizeof (uint32_t));
+	      file_data = alloca (sz);
 
-	      ar_sym_len += index_size - n * sizeof (uint32_t);
+	      ar_sym_len += index_size - n * w;
 	      Elf_Arsym *newp = (Elf_Arsym *) realloc (elf->state.ar.ar_sym,
 						       ar_sym_len);
 	      if (newp == NULL)
@@ -214,18 +227,10 @@ elf_getarsym (elf, ptr)
 	      char *new_str = (char *) (elf->state.ar.ar_sym + n + 1);
 
 	      /* Now read the data from the file.  */
-	      if ((size_t) pread_retry (elf->fildes, file_data,
-					n * sizeof (uint32_t),
-					elf->start_offset + SARMAG
-					+ sizeof (struct ar_hdr)
-					+ sizeof (uint32_t))
-		  != n * sizeof (uint32_t)
+	      if ((size_t) pread_retry (elf->fildes, file_data, sz, off) != sz
 		  || ((size_t) pread_retry (elf->fildes, new_str,
-					    index_size - n * sizeof (uint32_t),
-					    elf->start_offset
-					    + SARMAG + sizeof (struct ar_hdr)
-					    + (n + 1) * sizeof (uint32_t))
-		      != index_size - n * sizeof (uint32_t)))
+					    index_size - sz, off + sz)
+		      != index_size - sz))
 		{
 		  /* We were not able to read the data.  */
 		  free (elf->state.ar.ar_sym);
@@ -238,10 +243,11 @@ elf_getarsym (elf, ptr)
 	    }
 	  else
 	    {
-	      file_data = (uint32_t *) (elf->map_address + elf->start_offset
-					+ SARMAG + sizeof (struct ar_hdr)
-					+ sizeof (uint32_t));
-	      str_data = (char *) &file_data[n];
+	      file_data = (void *) (elf->map_address + off);
+	      if (!ALLOW_UNALIGNED
+		  && ((uintptr_t) file_data & -(uintptr_t) n) != 0)
+		file_data = memcpy (alloca (sz), elf->map_address + off, sz);
+	      str_data = (char *) (elf->map_address + off + sz);
 	    }
 
 	  /* Now we can build the data structure.  */
@@ -249,13 +255,38 @@ elf_getarsym (elf, ptr)
 	  for (size_t cnt = 0; cnt < n; ++cnt)
 	    {
 	      arsym[cnt].as_name = str_data;
-	      if (__BYTE_ORDER == __LITTLE_ENDIAN)
-		arsym[cnt].as_off = bswap_32 (file_data[cnt]);
+	      if (index64_p)
+		{
+		  uint64_t tmp = file_data->u64[cnt];
+		  if (__BYTE_ORDER == __LITTLE_ENDIAN)
+		    tmp = bswap_64 (tmp);
+
+		  arsym[cnt].as_off = tmp;
+
+		  /* Check whether 64-bit offset fits into 32-bit
+		     size_t.  */
+		  if (sizeof (arsym[cnt].as_off) < 8
+		      && arsym[cnt].as_off != tmp)
+		    {
+		      if (elf->map_address == NULL)
+			{
+			  free (elf->state.ar.ar_sym);
+			  elf->state.ar.ar_sym = NULL;
+			}
+
+		      __libelf_seterrno (ELF_E_RANGE);
+		      goto out;
+		    }
+		}
+	      else if (__BYTE_ORDER == __LITTLE_ENDIAN)
+		arsym[cnt].as_off = bswap_32 (file_data->u32[cnt]);
 	      else
-		arsym[cnt].as_off = file_data[cnt];
+		arsym[cnt].as_off = file_data->u32[cnt];
+
 	      arsym[cnt].as_hash = _dl_elf_hash (str_data);
 	      str_data = rawmemchr (str_data, '\0') + 1;
 	    }
+
 	  /* At the end a special entry.  */
 	  arsym[n].as_name = NULL;
 	  arsym[n].as_off = 0;

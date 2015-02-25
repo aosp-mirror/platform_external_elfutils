@@ -1,51 +1,30 @@
 /* Generate ELF backend handle.
-   Copyright (C) 2000-2011 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   Copyright (C) 2000-2014 Red Hat, Inc.
+   This file is part of elfutils.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of either
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+     * the GNU Lesser General Public License as published by the Free
+       Software Foundation; either version 3 of the License, or (at
+       your option) any later version
+
+   or
+
+     * the GNU General Public License as published by the Free
+       Software Foundation; either version 2 of the License, or (at
+       your option) any later version
+
+   or both in parallel, as here.
+
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   In addition, as a special exception, Red Hat, Inc. gives You the
-   additional right to link the code of Red Hat elfutils with code licensed
-   under any Open Source Initiative certified open source license
-   (http://www.opensource.org/licenses/index.php) which requires the
-   distribution of source code with any binary distribution and to
-   distribute linked combinations of the two.  Non-GPL Code permitted under
-   this exception must only link to the code of Red Hat elfutils through
-   those well defined interfaces identified in the file named EXCEPTION
-   found in the source code files (the "Approved Interfaces").  The files
-   of Non-GPL Code may instantiate templates or use macros or inline
-   functions from the Approved Interfaces without causing the resulting
-   work to be covered by the GNU General Public License.  Only Red Hat,
-   Inc. may make changes or additions to the list of Approved Interfaces.
-   Red Hat's grant of this exception is conditioned upon your not adding
-   any new exceptions.  If you wish to add a new Approved Interface or
-   exception, please contact Red Hat.  You must obey the GNU General Public
-   License in all respects for all of the Red Hat elfutils code and other
-   code used in conjunction with Red Hat elfutils except the Non-GPL Code
-   covered by this exception.  If you modify this file, you may extend this
-   exception to your version of the file, but you are not obligated to do
-   so.  If you do not wish to provide this exception without modification,
-   you must delete this exception statement from your version and license
-   this file solely under the GPL without exception.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received copies of the GNU General Public License and
+   the GNU Lesser General Public License along with this program.  If
+   not, see <http://www.gnu.org/licenses/>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -84,6 +63,7 @@ static const struct
   { "x86_64", "elf_x86_64", "x86_64", 6, EM_X86_64, ELFCLASS64, ELFDATA2LSB },
   { "ppc", "elf_ppc", "ppc", 3, EM_PPC, ELFCLASS32, ELFDATA2MSB },
   { "ppc64", "elf_ppc64", "ppc64", 5, EM_PPC64, ELFCLASS64, ELFDATA2MSB },
+  { "tilegx", "elf_tilegx", "tilegx", 6, EM_TILEGX, ELFCLASS64, ELFDATA2LSB },
   // XXX class and machine fields need to be filled in for all archs.
   { "sh", "elf_sh", "sh", 2, EM_SH, 0, 0 },
   { "arm", "ebl_arm", "arm", 3, EM_ARM, 0, 0 },
@@ -151,6 +131,7 @@ static const struct
   { "openrisc", "elf_openrisc", "openrisc", 8, EM_OPENRISC, 0, 0 },
   { "arc", "elf_arc_a5", "arc_a5", 6, EM_ARC_A5, 0, 0 },
   { "xtensa", "elf_xtensa", "xtensa", 6, EM_XTENSA, 0, 0 },
+  { "aarch64", "elf_aarch64", "aarch64", 7, EM_AARCH64, ELFCLASS64, 0 },
 };
 #define nmachines (sizeof (machines) / sizeof (machines[0]))
 
@@ -196,13 +177,8 @@ static bool default_object_note (const char *name, uint32_t type,
 				 uint32_t descsz, const char *desc);
 static bool default_debugscn_p (const char *name);
 static bool default_copy_reloc_p (int reloc);
-#ifndef __APPLE__
 static bool default_none_reloc_p (int reloc);
 static bool default_relative_reloc_p (int reloc);
-#else
-#define default_none_reloc_p            default_copy_reloc_p
-#define default_relative_reloc_p        default_copy_reloc_p
-#endif
 static bool default_check_special_symbol (Elf *elf, GElf_Ehdr *ehdr,
 					  const GElf_Sym *sym,
 					  const char *name,
@@ -210,7 +186,7 @@ static bool default_check_special_symbol (Elf *elf, GElf_Ehdr *ehdr,
 static bool default_check_st_other_bits (unsigned char st_other);
 static bool default_check_special_section (Ebl *, int,
 					   const GElf_Shdr *, const char *);
-static bool default_bss_plt_p (Elf *elf, GElf_Ehdr *ehdr);
+static bool default_bss_plt_p (Elf *elf);
 static int default_return_value_location (Dwarf_Die *functypedie,
 					  const Dwarf_Op **locops);
 static ssize_t default_register_info (Ebl *ebl,
@@ -224,6 +200,7 @@ static bool default_check_object_attribute (Ebl *ebl, const char *vendor,
 					    int tag, uint64_t value,
 					    const char **tag_name,
 					    const char **value_name);
+static bool default_check_reloc_target_type (Ebl *ebl, Elf64_Word sh_type);
 static int default_abi_cfi (Ebl *ebl, Dwarf_CIE *abi_info);
 
 
@@ -265,6 +242,7 @@ fill_defaults (Ebl *result)
   result->register_info = default_register_info;
   result->syscall_abi = default_syscall_abi;
   result->check_object_attribute = default_check_object_attribute;
+  result->check_reloc_target_type = default_check_reloc_target_type;
   result->disasm = NULL;
   result->abi_cfi = default_abi_cfi;
   result->destr = default_destr;
@@ -672,6 +650,8 @@ default_debugscn_p (const char *name)
       ".debug_types",
       /* GDB DWARF 4 extension */
       ".gdb_index",
+      /* GNU/DWARF 5 extension/proposal */
+      ".debug_macro",
       /* SGI/MIPS DWARF 2 extensions */
       ".debug_weaknames",
       ".debug_funcnames",
@@ -692,10 +672,8 @@ default_copy_reloc_p (int reloc __attribute__ ((unused)))
 {
   return false;
 }
-#ifndef __APPLE__
 strong_alias (default_copy_reloc_p, default_none_reloc_p)
 strong_alias (default_copy_reloc_p, default_relative_reloc_p)
-#endif
 
 static bool
 default_check_special_symbol (Elf *elf __attribute__ ((unused)),
@@ -715,8 +693,7 @@ default_check_st_other_bits (unsigned char st_other __attribute__ ((unused)))
 
 
 static bool
-default_bss_plt_p (Elf *elf __attribute__ ((unused)),
-		   GElf_Ehdr *ehdr __attribute__ ((unused)))
+default_bss_plt_p (Elf *elf __attribute__ ((unused)))
 {
   return false;
 }
@@ -771,9 +748,16 @@ default_check_object_attribute (Ebl *ebl __attribute__ ((unused)),
   return false;
 }
 
+static bool
+default_check_reloc_target_type (Ebl *ebl __attribute__ ((unused)),
+				 Elf64_Word sh_type __attribute__ ((unused)))
+{
+  return false;
+}
+
 static int
 default_abi_cfi (Ebl *ebl __attribute__ ((unused)),
 		 Dwarf_CIE *abi_info __attribute__ ((unused)))
 {
-  return 0;
+  return -1;
 }

@@ -27,7 +27,7 @@
 #define FLEX_SCANNER
 #define YY_FLEX_MAJOR_VERSION 2
 #define YY_FLEX_MINOR_VERSION 5
-#define YY_FLEX_SUBMINOR_VERSION 35
+#define YY_FLEX_SUBMINOR_VERSION 37
 #if YY_FLEX_SUBMINOR_VERSION > 0
 #define FLEX_BETA
 #endif
@@ -72,7 +72,6 @@ typedef int flex_int32_t;
 typedef unsigned char flex_uint8_t; 
 typedef unsigned short int flex_uint16_t;
 typedef unsigned int flex_uint32_t;
-#endif /* ! C99 */
 
 /* Limits of integral types. */
 #ifndef INT8_MIN
@@ -102,6 +101,8 @@ typedef unsigned int flex_uint32_t;
 #ifndef UINT32_MAX
 #define UINT32_MAX             (4294967295U)
 #endif
+
+#endif /* ! C99 */
 
 #endif /* ! FLEXINT_H */
 
@@ -171,7 +172,12 @@ typedef unsigned int flex_uint32_t;
 typedef struct yy_buffer_state *YY_BUFFER_STATE;
 #endif
 
-extern int i386_leng;
+#ifndef YY_TYPEDEF_YY_SIZE_T
+#define YY_TYPEDEF_YY_SIZE_T
+typedef size_t yy_size_t;
+#endif
+
+extern yy_size_t i386_leng;
 
 extern FILE *i386_in, *i386_out;
 
@@ -210,11 +216,6 @@ extern FILE *i386_in, *i386_out;
 
 #define unput(c) yyunput( c, (yytext_ptr)  )
 
-#ifndef YY_TYPEDEF_YY_SIZE_T
-#define YY_TYPEDEF_YY_SIZE_T
-typedef size_t yy_size_t;
-#endif
-
 #ifndef YY_STRUCT_YY_BUFFER_STATE
 #define YY_STRUCT_YY_BUFFER_STATE
 struct yy_buffer_state
@@ -232,7 +233,7 @@ struct yy_buffer_state
 	/* Number of characters read into yy_ch_buf, not including EOB
 	 * characters.
 	 */
-	int yy_n_chars;
+	yy_size_t yy_n_chars;
 
 	/* Whether we "own" the buffer - i.e., we know we created it,
 	 * and can realloc() it to grow it, and should free() it to
@@ -302,8 +303,8 @@ static YY_BUFFER_STATE * yy_buffer_stack = 0; /**< Stack as an array. */
 
 /* yy_hold_char holds the character lost when i386_text is formed. */
 static char yy_hold_char;
-static int yy_n_chars;		/* number of characters read into yy_ch_buf */
-int i386_leng;
+static yy_size_t yy_n_chars;		/* number of characters read into yy_ch_buf */
+yy_size_t i386_leng;
 
 /* Points to current character in buffer. */
 static char *yy_c_buf_p = (char *) 0;
@@ -331,7 +332,7 @@ static void i386__init_buffer (YY_BUFFER_STATE b,FILE *file  );
 
 YY_BUFFER_STATE i386__scan_buffer (char *base,yy_size_t size  );
 YY_BUFFER_STATE i386__scan_string (yyconst char *yy_str  );
-YY_BUFFER_STATE i386__scan_bytes (yyconst char *bytes,int len  );
+YY_BUFFER_STATE i386__scan_bytes (yyconst char *bytes,yy_size_t len  );
 
 void *i386_alloc (yy_size_t  );
 void *i386_realloc (void *,yy_size_t  );
@@ -363,7 +364,7 @@ void i386_free (void *  );
 
 /* Begin user sect3 */
 
-#define i386_wrap(n) 1
+#define i386_wrap() 1
 #define YY_SKIP_YYWRAP
 
 typedef unsigned char YY_CHAR;
@@ -536,31 +537,34 @@ int i386__flex_debug = 0;
 #define YY_MORE_ADJ 0
 #define YY_RESTORE_YY_MORE_OFFSET
 char *i386_text;
-#line 1 "i386_lex.l"
-#line 2 "i386_lex.l"
+#line 1 "/home/mark/src/elfutils/libcpu/i386_lex.l"
+#line 2 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 /* Copyright (C) 2004, 2005, 2007, 2008 Red Hat, Inc.
    Written by Ulrich Drepper <drepper@redhat.com>, 2004.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of either
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+     * the GNU Lesser General Public License as published by the Free
+       Software Foundation; either version 3 of the License, or (at
+       your option) any later version
+
+   or
+
+     * the GNU General Public License as published by the Free
+       Software Foundation; either version 2 of the License, or (at
+       your option) any later version
+
+   or both in parallel, as here.
+
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received copies of the GNU General Public License and
+   the GNU Lesser General Public License along with this program.  If
+   not, see <http://www.gnu.org/licenses/>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -577,7 +581,7 @@ char *i386_text;
 static void eat_to_eol (void);
 static void invalid_char (int ch);
 
-#line 581 "i386_lex.c"
+#line 585 "i386_lex.c"
 
 #define INITIAL 0
 #define MAIN 1
@@ -617,7 +621,7 @@ FILE *i386_get_out (void );
 
 void i386_set_out  (FILE * out_str  );
 
-int i386_get_leng (void );
+yy_size_t i386_get_leng (void );
 
 char *i386_get_text (void );
 
@@ -678,7 +682,7 @@ static int input (void );
 	if ( YY_CURRENT_BUFFER_LVALUE->yy_is_interactive ) \
 		{ \
 		int c = '*'; \
-		unsigned n; \
+		size_t n; \
 		for ( n = 0; n < max_size && \
 			     (c = getc( i386_in )) != EOF && c != '\n'; ++n ) \
 			buf[n] = (char) c; \
@@ -763,10 +767,10 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
     
-#line 54 "i386_lex.l"
+#line 57 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 
 
-#line 770 "i386_lex.c"
+#line 774 "i386_lex.c"
 
 	if ( !(yy_init) )
 		{
@@ -837,7 +841,7 @@ yy_find_action:
 
 		if ( yy_act != YY_END_OF_BUFFER && yy_rule_can_match_eol[yy_act] )
 			{
-			int yyl;
+			yy_size_t yyl;
 			for ( yyl = 0; yyl < i386_leng; ++yyl )
 				if ( i386_text[yyl] == '\n' )
 					   
@@ -858,119 +862,119 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 56 "i386_lex.l"
+#line 59 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 { return kMASK; }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 58 "i386_lex.l"
+#line 61 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 { return kPREFIX; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 59 "i386_lex.l"
+#line 62 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 { return kSUFFIX; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 61 "i386_lex.l"
+#line 64 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 { return kSYNONYM; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 63 "i386_lex.l"
+#line 66 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 { i386_lval.num = strtoul (i386_text, NULL, 10);
 				  return kNUMBER; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 66 "i386_lex.l"
+#line 69 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 { BEGIN (MAIN); return kPERCPERC; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 69 "i386_lex.l"
+#line 72 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 { return '0'; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 70 "i386_lex.l"
+#line 73 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 { return '1'; }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 72 "i386_lex.l"
+#line 75 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 { i386_lval.str = xstrndup (i386_text + 1,
 							    i386_leng - 2);
 				  return kBITFIELD; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 76 "i386_lex.l"
+#line 79 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 { i386_lval.str = (void *) -1l;
 				  return kID; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 79 "i386_lex.l"
+#line 82 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 { i386_lval.str = xstrndup (i386_text, i386_leng);
 				  return kID; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 82 "i386_lex.l"
+#line 85 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 { return ','; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 84 "i386_lex.l"
+#line 87 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 { return ':'; }
 	YY_BREAK
 case 14:
 /* rule 14 can match eol */
 YY_RULE_SETUP
-#line 86 "i386_lex.l"
+#line 89 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 { /* IGNORE */ }
 	YY_BREAK
 case 15:
 /* rule 15 can match eol */
 YY_RULE_SETUP
-#line 88 "i386_lex.l"
+#line 91 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 { return '\n'; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 90 "i386_lex.l"
+#line 93 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 { eat_to_eol (); }
 	YY_BREAK
 case 17:
 /* rule 17 can match eol */
 YY_RULE_SETUP
-#line 92 "i386_lex.l"
+#line 95 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 { /* IGNORE */ }
 	YY_BREAK
 case 18:
 /* rule 18 can match eol */
 YY_RULE_SETUP
-#line 94 "i386_lex.l"
+#line 97 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 { return kSPACE; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 96 "i386_lex.l"
+#line 99 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 { i386_lval.ch = *i386_text; return kCHAR; }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 98 "i386_lex.l"
+#line 101 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 { invalid_char (*i386_text); }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 101 "i386_lex.l"
+#line 104 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 ECHO;
 	YY_BREAK
-#line 974 "i386_lex.c"
+#line 978 "i386_lex.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(MAIN):
 	yyterminate();
@@ -1158,21 +1162,21 @@ static int yy_get_next_buffer (void)
 
 	else
 		{
-			int num_to_read =
+			yy_size_t num_to_read =
 			YY_CURRENT_BUFFER_LVALUE->yy_buf_size - number_to_move - 1;
 
 		while ( num_to_read <= 0 )
 			{ /* Not enough room in the buffer - grow it. */
 
 			/* just a shorter name for the current buffer */
-			YY_BUFFER_STATE b = YY_CURRENT_BUFFER;
+			YY_BUFFER_STATE b = YY_CURRENT_BUFFER_LVALUE;
 
 			int yy_c_buf_p_offset =
 				(int) ((yy_c_buf_p) - b->yy_ch_buf);
 
 			if ( b->yy_is_our_buffer )
 				{
-				int new_size = b->yy_buf_size * 2;
+				yy_size_t new_size = b->yy_buf_size * 2;
 
 				if ( new_size <= 0 )
 					b->yy_buf_size += b->yy_buf_size / 8;
@@ -1203,7 +1207,7 @@ static int yy_get_next_buffer (void)
 
 		/* Read in more data. */
 		YY_INPUT( (&YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[number_to_move]),
-			(yy_n_chars), (size_t) num_to_read );
+			(yy_n_chars), num_to_read );
 
 		YY_CURRENT_BUFFER_LVALUE->yy_n_chars = (yy_n_chars);
 		}
@@ -1299,7 +1303,7 @@ static int yy_get_next_buffer (void)
 	yy_current_state = yy_nxt[yy_base[yy_current_state] + (unsigned int) yy_c];
 	yy_is_jam = (yy_current_state == 61);
 
-	return yy_is_jam ? 0 : yy_current_state;
+		return yy_is_jam ? 0 : yy_current_state;
 }
 
     static void yyunput (int c, register char * yy_bp )
@@ -1314,7 +1318,7 @@ static int yy_get_next_buffer (void)
 	if ( yy_cp < YY_CURRENT_BUFFER_LVALUE->yy_ch_buf + 2 )
 		{ /* need to shift things up to make room */
 		/* +2 for EOB chars. */
-		register int number_to_move = (yy_n_chars) + 2;
+		register yy_size_t number_to_move = (yy_n_chars) + 2;
 		register char *dest = &YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[
 					YY_CURRENT_BUFFER_LVALUE->yy_buf_size + 2];
 		register char *source =
@@ -1367,7 +1371,7 @@ static int yy_get_next_buffer (void)
 
 		else
 			{ /* need more input */
-			int offset = (yy_c_buf_p) - (yytext_ptr);
+			yy_size_t offset = (yy_c_buf_p) - (yytext_ptr);
 			++(yy_c_buf_p);
 
 			switch ( yy_get_next_buffer(  ) )
@@ -1645,7 +1649,7 @@ void i386_pop_buffer_state (void)
  */
 static void i386_ensure_buffer_stack (void)
 {
-	int num_to_alloc;
+	yy_size_t num_to_alloc;
     
 	if (!(yy_buffer_stack)) {
 
@@ -1737,17 +1741,17 @@ YY_BUFFER_STATE i386__scan_string (yyconst char * yystr )
 
 /** Setup the input buffer state to scan the given bytes. The next call to i386_lex() will
  * scan from a @e copy of @a bytes.
- * @param bytes the byte buffer to scan
- * @param len the number of bytes in the buffer pointed to by @a bytes.
+ * @param yybytes the byte buffer to scan
+ * @param _yybytes_len the number of bytes in the buffer pointed to by @a bytes.
  * 
  * @return the newly allocated buffer state object.
  */
-YY_BUFFER_STATE i386__scan_bytes  (yyconst char * yybytes, int  _yybytes_len )
+YY_BUFFER_STATE i386__scan_bytes  (yyconst char * yybytes, yy_size_t  _yybytes_len )
 {
 	YY_BUFFER_STATE b;
 	char *buf;
 	yy_size_t n;
-	int i;
+	yy_size_t i;
     
 	/* Get memory for full buffer, including space for trailing EOB's. */
 	n = _yybytes_len + 2;
@@ -1829,7 +1833,7 @@ FILE *i386_get_out  (void)
 /** Get the length of the current token.
  * 
  */
-int i386_get_leng  (void)
+yy_size_t i386_get_leng  (void)
 {
         return i386_leng;
 }
@@ -1980,7 +1984,7 @@ void i386_free (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 101 "i386_lex.l"
+#line 104 "/home/mark/src/elfutils/libcpu/i386_lex.l"
 
 
 

@@ -15,50 +15,60 @@
 LOCAL_PATH := $(call my-dir)
 
 LIBEBL_SRC_FILES := \
-        eblabicfi.c \
-        eblauxvinfo.c \
-        eblbackendname.c \
-        eblbsspltp.c \
-        eblcheckobjattr.c \
-        ebl_check_special_section.c \
-        ebl_check_special_symbol.c \
-        eblclosebackend.c \
-        eblcopyrelocp.c \
-        eblcorenote.c \
-        eblcorenotetypename.c \
-        ebldebugscnp.c \
-        ebldynamictagcheck.c \
-        ebldynamictagname.c \
-        eblelfclass.c \
-        eblelfdata.c \
-        eblelfmachine.c \
-        eblgotpcreloccheck.c \
-        eblgstrtab.c \
-        eblmachineflagcheck.c \
-        eblmachineflagname.c \
-        eblmachinesectionflagcheck.c \
-        eblnonerelocp.c \
-        eblobjecttypename.c \
-        eblobjnote.c \
-        eblobjnotetypename.c \
-        eblopenbackend.c \
-        eblosabiname.c \
-        eblreginfo.c \
-        eblrelativerelocp.c \
-        eblrelocsimpletype.c \
-        eblreloctypecheck.c \
-        eblreloctypename.c \
-        eblrelocvaliduse.c \
-        eblretval.c \
-        eblsectionname.c \
-        eblsectionstripp.c \
-        eblsectiontypename.c \
-        eblshflagscombine.c \
-        eblstrtab.c \
-        eblsymbolbindingname.c \
-        eblsymboltypename.c \
-        ebl_syscall_abi.c \
-        eblsysvhashentrysize.c
+eblabicfi.c \
+eblauxvinfo.c \
+eblbackendname.c \
+eblbsspltp.c \
+eblcheckobjattr.c \
+eblcheckreloctargettype.c \
+ebl_check_special_section.c \
+ebl_check_special_symbol.c \
+eblclosebackend.c \
+eblcopyrelocp.c \
+eblcorenote.c \
+eblcorenotetypename.c \
+ebldebugscnp.c \
+ebldwarftoregno.c \
+ebldynamictagcheck.c \
+ebldynamictagname.c \
+eblelfclass.c \
+eblelfdata.c \
+eblelfmachine.c \
+eblgotpcreloccheck.c \
+eblgstrtab.c \
+eblinitreg.c \
+eblmachineflagcheck.c \
+eblmachineflagname.c \
+eblmachinesectionflagcheck.c \
+eblnonerelocp.c \
+eblnormalizepc.c \
+eblobjecttypename.c \
+eblobjnote.c \
+eblobjnotetypename.c \
+eblopenbackend.c \
+eblosabiname.c \
+eblreginfo.c \
+eblrelativerelocp.c \
+eblrelocsimpletype.c \
+eblreloctypecheck.c \
+eblreloctypename.c \
+eblrelocvaliduse.c \
+eblresolvesym.c \
+eblretval.c \
+eblsectionname.c \
+eblsectionstripp.c \
+eblsectiontypename.c \
+eblsegmenttypename.c \
+eblshflagscombine.c \
+eblstother.c \
+eblstrtab.c \
+eblsymbolbindingname.c \
+eblsymboltypename.c \
+ebl_syscall_abi.c \
+eblsysvhashentrysize.c \
+eblunwind.c \
+eblwstrtab.c \
+
 
 ifeq ($(HOST_OS),linux)
 
@@ -112,11 +122,11 @@ LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/../libelf \
 	$(LOCAL_PATH)/../libdw
 
-LOCAL_C_INCLUDES += $(LOCAL_PATH)/../bionic-fixup
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../bionic-fixup
 
-LOCAL_CFLAGS += -include $(LOCAL_PATH)/../bionic-fixup/AndroidFixup.h
+LOCAL_CFLAGS += -include $(LOCAL_PATH)/../../bionic-fixup/AndroidFixup.h
 
-LOCAL_CFLAGS += -DHAVE_CONFIG_H -std=gnu99 -Werror
+LOCAL_CFLAGS += -DHAVE_CONFIG_H -std=gnu99 -D_GNU_SOURCE -Werror -Wno-error=pointer-arith
 
 LOCAL_MODULE:= libebl
 

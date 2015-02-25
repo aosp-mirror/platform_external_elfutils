@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 2.5.  */
+/* A Bison parser, made by GNU Bison 2.7.  */
 
 /* Bison interface for Yacc-like parsers in C
    
-      Copyright (C) 1984, 1989-1990, 2000-2011 Free Software Foundation, Inc.
+      Copyright (C) 1984, 1989-1990, 2000-2012 Free Software Foundation, Inc.
    
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,6 +30,15 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
+#ifndef YY_I386_I_PARSE_H_INCLUDED
+# define YY_I386_I_PARSE_H_INCLUDED
+/* Enabling traces.  */
+#ifndef YYDEBUG
+# define YYDEBUG 0
+#endif
+#if YYDEBUG
+extern int i386_debug;
+#endif
 
 /* Tokens.  */
 #ifndef YYTOKENTYPE
@@ -63,13 +72,11 @@
 
 
 
-
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
 {
-
-/* Line 2068 of yacc.c  */
-#line 214 "i386_parse.y"
+/* Line 2058 of yacc.c  */
+#line 217 "/home/mark/src/elfutils/libcpu/i386_parse.y"
 
   unsigned long int num;
   char *str;
@@ -80,9 +87,8 @@ typedef union YYSTYPE
   struct argument *arg;
 
 
-
-/* Line 2068 of yacc.c  */
-#line 86 "i386_parse.h"
+/* Line 2058 of yacc.c  */
+#line 92 "i386_parse.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
@@ -91,4 +97,18 @@ typedef union YYSTYPE
 
 extern YYSTYPE i386_lval;
 
+#ifdef YYPARSE_PARAM
+#if defined __STDC__ || defined __cplusplus
+int i386_parse (void *YYPARSE_PARAM);
+#else
+int i386_parse ();
+#endif
+#else /* ! YYPARSE_PARAM */
+#if defined __STDC__ || defined __cplusplus
+int i386_parse (void);
+#else
+int i386_parse ();
+#endif
+#endif /* ! YYPARSE_PARAM */
 
+#endif /* !YY_I386_I_PARSE_H_INCLUDED  */

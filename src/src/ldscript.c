@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 2.5.  */
+/* A Bison parser, made by GNU Bison 2.7.  */
 
 /* Bison implementation for Yacc-like parsers in C
    
-      Copyright (C) 1984, 1989-1990, 2000-2011 Free Software Foundation, Inc.
+      Copyright (C) 1984, 1989-1990, 2000-2012 Free Software Foundation, Inc.
    
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@
 #define YYBISON 1
 
 /* Bison version.  */
-#define YYBISON_VERSION "2.5"
+#define YYBISON_VERSION "2.7"
 
 /* Skeleton name.  */
 #define YYSKELETON_NAME "yacc.c"
@@ -58,8 +58,6 @@
 /* Pull parsers.  */
 #define YYPULL 1
 
-/* Using locations.  */
-#define YYLSP_NEEDED 0
 
 /* Substitute the variable and function names.  */
 #define yyparse         ldparse
@@ -70,37 +68,27 @@
 #define yydebug         lddebug
 #define yynerrs         ldnerrs
 
-
 /* Copy the first part of user declarations.  */
-
-/* Line 268 of yacc.c  */
-#line 1 "ldscript.y"
+/* Line 371 of yacc.c  */
+#line 1 "/home/mark/src/elfutils/src/ldscript.y"
 
 /* Parser for linker scripts.
    Copyright (C) 2001-2011 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2001.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3 of the License, or
+   (at your option) any later version.
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -144,14 +132,16 @@ static void add_versions (struct version *versions);
 
 extern int yylex (void);
 
+/* Line 371 of yacc.c  */
+#line 137 "ldscript.c"
 
-/* Line 268 of yacc.c  */
-#line 150 "ldscript.c"
-
-/* Enabling traces.  */
-#ifndef YYDEBUG
-# define YYDEBUG 0
-#endif
+# ifndef YY_NULL
+#  if defined __cplusplus && 201103L <= __cplusplus
+#   define YY_NULL nullptr
+#  else
+#   define YY_NULL 0
+#  endif
+# endif
 
 /* Enabling verbose error messages.  */
 #ifdef YYERROR_VERBOSE
@@ -161,11 +151,17 @@ extern int yylex (void);
 # define YYERROR_VERBOSE 0
 #endif
 
-/* Enabling the token table.  */
-#ifndef YYTOKEN_TABLE
-# define YYTOKEN_TABLE 0
+/* In a future release of Bison, this section will be replaced
+   by #include "y.tab.h".  */
+#ifndef YY_LD_LDSCRIPT_H_INCLUDED
+# define YY_LD_LDSCRIPT_H_INCLUDED
+/* Enabling traces.  */
+#ifndef YYDEBUG
+# define YYDEBUG 0
 #endif
-
+#if YYDEBUG
+extern int lddebug;
+#endif
 
 /* Tokens.  */
 #ifndef YYTOKENTYPE
@@ -233,13 +229,11 @@ extern int yylex (void);
 
 
 
-
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
 {
-
-/* Line 293 of yacc.c  */
-#line 71 "ldscript.y"
+/* Line 387 of yacc.c  */
+#line 63 "/home/mark/src/elfutils/src/ldscript.y"
 
   uintmax_t num;
   enum expression_tag op;
@@ -255,21 +249,36 @@ typedef union YYSTYPE
   struct id_list *id_list;
 
 
-
-/* Line 293 of yacc.c  */
-#line 261 "ldscript.c"
+/* Line 387 of yacc.c  */
+#line 254 "ldscript.c"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
 #endif
 
+extern YYSTYPE ldlval;
+
+#ifdef YYPARSE_PARAM
+#if defined __STDC__ || defined __cplusplus
+int ldparse (void *YYPARSE_PARAM);
+#else
+int ldparse ();
+#endif
+#else /* ! YYPARSE_PARAM */
+#if defined __STDC__ || defined __cplusplus
+int ldparse (void);
+#else
+int ldparse ();
+#endif
+#endif /* ! YYPARSE_PARAM */
+
+#endif /* !YY_LD_LDSCRIPT_H_INCLUDED  */
 
 /* Copy the second part of user declarations.  */
 
-
-/* Line 343 of yacc.c  */
-#line 273 "ldscript.c"
+/* Line 390 of yacc.c  */
+#line 282 "ldscript.c"
 
 #ifdef short
 # undef short
@@ -322,24 +331,24 @@ typedef short int yytype_int16;
 # if defined YYENABLE_NLS && YYENABLE_NLS
 #  if ENABLE_NLS
 #   include <libintl.h> /* INFRINGES ON USER NAME SPACE */
-#   define YY_(msgid) dgettext ("bison-runtime", msgid)
+#   define YY_(Msgid) dgettext ("bison-runtime", Msgid)
 #  endif
 # endif
 # ifndef YY_
-#  define YY_(msgid) msgid
+#  define YY_(Msgid) Msgid
 # endif
 #endif
 
 /* Suppress unused-variable warnings by "using" E.  */
 #if ! defined lint || defined __GNUC__
-# define YYUSE(e) ((void) (e))
+# define YYUSE(E) ((void) (E))
 #else
-# define YYUSE(e) /* empty */
+# define YYUSE(E) /* empty */
 #endif
 
 /* Identity function, used to suppress warnings about constant conditions.  */
 #ifndef lint
-# define YYID(n) (n)
+# define YYID(N) (N)
 #else
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
@@ -375,6 +384,7 @@ YYID (yyi)
 #    if ! defined _ALLOCA_H && ! defined EXIT_SUCCESS && (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 #     include <stdlib.h> /* INFRINGES ON USER NAME SPACE */
+      /* Use EXIT_SUCCESS as a witness for stdlib.h.  */
 #     ifndef EXIT_SUCCESS
 #      define EXIT_SUCCESS 0
 #     endif
@@ -466,20 +476,20 @@ union yyalloc
 #endif
 
 #if defined YYCOPY_NEEDED && YYCOPY_NEEDED
-/* Copy COUNT objects from FROM to TO.  The source and destination do
+/* Copy COUNT objects from SRC to DST.  The source and destination do
    not overlap.  */
 # ifndef YYCOPY
 #  if defined __GNUC__ && 1 < __GNUC__
-#   define YYCOPY(To, From, Count) \
-      __builtin_memcpy (To, From, (Count) * sizeof (*(From)))
+#   define YYCOPY(Dst, Src, Count) \
+      __builtin_memcpy (Dst, Src, (Count) * sizeof (*(Src)))
 #  else
-#   define YYCOPY(To, From, Count)		\
-      do					\
-	{					\
-	  YYSIZE_T yyi;				\
-	  for (yyi = 0; yyi < (Count); yyi++)	\
-	    (To)[yyi] = (From)[yyi];		\
-	}					\
+#   define YYCOPY(Dst, Src, Count)              \
+      do                                        \
+        {                                       \
+          YYSIZE_T yyi;                         \
+          for (yyi = 0; yyi < (Count); yyi++)   \
+            (Dst)[yyi] = (Src)[yyi];            \
+        }                                       \
       while (YYID (0))
 #  endif
 # endif
@@ -587,17 +597,17 @@ static const yytype_int8 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
-       0,   143,   143,   144,   148,   149,   152,   157,   161,   166,
-     172,   176,   182,   193,   195,   197,   199,   203,   208,   212,
-     217,   229,   253,   255,   259,   264,   268,   273,   280,   287,
-     298,   300,   304,   307,   310,   315,   317,   323,   329,   335,
-     341,   347,   352,   357,   359,   363,   368,   372,   373,   376,
-     387,   389,   394,   399,   403,   409,   415,   424,   426,   430,
-     432,   437,   443,   447,   449,   453,   455
+       0,   135,   135,   136,   140,   141,   144,   149,   153,   158,
+     164,   168,   174,   185,   187,   189,   191,   195,   200,   204,
+     209,   221,   245,   247,   251,   256,   260,   265,   272,   279,
+     290,   292,   296,   299,   302,   307,   309,   315,   321,   327,
+     333,   339,   344,   349,   351,   355,   360,   364,   365,   368,
+     379,   381,   386,   391,   395,   401,   407,   416,   418,   422,
+     424,   429,   435,   439,   441,   445,   447
 };
 #endif
 
-#if YYDEBUG || YYERROR_VERBOSE || YYTOKEN_TABLE
+#if YYDEBUG || YYERROR_VERBOSE || 0
 /* YYTNAME[SYMBOL-NUM] -- String name of the symbol SYMBOL-NUM.
    First, the terminals, then, starting at YYNTOKENS, nonterminals.  */
 static const char *const yytname[] =
@@ -613,7 +623,7 @@ static const char *const yytname[] =
   "inputsection", "sectionname", "sort_opt_name", "exclude_opt", "expr",
   "filename_id_list", "comma_opt", "filename_id_listelem", "versionlist",
   "version", "version_stmt_list", "version_stmt", "filename_id_star_list",
-  "filename_id", "filename_id_star", 0
+  "filename_id", "filename_id_star", YY_NULL
 };
 #endif
 
@@ -746,10 +756,10 @@ static const yytype_uint8 yytable[] =
        0,     0,     0,     0,    81,     0,    78
 };
 
-#define yypact_value_is_default(yystate) \
-  ((yystate) == (-86))
+#define yypact_value_is_default(Yystate) \
+  (!!((Yystate) == (-86)))
 
-#define yytable_value_is_error(yytable_value) \
+#define yytable_value_is_error(Yytable_value) \
   YYID (0)
 
 static const yytype_int16 yycheck[] =
@@ -828,62 +838,35 @@ static const yytype_uint8 yystos[] =
 
 #define YYRECOVERING()  (!!yyerrstatus)
 
-#define YYBACKUP(Token, Value)					\
-do								\
-  if (yychar == YYEMPTY && yylen == 1)				\
-    {								\
-      yychar = (Token);						\
-      yylval = (Value);						\
-      YYPOPSTACK (1);						\
-      goto yybackup;						\
-    }								\
-  else								\
-    {								\
+#define YYBACKUP(Token, Value)                                  \
+do                                                              \
+  if (yychar == YYEMPTY)                                        \
+    {                                                           \
+      yychar = (Token);                                         \
+      yylval = (Value);                                         \
+      YYPOPSTACK (yylen);                                       \
+      yystate = *yyssp;                                         \
+      goto yybackup;                                            \
+    }                                                           \
+  else                                                          \
+    {                                                           \
       yyerror (YY_("syntax error: cannot back up")); \
       YYERROR;							\
     }								\
 while (YYID (0))
 
-
+/* Error token number */
 #define YYTERROR	1
 #define YYERRCODE	256
 
 
-/* YYLLOC_DEFAULT -- Set CURRENT to span from RHS[1] to RHS[N].
-   If N is 0, then set CURRENT to the empty location which ends
-   the previous symbol: RHS[0] (always defined).  */
-
-#define YYRHSLOC(Rhs, K) ((Rhs)[K])
-#ifndef YYLLOC_DEFAULT
-# define YYLLOC_DEFAULT(Current, Rhs, N)				\
-    do									\
-      if (YYID (N))                                                    \
-	{								\
-	  (Current).first_line   = YYRHSLOC (Rhs, 1).first_line;	\
-	  (Current).first_column = YYRHSLOC (Rhs, 1).first_column;	\
-	  (Current).last_line    = YYRHSLOC (Rhs, N).last_line;		\
-	  (Current).last_column  = YYRHSLOC (Rhs, N).last_column;	\
-	}								\
-      else								\
-	{								\
-	  (Current).first_line   = (Current).last_line   =		\
-	    YYRHSLOC (Rhs, 0).last_line;				\
-	  (Current).first_column = (Current).last_column =		\
-	    YYRHSLOC (Rhs, 0).last_column;				\
-	}								\
-    while (YYID (0))
-#endif
-
-
 /* This macro is provided for backward compatibility. */
-
 #ifndef YY_LOCATION_PRINT
 # define YY_LOCATION_PRINT(File, Loc) ((void) 0)
 #endif
 
 
 /* YYLEX -- calling `yylex' with the right arguments.  */
-
 #ifdef YYLEX_PARAM
 # define YYLEX yylex (YYLEX_PARAM)
 #else
@@ -933,6 +916,8 @@ yy_symbol_value_print (yyoutput, yytype, yyvaluep)
     YYSTYPE const * const yyvaluep;
 #endif
 {
+  FILE *yyo = yyoutput;
+  YYUSE (yyo);
   if (!yyvaluep)
     return;
 # ifdef YYPRINT
@@ -944,7 +929,7 @@ yy_symbol_value_print (yyoutput, yytype, yyvaluep)
   switch (yytype)
     {
       default:
-	break;
+        break;
     }
 }
 
@@ -1184,12 +1169,11 @@ static int
 yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
                 yytype_int16 *yyssp, int yytoken)
 {
-  YYSIZE_T yysize0 = yytnamerr (0, yytname[yytoken]);
+  YYSIZE_T yysize0 = yytnamerr (YY_NULL, yytname[yytoken]);
   YYSIZE_T yysize = yysize0;
-  YYSIZE_T yysize1;
   enum { YYERROR_VERBOSE_ARGS_MAXIMUM = 5 };
   /* Internationalized format string. */
-  const char *yyformat = 0;
+  const char *yyformat = YY_NULL;
   /* Arguments of yyformat. */
   char const *yyarg[YYERROR_VERBOSE_ARGS_MAXIMUM];
   /* Number of reported tokens (one for the "unexpected", one per
@@ -1249,11 +1233,13 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
                     break;
                   }
                 yyarg[yycount++] = yytname[yyx];
-                yysize1 = yysize + yytnamerr (0, yytname[yyx]);
-                if (! (yysize <= yysize1
-                       && yysize1 <= YYSTACK_ALLOC_MAXIMUM))
-                  return 2;
-                yysize = yysize1;
+                {
+                  YYSIZE_T yysize1 = yysize + yytnamerr (YY_NULL, yytname[yyx]);
+                  if (! (yysize <= yysize1
+                         && yysize1 <= YYSTACK_ALLOC_MAXIMUM))
+                    return 2;
+                  yysize = yysize1;
+                }
               }
         }
     }
@@ -1273,10 +1259,12 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
 # undef YYCASE_
     }
 
-  yysize1 = yysize + yystrlen (yyformat);
-  if (! (yysize <= yysize1 && yysize1 <= YYSTACK_ALLOC_MAXIMUM))
-    return 2;
-  yysize = yysize1;
+  {
+    YYSIZE_T yysize1 = yysize + yystrlen (yyformat);
+    if (! (yysize <= yysize1 && yysize1 <= YYSTACK_ALLOC_MAXIMUM))
+      return 2;
+    yysize = yysize1;
+  }
 
   if (*yymsg_alloc < yysize)
     {
@@ -1336,32 +1324,27 @@ yydestruct (yymsg, yytype, yyvaluep)
     {
 
       default:
-	break;
+        break;
     }
 }
 
 
-/* Prevent warnings from -Wmissing-prototypes.  */
-#ifdef YYPARSE_PARAM
-#if defined __STDC__ || defined __cplusplus
-int yyparse (void *YYPARSE_PARAM);
-#else
-int yyparse ();
-#endif
-#else /* ! YYPARSE_PARAM */
-#if defined __STDC__ || defined __cplusplus
-int yyparse (void);
-#else
-int yyparse ();
-#endif
-#endif /* ! YYPARSE_PARAM */
 
 
 /* The lookahead symbol.  */
 int yychar;
 
+
+#ifndef YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
+# define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
+# define YY_IGNORE_MAYBE_UNINITIALIZED_END
+#endif
+#ifndef YY_INITIAL_VALUE
+# define YY_INITIAL_VALUE(Value) /* Nothing. */
+#endif
+
 /* The semantic value of the lookahead symbol.  */
-YYSTYPE yylval;
+YYSTYPE yylval YY_INITIAL_VALUE(yyval_default);
 
 /* Number of syntax errors so far.  */
 int yynerrs;
@@ -1401,7 +1384,7 @@ yyparse ()
        `yyss': related to states.
        `yyvs': related to semantic values.
 
-       Refer to the stacks thru separate pointers, to allow yyoverflow
+       Refer to the stacks through separate pointers, to allow yyoverflow
        to reallocate them elsewhere.  */
 
     /* The state stack.  */
@@ -1419,7 +1402,7 @@ yyparse ()
   int yyn;
   int yyresult;
   /* Lookahead token as an internal (translated) token number.  */
-  int yytoken;
+  int yytoken = 0;
   /* The variables used to return semantic value and location from the
      action routines.  */
   YYSTYPE yyval;
@@ -1437,9 +1420,8 @@ yyparse ()
      Keep to zero when no symbol should be popped.  */
   int yylen = 0;
 
-  yytoken = 0;
-  yyss = yyssa;
-  yyvs = yyvsa;
+  yyssp = yyss = yyssa;
+  yyvsp = yyvs = yyvsa;
   yystacksize = YYINITDEPTH;
 
   YYDPRINTF ((stderr, "Starting parse\n"));
@@ -1448,14 +1430,6 @@ yyparse ()
   yyerrstatus = 0;
   yynerrs = 0;
   yychar = YYEMPTY; /* Cause a token to be read.  */
-
-  /* Initialize stack pointers.
-     Waste one element of value and location stack
-     so that they stay on the same level as the state stack.
-     The wasted elements are never initialized.  */
-  yyssp = yyss;
-  yyvsp = yyvs;
-
   goto yysetstate;
 
 /*------------------------------------------------------------.
@@ -1596,7 +1570,9 @@ yybackup:
   yychar = YYEMPTY;
 
   yystate = yyn;
+  YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
   *++yyvsp = yylval;
+  YY_IGNORE_MAYBE_UNINITIALIZED_END
 
   goto yynewstate;
 
@@ -1633,16 +1609,14 @@ yyreduce:
   switch (yyn)
     {
         case 3:
-
-/* Line 1806 of yacc.c  */
-#line 145 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 137 "/home/mark/src/elfutils/src/ldscript.y"
     { add_versions ((yyvsp[(2) - (2)].version)); }
     break;
 
   case 6:
-
-/* Line 1806 of yacc.c  */
-#line 153 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 145 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      if (likely (ld_state.entry == NULL))
 			ld_state.entry = (yyvsp[(3) - (5)].str);
@@ -1650,18 +1624,16 @@ yyreduce:
     break;
 
   case 7:
-
-/* Line 1806 of yacc.c  */
-#line 158 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 150 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      ld_new_searchdir ((yyvsp[(3) - (5)].str));
 		    }
     break;
 
   case 8:
-
-/* Line 1806 of yacc.c  */
-#line 162 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 154 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      if (likely (ld_state.pagesize == 0))
 			ld_state.pagesize = (yyvsp[(3) - (5)].num);
@@ -1669,9 +1641,8 @@ yyreduce:
     break;
 
   case 9:
-
-/* Line 1806 of yacc.c  */
-#line 167 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 159 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      if (likely (ld_state.interp == NULL)
 			  && ld_state.file_type != dso_file_type)
@@ -1680,18 +1651,16 @@ yyreduce:
     break;
 
   case 10:
-
-/* Line 1806 of yacc.c  */
-#line 173 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 165 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      new_segment ((yyvsp[(2) - (5)].num), (yyvsp[(4) - (5)].output_rule));
 		    }
     break;
 
   case 11:
-
-/* Line 1806 of yacc.c  */
-#line 177 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 169 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      fputs_unlocked (gettext ("mode for segment invalid\n"),
 				      stderr);
@@ -1700,9 +1669,8 @@ yyreduce:
     break;
 
   case 12:
-
-/* Line 1806 of yacc.c  */
-#line 183 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 175 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      /* First little optimization.  If there is only one
 			 file in the group don't do anything.  */
@@ -1716,37 +1684,32 @@ yyreduce:
     break;
 
   case 13:
-
-/* Line 1806 of yacc.c  */
-#line 194 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 186 "/home/mark/src/elfutils/src/ldscript.y"
     { add_inputfiles ((yyvsp[(3) - (4)].filename_list)); }
     break;
 
   case 14:
-
-/* Line 1806 of yacc.c  */
-#line 196 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 188 "/home/mark/src/elfutils/src/ldscript.y"
     { add_inputfiles (mark_as_needed ((yyvsp[(3) - (4)].filename_list))); }
     break;
 
   case 15:
-
-/* Line 1806 of yacc.c  */
-#line 198 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 190 "/home/mark/src/elfutils/src/ldscript.y"
     { add_versions ((yyvsp[(3) - (4)].version)); }
     break;
 
   case 16:
-
-/* Line 1806 of yacc.c  */
-#line 200 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 192 "/home/mark/src/elfutils/src/ldscript.y"
     { /* XXX TODO */ }
     break;
 
   case 17:
-
-/* Line 1806 of yacc.c  */
-#line 204 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 196 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      (yyvsp[(2) - (2)].output_rule)->next = (yyvsp[(1) - (2)].output_rule)->next;
 		      (yyval.output_rule) = (yyvsp[(1) - (2)].output_rule)->next = (yyvsp[(2) - (2)].output_rule);
@@ -1754,16 +1717,14 @@ yyreduce:
     break;
 
   case 18:
-
-/* Line 1806 of yacc.c  */
-#line 209 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 201 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.output_rule) = (yyvsp[(1) - (1)].output_rule); }
     break;
 
   case 19:
-
-/* Line 1806 of yacc.c  */
-#line 213 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 205 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      (yyval.output_rule) = new_output_rule (output_assignment);
 		      (yyval.output_rule)->val.assignment = (yyvsp[(1) - (2)].assignment);
@@ -1771,9 +1732,8 @@ yyreduce:
     break;
 
   case 20:
-
-/* Line 1806 of yacc.c  */
-#line 218 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 210 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      (yyval.output_rule) = new_output_rule (output_section);
 		      (yyval.output_rule)->val.section.name = (yyvsp[(1) - (4)].str);
@@ -1788,9 +1748,8 @@ yyreduce:
     break;
 
   case 21:
-
-/* Line 1806 of yacc.c  */
-#line 230 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 222 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      /* This is a short cut for "ID { *(ID) }".  */
 		      (yyval.output_rule) = new_output_rule (output_section);
@@ -1815,23 +1774,20 @@ yyreduce:
     break;
 
   case 22:
-
-/* Line 1806 of yacc.c  */
-#line 254 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 246 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.assignment) = new_assignment ((yyvsp[(1) - (3)].str), (yyvsp[(3) - (3)].expr), false); }
     break;
 
   case 23:
-
-/* Line 1806 of yacc.c  */
-#line 256 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 248 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.assignment) = new_assignment ((yyvsp[(3) - (6)].str), (yyvsp[(5) - (6)].expr), true); }
     break;
 
   case 24:
-
-/* Line 1806 of yacc.c  */
-#line 260 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 252 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      (yyvsp[(2) - (2)].input_rule)->next = (yyvsp[(1) - (2)].input_rule)->next;
 		      (yyval.input_rule) = (yyvsp[(1) - (2)].input_rule)->next = (yyvsp[(2) - (2)].input_rule);
@@ -1839,16 +1795,14 @@ yyreduce:
     break;
 
   case 25:
-
-/* Line 1806 of yacc.c  */
-#line 265 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 257 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.input_rule) = (yyvsp[(1) - (1)].input_rule); }
     break;
 
   case 26:
-
-/* Line 1806 of yacc.c  */
-#line 269 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 261 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      (yyval.input_rule) = new_input_rule (input_section);
 		      (yyval.input_rule)->val.section = (yyvsp[(1) - (1)].filemask_section_name);
@@ -1856,9 +1810,8 @@ yyreduce:
     break;
 
   case 27:
-
-/* Line 1806 of yacc.c  */
-#line 274 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 266 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      (yyvsp[(3) - (4)].filemask_section_name)->keep_flag = true;
 
@@ -1868,9 +1821,8 @@ yyreduce:
     break;
 
   case 28:
-
-/* Line 1806 of yacc.c  */
-#line 281 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 273 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      (yyval.input_rule) = new_input_rule (input_assignment);
 		      (yyval.input_rule)->val.assignment = (yyvsp[(1) - (2)].assignment);
@@ -1878,9 +1830,8 @@ yyreduce:
     break;
 
   case 29:
-
-/* Line 1806 of yacc.c  */
-#line 288 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 280 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      (yyval.filemask_section_name) = (struct filemask_section_name *)
 			obstack_alloc (&ld_state.smem, sizeof (*(yyval.filemask_section_name)));
@@ -1892,37 +1843,32 @@ yyreduce:
     break;
 
   case 30:
-
-/* Line 1806 of yacc.c  */
-#line 299 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 291 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.sectionname) = new_input_section_name ((yyvsp[(1) - (1)].str), false); }
     break;
 
   case 31:
-
-/* Line 1806 of yacc.c  */
-#line 301 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 293 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.sectionname) = new_input_section_name ((yyvsp[(3) - (4)].str), true); }
     break;
 
   case 32:
-
-/* Line 1806 of yacc.c  */
-#line 305 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 297 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.str) = (yyvsp[(3) - (4)].str); }
     break;
 
   case 33:
-
-/* Line 1806 of yacc.c  */
-#line 307 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 299 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.str) = NULL; }
     break;
 
   case 34:
-
-/* Line 1806 of yacc.c  */
-#line 311 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 303 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      (yyval.expr) = new_expr (exp_align);
 		      (yyval.expr)->val.child = (yyvsp[(3) - (4)].expr);
@@ -1930,16 +1876,14 @@ yyreduce:
     break;
 
   case 35:
-
-/* Line 1806 of yacc.c  */
-#line 316 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 308 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.expr) = (yyvsp[(2) - (3)].expr); }
     break;
 
   case 36:
-
-/* Line 1806 of yacc.c  */
-#line 318 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 310 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      (yyval.expr) = new_expr (exp_mult);
 		      (yyval.expr)->val.binary.left = (yyvsp[(1) - (3)].expr);
@@ -1948,9 +1892,8 @@ yyreduce:
     break;
 
   case 37:
-
-/* Line 1806 of yacc.c  */
-#line 324 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 316 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      (yyval.expr) = new_expr ((yyvsp[(2) - (3)].op));
 		      (yyval.expr)->val.binary.left = (yyvsp[(1) - (3)].expr);
@@ -1959,9 +1902,8 @@ yyreduce:
     break;
 
   case 38:
-
-/* Line 1806 of yacc.c  */
-#line 330 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 322 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      (yyval.expr) = new_expr ((yyvsp[(2) - (3)].op));
 		      (yyval.expr)->val.binary.left = (yyvsp[(1) - (3)].expr);
@@ -1970,9 +1912,8 @@ yyreduce:
     break;
 
   case 39:
-
-/* Line 1806 of yacc.c  */
-#line 336 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 328 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      (yyval.expr) = new_expr (exp_and);
 		      (yyval.expr)->val.binary.left = (yyvsp[(1) - (3)].expr);
@@ -1981,9 +1922,8 @@ yyreduce:
     break;
 
   case 40:
-
-/* Line 1806 of yacc.c  */
-#line 342 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 334 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      (yyval.expr) = new_expr (exp_or);
 		      (yyval.expr)->val.binary.left = (yyvsp[(1) - (3)].expr);
@@ -1992,9 +1932,8 @@ yyreduce:
     break;
 
   case 41:
-
-/* Line 1806 of yacc.c  */
-#line 348 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 340 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      (yyval.expr) = new_expr (exp_num);
 		      (yyval.expr)->val.num = (yyvsp[(1) - (1)].num);
@@ -2002,9 +1941,8 @@ yyreduce:
     break;
 
   case 42:
-
-/* Line 1806 of yacc.c  */
-#line 353 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 345 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      (yyval.expr) = new_expr (exp_id);
 		      (yyval.expr)->val.str = (yyvsp[(1) - (1)].str);
@@ -2012,23 +1950,20 @@ yyreduce:
     break;
 
   case 43:
-
-/* Line 1806 of yacc.c  */
-#line 358 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 350 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.expr) = new_expr (exp_sizeof_headers); }
     break;
 
   case 44:
-
-/* Line 1806 of yacc.c  */
-#line 360 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 352 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.expr) = new_expr (exp_pagesize); }
     break;
 
   case 45:
-
-/* Line 1806 of yacc.c  */
-#line 364 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 356 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      (yyvsp[(3) - (3)].filename_list)->next = (yyvsp[(1) - (3)].filename_list)->next;
 		      (yyval.filename_list) = (yyvsp[(1) - (3)].filename_list)->next = (yyvsp[(3) - (3)].filename_list);
@@ -2036,16 +1971,14 @@ yyreduce:
     break;
 
   case 46:
-
-/* Line 1806 of yacc.c  */
-#line 369 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 361 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.filename_list) = (yyvsp[(1) - (1)].filename_list); }
     break;
 
   case 49:
-
-/* Line 1806 of yacc.c  */
-#line 377 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 369 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      /* First little optimization.  If there is only one
 			 file in the group don't do anything.  */
@@ -2059,23 +1992,20 @@ yyreduce:
     break;
 
   case 50:
-
-/* Line 1806 of yacc.c  */
-#line 388 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 380 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.filename_list) = mark_as_needed ((yyvsp[(3) - (4)].filename_list)); }
     break;
 
   case 51:
-
-/* Line 1806 of yacc.c  */
-#line 390 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 382 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.filename_list) = new_filename_listelem ((yyvsp[(1) - (1)].str)); }
     break;
 
   case 52:
-
-/* Line 1806 of yacc.c  */
-#line 395 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 387 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      (yyvsp[(2) - (2)].version)->next = (yyvsp[(1) - (2)].version)->next;
 		      (yyval.version) = (yyvsp[(1) - (2)].version)->next = (yyvsp[(2) - (2)].version);
@@ -2083,16 +2013,14 @@ yyreduce:
     break;
 
   case 53:
-
-/* Line 1806 of yacc.c  */
-#line 400 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 392 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.version) = (yyvsp[(1) - (1)].version); }
     break;
 
   case 54:
-
-/* Line 1806 of yacc.c  */
-#line 404 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 396 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      (yyvsp[(2) - (4)].version)->versionname = "";
 		      (yyvsp[(2) - (4)].version)->parentname = NULL;
@@ -2101,9 +2029,8 @@ yyreduce:
     break;
 
   case 55:
-
-/* Line 1806 of yacc.c  */
-#line 410 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 402 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      (yyvsp[(3) - (5)].version)->versionname = (yyvsp[(1) - (5)].str);
 		      (yyvsp[(3) - (5)].version)->parentname = NULL;
@@ -2112,9 +2039,8 @@ yyreduce:
     break;
 
   case 56:
-
-/* Line 1806 of yacc.c  */
-#line 416 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 408 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      (yyvsp[(3) - (6)].version)->versionname = (yyvsp[(1) - (6)].str);
 		      (yyvsp[(3) - (6)].version)->parentname = (yyvsp[(5) - (6)].str);
@@ -2123,37 +2049,32 @@ yyreduce:
     break;
 
   case 57:
-
-/* Line 1806 of yacc.c  */
-#line 425 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 417 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.version) = merge_versions ((yyvsp[(1) - (2)].version), (yyvsp[(2) - (2)].version)); }
     break;
 
   case 58:
-
-/* Line 1806 of yacc.c  */
-#line 427 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 419 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.version) = (yyvsp[(1) - (1)].version); }
     break;
 
   case 59:
-
-/* Line 1806 of yacc.c  */
-#line 431 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 423 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.version) = new_version (NULL, (yyvsp[(2) - (2)].id_list)); }
     break;
 
   case 60:
-
-/* Line 1806 of yacc.c  */
-#line 433 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 425 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.version) = new_version ((yyvsp[(2) - (2)].id_list), NULL); }
     break;
 
   case 61:
-
-/* Line 1806 of yacc.c  */
-#line 438 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 430 "/home/mark/src/elfutils/src/ldscript.y"
     {
 		      struct id_list *newp = new_id_listelem ((yyvsp[(2) - (3)].str));
 		      newp->next = (yyvsp[(1) - (3)].id_list)->next;
@@ -2162,44 +2083,38 @@ yyreduce:
     break;
 
   case 62:
-
-/* Line 1806 of yacc.c  */
-#line 444 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 436 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.id_list) = new_id_listelem ((yyvsp[(1) - (2)].str)); }
     break;
 
   case 63:
-
-/* Line 1806 of yacc.c  */
-#line 448 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 440 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.str) = (yyvsp[(1) - (1)].str); }
     break;
 
   case 64:
-
-/* Line 1806 of yacc.c  */
-#line 450 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 442 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.str) = (yyvsp[(1) - (1)].str); }
     break;
 
   case 65:
-
-/* Line 1806 of yacc.c  */
-#line 454 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 446 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.str) = (yyvsp[(1) - (1)].str); }
     break;
 
   case 66:
-
-/* Line 1806 of yacc.c  */
-#line 456 "ldscript.y"
+/* Line 1792 of yacc.c  */
+#line 448 "/home/mark/src/elfutils/src/ldscript.y"
     { (yyval.str) = NULL; }
     break;
 
 
-
-/* Line 1806 of yacc.c  */
-#line 2203 "ldscript.c"
+/* Line 1792 of yacc.c  */
+#line 2118 "ldscript.c"
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -2362,7 +2277,9 @@ yyerrlab1:
       YY_STACK_PRINT (yyss, yyssp);
     }
 
+  YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
   *++yyvsp = yylval;
+  YY_IGNORE_MAYBE_UNINITIALIZED_END
 
 
   /* Shift the error token.  */
@@ -2386,7 +2303,7 @@ yyabortlab:
   yyresult = 1;
   goto yyreturn;
 
-#if !defined(yyoverflow) || YYERROR_VERBOSE
+#if !defined yyoverflow || YYERROR_VERBOSE
 /*-------------------------------------------------.
 | yyexhaustedlab -- memory exhaustion comes here.  |
 `-------------------------------------------------*/
@@ -2428,9 +2345,8 @@ yyreturn:
 }
 
 
-
-/* Line 2067 of yacc.c  */
-#line 459 "ldscript.y"
+/* Line 2055 of yacc.c  */
+#line 451 "/home/mark/src/elfutils/src/ldscript.y"
 
 
 static void
@@ -2784,4 +2700,3 @@ add_versions (struct version *versions)
     }
   while (versions != NULL);
 }
-

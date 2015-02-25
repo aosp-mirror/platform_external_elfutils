@@ -1,3 +1,253 @@
+2014-12-18  Ulrich Drepper  <drepper@gmail.com>
+
+	* Makefile.am: Suppress output of textrel_check command.
+
+2014-12-16  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_begin.c (read_long_names): Make sure long_names len fits
+	in mapped ELF file.
+
+2014-12-15  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_getarsym.c (elf_getarsym): Check index_size doesn't overflow.
+
+2014-12-15  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_begin.c (read_long_names): Clear any garbage left in the
+	name table.
+
+2014-12-11  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_begin.c (file_read_elf): Correct ELF64 section offset check.
+
+2014-12-11  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_begin.c (read_long_names): Check for offset overflow.
+	(__libelf_next_arhdr_wrlock): Likewise. Sanity check the ar_size.
+	Don't allow it to go beyond end of file.
+
+2014-12-09  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_getarsym.c (elf_getarsym): Make sure n * w doesn't overflow.
+
+2014-11-27  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am (libelf.so): Use textrel_check.
+
+2014-11-23  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_getdata_rawchunk.c (elf_getdata_rawchunk): Change signed
+	overflow check to unsigned.
+
+2014-11-23  Mark Wielaard  <mjw@redhat.com>
+
+	* note_xlate.h (elf_cvt_note): Copy over any leftover data if
+	src != dest. The data is probably part of truncated name/desc.
+
+2014-11-22  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_getphdrnum.c (elf_getphdrnum): Sanity check the
+	__elf_getphdrnum_rdlock result.
+
+2014-11-18  Mark Wielaard  <mjw@redhat.com>
+
+	* version_xlate.h (elf_cvt_Verdef): Check for overflow.
+	(elf_cvt_Verneed): Likewise.
+
+2014-11-17  Mark Wielaard  <mjw@redhat.com>
+
+	* elf-knowledge.h (SECTION_STRIP_P): Check name is not NULL.
+
+2014-11-16  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_getshdrstrndx.c: Check there are section headers before
+	handling SHN_XINDEX.
+
+2014-11-16  Mark Wielaard  <mjw@redhat.com>
+
+	* elf32_getphdr.c (getphdr_wrlock): Check e_phoff isn't zero.
+	Check for too many pheaders.
+	* elf_getphdrnum.c (__elf_getphdrnum_rdlock): Check section zero
+	actually exists before handling PN_XNUM.
+
+2014-11-16  Mark Wielaard  <mjw@redhat.com>
+
+	* gelf_getnote.c (gelf_getnote): Check padding overflow.
+
+2014-11-16  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_getdata.c (__libelf_set_rawdata_wrlock): Declare offset, size
+	and align as Elf64_Off and Elf64_Xword not size_t.
+
+2014-11-14  Mark Wielaard  <mjw@redhat.com>
+
+	* gelf_getnote.c (gelf_getnote): Check offset overflow.
+
+2014-11-13  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_getdata.c (__libelf_set_rawdata_wrlock): Fix unsigned overflow
+	check.
+
+2014-11-08  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_begin.c (__libelf_next_arhdr_wrlock): Use mempcpy not __mempcpy.
+
+2014-11-07  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_begin.c (file_read_elf): Correct sh_size check.
+	* elf_getdata.c (__libelf_set_rawdata_wrlock): Check for unsigned
+	overflow.
+
+2014-09-10  Petr Machata  <pmachata@redhat.com>
+
+	* elf_begin (read_unmmaped_file): Call __libelf_seterrno if the
+	file is unreadable.
+
+2014-07-07  Mark Wielaard  <mjw@redhat.com>
+
+	* elf.h: Update from glibc.
+
+2014-04-13  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am: Remove !MUDFLAP conditions.
+	* elf_begin.c (read_file): Don't clear use_mmap when _MUDFLAP is
+	defined.
+	* elf_update.c (write_file): Remove _MUDFLAP condition.
+
+2014-01-17  Jakub Jelinek  <jakub@redhat.com>
+	    Roland McGrath  <roland@redhat.com>
+
+	* libelfP.h (INVALID_NDX): Define.
+	* gelf_getdyn.c (gelf_getdyn): Use it.  Remove ndx < 0 test if any.
+	* gelf_getlib.c (gelf_getlib): Likewise.
+	* gelf_getmove.c (gelf_getmove): Likewise.
+	* gelf_getrel.c (gelf_getrel): Likewise.
+	* gelf_getrela.c (gelf_getrela): Likewise.
+	* gelf_getsym.c (gelf_getsym): Likewise.
+	* gelf_getsyminfo.c (gelf_getsyminfo): Likewise.
+	* gelf_getsymshndx.c (gelf_getsymshndx): Likewise.
+	* gelf_getversym.c (gelf_getversym): Likewise.
+	* gelf_update_dyn.c (gelf_update_dyn): Likewise.
+	* gelf_update_lib.c (gelf_update_lib): Likewise.
+	* gelf_update_move.c (gelf_update_move): Likewise.
+	* gelf_update_rel.c (gelf_update_rel): Likewise.
+	* gelf_update_rela.c (gelf_update_rela): Likewise.
+	* gelf_update_sym.c (gelf_update_sym): Likewise.
+	* gelf_update_syminfo.c (gelf_update_syminfo): Likewise.
+	* gelf_update_symshndx.c (gelf_update_symshndx): Likewise.
+	* gelf_update_versym.c (gelf_update_versym): Likewise.
+
+2014-01-17  Jakub Jelinek  <jakub@redhat.com>
+
+	* elf32_getphdr.c (elfw2(LIBELFBITS,getphdr)): Check if program header
+	table fits into object's bounds.
+	* elf_getshdrstrndx.c (elf_getshstrndx): Add elf->start_offset to
+	elf->map_address.  Check if first section header fits into object's
+	bounds.
+	* elf32_getshdr.c (elfw2(LIBELFBITS,getshdr)):
+	Check if section header table fits into object's bounds.
+	* elf_begin.c (get_shnum): Ensure section headers fits into
+	object's bounds.
+	(file_read_elf): Make sure scncnt is small enough to allocate both
+	ElfXX_Shdr and Elf_Scn array.  Make sure section and program header
+	tables fit into object's bounds.  Avoid memory leak on failure.
+	* elf_newscn.c (elf_newscn): Check for overflow.
+	* elf32_updatefile.c (__elfw2(LIBELFBITS,updatemmap)): Likewise.
+	(__elfw2(LIBELFBITS,updatefile)): Likewise.
+	* elf32_newphdr.c (elfw2(LIBELFBITS,newphdr)): Likewise.
+	* elf_getarsym.c (elf_getarsym): Likewise.
+
+2013-11-08  Mark Wielaard  <mjw@redhat.com>
+
+	* elf32_updatefile.c (elfXX_updatemmap): Only memcpy ehdr when not
+	already directly mmapped.
+
+2013-11-05  Mark Wielaard  <mjw@redhat.com>
+
+	* elf32_updatefile.c (elfXX_updatefile): Copy all section headers
+	if elf->flags dirty.
+
+2013-11-01  Michael Forney  <mforney@mforney.org>
+
+	* Makefile.am: Use READELF.
+
+2013-10-01  Petr Machata  <pmachata@redhat.com>
+
+	* elf.h: Update from glibc.
+
+2013-06-17  Petr Machata  <pmachata@redhat.com>
+
+	* elf.h: Update from glibc.
+
+2013-08-28  Namhyung Kim  <namhyung@gmail.com>
+
+	* gelf.h (gelf_fsize): Fix typo in comment.
+
+2013-08-28  Mark Wielaard  <mjw@redhat.com>
+
+	* gelf_getauxv.c (gelf_getauxv): Add missing whitespace.
+
+2013-08-27  Mark Wielaard  <mjw@redhat.com>
+
+	* gelf_getauxv.c (gelf_getauxv): Remove unnecessary casts to char *.
+
+2013-08-25  Kurt Roeckx  <kurt@roeckx.be>
+
+	* gelf_getauxv.c (gelf_getauxv): Use memcpy instead of pointer
+	dereference to avoid alignment problems.
+
+2013-01-07  Roland McGrath  <roland@hack.frob.com>
+
+	* elf_getarsym.c (elf_getarsym): Copy FILE_DATA into stack space if it
+	would be unaligned and !ALLOW_UNALIGNED.
+
+	* elf_getarsym.c (read_number_entries): Use memcpy instead of pointer
+	dereference so as not to assume the field is naturally aligned.
+
+2012-09-17  Petr Machata  <pmachata@redhat.com>
+
+	* elf.h: Update from glibc.
+
+2012-08-16  Roland McGrath  <roland@hack.frob.com>
+
+	* elf.h: Update from glibc.
+
+2012-08-14  Mark Wielaard  <mjw@redhat.com>
+
+	* elf32_checksum.c (ebl_debugscn_p): Removed unused define and
+	confusing outdated comment.
+
+2012-08-01  Petr Machata  <pmachata@redhat.com>
+
+	* elf_getarsym (read_number_entries): New function.
+	(elf_getarsym): Handle 64-bit symbol table, stored in special
+	entry named "/SYM64/".
+	* elf_begin.c (__libelf_next_arhdr_wrlock): Don't reject archive
+	because it contains 64-bit symbol table.
+
+2012-07-19  Mark Wielaard  <mjw@redhat.com>
+
+	* elf32_getshdr.c (load_shdr_wrlock): Add elf->flags & ELF_F_MALLOCED
+	to asserts.
+
+2012-07-17  Petr Machata  <pmachata@redhat.com>
+
+	* elf32_xlatetom.c (elfw2(LIBELFBITS, xlatetom)): Do not check for
+	integer number of records in case of ELF_T_NHDR.
+
+2012-04-02  Mark Wielaard  <mjw@redhat.com>
+
+	* elf32_offscn.c: Do not match SHT_NOBITS sections at OFFSET unless
+	there are no nonempty sections at that offset.
+
+2012-03-21  Roland McGrath  <roland@hack.frob.com>
+
+	* elf-knowledge.h (SECTION_STRIP_P): Remove < SHT_NUM check.
+
+2011-02-26  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_end.c (elf_end): Call rwlock_unlock before rwlock_fini.
+
 2011-01-05  Jan Kratochvil  <jan.kratochvil@redhat.com>
 
 	* elf_getdata_rawchunk.c (elf_getdata_rawchunk): Fix off64_t overflow

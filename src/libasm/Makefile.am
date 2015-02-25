@@ -1,40 +1,41 @@
 ## Process this file with automake to create Makefile.in
 ##
 ## Copyright (C) 2002-2010 Red Hat, Inc.
-## This file is part of Red Hat elfutils.
+## This file is part of elfutils.
 ##
-## Red Hat elfutils is free software; you can redistribute it and/or modify
-## it under the terms of the GNU General Public License as published by the
-## Free Software Foundation; version 2 of the License.
+## This file is free software; you can redistribute it and/or modify
+## it under the terms of either
 ##
-## Red Hat elfutils is distributed in the hope that it will be useful, but
+##   * the GNU Lesser General Public License as published by the Free
+##     Software Foundation; either version 3 of the License, or (at
+##     your option) any later version
+##
+## or
+##
+##   * the GNU General Public License as published by the Free
+##     Software Foundation; either version 2 of the License, or (at
+##     your option) any later version
+##
+## or both in parallel, as here.
+##
+## elfutils is distributed in the hope that it will be useful, but
 ## WITHOUT ANY WARRANTY; without even the implied warranty of
 ## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 ## General Public License for more details.
 ##
-## You should have received a copy of the GNU General Public License along
-## with Red Hat elfutils; if not, write to the Free Software Foundation,
-## Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-##
-## Red Hat elfutils is an included package of the Open Invention Network.
-## An included package of the Open Invention Network is a package for which
-## Open Invention Network licensees cross-license their patents.  No patent
-## license is granted, either expressly or impliedly, by designation as an
-## included package.  Should you wish to participate in the Open Invention
-## Network licensing program, please visit www.openinventionnetwork.com
-## <http://www.openinventionnetwork.com>.
+## You should have received copies of the GNU General Public License and
+## the GNU Lesser General Public License along with this program.  If
+## not, see <http://www.gnu.org/licenses/>.
 ##
 include $(top_srcdir)/config/eu.am
-INCLUDES += -I$(top_srcdir)/libelf -I$(top_srcdir)/libebl -I$(top_srcdir)/libdw
+AM_CPPFLAGS += -I$(top_srcdir)/libelf -I$(top_srcdir)/libebl -I$(top_srcdir)/libdw
 
 GCC_INCLUDE = -I$(shell $(CC) -print-file-name=include)
 VERSION = 1
 
 lib_LIBRARIES = libasm.a
-if !MUDFLAP
 noinst_LIBRARIES = libasm_pic.a
 noinst_PROGRAMS = $(noinst_LIBRARIES:_pic.a=.so)
-endif
 pkginclude_HEADERS = libasm.h
 
 libasm_a_SOURCES = asm_begin.c asm_abort.c asm_end.c asm_error.c \
@@ -51,7 +52,6 @@ libasm_a_SOURCES = asm_begin.c asm_abort.c asm_end.c asm_error.c \
 		   disasm_begin.c disasm_cb.c disasm_end.c disasm_str.c \
 		   symbolhash.c
 
-if !MUDFLAP
 libasm_pic_a_SOURCES =
 am_libasm_pic_a_OBJECTS = $(libasm_a_SOURCES:.c=.os)
 
@@ -61,12 +61,12 @@ libasm_so_LDLIBS += -lpthread
 endif
 
 libasm_so_SOURCES =
-libasm.so: libasm_pic.a libasm.map
+libasm.so$(EXEEXT): libasm_pic.a libasm.map
 	$(LINK) -shared -o $@ -Wl,--whole-archive,$<,--no-whole-archive \
 		-Wl,--version-script,$(srcdir)/libasm.map,--no-undefined \
 		-Wl,--soname,$@.$(VERSION) \
 		../libebl/libebl.a ../libelf/libelf.so  $(libasm_so_LDLIBS)
-	if readelf -d $@ | fgrep -q TEXTREL; then exit 1; fi
+	@$(textrel_check)
 	ln -fs $@ $@.$(VERSION)
 
 install: install-am libasm.so
@@ -80,7 +80,6 @@ uninstall: uninstall-am
 	rm -f $(DESTDIR)$(libdir)/libasm.so.$(VERSION)
 	rm -f $(DESTDIR)$(libdir)/libasm.so
 	rmdir --ignore-fail-on-non-empty $(DESTDIR)$(includedir)/elfutils
-endif
 
 noinst_HEADERS = libasmP.h symbolhash.h
 EXTRA_DIST = libasm.map

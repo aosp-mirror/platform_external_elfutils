@@ -1,3 +1,23 @@
+2014-07-14  Mark Wielaard  <mjw@redhat.com>
+
+	* biarch.m4 (utrace_BIARCH): Set biarch-no for cross-compile using
+	AC_RUN_IFELSE extra argument.
+
+2013-12-02  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* biarch.m4 (utrace_BIARCH): Call AC_MSG_WARN if !BIARCH.
+
+2013-11-07  Roland McGrath  <roland@redhat.com>
+	    Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* biarch.m4: New file.
+
+2013-04-24  Mark Wielaard  <mjw@redhat.com>
+
+	* gettext.m4: Upgrade to gettext-0.18.2.
+	* iconv.m4: Upgrade to gettext-0.18.2.
+	* po.m4: Upgrade to gettext-0.18.2.
+
 2010-04-14  Roland McGrath  <roland@redhat.com>
 
 	* gettext.m4: Upgrade to gettext-0.17.

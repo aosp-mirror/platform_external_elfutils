@@ -1,51 +1,30 @@
 /* CFI program execution.
-   Copyright (C) 2009-2010 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   Copyright (C) 2009-2010, 2014 Red Hat, Inc.
+   This file is part of elfutils.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of either
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+     * the GNU Lesser General Public License as published by the Free
+       Software Foundation; either version 3 of the License, or (at
+       your option) any later version
+
+   or
+
+     * the GNU General Public License as published by the Free
+       Software Foundation; either version 2 of the License, or (at
+       your option) any later version
+
+   or both in parallel, as here.
+
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   In addition, as a special exception, Red Hat, Inc. gives You the
-   additional right to link the code of Red Hat elfutils with code licensed
-   under any Open Source Initiative certified open source license
-   (http://www.opensource.org/licenses/index.php) which requires the
-   distribution of source code with any binary distribution and to
-   distribute linked combinations of the two.  Non-GPL Code permitted under
-   this exception must only link to the code of Red Hat elfutils through
-   those well defined interfaces identified in the file named EXCEPTION
-   found in the source code files (the "Approved Interfaces").  The files
-   of Non-GPL Code may instantiate templates or use macros or inline
-   functions from the Approved Interfaces without causing the resulting
-   work to be covered by the GNU General Public License.  Only Red Hat,
-   Inc. may make changes or additions to the list of Approved Interfaces.
-   Red Hat's grant of this exception is conditioned upon your not adding
-   any new exceptions.  If you wish to add a new Approved Interface or
-   exception, please contact Red Hat.  You must obey the GNU General Public
-   License in all respects for all of the Red Hat elfutils code and other
-   code used in conjunction with Red Hat elfutils except the Non-GPL Code
-   covered by this exception.  If you modify this file, you may extend this
-   exception to your version of the file, but you are not obligated to do
-   so.  If you do not wish to provide this exception without modification,
-   you must delete this exception statement from your version and license
-   this file solely under the GPL without exception.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received copies of the GNU General Public License and
+   the GNU Lesser General Public License along with this program.  If
+   not, see <http://www.gnu.org/licenses/>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -56,6 +35,7 @@
 #include "cfi.h"
 #include "memory-access.h"
 #include "encoded-value.h"
+#include "system.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -110,6 +90,9 @@ execute_cfi (Dwarf_CFI *cache,
 	    }
 	  else
 	    {
+	      eu_static_assert (reg_unspecified == 0);
+	      memset (bigger->regs + bigger->nregs, 0,
+		      (reg + 1 - bigger->nregs) * sizeof bigger->regs[0]);
 	      bigger->nregs = reg + 1;
 	      fs = bigger;
 	    }
@@ -149,12 +132,15 @@ execute_cfi (Dwarf_CFI *cache,
 	  break;
 
 	case DW_CFA_advance_loc2:
+	  cfi_assert (program + 2 <= end);
 	  operand = read_2ubyte_unaligned_inc (cache, program);
 	  goto advance_loc;
 	case DW_CFA_advance_loc4:
+	  cfi_assert (program + 4 <= end);
 	  operand = read_4ubyte_unaligned_inc (cache, program);
 	  goto advance_loc;
 	case DW_CFA_MIPS_advance_loc8:
+	  cfi_assert (program + 8 <= end);
 	  operand = read_8ubyte_unaligned_inc (cache, program);
 	  goto advance_loc;
 
@@ -170,8 +156,9 @@ execute_cfi (Dwarf_CFI *cache,
 	     switch block for the row-copying (LOC-moving) cases above.  */
 
 	case DW_CFA_def_cfa:
-	  get_uleb128 (operand, program);
-	  get_uleb128 (offset, program);
+	  get_uleb128 (operand, program, end);
+	  cfi_assert (program < end);
+	  get_uleb128 (offset, program, end);
 	def_cfa:
 	  fs->cfa_rule = cfa_offset;
 	  fs->cfa_val_reg = operand;
@@ -182,32 +169,33 @@ execute_cfi (Dwarf_CFI *cache,
 	  continue;
 
 	case DW_CFA_def_cfa_register:
-	  get_uleb128 (regno, program);
+	  get_uleb128 (regno, program, end);
 	  require_cfa_offset ();
 	  fs->cfa_val_reg = regno;
 	  continue;
 
 	case DW_CFA_def_cfa_sf:
-	  get_uleb128 (operand, program);
-	  get_sleb128 (sf_offset, program);
+	  get_uleb128 (operand, program, end);
+	  cfi_assert (program < end);
+	  get_sleb128 (sf_offset, program, end);
 	  offset = sf_offset * cie->data_alignment_factor;
 	  goto def_cfa;
 
 	case DW_CFA_def_cfa_offset:
-	  get_uleb128 (offset, program);
+	  get_uleb128 (offset, program, end);
 	def_cfa_offset:
 	  require_cfa_offset ();
 	  fs->cfa_val_offset = offset;
 	  continue;
 
 	case DW_CFA_def_cfa_offset_sf:
-	  get_sleb128 (sf_offset, program);
+	  get_sleb128 (sf_offset, program, end);
 	  offset = sf_offset * cie->data_alignment_factor;
 	  goto def_cfa_offset;
 
 	case DW_CFA_def_cfa_expression:
 	  /* DW_FORM_block is a ULEB128 length followed by that many bytes.  */
-	  get_uleb128 (operand, program);
+	  get_uleb128 (operand, program, end);
 	  cfi_assert (operand <= (Dwarf_Word) (end - program));
 	  fs->cfa_rule = cfa_expr;
 	  fs->cfa_data.expr.data = (unsigned char *) program;
@@ -216,80 +204,90 @@ execute_cfi (Dwarf_CFI *cache,
 	  continue;
 
 	case DW_CFA_undefined:
-	  get_uleb128 (regno, program);
+	  get_uleb128 (regno, program, end);
 	  register_rule (regno, undefined, 0);
 	  continue;
 
 	case DW_CFA_same_value:
-	  get_uleb128 (regno, program);
+	  get_uleb128 (regno, program, end);
 	  register_rule (regno, same_value, 0);
 	  continue;
 
 	case DW_CFA_offset_extended:
-	  get_uleb128 (operand, program);
+	  get_uleb128 (operand, program, end);
+	  cfi_assert (program < end);
 	case DW_CFA_offset + 0 ... DW_CFA_offset + CFI_PRIMARY_MAX:
-	  get_uleb128 (offset, program);
+	  get_uleb128 (offset, program, end);
 	  offset *= cie->data_alignment_factor;
 	offset_extended:
 	  register_rule (operand, offset, offset);
 	  continue;
 
 	case DW_CFA_offset_extended_sf:
-	  get_uleb128 (operand, program);
-	  get_sleb128 (sf_offset, program);
+	  get_uleb128 (operand, program, end);
+	  get_sleb128 (sf_offset, program, end);
 	offset_extended_sf:
 	  offset = sf_offset * cie->data_alignment_factor;
 	  goto offset_extended;
 
 	case DW_CFA_GNU_negative_offset_extended:
 	  /* GNU extension obsoleted by DW_CFA_offset_extended_sf.  */
-	  get_uleb128 (operand, program);
-	  get_uleb128 (offset, program);
+	  get_uleb128 (operand, program, end);
+	  cfi_assert (program < end);
+	  get_uleb128 (offset, program, end);
 	  sf_offset = -offset;
 	  goto offset_extended_sf;
 
 	case DW_CFA_val_offset:
-	  get_uleb128 (operand, program);
-	  get_uleb128 (offset, program);
+	  get_uleb128 (operand, program, end);
+	  cfi_assert (program < end);
+	  get_uleb128 (offset, program, end);
 	  offset *= cie->data_alignment_factor;
 	val_offset:
 	  register_rule (operand, val_offset, offset);
 	  continue;
 
 	case DW_CFA_val_offset_sf:
-	  get_uleb128 (operand, program);
-	  get_sleb128 (sf_offset, program);
+	  get_uleb128 (operand, program, end);
+	  cfi_assert (program < end);
+	  get_sleb128 (sf_offset, program, end);
 	  offset = sf_offset * cie->data_alignment_factor;
 	  goto val_offset;
 
 	case DW_CFA_register:
-	  get_uleb128 (regno, program);
-	  get_uleb128 (operand, program);
+	  get_uleb128 (regno, program, end);
+	  cfi_assert (program < end);
+	  get_uleb128 (operand, program, end);
 	  register_rule (regno, register, operand);
 	  continue;
 
 	case DW_CFA_expression:
-	  get_uleb128 (regno, program);
+	  /* Expression rule relies on section data, abi_cfi cannot use it.  */
+	  assert (! abi_cfi);
+	  get_uleb128 (regno, program, end);
 	  offset = program - (const uint8_t *) cache->data->d.d_buf;
 	  /* DW_FORM_block is a ULEB128 length followed by that many bytes.  */
-	  get_uleb128 (operand, program);
+	  cfi_assert (program < end);
+	  get_uleb128 (operand, program, end);
 	  cfi_assert (operand <= (Dwarf_Word) (end - program));
 	  program += operand;
 	  register_rule (regno, expression, offset);
 	  continue;
 
 	case DW_CFA_val_expression:
-	  get_uleb128 (regno, program);
+	  /* Expression rule relies on section data, abi_cfi cannot use it.  */
+	  assert (! abi_cfi);
+	  get_uleb128 (regno, program, end);
 	  /* DW_FORM_block is a ULEB128 length followed by that many bytes.  */
 	  offset = program - (const uint8_t *) cache->data->d.d_buf;
-	  get_uleb128 (operand, program);
+	  get_uleb128 (operand, program, end);
 	  cfi_assert (operand <= (Dwarf_Word) (end - program));
 	  program += operand;
 	  register_rule (regno, val_expression, offset);
 	  continue;
 
 	case DW_CFA_restore_extended:
-	  get_uleb128 (operand, program);
+	  get_uleb128 (operand, program, end);
 	case DW_CFA_restore + 0 ... DW_CFA_restore + CFI_PRIMARY_MAX:
 
 	  if (unlikely (abi_cfi) && likely (opcode == DW_CFA_restore))
@@ -360,7 +358,7 @@ execute_cfi (Dwarf_CFI *cache,
 
 	case DW_CFA_GNU_args_size:
 	  /* XXX is this useful for anything? */
-	  get_uleb128 (operand, program);
+	  get_uleb128 (operand, program, end);
 	  continue;
 
 	default:

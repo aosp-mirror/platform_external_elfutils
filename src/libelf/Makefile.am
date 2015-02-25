@@ -1,28 +1,31 @@
 ## Process this file with automake to create Makefile.in
 ##
 ## Copyright (C) 1996-2010 Red Hat, Inc.
-## This file is part of Red Hat elfutils.
+## This file is part of elfutils.
 ##
-## Red Hat elfutils is free software; you can redistribute it and/or modify
-## it under the terms of the GNU General Public License as published by the
-## Free Software Foundation; version 2 of the License.
+## This file is free software; you can redistribute it and/or modify
+## it under the terms of either
 ##
-## Red Hat elfutils is distributed in the hope that it will be useful, but
+##   * the GNU Lesser General Public License as published by the Free
+##     Software Foundation; either version 3 of the License, or (at
+##     your option) any later version
+##
+## or
+##
+##   * the GNU General Public License as published by the Free
+##     Software Foundation; either version 2 of the License, or (at
+##     your option) any later version
+##
+## or both in parallel, as here.
+##
+## elfutils is distributed in the hope that it will be useful, but
 ## WITHOUT ANY WARRANTY; without even the implied warranty of
 ## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 ## General Public License for more details.
 ##
-## You should have received a copy of the GNU General Public License along
-## with Red Hat elfutils; if not, write to the Free Software Foundation,
-## Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-##
-## Red Hat elfutils is an included package of the Open Invention Network.
-## An included package of the Open Invention Network is a package for which
-## Open Invention Network licensees cross-license their patents.  No patent
-## license is granted, either expressly or impliedly, by designation as an
-## included package.  Should you wish to participate in the Open Invention
-## Network licensing program, please visit www.openinventionnetwork.com
-## <http://www.openinventionnetwork.com>.
+## You should have received copies of the GNU General Public License and
+## the GNU Lesser General Public License along with this program.  If
+## not, see <http://www.gnu.org/licenses/>.
 ##
 include $(top_srcdir)/config/eu.am
 if BUILD_STATIC
@@ -32,10 +35,8 @@ GCC_INCLUDE = -I$(shell $(CC) -print-file-name=include)
 VERSION = 1
 
 lib_LIBRARIES = libelf.a
-if !MUDFLAP
 noinst_LIBRARIES = libelf_pic.a
 noinst_PROGRAMS = $(noinst_LIBRARIES:_pic.a=.so)
-endif
 include_HEADERS = libelf.h gelf.h nlist.h
 
 pkginclude_HEADERS = elf-knowledge.h
@@ -89,7 +90,6 @@ libelf_a_SOURCES = elf_version.c elf_hash.c elf_error.c elf_fill.c \
 		   elf_gnu_hash.c \
 		   elf_scnshndx.c
 
-if !MUDFLAP
 libelf_pic_a_SOURCES =
 am_libelf_pic_a_OBJECTS = $(libelf_a_SOURCES:.c=.os)
 
@@ -99,11 +99,11 @@ libelf_so_LDLIBS += -lpthread
 endif
 
 libelf_so_SOURCES =
-libelf.so: libelf_pic.a libelf.map
+libelf.so$(EXEEXT): libelf_pic.a libelf.map
 	$(LINK) -shared -o $@ -Wl,--whole-archive,$<,--no-whole-archive \
 		-Wl,--version-script,$(srcdir)/libelf.map,--no-undefined \
 		-Wl,--soname,$@.$(VERSION),-z,defs,-z,relro $(libelf_so_LDLIBS)
-	if readelf -d $@ | fgrep -q TEXTREL; then exit 1; fi
+	@$(textrel_check)
 	ln -fs $@ $@.$(VERSION)
 
 install: install-am libelf.so
@@ -116,7 +116,6 @@ uninstall: uninstall-am
 	rm -f $(DESTDIR)$(libdir)/libelf-$(PACKAGE_VERSION).so
 	rm -f $(DESTDIR)$(libdir)/libelf.so.$(VERSION)
 	rm -f $(DESTDIR)$(libdir)/libelf.so
-endif
 
 noinst_HEADERS = elf.h abstract.h common.h exttypes.h gelf_xlate.h libelfP.h \
 		 version_xlate.h gnuhash_xlate.h note_xlate.h dl-hash.h

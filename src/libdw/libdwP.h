@@ -1,52 +1,31 @@
 /* Internal definitions for libdwarf.
-   Copyright (C) 2002-2011 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   Copyright (C) 2002-2011, 2013, 2014 Red Hat, Inc.
+   This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2002.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of either
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+     * the GNU Lesser General Public License as published by the Free
+       Software Foundation; either version 3 of the License, or (at
+       your option) any later version
+
+   or
+
+     * the GNU General Public License as published by the Free
+       Software Foundation; either version 2 of the License, or (at
+       your option) any later version
+
+   or both in parallel, as here.
+
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   In addition, as a special exception, Red Hat, Inc. gives You the
-   additional right to link the code of Red Hat elfutils with code licensed
-   under any Open Source Initiative certified open source license
-   (http://www.opensource.org/licenses/index.php) which requires the
-   distribution of source code with any binary distribution and to
-   distribute linked combinations of the two.  Non-GPL Code permitted under
-   this exception must only link to the code of Red Hat elfutils through
-   those well defined interfaces identified in the file named EXCEPTION
-   found in the source code files (the "Approved Interfaces").  The files
-   of Non-GPL Code may instantiate templates or use macros or inline
-   functions from the Approved Interfaces without causing the resulting
-   work to be covered by the GNU General Public License.  Only Red Hat,
-   Inc. may make changes or additions to the list of Approved Interfaces.
-   Red Hat's grant of this exception is conditioned upon your not adding
-   any new exceptions.  If you wish to add a new Approved Interface or
-   exception, please contact Red Hat.  You must obey the GNU General Public
-   License in all respects for all of the Red Hat elfutils code and other
-   code used in conjunction with Red Hat elfutils except the Non-GPL Code
-   covered by this exception.  If you modify this file, you may extend this
-   exception to your version of the file, but you are not obligated to do
-   so.  If you do not wish to provide this exception without modification,
-   you must delete this exception statement from your version and license
-   this file solely under the GPL without exception.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received copies of the GNU General Public License and
+   the GNU Lesser General Public License along with this program.  If
+   not, see <http://www.gnu.org/licenses/>.  */
 
 #ifndef _LIBDWP_H
 #define _LIBDWP_H 1
@@ -55,6 +34,7 @@
 #include <stdbool.h>
 
 #include <libdw.h>
+#include <dwarf.h>
 
 
 /* gettext helper macros.  */
@@ -79,6 +59,14 @@ struct loc_block_s
   size_t length;
 };
 
+/* Already decoded .debug_line units.  */
+struct files_lines_s
+{
+  Dwarf_Off debug_line_offset;
+  Dwarf_Files *files;
+  Dwarf_Lines *lines;
+};
+
 /* Valid indeces for the section data.  */
 enum
   {
@@ -92,7 +80,9 @@ enum
     IDX_debug_pubnames,
     IDX_debug_str,
     IDX_debug_macinfo,
+    IDX_debug_macro,
     IDX_debug_ranges,
+    IDX_gnu_debugaltlink,
     IDX_last
   };
 
@@ -136,6 +126,8 @@ enum
   DWARF_E_INVALID_OFFSET,
   DWARF_E_NO_DEBUG_RANGES,
   DWARF_E_INVALID_CFI,
+  DWARF_E_NO_ALT_DEBUGLINK,
+  DWARF_E_INVALID_OPCODE,
 };
 
 
@@ -146,6 +138,9 @@ struct Dwarf
 {
   /* The underlying ELF file.  */
   Elf *elf;
+
+  /* dwz alternate DWARF file.  */
+  Dwarf *alt_dwarf;
 
   /* The section data.  */
   Elf_Data *sectiondata[IDX_last];
@@ -181,11 +176,21 @@ struct Dwarf
   Dwarf_Off next_tu_offset;
   Dwarf_Sig8_Hash sig8_hash;
 
+  /* Search tree for .debug_macro operator tables.  */
+  void *macro_ops;
+
+  /* Search tree for decoded .debug_line units.  */
+  void *files_lines;
+
   /* Address ranges.  */
   Dwarf_Aranges *aranges;
 
   /* Cached info from the CFI section.  */
   struct Dwarf_CFI_s *cfi;
+
+  /* Fake loc CU.  Used when synthesizing attributes for Dwarf_Ops that
+     came from a location list entry in dwarf_getlocation_attr.  */
+  struct Dwarf_CU *fake_loc_cu;
 
   /* Internal memory handling.  This is basically a simplified
      reimplementation of obstacks.  Unfortunately the standard obstack
@@ -223,7 +228,6 @@ struct Dwarf_Abbrev
 /* Files in line information records.  */
 struct Dwarf_Files_s
   {
-    struct Dwarf_CU *cu;
     unsigned int ndirs;
     unsigned int nfiles;
     struct Dwarf_Fileinfo_s
@@ -310,6 +314,10 @@ struct Dwarf_CU
 
   /* Known location lists.  */
   void *locs;
+
+  /* Memory boundaries of this CU.  */
+  void *startp;
+  void *endp;
 };
 
 /* Compute the offset of a CU's first DIE from its offset.  This
@@ -333,25 +341,65 @@ struct Dwarf_CU
   ((Dwarf_Die)								      \
    {									      \
      .cu = (fromcu),							      \
-     .addr = ((char *) cu_data (fromcu)->d_buf				      \
+     .addr = ((char *) fromcu->dbg->sectiondata[cu_sec_idx (fromcu)]->d_buf   \
 	      + DIE_OFFSET_FROM_CU_OFFSET ((fromcu)->start,		      \
 					   (fromcu)->offset_size,	      \
 					   (fromcu)->type_offset != 0))	      \
    })									      \
 
 
-/* Macro information.  */
+/* Prototype of a single .debug_macro operator.  */
+typedef struct
+{
+  Dwarf_Word nforms;
+  unsigned char const *forms;
+} Dwarf_Macro_Op_Proto;
+
+/* Prototype table.  */
+typedef struct
+{
+  /* Offset of .debug_macro section.  */
+  Dwarf_Off offset;
+
+  /* Offset of associated .debug_line section.  */
+  Dwarf_Off line_offset;
+
+  /* The source file information.  */
+  Dwarf_Files *files;
+
+  /* If this macro unit was opened through dwarf_getmacros or
+     dwarf_getmacros_die, this caches value of DW_AT_comp_dir, if
+     present.  */
+  const char *comp_dir;
+
+  /* Header length.  */
+  Dwarf_Half header_len;
+
+  uint16_t version;
+  bool is_64bit;
+  uint8_t sec_index;	/* IDX_debug_macro or IDX_debug_macinfo.  */
+
+  /* Shows where in TABLE each opcode is defined.  Since opcode 0 is
+     never used, it stores index of opcode X in X-1'th element.  The
+     value of 0xff means not stored at all.  */
+  unsigned char opcodes[255];
+
+  /* Individual opcode prototypes.  */
+  Dwarf_Macro_Op_Proto table[];
+} Dwarf_Macro_Op_Table;
+
 struct Dwarf_Macro_s
 {
-  unsigned int opcode;
-  Dwarf_Word param1;
-  union
-  {
-    Dwarf_Word u;
-    const char *s;
-  } param2;
+  Dwarf_Macro_Op_Table *table;
+  Dwarf_Attribute *attributes;
+  uint8_t opcode;
 };
 
+static inline Dwarf_Word
+libdw_macro_nforms (Dwarf_Macro *macro)
+{
+  return macro->table->table[macro->table->opcodes[macro->opcode - 1]].nforms;
+}
 
 /* We have to include the file at this point because the inline
    functions access internals of the Dwarf structure.  */
@@ -404,7 +452,7 @@ extern struct Dwarf_CU *__libdw_intern_next_unit (Dwarf *dbg, bool debug_types)
 extern struct Dwarf_CU *__libdw_findcu (Dwarf *dbg, Dwarf_Off offset, bool tu)
      __nonnull_attribute__ (1) internal_function;
 
-/* Return tag of given DIE.  */
+/* Get abbreviation with given code.  */
 extern Dwarf_Abbrev *__libdw_findabbrev (struct Dwarf_CU *cu,
 					 unsigned int code)
      __nonnull_attribute__ (1) internal_function;
@@ -415,11 +463,72 @@ extern Dwarf_Abbrev *__libdw_getabbrev (Dwarf *dbg, struct Dwarf_CU *cu,
 					Dwarf_Abbrev *result)
      __nonnull_attribute__ (1) internal_function;
 
+/* Get abbreviation of given DIE, and optionally set *READP to the DIE memory
+   just past the abbreviation code.  */
+static inline Dwarf_Abbrev *
+__nonnull_attribute__ (1)
+__libdw_dieabbrev (Dwarf_Die *die, const unsigned char **readp)
+{
+  /* Do we need to get the abbreviation, or need to read after the code?  */
+  if (die->abbrev == NULL || readp != NULL)
+    {
+      /* Get the abbreviation code.  */
+      unsigned int code;
+      const unsigned char *addr = die->addr;
+      get_uleb128 (code, addr, die->cu->endp);
+      if (readp != NULL)
+	*readp = addr;
+
+      /* Find the abbreviation.  */
+      if (die->abbrev == NULL)
+	die->abbrev = __libdw_findabbrev (die->cu, code);
+    }
+  return die->abbrev;
+}
+
 /* Helper functions for form handling.  */
-extern size_t __libdw_form_val_len (Dwarf *dbg, struct Dwarf_CU *cu,
-				    unsigned int form,
-				    const unsigned char *valp)
-     __nonnull_attribute__ (1, 2, 4) internal_function;
+extern size_t __libdw_form_val_compute_len (struct Dwarf_CU *cu,
+					    unsigned int form,
+					    const unsigned char *valp)
+     __nonnull_attribute__ (1, 3) internal_function;
+
+/* Find the length of a form attribute.  */
+static inline size_t
+__nonnull_attribute__ (1, 3)
+__libdw_form_val_len (struct Dwarf_CU *cu, unsigned int form,
+		      const unsigned char *valp)
+{
+  /* Small lookup table of forms with fixed lengths.  Absent indexes are
+     initialized 0, so any truly desired 0 is set to 0x80 and masked.  */
+  static const uint8_t form_lengths[] =
+    {
+      [DW_FORM_flag_present] = 0x80,
+      [DW_FORM_data1] = 1, [DW_FORM_ref1] = 1, [DW_FORM_flag] = 1,
+      [DW_FORM_data2] = 2, [DW_FORM_ref2] = 2,
+      [DW_FORM_data4] = 4, [DW_FORM_ref4] = 4,
+      [DW_FORM_data8] = 8, [DW_FORM_ref8] = 8, [DW_FORM_ref_sig8] = 8,
+    };
+
+  /* Return immediately for forms with fixed lengths.  */
+  if (form < sizeof form_lengths / sizeof form_lengths[0])
+    {
+      uint8_t len = form_lengths[form];
+      if (len != 0)
+	{
+	  const unsigned char *endp = cu->endp;
+	  len &= 0x7f; /* Mask to allow 0x80 -> 0.  */
+	  if (unlikely (len > (size_t) (endp - valp)))
+	    {
+	      __libdw_seterrno (DWARF_E_INVALID_DWARF);
+	      return -1;
+	    }
+	  return len;
+	}
+    }
+
+  /* Other forms require some computation.  */
+  return __libdw_form_val_compute_len (cu, form, valp);
+}
 
 /* Helper function for DW_FORM_ref* handling.  */
 extern int __libdw_formref (Dwarf_Attribute *attr, Dwarf_Off *return_offset)
@@ -600,25 +709,19 @@ __libdw_read_offset_inc (Dwarf *dbg,
 }
 
 static inline int
-__libdw_read_offset (Dwarf *dbg,
+__libdw_read_offset (Dwarf *dbg, Dwarf *dbg_ret,
 		     int sec_index, const unsigned char *addr,
 		     int width, Dwarf_Off *ret, int sec_ret,
 		     size_t size)
 {
   READ_AND_RELOCATE (__libdw_relocate_offset, (*ret));
-  return __libdw_offset_in_section (dbg, sec_ret, *ret, size);
+  return __libdw_offset_in_section (dbg_ret, sec_ret, *ret, size);
 }
 
 static inline size_t
 cu_sec_idx (struct Dwarf_CU *cu)
 {
   return cu->type_offset == 0 ? IDX_debug_info : IDX_debug_types;
-}
-
-static inline Elf_Data *
-cu_data (struct Dwarf_CU *cu)
-{
-  return cu->dbg->sectiondata[cu_sec_idx (cu)];
 }
 
 /* Read up begin/end pair and increment read pointer.
@@ -637,12 +740,30 @@ unsigned char * __libdw_formptr (Dwarf_Attribute *attr, int sec_index,
 				 Dwarf_Off *offsetp)
   internal_function;
 
+/* Fills in the given attribute to point at an empty location expression.  */
+void __libdw_empty_loc_attr (Dwarf_Attribute *attr)
+  internal_function;
+
+/* Load .debug_line unit at DEBUG_LINE_OFFSET.  COMP_DIR is a value of
+   DW_AT_comp_dir or NULL if that attribute is not available.  Caches
+   the loaded unit and optionally set *LINESP and/or *FILESP (if not
+   NULL) with loaded information.  Returns 0 for success or a negative
+   value for failure.  */
+int __libdw_getsrclines (Dwarf *dbg, Dwarf_Off debug_line_offset,
+			 const char *comp_dir, unsigned address_size,
+			 Dwarf_Lines **linesp, Dwarf_Files **filesp)
+  internal_function
+  __nonnull_attribute__ (1);
+
+/* Load and return value of DW_AT_comp_dir from CUDIE.  */
+const char *__libdw_getcompdir (Dwarf_Die *cudie);
 
 
 /* Aliases to avoid PLTs.  */
 INTDECL (dwarf_aggregate_size)
 INTDECL (dwarf_attr)
 INTDECL (dwarf_attr_integrate)
+INTDECL (dwarf_begin)
 INTDECL (dwarf_begin_elf)
 INTDECL (dwarf_child)
 INTDECL (dwarf_dieoffset)
@@ -656,9 +777,11 @@ INTDECL (dwarf_formref_die)
 INTDECL (dwarf_formsdata)
 INTDECL (dwarf_formstring)
 INTDECL (dwarf_formudata)
+INTDECL (dwarf_getalt)
 INTDECL (dwarf_getarange_addr)
 INTDECL (dwarf_getarangeinfo)
 INTDECL (dwarf_getaranges)
+INTDECL (dwarf_getlocation_die)
 INTDECL (dwarf_getsrcfiles)
 INTDECL (dwarf_getsrclines)
 INTDECL (dwarf_hasattr)
@@ -669,7 +792,9 @@ INTDECL (dwarf_lowpc)
 INTDECL (dwarf_nextcu)
 INTDECL (dwarf_next_unit)
 INTDECL (dwarf_offdie)
+INTDECL (dwarf_peel_type)
 INTDECL (dwarf_ranges)
+INTDECL (dwarf_setalt)
 INTDECL (dwarf_siblingof)
 INTDECL (dwarf_srclang)
 INTDECL (dwarf_tag)

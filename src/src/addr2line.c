@@ -1,28 +1,20 @@
 /* Locate source files and line information for given addresses
-   Copyright (C) 2005-2010, 2012 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   Copyright (C) 2005-2010, 2012, 2013 Red Hat, Inc.
+   This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2005.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3 of the License, or
+   (at your option) any later version.
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -69,9 +61,13 @@ static const struct argp_option options[] =
     N_("Show absolute file names using compilation directory"), 0 },
   { "functions", 'f', NULL, 0, N_("Also show function names"), 0 },
   { "symbols", 'S', NULL, 0, N_("Also show symbol or section names"), 0 },
+  { "symbols-sections", 'x', NULL, 0, N_("Also show symbol and the section names"), 0 },
   { "flags", 'F', NULL, 0, N_("Also show line table flags"), 0 },
   { "section", 'j', "NAME", 0,
     N_("Treat addresses as offsets relative to NAME section."), 0 },
+  { "inlines", 'i', NULL, 0,
+    N_("Show all source locations that caused inline expansion of subroutines at the address."),
+    0 },
 
   { NULL, 0, NULL, 0, N_("Miscellaneous:"), 0 },
   /* Unsupported options.  */
@@ -119,8 +115,14 @@ static bool show_functions;
 /* True if ELF symbol or section info should be shown.  */
 static bool show_symbols;
 
+/* True if section associated with a symbol address should be shown.  */
+static bool show_symbol_sections;
+
 /* If non-null, take address parameters as relative to named section.  */
 static const char *just_section;
+
+/* True if all inlined subroutines of the current address should be shown.  */
+static bool show_inlines;
 
 
 int
@@ -160,10 +162,14 @@ main (int argc, char *argv[])
 
       char *buf = NULL;
       size_t len = 0;
+      ssize_t chars;
       while (!feof_unlocked (stdin))
 	{
-	  if (getline (&buf, &len, stdin) < 0)
+	  if ((chars = getline (&buf, &len, stdin)) < 0)
 	    break;
+
+	  if (buf[chars - 1] == '\n')
+	    buf[chars - 1] = '\0';
 
 	  result = handle_address (buf, dwfl);
 	}
@@ -177,6 +183,7 @@ main (int argc, char *argv[])
       while (++remaining < argc);
     }
 
+  dwfl_end (dwfl);
   return result;
 }
 
@@ -231,8 +238,17 @@ parse_opt (int key, char *arg, struct argp_state *state)
       show_symbols = true;
       break;
 
+    case 'x':
+      show_symbols = true;
+      show_symbol_sections = true;
+      break;
+
     case 'j':
       just_section = arg;
+      break;
+
+    case 'i':
+      show_inlines = true;
       break;
 
     default:
@@ -241,6 +257,23 @@ parse_opt (int key, char *arg, struct argp_state *state)
   return 0;
 }
 
+
+static const char *
+get_diename (Dwarf_Die *die)
+{
+  Dwarf_Attribute attr;
+  const char *name;
+
+  name = dwarf_formstring (dwarf_attr_integrate (die, DW_AT_MIPS_linkage_name,
+						 &attr)
+			   ?: dwarf_attr_integrate (die, DW_AT_linkage_name,
+						    &attr));
+
+  if (name == NULL)
+    name = dwarf_diename (die) ?: "??";
+
+  return name;
+}
 
 static bool
 print_dwarf_function (Dwfl_Module *mod, Dwarf_Addr addr)
@@ -258,7 +291,7 @@ print_dwarf_function (Dwfl_Module *mod, Dwarf_Addr addr)
       {
       case DW_TAG_subprogram:
 	{
-	  const char *name = dwarf_diename (&scopes[i]);
+	  const char *name = get_diename (&scopes[i]);
 	  if (name == NULL)
 	    return false;
 	  puts (name);
@@ -267,7 +300,7 @@ print_dwarf_function (Dwfl_Module *mod, Dwarf_Addr addr)
 
       case DW_TAG_inlined_subroutine:
 	{
-	  const char *name = dwarf_diename (&scopes[i]);
+	  const char *name = get_diename (&scopes[i]);
 	  if (name == NULL)
 	    return false;
 	  printf ("%s inlined", name);
@@ -335,8 +368,9 @@ static void
 print_addrsym (Dwfl_Module *mod, GElf_Addr addr)
 {
   GElf_Sym s;
-  GElf_Word shndx;
-  const char *name = dwfl_module_addrsym (mod, addr, &s, &shndx);
+  GElf_Off off;
+  const char *name = dwfl_module_addrinfo (mod, addr, &off, &s,
+					   NULL, NULL, NULL);
   if (name == NULL)
     {
       /* No symbol name.  Get a section name instead.  */
@@ -348,10 +382,34 @@ print_addrsym (Dwfl_Module *mod, GElf_Addr addr)
       else
 	printf ("(%s)+%#" PRIx64 "\n", name, addr);
     }
-  else if (addr == s.st_value)
-    puts (name);
   else
-    printf ("%s+%#" PRIx64 "\n", name, addr - s.st_value);
+    {
+      if (off == 0)
+	printf ("%s", name);
+      else
+	printf ("%s+%#" PRIx64 "", name, off);
+
+      // Also show section name for address.
+      if (show_symbol_sections)
+	{
+	  Dwarf_Addr ebias;
+	  Elf_Scn *scn = dwfl_module_address_section (mod, &addr, &ebias);
+	  if (scn != NULL)
+	    {
+	      GElf_Shdr shdr_mem;
+	      GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
+	      if (shdr != NULL)
+		{
+		  Elf *elf = dwfl_module_getelf (mod, &ebias);
+		  GElf_Ehdr ehdr;
+		  if (gelf_getehdr (elf, &ehdr) != NULL)
+		    printf (" (%s)", elf_strptr (elf, ehdr.e_shstrndx,
+						 shdr->sh_name));
+		}
+	    }
+	}
+      puts ("");
+    }
 }
 
 static int
@@ -377,11 +435,14 @@ find_symbol (Dwfl_Module *mod,
 {
   const char *looking_for = ((void **) arg)[0];
   GElf_Sym *symbol = ((void **) arg)[1];
+  GElf_Addr *value = ((void **) arg)[2];
 
   int n = dwfl_module_getsymtab (mod);
   for (int i = 1; i < n; ++i)
     {
-      const char *symbol_name = dwfl_module_getsym (mod, i, symbol, NULL);
+      const char *symbol_name = dwfl_module_getsym_info (mod, i, symbol,
+							 value, NULL, NULL,
+							 NULL);
       if (symbol_name == NULL || symbol_name[0] == '\0')
 	continue;
       switch (GELF_ST_TYPE (symbol->st_info))
@@ -445,6 +506,30 @@ adjust_to_section (const char *name, uintmax_t *addr, Dwfl *dwfl)
   return false;
 }
 
+static void
+print_src (const char *src, int lineno, int linecol, Dwarf_Die *cu)
+{
+  const char *comp_dir = "";
+  const char *comp_dir_sep = "";
+
+  if (only_basenames)
+    src = basename (src);
+  else if (use_comp_dir && src[0] != '/')
+    {
+      Dwarf_Attribute attr;
+      comp_dir = dwarf_formstring (dwarf_attr (cu, DW_AT_comp_dir, &attr));
+      if (comp_dir != NULL)
+	comp_dir_sep = "/";
+    }
+
+  if (linecol != 0)
+    printf ("%s%s%s:%d:%d",
+	    comp_dir, comp_dir_sep, src, lineno, linecol);
+  else
+    printf ("%s%s%s:%d",
+	    comp_dir, comp_dir_sep, src, lineno);
+}
+
 static int
 handle_address (const char *string, Dwfl *dwfl)
 {
@@ -471,7 +556,8 @@ handle_address (const char *string, Dwfl *dwfl)
 
 	  /* It was symbol[+offset].  */
 	  GElf_Sym sym;
-	  void *arg[2] = { name, &sym };
+	  GElf_Addr value = 0;
+	  void *arg[3] = { name, &sym, &value };
 	  (void) dwfl_getmodules (dwfl, &find_symbol, arg, 0);
 	  if (arg[0] != NULL)
 	    error (0, 0, gettext ("cannot find symbol '%s'"), name);
@@ -482,7 +568,7 @@ handle_address (const char *string, Dwfl *dwfl)
 		       gettext ("offset %#" PRIxMAX " lies outside"
 				" contents of '%s'"),
 		       addr, name);
-	      addr += sym.st_value;
+	      addr += value;
 	      parsed = true;
 	    }
 	  break;
@@ -513,28 +599,11 @@ handle_address (const char *string, Dwfl *dwfl)
 
   const char *src;
   int lineno, linecol;
+
   if (line != NULL && (src = dwfl_lineinfo (line, &addr, &lineno, &linecol,
 					    NULL, NULL)) != NULL)
     {
-      const char *comp_dir = "";
-      const char *comp_dir_sep = "";
-
-      if (only_basenames)
-	src = basename (src);
-      else if (use_comp_dir && src[0] != '/')
-	{
-	  comp_dir = dwfl_line_comp_dir (line);
-	  if (comp_dir != NULL)
-	    comp_dir_sep = "/";
-	}
-
-      if (linecol != 0)
-	printf ("%s%s%s:%d:%d",
-		comp_dir, comp_dir_sep, src, lineno, linecol);
-      else
-	printf ("%s%s%s:%d",
-		comp_dir, comp_dir_sep, src, lineno);
-
+      print_src (src, lineno, linecol, dwfl_linecu (line));
       if (show_flags)
 	{
 	  Dwarf_Addr bias;
@@ -567,6 +636,88 @@ handle_address (const char *string, Dwfl *dwfl)
     }
   else
     puts ("??:0");
+
+  if (show_inlines)
+    {
+      Dwarf_Addr bias = 0;
+      Dwarf_Die *cudie = dwfl_module_addrdie (mod, addr, &bias);
+
+      Dwarf_Die *scopes = NULL;
+      int nscopes = dwarf_getscopes (cudie, addr - bias, &scopes);
+      if (nscopes < 0)
+	return 1;
+
+      if (nscopes > 0)
+	{
+	  Dwarf_Die subroutine;
+	  Dwarf_Off dieoff = dwarf_dieoffset (&scopes[0]);
+	  dwarf_offdie (dwfl_module_getdwarf (mod, &bias),
+			dieoff, &subroutine);
+	  free (scopes);
+
+	  nscopes = dwarf_getscopes_die (&subroutine, &scopes);
+	  if (nscopes > 1)
+	    {
+	      Dwarf_Die cu;
+	      Dwarf_Files *files;
+	      if (dwarf_diecu (&scopes[0], &cu, NULL, NULL) != NULL
+		  && dwarf_getsrcfiles (cudie, &files, NULL) == 0)
+		{
+		  for (int i = 0; i < nscopes - 1; i++)
+		    {
+		      Dwarf_Word val;
+		      Dwarf_Attribute attr;
+		      Dwarf_Die *die = &scopes[i];
+		      if (dwarf_tag (die) != DW_TAG_inlined_subroutine)
+			continue;
+
+		      if (show_functions)
+			{
+			  /* Search for the parent inline or function.  It
+			     might not be directly above this inline -- e.g.
+			     there could be a lexical_block in between.  */
+			  for (int j = i + 1; j < nscopes; j++)
+			    {
+			      Dwarf_Die *parent = &scopes[j];
+			      int tag = dwarf_tag (parent);
+			      if (tag == DW_TAG_inlined_subroutine
+				  || tag == DW_TAG_entry_point
+				  || tag == DW_TAG_subprogram)
+				{
+				  puts (get_diename (parent));
+				  break;
+				}
+			    }
+			}
+
+		      src = NULL;
+		      lineno = 0;
+		      linecol = 0;
+		      if (dwarf_formudata (dwarf_attr (die, DW_AT_call_file,
+						       &attr), &val) == 0)
+			src = dwarf_filesrc (files, val, NULL, NULL);
+
+		      if (dwarf_formudata (dwarf_attr (die, DW_AT_call_line,
+						       &attr), &val) == 0)
+			lineno = val;
+
+		      if (dwarf_formudata (dwarf_attr (die, DW_AT_call_column,
+						       &attr), &val) == 0)
+			linecol = val;
+
+		      if (src != NULL)
+			{
+			  print_src (src, lineno, linecol, &cu);
+			  putchar ('\n');
+			}
+		      else
+			puts ("??:0");
+		    }
+		}
+	    }
+	}
+      free (scopes);
+    }
 
   return 0;
 }

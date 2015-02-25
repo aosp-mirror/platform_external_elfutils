@@ -1,51 +1,30 @@
 /* Compute size of an aggregate type from DWARF.
-   Copyright (C) 2010 Red Hat, Inc.
-   This file is part of Red Hat elfutils.
+   Copyright (C) 2010, 2014 Red Hat, Inc.
+   This file is part of elfutils.
 
-   Red Hat elfutils is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by the
-   Free Software Foundation; version 2 of the License.
+   This file is free software; you can redistribute it and/or modify
+   it under the terms of either
 
-   Red Hat elfutils is distributed in the hope that it will be useful, but
+     * the GNU Lesser General Public License as published by the Free
+       Software Foundation; either version 3 of the License, or (at
+       your option) any later version
+
+   or
+
+     * the GNU General Public License as published by the Free
+       Software Foundation; either version 2 of the License, or (at
+       your option) any later version
+
+   or both in parallel, as here.
+
+   elfutils is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License along
-   with Red Hat elfutils; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301 USA.
-
-   In addition, as a special exception, Red Hat, Inc. gives You the
-   additional right to link the code of Red Hat elfutils with code licensed
-   under any Open Source Initiative certified open source license
-   (http://www.opensource.org/licenses/index.php) which requires the
-   distribution of source code with any binary distribution and to
-   distribute linked combinations of the two.  Non-GPL Code permitted under
-   this exception must only link to the code of Red Hat elfutils through
-   those well defined interfaces identified in the file named EXCEPTION
-   found in the source code files (the "Approved Interfaces").  The files
-   of Non-GPL Code may instantiate templates or use macros or inline
-   functions from the Approved Interfaces without causing the resulting
-   work to be covered by the GNU General Public License.  Only Red Hat,
-   Inc. may make changes or additions to the list of Approved Interfaces.
-   Red Hat's grant of this exception is conditioned upon your not adding
-   any new exceptions.  If you wish to add a new Approved Interface or
-   exception, please contact Red Hat.  You must obey the GNU General Public
-   License in all respects for all of the Red Hat elfutils code and other
-   code used in conjunction with Red Hat elfutils except the Non-GPL Code
-   covered by this exception.  If you modify this file, you may extend this
-   exception to your version of the file, but you are not obligated to do
-   so.  If you do not wish to provide this exception without modification,
-   you must delete this exception statement from your version and license
-   this file solely under the GPL without exception.
-
-   Red Hat elfutils is an included package of the Open Invention Network.
-   An included package of the Open Invention Network is a package for which
-   Open Invention Network licensees cross-license their patents.  No patent
-   license is granted, either expressly or impliedly, by designation as an
-   included package.  Should you wish to participate in the Open Invention
-   Network licensing program, please visit www.openinventionnetwork.com
-   <http://www.openinventionnetwork.com>.  */
+   You should have received copies of the GNU General Public License and
+   the GNU Lesser General Public License along with this program.  If
+   not, see <http://www.gnu.org/licenses/>.  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -58,8 +37,13 @@
 static Dwarf_Die *
 get_type (Dwarf_Die *die, Dwarf_Attribute *attr_mem, Dwarf_Die *type_mem)
 {
-  return INTUSE(dwarf_formref_die)
+  Dwarf_Die *type = INTUSE(dwarf_formref_die)
     (INTUSE(dwarf_attr_integrate) (die, DW_AT_type, attr_mem), type_mem);
+
+  if (INTUSE(dwarf_peel_type) (type, type) != 0)
+    return NULL;
+
+  return type;
 }
 
 static int
@@ -119,12 +103,16 @@ array_size (Dwarf_Die *die, Dwarf_Word *size,
 		    case DW_LANG_C:
 		    case DW_LANG_C89:
 		    case DW_LANG_C99:
+		    case DW_LANG_C11:
 		    case DW_LANG_C_plus_plus:
-		    case DW_LANG_Objc:
+		    case DW_LANG_C_plus_plus_11:
+		    case DW_LANG_C_plus_plus_14:
+		    case DW_LANG_ObjC:
 		    case DW_LANG_ObjC_plus_plus:
 		    case DW_LANG_Java:
 		    case DW_LANG_D:
 		    case DW_LANG_UPC:
+		    case DW_LANG_Go:
 		      lower = 0;
 		      break;
 
@@ -219,13 +207,20 @@ aggregate_size (Dwarf_Die *die, Dwarf_Word *size, Dwarf_Die *type_mem)
 
   switch (INTUSE(dwarf_tag) (die))
     {
-    case DW_TAG_typedef:
     case DW_TAG_subrange_type:
       return aggregate_size (get_type (die, &attr_mem, type_mem),
 			     size, type_mem); /* Tail call.  */
 
     case DW_TAG_array_type:
       return array_size (die, size, &attr_mem, type_mem);
+
+    /* Assume references and pointers have pointer size if not given an
+       explicit DW_AT_byte_size.  */
+    case DW_TAG_pointer_type:
+    case DW_TAG_reference_type:
+    case DW_TAG_rvalue_reference_type:
+      *size = die->cu->address_size;
+      return 0;
     }
 
   /* Most types must give their size directly.  */
@@ -238,6 +233,12 @@ dwarf_aggregate_size (die, size)
      Dwarf_Word *size;
 {
   Dwarf_Die type_mem;
+
+  if (INTUSE (dwarf_peel_type) (die, die) != 0)
+    return -1;
+
   return aggregate_size (die, size, &type_mem);
 }
 INTDEF (dwarf_aggregate_size)
+OLD_VERSION (dwarf_aggregate_size, ELFUTILS_0.144)
+NEW_VERSION (dwarf_aggregate_size, ELFUTILS_0.161)

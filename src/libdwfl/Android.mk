@@ -112,6 +112,9 @@ LOCAL_CFLAGS += -Wno-pointer-arith
 # fix, we prefer to turn off the warning locally.
 LOCAL_CFLAGS += -Wno-unused-but-set-variable
 
+# Similar to the above. To stay in line with upstream, ignore the warning.
+LOCAL_CFLAGS += -Wno-unused-variable
+
 LOCAL_MODULE:= libdwfl
 
 LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)
@@ -153,6 +156,7 @@ LOCAL_CFLAGS += -Wno-pointer-arith
 
 # See above.
 LOCAL_CFLAGS += -Wno-unused-but-set-variable
+LOCAL_CFLAGS += -Wno-unused-variable
 
 LOCAL_MODULE:= libdwfl
 

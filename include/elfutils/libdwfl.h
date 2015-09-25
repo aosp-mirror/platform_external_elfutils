@@ -1,1 +1,1 @@
-../../src/libdwfl/libdwfl.h
+../../libdwfl/libdwfl.h

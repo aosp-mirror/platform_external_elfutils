@@ -1,1 +1,1 @@
-../../src/libdw/libdw.h
+../../libdw/libdw.h

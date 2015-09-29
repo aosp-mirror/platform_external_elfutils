@@ -23,6 +23,9 @@
 #include <stdio.h>
 #include <error.h>
 #include <errno.h>
+#ifdef __linux__
+#include <sys/prctl.h>
+#endif
 
 extern void libfunc (void);
 
@@ -42,6 +45,11 @@ main (int argc __attribute__ ((unused)), char **argv __attribute__ ((unused)))
       assert (!err);
       err = close (2);
       assert (!err);
+      /* Make sure eu-stack -p works on this process even with
+	 "restricted ptrace".  */
+#ifdef PR_SET_PTRACER_ANY
+      prctl(PR_SET_PTRACER, PR_SET_PTRACER_ANY, 0, 0, 0);
+#endif
       libfunc ();
       abort ();
     }

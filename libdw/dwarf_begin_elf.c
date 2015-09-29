@@ -1,5 +1,5 @@
 /* Create descriptor from ELF descriptor for processing file.
-   Copyright (C) 2002-2011, 2014 Red Hat, Inc.
+   Copyright (C) 2002-2011, 2014, 2015 Red Hat, Inc.
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2002.
 
@@ -71,6 +71,70 @@ static const char dwarf_scnnames[IDX_last][18] =
 };
 #define ndwarf_scnnames (sizeof (dwarf_scnnames) / sizeof (dwarf_scnnames[0]))
 
+#if USE_ZLIB
+static Elf_Data *
+inflate_section (Elf_Data * data)
+{
+  /* There is a 12-byte header of "ZLIB" followed by
+     an 8-byte big-endian size.  */
+
+  if (unlikely (data->d_size < 4 + 8)
+      || unlikely (memcmp (data->d_buf, "ZLIB", 4) != 0))
+    return NULL;
+
+  uint64_t size;
+  memcpy (&size, data->d_buf + 4, sizeof size);
+  size = be64toh (size);
+
+  /* Check for unsigned overflow so malloc always allocated
+     enough memory for both the Elf_Data header and the
+     uncompressed section data.  */
+  if (unlikely (sizeof (Elf_Data) + size < size))
+    return NULL;
+
+  Elf_Data *zdata = malloc (sizeof (Elf_Data) + size);
+  if (unlikely (zdata == NULL))
+    return NULL;
+
+  zdata->d_buf = &zdata[1];
+  zdata->d_type = ELF_T_BYTE;
+  zdata->d_version = EV_CURRENT;
+  zdata->d_size = size;
+  zdata->d_off = 0;
+  zdata->d_align = 1;
+
+  z_stream z =
+    {
+      .next_in = data->d_buf + 4 + 8,
+      .avail_in = data->d_size - 4 - 8,
+      .next_out = zdata->d_buf,
+      .avail_out = zdata->d_size
+    };
+  int zrc = inflateInit (&z);
+  while (z.avail_in > 0 && likely (zrc == Z_OK))
+    {
+      z.next_out = zdata->d_buf + (zdata->d_size - z.avail_out);
+      zrc = inflate (&z, Z_FINISH);
+      if (unlikely (zrc != Z_STREAM_END))
+	{
+	  zrc = Z_DATA_ERROR;
+	  break;
+	}
+      zrc = inflateReset (&z);
+    }
+  if (likely (zrc == Z_OK))
+    zrc = inflateEnd (&z);
+
+  if (unlikely (zrc != Z_OK) || unlikely (z.avail_out != 0))
+    {
+      free (zdata);
+      return NULL;
+    }
+
+  return zdata;
+}
+#endif
+
 static Dwarf *
 check_section (Dwarf *result, GElf_Ehdr *ehdr, Elf_Scn *scn, bool inscngrp)
 {
@@ -118,98 +182,59 @@ check_section (Dwarf *result, GElf_Ehdr *ehdr, Elf_Scn *scn, bool inscngrp)
 
   /* Recognize the various sections.  Most names start with .debug_.  */
   size_t cnt;
+  bool compressed = false;
   for (cnt = 0; cnt < ndwarf_scnnames; ++cnt)
     if (strcmp (scnname, dwarf_scnnames[cnt]) == 0)
-      {
-	/* Found it.  Remember where the data is.  */
-	if (unlikely (result->sectiondata[cnt] != NULL))
-	  /* A section appears twice.  That's bad.  We ignore the section.  */
-	  break;
-
-	/* Get the section data.  */
-	Elf_Data *data = elf_getdata (scn, NULL);
-	if (data != NULL && data->d_size != 0)
-	  /* Yep, there is actually data available.  */
-	  result->sectiondata[cnt] = data;
-
-	break;
-      }
-#if USE_ZLIB
+      break;
     else if (scnname[0] == '.' && scnname[1] == 'z'
 	     && strcmp (&scnname[2], &dwarf_scnnames[cnt][1]) == 0)
       {
-	/* A compressed section.  */
-
-	if (unlikely (result->sectiondata[cnt] != NULL))
-	  /* A section appears twice.  That's bad.  We ignore the section.  */
-	  break;
-
-	/* Get the section data.  */
-	Elf_Data *data = elf_getdata (scn, NULL);
-	if (data != NULL && data->d_size != 0)
-	  {
-	    /* There is a 12-byte header of "ZLIB" followed by
-	       an 8-byte big-endian size.  */
-
-	    if (unlikely (data->d_size < 4 + 8)
-		|| unlikely (memcmp (data->d_buf, "ZLIB", 4) != 0))
-	      break;
-
-	    uint64_t size;
-	    memcpy (&size, data->d_buf + 4, sizeof size);
-	    size = be64toh (size);
-
-	    /* Check for unsigned overflow so malloc always allocated
-	       enough memory for both the Elf_Data header and the
-	       uncompressed section data.  */
-	    if (unlikely (sizeof (Elf_Data) + size < size))
-	      break;
-
-	    Elf_Data *zdata = malloc (sizeof (Elf_Data) + size);
-	    if (unlikely (zdata == NULL))
-	      break;
-
-	    zdata->d_buf = &zdata[1];
-	    zdata->d_type = ELF_T_BYTE;
-	    zdata->d_version = EV_CURRENT;
-	    zdata->d_size = size;
-	    zdata->d_off = 0;
-	    zdata->d_align = 1;
-
-	    z_stream z =
-	      {
-		.next_in = data->d_buf + 4 + 8,
-		.avail_in = data->d_size - 4 - 8,
-		.next_out = zdata->d_buf,
-		.avail_out = zdata->d_size
-	      };
-	    int zrc = inflateInit (&z);
-	    while (z.avail_in > 0 && likely (zrc == Z_OK))
-	      {
-		z.next_out = zdata->d_buf + (zdata->d_size - z.avail_out);
-		zrc = inflate (&z, Z_FINISH);
-		if (unlikely (zrc != Z_STREAM_END))
-		  {
-		    zrc = Z_DATA_ERROR;
-		    break;
-		  }
-		zrc = inflateReset (&z);
-	      }
-	    if (likely (zrc == Z_OK))
-	      zrc = inflateEnd (&z);
-
-	    if (unlikely (zrc != Z_OK) || unlikely (z.avail_out != 0))
-	      free (zdata);
-	    else
-	      {
-		result->sectiondata[cnt] = zdata;
-		result->sectiondata_gzip_mask |= 1U << cnt;
-	      }
-	  }
-
-	break;
+        compressed = true;
+        break;
       }
+
+  if (cnt >= ndwarf_scnnames)
+    /* Not a debug section; ignore it. */
+    return result;
+
+  if (unlikely (result->sectiondata[cnt] != NULL))
+    /* A section appears twice.  That's bad.  We ignore the section.  */
+    return result;
+
+  /* Get the section data.  */
+  Elf_Data *data = elf_getdata (scn, NULL);
+  if (data == NULL || data->d_size == 0)
+    /* No data actually available, ignore it. */
+    return result;
+
+  /* We can now read the section data into results. */
+  if (!compressed)
+    result->sectiondata[cnt] = data;
+  else
+    {
+      /* A compressed section. */
+
+#if USE_ZLIB
+      Elf_Data *inflated = inflate_section(data);
+      if (inflated != NULL)
+        {
+          result->sectiondata[cnt] = inflated;
+          result->sectiondata_gzip_mask |= 1U << cnt;
+        }
 #endif
+
+      /* If we failed to decompress the section and it's the debug_info section,
+       * then fail with specific error rather than the generic NO_DWARF. Without
+       * debug_info we can't do anything (see also valid_p()). */
+      if (result->sectiondata[cnt] == NULL && cnt == IDX_debug_info)
+        {
+          __libdw_free_zdata (result);
+          Dwarf_Sig8_Hash_free (&result->sig8_hash);
+          __libdw_seterrno (DWARF_E_COMPRESSED_ERROR);
+          free (result);
+          return NULL;
+        }
+    }
 
   return result;
 }
@@ -316,10 +341,7 @@ scngrp_read (Dwarf *result, Elf *elf, GElf_Ehdr *ehdr, Elf_Scn *scngrp)
 
 
 Dwarf *
-dwarf_begin_elf (elf, cmd, scngrp)
-     Elf *elf;
-     Dwarf_Cmd cmd;
-     Elf_Scn *scngrp;
+dwarf_begin_elf (Elf *elf, Dwarf_Cmd cmd, Elf_Scn *scngrp)
 {
   GElf_Ehdr *ehdr;
   GElf_Ehdr ehdr_mem;
@@ -340,6 +362,7 @@ dwarf_begin_elf (elf, cmd, scngrp)
 
   /* Default memory allocation size.  */
   size_t mem_default_size = sysconf (_SC_PAGESIZE) - 4 * sizeof (void *);
+  assert (sizeof (struct Dwarf) < mem_default_size);
 
   /* Allocate the data structure.  */
   Dwarf *result = (Dwarf *) calloc (1, sizeof (Dwarf) + mem_default_size);

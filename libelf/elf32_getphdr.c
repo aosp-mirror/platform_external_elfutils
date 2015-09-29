@@ -1,5 +1,5 @@
 /* Get ELF program header table.
-   Copyright (C) 1998-2010, 2014 Red Hat, Inc.
+   Copyright (C) 1998-2010, 2014, 2015 Red Hat, Inc.
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 1998.
 
@@ -46,8 +46,7 @@
 #endif
 
 ElfW2(LIBELFBITS,Phdr) *
-__elfw2(LIBELFBITS,getphdr_wrlock) (elf)
-     Elf *elf;
+__elfw2(LIBELFBITS,getphdr_wrlock) (Elf *elf)
 {
   ElfW2(LIBELFBITS,Phdr) *result;
 
@@ -141,13 +140,20 @@ __elfw2(LIBELFBITS,getphdr_wrlock) (elf)
 		}
 	      else
 		{
-		  if (ALLOW_UNALIGNED
-		      || ((uintptr_t) file_phdr
-			  & (__alignof__ (ElfW2(LIBELFBITS,Phdr)) - 1)) == 0)
+		  bool copy = ! (ALLOW_UNALIGNED
+				 || ((uintptr_t) file_phdr
+				     & (__alignof__ (ElfW2(LIBELFBITS,Phdr))
+					- 1)) == 0);
+		  if (! copy)
 		    notcvt = file_phdr;
 		  else
 		    {
-		      notcvt = (ElfW2(LIBELFBITS,Phdr) *) alloca (size);
+		      notcvt = (ElfW2(LIBELFBITS,Phdr) *) malloc (size);
+		      if (unlikely (notcvt == NULL))
+			{
+			  __libelf_seterrno (ELF_E_NOMEM);
+			  goto out;
+			}
 		      memcpy (notcvt, file_phdr, size);
 		    }
 
@@ -162,6 +168,9 @@ __elfw2(LIBELFBITS,getphdr_wrlock) (elf)
 		      CONVERT_TO (phdr[cnt].p_flags, notcvt[cnt].p_flags);
 		      CONVERT_TO (phdr[cnt].p_align, notcvt[cnt].p_align);
 		    }
+
+		  if (copy)
+		    free (notcvt);
 		}
 	    }
 	}
@@ -227,8 +236,7 @@ __elfw2(LIBELFBITS,getphdr_wrlock) (elf)
 }
 
 ElfW2(LIBELFBITS,Phdr) *
-elfw2(LIBELFBITS,getphdr) (elf)
-     Elf *elf;
+elfw2(LIBELFBITS,getphdr) (Elf *elf)
 {
   ElfW2(LIBELFBITS,Phdr) *result;
 

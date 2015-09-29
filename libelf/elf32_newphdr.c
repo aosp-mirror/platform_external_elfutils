@@ -1,5 +1,5 @@
 /* Create new ELF program header table.
-   Copyright (C) 1999-2010, 2014 Red Hat, Inc.
+   Copyright (C) 1999-2010, 2014, 2015 Red Hat, Inc.
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 1998.
 
@@ -43,9 +43,7 @@
 
 
 ElfW2(LIBELFBITS,Phdr) *
-elfw2(LIBELFBITS,newphdr) (elf, count)
-     Elf *elf;
-     size_t count;
+elfw2(LIBELFBITS,newphdr) (Elf *elf, size_t count)
 {
   ElfW2(LIBELFBITS,Phdr) *result;
 
@@ -116,6 +114,17 @@ elfw2(LIBELFBITS,newphdr) (elf, count)
     {
       if (unlikely (count > SIZE_MAX / sizeof (ElfW2(LIBELFBITS,Phdr))))
 	{
+	  __libelf_seterrno (ELF_E_INVALID_INDEX);
+	  result = NULL;
+	  goto out;
+	}
+
+      Elf_Scn *scn0 = &elf->state.ELFW(elf,LIBELFBITS).scns.data[0];
+      if (unlikely (count >= PN_XNUM && scn0->shdr.ELFW(e,LIBELFBITS) == NULL))
+	{
+	  /* Something is wrong with section zero, but we need it to write
+	     the extended phdr count.  */
+	  __libelf_seterrno (ELF_E_INVALID_SECTION_HEADER);
 	  result = NULL;
 	  goto out;
 	}
@@ -134,7 +143,6 @@ elfw2(LIBELFBITS,newphdr) (elf, count)
 	  if (count >= PN_XNUM)
 	    {
 	      /* We have to write COUNT into the zeroth section's sh_info.  */
-	      Elf_Scn *scn0 = &elf->state.ELFW(elf,LIBELFBITS).scns.data[0];
 	      if (elf->state.ELFW(elf,LIBELFBITS).scns.cnt == 0)
 		{
 		  assert (elf->state.ELFW(elf,LIBELFBITS).scns.max > 0);

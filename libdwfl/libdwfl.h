@@ -275,12 +275,14 @@ extern int dwfl_module_build_id (Dwfl_Module *mod,
    In searches for debuginfo by name, if the remainder of the
    element is empty, the directory containing the main file is
    tried; if it's an absolute path name, the absolute directory path
-   containing the main file is taken as a subdirectory of this path;
-   a relative path name is taken as a subdirectory of the directory
-   containing the main file.  Hence for /bin/ls, the default string
-   ":.debug:/usr/lib/debug" says to look in /bin, then /bin/.debug,
-   then /usr/lib/debug/bin, for the file name in the .gnu_debuglink
-   section (or "ls.debug" if none was found).  */
+   (and any subdirectory of that path) containing the main file is
+   taken as a subdirectory of this path; a relative path name is taken
+   as a subdirectory of the directory containing the main file.
+   Hence for /usr/bin/ls, the default string ":.debug:/usr/lib/debug"
+   says to look in /usr/bin, then /usr/bin/.debug, then the path subdirs
+   under /usr/lib/debug, in the order /usr/lib/debug/usr/bin, then
+   /usr/lib/debug/bin, and finally /usr/lib/debug, for the file name in
+   the .gnu_debuglink section (or "ls.debug" if none was found).  */
 
 /* Standard find_elf callback function working solely on build ID.
    This can be tried first by any find_elf callback, to use the
@@ -421,7 +423,7 @@ extern int dwfl_validate_address (Dwfl *dwfl,
    with the difference between addresses within the loaded module
    and those in symbol tables or Dwarf information referring to it.  */
 extern Elf *dwfl_module_getelf (Dwfl_Module *, GElf_Addr *bias)
-  __nonnull_attribute__ (1, 2);
+  __nonnull_attribute__ (2);
 
 /* Return the number of symbols in the module's symbol table,
    or -1 for errors.  */

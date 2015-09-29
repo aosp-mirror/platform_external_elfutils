@@ -1,3 +1,182 @@
+2015-09-22  Mark Wielaard  <mjw@redhat.com>
+
+	* core-file.c: Remove old-style function definitions.
+	* dwfl_error.c: Likewise.
+	* dwfl_module_dwarf_cfi.c: Likewise.
+	* dwfl_module_eh_cfi.c: Likewise.
+	* dwfl_module_register_names.c: Likewise.
+	* dwfl_module_return_value_location.c: Likewise.
+	* dwfl_version.c: Likewise.
+
+2015-09-09  Chih-Hung Hsieh  <chh@google.com>
+	    Mark Wielaard  <mjw@redhat.com>
+
+	* dwfl_frame.c (dwfl_attach_state): Remove redundant NULL tests
+	on parameters declared with __nonnull_attribute__.
+	* libdwfl.h (dwfl_module_getelf): Don't mark first argument as
+	nonnull.
+
+2015-09-08  Mark Wielaard  <mjw@redhat.com>
+
+	* libdwflP.h (struct __libdwfl_pid_arg): Add elf and elf_fd.
+	* linux-pid-attach.c (pid_detach): Call elf_end and close.
+	(dwfl_linux_proc_attach): Open and save /proc/PID/exe.
+
+2015-09-04  Chih-Hung Hsieh  <chh@google.com
+
+	* frame_unwind.c (expr_eval): Use llabs instead of abs.
+
+2015-08-14  Dodji Seketeli  <dodji@seketeli.org>
+
+	* find-debuginfo.c (find_debuginfo_in_path): Try to locate the
+	debug info file named debuglink_file under
+	mod->dwfl->callbacks->debuginfo_path, by looking at
+	the set of sub-trees under mod->dwfl->callbacks->debuginfo_path
+	which is common to the set of non-absolute parent trees of
+	file_name.
+
+2015-06-18  Mark Wielaard  <mjw@redhat.com>
+
+	* find-debuginfo.c (try_open): Free fname on all failure paths.
+
+2015-06-18  Mark Wielaard  <mjw@redhat.com>
+
+	* dwfl_module_getdwarf.c (find_symtab): Check shdr is not NULL and
+	sh_entsize is not zero.
+
+2015-06-06  Mark Wielaard  <mjw@redhat.com>
+
+	* find-debuginfo.c (find_debuginfo_in_path): Always free localpath,
+	localname and file_dirname.
+
+2015-06-06  Mark Wielaard  <mjw@redhat.com>
+
+	* derelocate.c (cache_sections): Free sortrefs.
+
+2015-06-05  Mark Wielaard  <mjw@redhat.com>
+
+	* dwfl_segment_report_module.c (dwfl_segment_report_module):
+	If the note_file exists, but the build_id doesn't match discard
+	the file and continue reporting.
+
+2015-06-01  Mark Wielaard  <mjw@redhat.com>
+
+	* dwfl_build_id_find_elf.c (__libdwfl_open_by_build_id): Copy path
+	pointer before passing to strsep.
+
+2015-05-30  Mark Wielaard  <mjw@redhat.com>
+
+	* link_map.c (check32): Use read_4ubyte_unaligned_noncvt to read
+	type and value.
+	(read_addrs): Use read_(4|8)ubyte_unaligned_noncvt or to read
+	adresses.
+
+2015-05-30  Mark Wielaard  <mjw@redhat.com>
+
+	* find-debuginfo.c (dwfl_standard_find_debuginfo): Check file_name is
+	not NULL before calling canonicalize_file_name.
+
+2015-05-24  Mark Wielaard  <mjw@redhat.com>
+
+	* derelocate.c (check_module): Check mod is not NULL.
+
+2015-05-22  Mark Wielaard  <mjw@redhat.com>
+
+	* link_map.c (dwfl_link_map_report): Allocate phdrs and dyn with
+	malloc instead of stack allocating. Call free when done with data.
+
+2015-05-22  Mark Wielaard  <mjw@redhat.com>
+
+	* dwfl_segment_report_module.c (dwfl_segment_report_module):
+	Allocate phdrs with malloc, not on stack. free in finish.
+	Allocate dyn with malloc, not on stack, free after use.
+
+2015-05-22  Mark Wielaard  <mjw@redhat.com>
+
+	* find-debuginfo.c (find_debuginfo_in_path): malloc or strdup,
+	instead of alloca or strdupa, local strings of unknown size.
+	Call free before return.
+
+2015-05-22  Mark Wielaard  <mjw@redhat.com>
+
+	* dwfl_build_id_find_elf.c (__libdwfl_open_by_build_id): Return
+	error when id_len too small or too large. strdup, not strdupa,
+	and free path when done.
+
+2015-05-19  Mark Wielaard  <mjw@redhat.com>
+
+	* elf-from-memory.c (elf_from_remote_memory): Don't allocate all
+	phdrs on the stack. Allocate with malloc and free when done.
+
+2015-05-19  Mark Wielaard  <mjw@redhat.com>
+
+	* linux-kernel-modules.c (dwfl_linux_kernel_find_elf): malloc and
+	free alternate_name.
+
+2015-05-19  Mark Wielaard  <mjw@redhat.com>
+
+	* linux-kernel-modules.c (dwfl_linux_kernel_report_offline): Don't
+	stack allocate name. Only change chars up to suffix.
+
+2015-05-18  Mark Wielaard  <mjw@redhat.com>
+
+	* dwfl_module_getdwarf.c (find_prelink_address_sync): Allocate
+	phdrs and shdrs unions with malloc, not alloca. Free after use.
+
+2015-05-18  Mark Wielaard  <mjw@redhat.com>
+
+	* derelocate.c (cache_sections): Allocate temporary newrefs and
+	sortrefs with malloc, not alloca. Always free them on return.
+
+2015-05-07  Mark Wielaard  <mjw@redhat.com>
+
+	* cu.c (intern_cu): Check for EOF and check cuoff points to a real
+	Dwarf_Die before interning. Explicitly check EOF is expected.
+
+2015-05-05  Mark Wielaard  <mjw@redhat.com>
+
+	* dwfl_lineinfo.c (dwfl_lineinfo): Check info->file is valid.
+
+2015-05-06  Roland McGrath  <roland@hack.frob.com>
+
+	* dwfl_error.c (struct msgtable): Break type definition out of
+	the 'msgtable' initializer.
+	(msgtable): Make it a union of struct msgtable and a char array.
+	(msgstr): Use the full-table char array rather than the msg_0 entry.
+
+2015-04-23  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* core-file.c (_compat_without_executable_dwfl_core_file_report):
+	Guard with SYMBOL_VERSIONING.
+	* dwfl_module_build_id.c (_compat_vaddr_at_end_dwfl_module_build_id):
+	Likewise.
+	* dwfl_report_elf.c (_compat_without_add_p_vaddr_dwfl_report_elf):
+	Likewise.
+
+2015-04-02  Mark Wielaard  <mjw@redhat.com>
+
+	* segment.c (insert): Check correct number of lookup_elts.
+
+2015-03-31  Mark Wielaard  <mjw@redhat.com>
+
+	* core-file.c (core_file_read_eagerly): Special case small images.
+
+2015-01-26  Mark Wielaard  <mjw@redhat.com>
+
+	* dwfl_module_getdwarf.c (find_symtab): Explicitly clear symdata,
+	syments and first_global on elferr before calling find_dynsym.
+
+2014-12-27  Mark Wielaard  <mjw@redhat.com>
+
+	* dwfl_module_getsrc.c (dwfl_module_getsrc): Never match a line that
+	has end_sequence set.
+
+2015-01-04  Mark Wielaard  <mjw@redhat.com>
+
+	* cu.c (intern_cu): Store result and return directly when finding
+	EOF marker.
+	(__libdwfl_nextcu): Check *nextp as returned by intern_cu isn't -1.
+
 2014-12-19  Mark Wielaard  <mjw@redhat.com>
 
 	* dwfl_module_getdwarf.c (find_symtab): Always try find_dynsym last.

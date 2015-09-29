@@ -1,5 +1,5 @@
 /* Generate ELF backend handle.
-   Copyright (C) 2000-2014 Red Hat, Inc.
+   Copyright (C) 2000-2015 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -135,6 +135,8 @@ static const struct
 };
 #define nmachines (sizeof (machines) / sizeof (machines[0]))
 
+/* No machine prefix should be larger than this.  */
+#define MAX_PREFIX_LEN 16
 
 /* Default callbacks.  Mostly they just return the error value.  */
 static const char *default_object_type_name (int ignore, char *buf,
@@ -252,10 +254,7 @@ fill_defaults (Ebl *result)
 
 /* Find an appropriate backend for the file associated with ELF.  */
 static Ebl *
-openbackend (elf, emulation, machine)
-     Elf *elf;
-     const char *emulation;
-     GElf_Half machine;
+openbackend (Elf *elf, const char *emulation, GElf_Half machine)
 {
   Ebl *result;
   size_t cnt;
@@ -343,7 +342,11 @@ openbackend (elf, emulation, machine)
 	    static const char version[] = MODVERSION;
 	    const char *modversion;
 	    ebl_bhinit_t initp;
-	    char symname[machines[cnt].prefix_len + sizeof "_init"];
+
+	    // We use a static number to help the compiler see we don't
+	    // overflow the stack with an arbitrary number.
+	    assert (machines[cnt].prefix_len <= MAX_PREFIX_LEN);
+	    char symname[MAX_PREFIX_LEN + sizeof "_init"];
 
 	    strcpy (mempcpy (symname, machines[cnt].prefix,
 			     machines[cnt].prefix_len), "_init");
@@ -391,8 +394,7 @@ openbackend (elf, emulation, machine)
 
 /* Find an appropriate backend for the file associated with ELF.  */
 Ebl *
-ebl_openbackend (elf)
-     Elf *elf;
+ebl_openbackend (Elf *elf)
 {
   GElf_Ehdr ehdr_mem;
   GElf_Ehdr *ehdr;
@@ -412,8 +414,7 @@ ebl_openbackend (elf)
 
 /* Find backend without underlying ELF file.  */
 Ebl *
-ebl_openbackend_machine (machine)
-     GElf_Half machine;
+ebl_openbackend_machine (GElf_Half machine)
 {
   return openbackend (NULL, NULL, machine);
 }

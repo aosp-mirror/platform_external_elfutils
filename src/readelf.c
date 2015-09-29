@@ -1,5 +1,5 @@
 /* Print information from ELF file in human-readable form.
-   Copyright (C) 1999-2014 Red Hat, Inc.
+   Copyright (C) 1999-2015 Red Hat, Inc.
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 1999.
 
@@ -1315,10 +1315,10 @@ print_phdr (Ebl *ebl, GElf_Ehdr *ehdr)
 		{
 		  /* Determine the segment this section is part of.  */
 		  size_t cnt2;
+		  GElf_Phdr phdr2_mem;
 		  GElf_Phdr *phdr2 = NULL;
 		  for (cnt2 = 0; cnt2 < phnum; ++cnt2)
 		    {
-		      GElf_Phdr phdr2_mem;
 		      phdr2 = gelf_getphdr (ebl->elf, cnt2, &phdr2_mem);
 
 		      if (phdr2 != NULL && phdr2->p_type == PT_LOAD
@@ -1582,7 +1582,7 @@ handle_dynamic (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 
   glink = gelf_getshdr (elf_getscn (ebl->elf, shdr->sh_link), &glink_mem);
   if (glink == NULL)
-    error (EXIT_FAILURE, 0, gettext ("invalid sh_link value in section %Zu"),
+    error (EXIT_FAILURE, 0, gettext ("invalid sh_link value in section %zu"),
 	   elf_ndxscn (scn));
 
   printf (ngettext ("\
@@ -2205,7 +2205,7 @@ handle_symtab (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
   GElf_Shdr *glink = gelf_getshdr (elf_getscn (ebl->elf, shdr->sh_link),
 				   &glink_mem);
   if (glink == NULL)
-    error (EXIT_FAILURE, 0, gettext ("invalid sh_link value in section %Zu"),
+    error (EXIT_FAILURE, 0, gettext ("invalid sh_link value in section %zu"),
 	   elf_ndxscn (scn));
 
   /* Now we can compute the number of entries in the section.  */
@@ -2463,7 +2463,7 @@ handle_verneed (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
   GElf_Shdr *glink = gelf_getshdr (elf_getscn (ebl->elf, shdr->sh_link),
 				   &glink_mem);
   if (glink == NULL)
-    error (EXIT_FAILURE, 0, gettext ("invalid sh_link value in section %Zu"),
+    error (EXIT_FAILURE, 0, gettext ("invalid sh_link value in section %zu"),
 	   elf_ndxscn (scn));
 
   printf (ngettext ("\
@@ -2539,7 +2539,7 @@ handle_verdef (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
   GElf_Shdr *glink = gelf_getshdr (elf_getscn (ebl->elf, shdr->sh_link),
 				   &glink_mem);
   if (glink == NULL)
-    error (EXIT_FAILURE, 0, gettext ("invalid sh_link value in section %Zu"),
+    error (EXIT_FAILURE, 0, gettext ("invalid sh_link value in section %zu"),
 	   elf_ndxscn (scn));
 
   int class = gelf_getclass (ebl->elf);
@@ -2843,7 +2843,7 @@ handle_versym (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 				   &glink_mem);
   size_t sh_entsize = gelf_fsize (ebl->elf, ELF_T_HALF, 1, EV_CURRENT);
   if (glink == NULL)
-    error (EXIT_FAILURE, 0, gettext ("invalid sh_link value in section %Zu"),
+    error (EXIT_FAILURE, 0, gettext ("invalid sh_link value in section %zu"),
 	   elf_ndxscn (scn));
 
   /* Print the header.  */
@@ -2917,7 +2917,7 @@ print_hash_info (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, size_t shstrndx,
 				   &glink_mem);
   if (glink == NULL)
     {
-      error (0, 0, gettext ("invalid sh_link value in section %Zu"),
+      error (0, 0, gettext ("invalid sh_link value in section %zu"),
 	     elf_ndxscn (scn));
       return;
     }
@@ -3092,6 +3092,7 @@ handle_sysv_hash64 (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, size_t shstrndx)
 static void
 handle_gnu_hash (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, size_t shstrndx)
 {
+  uint32_t *lengths = NULL;
   Elf_Data *data = elf_getdata (scn, NULL);
   if (unlikely (data == NULL))
     {
@@ -3103,6 +3104,7 @@ handle_gnu_hash (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, size_t shstrndx)
   if (unlikely (data->d_size < 4 * sizeof (Elf32_Word)))
     {
     invalid_data:
+      free (lengths);
       error (0, 0, gettext ("invalid data in gnu.hash section %d"),
 	     (int) elf_ndxscn (scn));
       return;
@@ -3131,7 +3133,7 @@ handle_gnu_hash (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, size_t shstrndx)
   if (used_buf > data->d_size)
     goto invalid_data;
 
-  uint32_t *lengths = (uint32_t *) xcalloc (nbucket, sizeof (uint32_t));
+  lengths = (uint32_t *) xcalloc (nbucket, sizeof (uint32_t));
 
   Elf32_Word *bitmask = &((Elf32_Word *) data->d_buf)[4];
   Elf32_Word *bucket = &((Elf32_Word *) data->d_buf)[4 + bitmask_words];
@@ -3566,9 +3568,9 @@ dwarf_tag_string (unsigned int tag)
 {
   switch (tag)
     {
-#define ONE_KNOWN_DW_TAG(NAME, CODE) case CODE: return #NAME;
-      ALL_KNOWN_DW_TAG
-#undef ONE_KNOWN_DW_TAG
+#define DWARF_ONE_KNOWN_DW_TAG(NAME, CODE) case CODE: return #NAME;
+      DWARF_ALL_KNOWN_DW_TAG
+#undef DWARF_ONE_KNOWN_DW_TAG
     default:
       return NULL;
     }
@@ -3580,9 +3582,9 @@ dwarf_attr_string (unsigned int attrnum)
 {
   switch (attrnum)
     {
-#define ONE_KNOWN_DW_AT(NAME, CODE) case CODE: return #NAME;
-      ALL_KNOWN_DW_AT
-#undef ONE_KNOWN_DW_AT
+#define DWARF_ONE_KNOWN_DW_AT(NAME, CODE) case CODE: return #NAME;
+      DWARF_ALL_KNOWN_DW_AT
+#undef DWARF_ONE_KNOWN_DW_AT
     default:
       return NULL;
     }
@@ -3594,11 +3596,9 @@ dwarf_form_string (unsigned int form)
 {
   switch (form)
     {
-#define ONE_KNOWN_DW_FORM_DESC(NAME, CODE, DESC) ONE_KNOWN_DW_FORM (NAME, CODE)
-#define ONE_KNOWN_DW_FORM(NAME, CODE) case CODE: return #NAME;
-      ALL_KNOWN_DW_FORM
-#undef ONE_KNOWN_DW_FORM
-#undef ONE_KNOWN_DW_FORM_DESC
+#define DWARF_ONE_KNOWN_DW_FORM(NAME, CODE) case CODE: return #NAME;
+      DWARF_ALL_KNOWN_DW_FORM
+#undef DWARF_ONE_KNOWN_DW_FORM
     default:
       return NULL;
     }
@@ -3610,9 +3610,9 @@ dwarf_lang_string (unsigned int lang)
 {
   switch (lang)
     {
-#define ONE_KNOWN_DW_LANG_DESC(NAME, CODE, DESC) case CODE: return #NAME;
-      ALL_KNOWN_DW_LANG
-#undef ONE_KNOWN_DW_LANG_DESC
+#define DWARF_ONE_KNOWN_DW_LANG(NAME, CODE) case CODE: return #NAME;
+      DWARF_ALL_KNOWN_DW_LANG
+#undef DWARF_ONE_KNOWN_DW_LANG
     default:
       return NULL;
     }
@@ -3624,9 +3624,9 @@ dwarf_inline_string (unsigned int code)
 {
   static const char *const known[] =
     {
-#define ONE_KNOWN_DW_INL(NAME, CODE) [CODE] = #NAME,
-      ALL_KNOWN_DW_INL
-#undef ONE_KNOWN_DW_INL
+#define DWARF_ONE_KNOWN_DW_INL(NAME, CODE) [CODE] = #NAME,
+      DWARF_ALL_KNOWN_DW_INL
+#undef DWARF_ONE_KNOWN_DW_INL
     };
 
   if (likely (code < sizeof (known) / sizeof (known[0])))
@@ -3641,9 +3641,9 @@ dwarf_encoding_string (unsigned int code)
 {
   static const char *const known[] =
     {
-#define ONE_KNOWN_DW_ATE(NAME, CODE) [CODE] = #NAME,
-      ALL_KNOWN_DW_ATE
-#undef ONE_KNOWN_DW_ATE
+#define DWARF_ONE_KNOWN_DW_ATE(NAME, CODE) [CODE] = #NAME,
+      DWARF_ALL_KNOWN_DW_ATE
+#undef DWARF_ONE_KNOWN_DW_ATE
     };
 
   if (likely (code < sizeof (known) / sizeof (known[0])))
@@ -3658,9 +3658,9 @@ dwarf_access_string (unsigned int code)
 {
   static const char *const known[] =
     {
-#define ONE_KNOWN_DW_ACCESS(NAME, CODE) [CODE] = #NAME,
-      ALL_KNOWN_DW_ACCESS
-#undef ONE_KNOWN_DW_ACCESS
+#define DWARF_ONE_KNOWN_DW_ACCESS(NAME, CODE) [CODE] = #NAME,
+      DWARF_ALL_KNOWN_DW_ACCESS
+#undef DWARF_ONE_KNOWN_DW_ACCESS
     };
 
   if (likely (code < sizeof (known) / sizeof (known[0])))
@@ -3675,9 +3675,9 @@ dwarf_visibility_string (unsigned int code)
 {
   static const char *const known[] =
     {
-#define ONE_KNOWN_DW_VIS(NAME, CODE) [CODE] = #NAME,
-      ALL_KNOWN_DW_VIS
-#undef ONE_KNOWN_DW_VIS
+#define DWARF_ONE_KNOWN_DW_VIS(NAME, CODE) [CODE] = #NAME,
+      DWARF_ALL_KNOWN_DW_VIS
+#undef DWARF_ONE_KNOWN_DW_VIS
     };
 
   if (likely (code < sizeof (known) / sizeof (known[0])))
@@ -3692,9 +3692,9 @@ dwarf_virtuality_string (unsigned int code)
 {
   static const char *const known[] =
     {
-#define ONE_KNOWN_DW_VIRTUALITY(NAME, CODE) [CODE] = #NAME,
-      ALL_KNOWN_DW_VIRTUALITY
-#undef ONE_KNOWN_DW_VIRTUALITY
+#define DWARF_ONE_KNOWN_DW_VIRTUALITY(NAME, CODE) [CODE] = #NAME,
+      DWARF_ALL_KNOWN_DW_VIRTUALITY
+#undef DWARF_ONE_KNOWN_DW_VIRTUALITY
     };
 
   if (likely (code < sizeof (known) / sizeof (known[0])))
@@ -3709,9 +3709,9 @@ dwarf_identifier_case_string (unsigned int code)
 {
   static const char *const known[] =
     {
-#define ONE_KNOWN_DW_ID(NAME, CODE) [CODE] = #NAME,
-      ALL_KNOWN_DW_ID
-#undef ONE_KNOWN_DW_ID
+#define DWARF_ONE_KNOWN_DW_ID(NAME, CODE) [CODE] = #NAME,
+      DWARF_ALL_KNOWN_DW_ID
+#undef DWARF_ONE_KNOWN_DW_ID
     };
 
   if (likely (code < sizeof (known) / sizeof (known[0])))
@@ -3726,9 +3726,9 @@ dwarf_calling_convention_string (unsigned int code)
 {
   static const char *const known[] =
     {
-#define ONE_KNOWN_DW_CC(NAME, CODE) [CODE] = #NAME,
-      ALL_KNOWN_DW_CC
-#undef ONE_KNOWN_DW_CC
+#define DWARF_ONE_KNOWN_DW_CC(NAME, CODE) [CODE] = #NAME,
+      DWARF_ALL_KNOWN_DW_CC
+#undef DWARF_ONE_KNOWN_DW_CC
     };
 
   if (likely (code < sizeof (known) / sizeof (known[0])))
@@ -3743,9 +3743,9 @@ dwarf_ordering_string (unsigned int code)
 {
   static const char *const known[] =
     {
-#define ONE_KNOWN_DW_ORD(NAME, CODE) [CODE] = #NAME,
-      ALL_KNOWN_DW_ORD
-#undef ONE_KNOWN_DW_ORD
+#define DWARF_ONE_KNOWN_DW_ORD(NAME, CODE) [CODE] = #NAME,
+      DWARF_ALL_KNOWN_DW_ORD
+#undef DWARF_ONE_KNOWN_DW_ORD
     };
 
   if (likely (code < sizeof (known) / sizeof (known[0])))
@@ -3760,9 +3760,9 @@ dwarf_discr_list_string (unsigned int code)
 {
   static const char *const known[] =
     {
-#define ONE_KNOWN_DW_DSC(NAME, CODE) [CODE] = #NAME,
-      ALL_KNOWN_DW_DSC
-#undef ONE_KNOWN_DW_DSC
+#define DWARF_ONE_KNOWN_DW_DSC(NAME, CODE) [CODE] = #NAME,
+      DWARF_ALL_KNOWN_DW_DSC
+#undef DWARF_ONE_KNOWN_DW_DSC
     };
 
   if (likely (code < sizeof (known) / sizeof (known[0])))
@@ -3780,11 +3780,9 @@ dwarf_locexpr_opcode_string (unsigned int code)
       /* Normally we can't affort building huge table of 64K entries,
 	 most of them zero, just because there are a couple defined
 	 values at the far end.  In case of opcodes, it's OK.  */
-#define ONE_KNOWN_DW_OP_DESC(NAME, CODE, DESC) ONE_KNOWN_DW_OP (NAME, CODE)
-#define ONE_KNOWN_DW_OP(NAME, CODE) [CODE] = #NAME,
-      ALL_KNOWN_DW_OP
-#undef ONE_KNOWN_DW_OP
-#undef ONE_KNOWN_DW_OP_DESC
+#define DWARF_ONE_KNOWN_DW_OP(NAME, CODE) [CODE] = #NAME,
+      DWARF_ALL_KNOWN_DW_OP
+#undef DWARF_ONE_KNOWN_DW_OP
     };
 
   if (likely (code < sizeof (known) / sizeof (known[0])))
@@ -4607,7 +4605,7 @@ print_decoded_aranges_section (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
   glink = gelf_getshdr (elf_getscn (ebl->elf, shdr->sh_link), &glink_mem);
   if (glink == NULL)
     {
-      error (0, 0, gettext ("invalid sh_link value in section %Zu"),
+      error (0, 0, gettext ("invalid sh_link value in section %zu"),
 	     elf_ndxscn (scn));
       return;
     }
@@ -4688,7 +4686,7 @@ print_debug_aranges_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
       const unsigned char *hdrstart = readp;
       size_t start_offset = hdrstart - (const unsigned char *) data->d_buf;
 
-      printf (gettext ("\nTable at offset %Zu:\n"), start_offset);
+      printf (gettext ("\nTable at offset %zu:\n"), start_offset);
       if (readp + 4 > readendp)
 	{
 	invalid_data:
@@ -4806,7 +4804,7 @@ print_debug_aranges_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
       if (readp != nexthdr)
 	{
 	  size_t padding = nexthdr - readp;
-	  printf (gettext ("   %Zu padding bytes\n"), padding);
+	  printf (gettext ("   %zu padding bytes\n"), padding);
 	  readp = nexthdr;
 	}
     }
@@ -5623,8 +5621,8 @@ print_debug_frame_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 	  struct cieinfo *cie = cies;
 	  while (cie != NULL)
 	    if (is_eh_frame
-		? start - (ptrdiff_t) cie_id == cie->cie_offset
-		: (ptrdiff_t) cie_id == cie->cie_offset)
+		? ((Dwarf_Off) start - cie_id) == (Dwarf_Off) cie->cie_offset
+		: cie_id == (Dwarf_Off) cie->cie_offset)
 	      break;
 	    else
 	      cie = cie->next;
@@ -6385,7 +6383,7 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
     {
       size_t start_offset = linep - (const unsigned char *) data->d_buf;
 
-      printf (gettext ("\nTable at offset %Zu:\n"), start_offset);
+      printf (gettext ("\nTable at offset %zu:\n"), start_offset);
 
       if (unlikely (linep + 4 > lineendp))
 	goto invalid_data;
@@ -7061,6 +7059,7 @@ print_debug_macinfo_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
 							 * sizeof (*cus));
   /* Add sentinel.  */
   cus[nculist].offset = data->d_size;
+  cus[nculist].files = (Dwarf_Files *) -1l;
   if (nculist > 0)
     {
       for (size_t cnt = nculist - 1; culist != NULL; --cnt)
@@ -7136,7 +7135,7 @@ print_debug_macinfo_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
 	  const char *fname = "???";
 	  if (macoff >= cus[0].offset)
 	    {
-	      while (macoff >= cus[1].offset)
+	      while (macoff >= cus[1].offset && cus[1].offset != data->d_size)
 		++cus;
 
 	      if (cus[0].files == NULL
@@ -7853,8 +7852,10 @@ print_debug_exception_table (Dwfl_Module *dwflmod __attribute__ ((unused)),
     {
       puts ("\n Action table:");
 
-      if ((size_t) (dataend - action_table) < max_action + 1)
+      size_t maxdata = (size_t) (dataend - action_table);
+      if (max_action > maxdata || maxdata - max_action < 1)
 	{
+	invalid_action_table:
 	  fputs (gettext ("   <INVALID DATA>\n"), stdout);
 	  return;
 	}
@@ -7870,6 +7871,8 @@ print_debug_exception_table (Dwfl_Module *dwflmod __attribute__ ((unused)),
 	  if (ar_filter > 0 && (unsigned int) ar_filter > max_ar_filter)
 	    max_ar_filter = ar_filter;
 	  int ar_disp;
+	  if (readp >= action_table_end)
+	    goto invalid_action_table;
 	  get_sleb128 (ar_disp, readp, action_table_end);
 
 	  printf (" [%4u] ar_filter:  % d\n"
@@ -7888,6 +7891,7 @@ print_debug_exception_table (Dwfl_Module *dwflmod __attribute__ ((unused)),
 
   if (max_ar_filter > 0 && ttype_base != NULL)
     {
+      unsigned char dsize;
       puts ("\n TType table:");
 
       // XXX Not *4, size of encoding;
@@ -7895,20 +7899,26 @@ print_debug_exception_table (Dwfl_Module *dwflmod __attribute__ ((unused)),
 	{
 	case DW_EH_PE_udata2:
 	case DW_EH_PE_sdata2:
-	  readp = ttype_base - max_ar_filter * 2;
+	  dsize = 2;
 	  break;
 	case DW_EH_PE_udata4:
 	case DW_EH_PE_sdata4:
-	  readp = ttype_base - max_ar_filter * 4;
+	  dsize = 4;
 	  break;
 	case DW_EH_PE_udata8:
 	case DW_EH_PE_sdata8:
-	  readp = ttype_base - max_ar_filter * 8;
+	  dsize = 8;
 	  break;
 	default:
+	  dsize = 0;
 	  error (1, 0, gettext ("invalid TType encoding"));
 	}
 
+      if (max_ar_filter
+	  > (size_t) (ttype_base - (const unsigned char *) data->d_buf) / dsize)
+	goto invalid_data;
+
+      readp = ttype_base - max_ar_filter * dsize;
       do
 	{
 	  uint64_t ttype;
@@ -8004,9 +8014,16 @@ print_gdb_index_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
   uint32_t const_off = read_4ubyte_unaligned (dbg, readp);
   printf (gettext (" constant offset: %#" PRIx32 "\n"), const_off);
 
+  if (unlikely ((size_t) (dataend - (const unsigned char *) data->d_buf)
+		< const_off))
+    goto invalid_data;
+
   readp = data->d_buf + cu_off;
 
   const unsigned char *nextp = data->d_buf + tu_off;
+  if (tu_off >= data->d_size)
+    goto invalid_data;
+
   size_t cu_nr = (nextp - readp) / 16;
 
   printf (gettext ("\n CU list at offset %#" PRIx32
@@ -8014,7 +8031,7 @@ print_gdb_index_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 	  cu_off, cu_nr);
 
   size_t n = 0;
-  while (readp + 16 <= dataend && n < cu_nr)
+  while (dataend - readp >= 16 && n < cu_nr)
     {
       uint64_t off = read_8ubyte_unaligned (dbg, readp);
       readp += 8;
@@ -8029,6 +8046,9 @@ print_gdb_index_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 
   readp = data->d_buf + tu_off;
   nextp = data->d_buf + addr_off;
+  if (addr_off >= data->d_size)
+    goto invalid_data;
+
   size_t tu_nr = (nextp - readp) / 24;
 
   printf (gettext ("\n TU list at offset %#" PRIx32
@@ -8036,7 +8056,7 @@ print_gdb_index_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 	  tu_off, tu_nr);
 
   n = 0;
-  while (readp + 24 <= dataend && n < tu_nr)
+  while (dataend - readp >= 24 && n < tu_nr)
     {
       uint64_t off = read_8ubyte_unaligned (dbg, readp);
       readp += 8;
@@ -8055,6 +8075,9 @@ print_gdb_index_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 
   readp = data->d_buf + addr_off;
   nextp = data->d_buf + sym_off;
+  if (sym_off >= data->d_size)
+    goto invalid_data;
+
   size_t addr_nr = (nextp - readp) / 20;
 
   printf (gettext ("\n Address list at offset %#" PRIx32
@@ -8062,7 +8085,7 @@ print_gdb_index_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 	  addr_off, addr_nr);
 
   n = 0;
-  while (readp + 20 <= dataend && n < addr_nr)
+  while (dataend - readp >= 20 && n < addr_nr)
     {
       uint64_t low = read_8ubyte_unaligned (dbg, readp);
       readp += 8;
@@ -8082,8 +8105,12 @@ print_gdb_index_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
       n++;
     }
 
+  const unsigned char *const_start = data->d_buf + const_off;
+  if (const_off >= data->d_size)
+    goto invalid_data;
+
   readp = data->d_buf + sym_off;
-  nextp = data->d_buf + const_off;
+  nextp = const_start;
   size_t sym_nr = (nextp - readp) / 8;
 
   printf (gettext ("\n Symbol table at offset %#" PRIx32
@@ -8091,7 +8118,7 @@ print_gdb_index_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 	  addr_off, sym_nr);
 
   n = 0;
-  while (readp + 8 <= dataend && n < sym_nr)
+  while (dataend - readp >= 8 && n < sym_nr)
     {
       uint32_t name = read_4ubyte_unaligned (dbg, readp);
       readp += 4;
@@ -8101,15 +8128,15 @@ print_gdb_index_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 
       if (name != 0 || vector != 0)
 	{
-	  const unsigned char *sym = data->d_buf + const_off + name;
-	  if (unlikely (sym > dataend
+	  const unsigned char *sym = const_start + name;
+	  if (unlikely ((size_t) (dataend - const_start) < name
 			|| memchr (sym, '\0', dataend - sym) == NULL))
 	    goto invalid_data;
 
 	  printf (" [%4zu] symbol: %s, CUs: ", n, sym);
 
-	  const unsigned char *readcus = data->d_buf + const_off + vector;
-	  if (unlikely (readcus + 4 > dataend))
+	  const unsigned char *readcus = const_start + vector;
+	  if (unlikely ((size_t) (dataend - const_start) < vector))
 	    goto invalid_data;
 	  uint32_t cus = read_4ubyte_unaligned (dbg, readcus);
 	  while (cus--)
@@ -8175,8 +8202,6 @@ print_debug (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr)
       if ((print_debug_sections & ~section_exception) != 0)
 	error (0, 0, gettext ("cannot get debug context descriptor: %s"),
 	       dwfl_errmsg (-1));
-      if ((print_debug_sections & section_exception) == 0)
-	return;
       dbg = &dummy_dbg;
     }
 
@@ -8450,8 +8475,16 @@ handle_core_item (Elf *core, const Ebl_Core_Item *item, const void *desc,
 	    unsigned int w = negate ? ~*i : *i;
 	    while (w != 0)
 	      {
-		int n = ffs (w);
-		w >>= n;
+		/* Note that a right shift equal to (or greater than)
+		   the number of bits of w is undefined behaviour.  In
+		   particular when the least significant bit is bit 32
+		   (w = 0x8000000) then w >>= n is undefined.  So
+		   explicitly handle that case separately.  */
+		unsigned int n = ffs (w);
+		if (n < sizeof (w) * 8)
+		  w >>= n;
+		else
+		  w = 0;
 		bit += n;
 
 		if (lastbit != 0 && lastbit + 1 == bit)
@@ -9323,7 +9356,7 @@ hex_dump (const uint8_t *data, size_t len)
   size_t pos = 0;
   while (pos < len)
     {
-      printf ("  0x%08Zx ", pos);
+      printf ("  0x%08zx ", pos);
 
       const size_t chunk = MIN (len - pos, 16);
 
@@ -9351,17 +9384,17 @@ static void
 dump_data_section (Elf_Scn *scn, const GElf_Shdr *shdr, const char *name)
 {
   if (shdr->sh_size == 0 || shdr->sh_type == SHT_NOBITS)
-    printf (gettext ("\nSection [%Zu] '%s' has no data to dump.\n"),
+    printf (gettext ("\nSection [%zu] '%s' has no data to dump.\n"),
 	    elf_ndxscn (scn), name);
   else
     {
       Elf_Data *data = elf_rawdata (scn, NULL);
       if (data == NULL)
-	error (0, 0, gettext ("cannot get data for section [%Zu] '%s': %s"),
+	error (0, 0, gettext ("cannot get data for section [%zu] '%s': %s"),
 	       elf_ndxscn (scn), name, elf_errmsg (-1));
       else
 	{
-	  printf (gettext ("\nHex dump of section [%Zu] '%s', %" PRIu64
+	  printf (gettext ("\nHex dump of section [%zu] '%s', %" PRIu64
 			   " bytes at offset %#0" PRIx64 ":\n"),
 		  elf_ndxscn (scn), name,
 		  shdr->sh_size, shdr->sh_offset);
@@ -9374,17 +9407,17 @@ static void
 print_string_section (Elf_Scn *scn, const GElf_Shdr *shdr, const char *name)
 {
   if (shdr->sh_size == 0 || shdr->sh_type == SHT_NOBITS)
-    printf (gettext ("\nSection [%Zu] '%s' has no strings to dump.\n"),
+    printf (gettext ("\nSection [%zu] '%s' has no strings to dump.\n"),
 	    elf_ndxscn (scn), name);
   else
     {
       Elf_Data *data = elf_rawdata (scn, NULL);
       if (data == NULL)
-	error (0, 0, gettext ("cannot get data for section [%Zu] '%s': %s"),
+	error (0, 0, gettext ("cannot get data for section [%zu] '%s': %s"),
 	       elf_ndxscn (scn), name, elf_errmsg (-1));
       else
 	{
-	  printf (gettext ("\nString section [%Zu] '%s' contains %" PRIu64
+	  printf (gettext ("\nString section [%zu] '%s' contains %" PRIu64
 			   " bytes at offset %#0" PRIx64 ":\n"),
 		  elf_ndxscn (scn), name,
 		  shdr->sh_size, shdr->sh_offset);
@@ -9397,11 +9430,11 @@ print_string_section (Elf_Scn *scn, const GElf_Shdr *shdr, const char *name)
 	      const size_t pos = start - (const char *) data->d_buf;
 	      if (unlikely (end == NULL))
 		{
-		  printf ("  [%6Zx]- %.*s\n",
+		  printf ("  [%6zx]- %.*s\n",
 			  pos, (int) (limit - start), start);
 		  break;
 		}
-	      printf ("  [%6Zx]  %s\n", pos, start);
+	      printf ("  [%6zx]  %s\n", pos, start);
 	      start = end + 1;
 	    } while (start < limit);
 	}
@@ -9525,7 +9558,7 @@ dump_archive_index (Elf *elf, const char *fname)
       return;
     }
 
-  printf (gettext ("\nIndex of archive '%s' has %Zu entries:\n"),
+  printf (gettext ("\nIndex of archive '%s' has %zu entries:\n"),
 	  fname, narsym);
 
   size_t as_off = 0;
@@ -9535,7 +9568,7 @@ dump_archive_index (Elf *elf, const char *fname)
 	{
 	  as_off = s->as_off;
 
-	  Elf *subelf;
+	  Elf *subelf = NULL;
 	  if (unlikely (elf_rand (elf, as_off) == 0)
 	      || unlikely ((subelf = elf_begin (-1, ELF_C_READ_MMAP, elf))
 			   == NULL))
@@ -9543,7 +9576,7 @@ dump_archive_index (Elf *elf, const char *fname)
 	    while (1)
 #endif
 	      error (EXIT_FAILURE, 0,
-		     gettext ("cannot extract member at offset %Zu in '%s': %s"),
+		     gettext ("cannot extract member at offset %zu in '%s': %s"),
 		     as_off, fname, elf_errmsg (-1));
 
 	  const Elf_Arhdr *h = elf_getarhdr (subelf);

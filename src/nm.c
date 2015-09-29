@@ -1,5 +1,5 @@
 /* Print symbol information from ELF file in human-readable form.
-   Copyright (C) 2000-2008, 2009, 2011, 2012, 2014 Red Hat, Inc.
+   Copyright (C) 2000-2008, 2009, 2011, 2012, 2014, 2015 Red Hat, Inc.
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2000.
 
@@ -33,7 +33,6 @@
 #include <libdw.h>
 #include <libintl.h>
 #include <locale.h>
-#include <mcheck.h>
 #include <obstack.h>
 #include <search.h>
 #include <stdbool.h>
@@ -137,8 +136,8 @@ static int handle_elf (Elf *elf, const char *prefix, const char *fname,
 
 
 #define INTERNAL_ERROR(fname) \
-  error (EXIT_FAILURE, 0, gettext ("%s: INTERNAL ERROR %d (%s-%s): %s"),      \
-	 fname, __LINE__, PACKAGE_VERSION, __DATE__, elf_errmsg (-1))
+  error (EXIT_FAILURE, 0, gettext ("%s: INTERNAL ERROR %d (%s): %s"),      \
+	 fname, __LINE__, PACKAGE_VERSION, elf_errmsg (-1))
 
 
 /* Internal representation of symbols.  */
@@ -216,9 +215,6 @@ main (int argc, char *argv[])
 {
   int remaining;
   int result = 0;
-
-  /* Make memory leak detection possible.  */
-  mtrace ();
 
   /* We use no threads here which can interfere with handling a stream.  */
   (void) __fsetlocking (stdin, FSETLOCKING_BYCALLER);
@@ -468,7 +464,7 @@ handle_ar (int fd, Elf *elf, const char *prefix, const char *fname,
 		{
 		  error (0, 0, gettext ("invalid offset %zu for symbol %s"),
 			 arsym->as_off, arsym->as_name);
-		  continue;
+		  break;
 		}
 
 	      printf (gettext ("%s in %s\n"), arsym->as_name, arhdr->ar_name);
@@ -493,7 +489,8 @@ handle_ar (int fd, Elf *elf, const char *prefix, const char *fname,
 
       /* Skip over the index entries.  */
       if (strcmp (arhdr->ar_name, "/") != 0
-	  && strcmp (arhdr->ar_name, "//") != 0)
+	  && strcmp (arhdr->ar_name, "//") != 0
+	  && strcmp (arhdr->ar_name, "/SYM64/") != 0)
 	{
 	  if (elf_kind (subelf) == ELF_K_ELF)
 	    result |= handle_elf (subelf, new_prefix, arhdr->ar_name,
@@ -1168,14 +1165,17 @@ show_symbols (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, Elf_Scn *xndxscn,
   size_t entsize = shdr->sh_entsize;
 
   /* Consistency checks.  */
-  if (entsize != gelf_fsize (ebl->elf, ELF_T_SYM, 1, ehdr->e_version))
+  if (entsize == 0
+      || entsize != gelf_fsize (ebl->elf, ELF_T_SYM, 1, EV_CURRENT))
     error (0, 0,
-	   gettext ("%s: entry size in section `%s' is not what we expect"),
-	   fullname, elf_strptr (ebl->elf, shstrndx, shdr->sh_name));
+	   gettext ("%s: entry size in section %zd `%s' is not what we expect"),
+	   fullname, elf_ndxscn (scn),
+	   elf_strptr (ebl->elf, shstrndx, shdr->sh_name));
   else if (size % entsize != 0)
     error (0, 0,
-	   gettext ("%s: size of section `%s' is not multiple of entry size"),
-	   fullname, elf_strptr (ebl->elf, shstrndx, shdr->sh_name));
+	   gettext ("%s: size of section %zd `%s' is not multiple of entry size"),
+	   fullname, elf_ndxscn (scn),
+	   elf_strptr (ebl->elf, shstrndx, shdr->sh_name));
 
   /* Compute number of entries.  Handle buggy entsize values.  */
   size_t nentries = size / (entsize ?: 1);
@@ -1200,6 +1200,12 @@ show_symbols (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, Elf_Scn *xndxscn,
 	}
     }
 
+  /* Get the data of the section.  */
+  Elf_Data *data = elf_getdata (scn, NULL);
+  Elf_Data *xndxdata = elf_getdata (xndxscn, NULL);
+  if (data == NULL || (xndxscn != NULL && xndxdata == NULL))
+    INTERNAL_ERROR (fullname);
+
   /* Allocate the memory.
 
      XXX We can use a dirty trick here.  Since GElf_Sym == Elf64_Sym we
@@ -1210,12 +1216,6 @@ show_symbols (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, Elf_Scn *xndxscn,
     sym_mem = (GElf_SymX *) alloca (nentries * sizeof (GElf_SymX));
   else
     sym_mem = (GElf_SymX *) xmalloc (nentries * sizeof (GElf_SymX));
-
-  /* Get the data of the section.  */
-  Elf_Data *data = elf_getdata (scn, NULL);
-  Elf_Data *xndxdata = elf_getdata (xndxscn, NULL);
-  if (data == NULL || (xndxscn != NULL && xndxdata == NULL))
-    INTERNAL_ERROR (fullname);
 
   /* Iterate over all symbols.  */
 #ifdef USE_DEMANGLE
@@ -1297,11 +1297,10 @@ show_symbols (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, Elf_Scn *xndxscn,
 			  /* We found the line.  */
 			  int lineno;
 			  (void) dwarf_lineno (line, &lineno);
+			  const char *file = dwarf_linesrc (line, NULL, NULL);
+			  file = (file != NULL) ? basename (file) : "???";
 			  int n;
-			  n = obstack_printf (&whereob, "%s:%d%c",
-					      basename (dwarf_linesrc (line,
-								       NULL,
-								       NULL)),
+			  n = obstack_printf (&whereob, "%s:%d%c", file,
 					      lineno, '\0');
 			  sym_mem[nentries_used].where
 			    = obstack_finish (&whereob);
@@ -1384,7 +1383,7 @@ show_symbols (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, Elf_Scn *xndxscn,
     }
 
   /* Free all memory.  */
-  if (nentries * sizeof (GElf_Sym) >= MAX_STACK_ALLOC)
+  if (nentries * sizeof (sym_mem[0]) >= MAX_STACK_ALLOC)
     free (sym_mem);
 
   obstack_free (&whereob, NULL);

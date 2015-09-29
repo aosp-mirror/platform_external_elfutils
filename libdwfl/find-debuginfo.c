@@ -1,5 +1,5 @@
 /* Standard find_debuginfo callback for libdwfl.
-   Copyright (C) 2005-2010, 2014 Red Hat, Inc.
+   Copyright (C) 2005-2010, 2014, 2015 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -45,7 +45,7 @@ try_open (const struct stat64 *main_stat,
   if (dir == NULL && subdir == NULL)
     {
       fname = strdup (debuglink);
-      if (fname == NULL)
+      if (unlikely (fname == NULL))
 	return -1;
     }
   else if ((subdir == NULL ? asprintf (&fname, "%s/%s", dir, debuglink)
@@ -62,6 +62,7 @@ try_open (const struct stat64 *main_stat,
 	   && st.st_dev == main_stat->st_dev)
     {
       /* This is the main file by another name.  Don't look at it again.  */
+      free (fname);
       close (fd);
       errno = ENOENT;
       fd = -1;
@@ -161,6 +162,7 @@ find_debuginfo_in_path (Dwfl_Module *mod, const char *file_name,
   bool cancheck = debuglink_crc != (GElf_Word) 0;
 
   const char *file_basename = file_name == NULL ? NULL : basename (file_name);
+  char *localname = NULL;
   if (debuglink_file == NULL)
     {
       /* For a alt debug multi file we need a name, for a separate debug
@@ -172,7 +174,9 @@ find_debuginfo_in_path (Dwfl_Module *mod, const char *file_name,
 	}
 
       size_t len = strlen (file_basename);
-      char *localname = alloca (len + sizeof ".debug");
+      localname = malloc (len + sizeof ".debug");
+      if (unlikely (localname == NULL))
+	return -1;
       memcpy (localname, file_basename, len);
       memcpy (&localname[len], ".debug", sizeof ".debug");
       debuglink_file = localname;
@@ -183,11 +187,17 @@ find_debuginfo_in_path (Dwfl_Module *mod, const char *file_name,
      indicated by the debug directory path setting.  */
 
   const Dwfl_Callbacks *const cb = mod->dwfl->callbacks;
-  char *path = strdupa ((cb->debuginfo_path ? *cb->debuginfo_path : NULL)
-			?: DEFAULT_DEBUGINFO_PATH);
+  char *localpath = strdup ((cb->debuginfo_path ? *cb->debuginfo_path : NULL)
+			    ?: DEFAULT_DEBUGINFO_PATH);
+  if (unlikely (localpath == NULL))
+    {
+      free (localname);
+      return -1;
+    }
 
   /* A leading - or + in the whole path sets whether to check file CRCs.  */
   bool defcheck = true;
+  char *path = localpath;
   if (path[0] == '-' || path[0] == '+')
     {
       defcheck = path[0] == '+';
@@ -205,7 +215,13 @@ find_debuginfo_in_path (Dwfl_Module *mod, const char *file_name,
     }
 
   char *file_dirname = (file_basename == file_name ? NULL
-			: strndupa (file_name, file_basename - 1 - file_name));
+			: strndup (file_name, file_basename - 1 - file_name));
+  if (file_basename != file_name && file_dirname == NULL)
+    {
+      free (localpath);
+      free (localname);
+      return -1;
+    }
   char *p;
   while ((p = strsep (&path, ":")) != NULL)
     {
@@ -236,7 +252,15 @@ find_debuginfo_in_path (Dwfl_Module *mod, const char *file_name,
 	  dir = p;
 	  if (mod->dw == NULL)
 	    {
-	      subdir = file_dirname + 1;
+	      subdir = file_dirname;
+	      /* We want to explore all sub-subdirs.  Chop off one slash
+		 at a time.  */
+	    explore_dir:
+	      subdir = strchr (subdir, '/');
+	      if (subdir != NULL)
+		subdir = subdir + 1;
+	      if (subdir && *subdir == 0)
+		continue;
 	      file = debuglink_file;
 	    }
 	  else
@@ -270,18 +294,24 @@ find_debuginfo_in_path (Dwfl_Module *mod, const char *file_name,
 		if (fd < 0)
 		  {
 		    if (errno != ENOENT && errno != ENOTDIR)
-		      return -1;
+		      goto fail_free;
 		    else
 		      continue;
 		  }
 		break;
 	      }
+	    /* If possible try again with a sub-subdir.  */
+	    if (mod->dw == NULL && subdir)
+	      goto explore_dir;
 	    continue;
 	  default:
-	    return -1;
+	    goto fail_free;
 	  }
       if (validate (mod, fd, check, debuglink_crc))
 	{
+	  free (localpath);
+	  free (localname);
+	  free (file_dirname);
 	  *debuginfo_file_name = fname;
 	  return fd;
 	}
@@ -291,6 +321,10 @@ find_debuginfo_in_path (Dwfl_Module *mod, const char *file_name,
 
   /* No dice.  */
   errno = 0;
+fail_free:
+  free (localpath);
+  free (localname);
+  free (file_dirname);
   return -1;
 }
 
@@ -333,7 +367,7 @@ dwfl_standard_find_debuginfo (Dwfl_Module *mod,
 				   debuglink_file, debuglink_crc,
 				   debuginfo_file_name);
 
-  if (fd < 0 && errno == 0)
+  if (fd < 0 && errno == 0 && file_name != NULL)
     {
       /* If FILE_NAME is a symlink, the debug file might be associated
 	 with the symlink target name instead.  */

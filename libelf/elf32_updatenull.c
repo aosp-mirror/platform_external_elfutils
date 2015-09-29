@@ -1,5 +1,5 @@
 /* Update data structures for changes.
-   Copyright (C) 2000-2010 Red Hat, Inc.
+   Copyright (C) 2000-2010, 2015 Red Hat, Inc.
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2000.
 
@@ -106,6 +106,14 @@ ELFW(default_ehdr,LIBELFBITS) (Elf *elf, ElfW2(LIBELFBITS,Ehdr) *ehdr,
       elf->state.ELFW(elf,LIBELFBITS).ehdr_flags |= ELF_F_DIRTY;
     }
 
+  /* If phnum is zero make sure e_phoff is also zero and not some random
+     value.  That would cause trouble in update_file.  */
+  if (ehdr->e_phnum == 0 && ehdr->e_phoff != 0)
+    {
+      ehdr->e_phoff = 0;
+      elf->state.ELFW(elf,LIBELFBITS).ehdr_flags |= ELF_F_DIRTY;
+    }
+
   return 0;
 }
 
@@ -202,6 +210,11 @@ __elfw2(LIBELFBITS,updatenull_wrlock) (Elf *elf, int *change_bop, size_t shnum)
 	      assert (shdr != NULL);
 	      ElfW2(LIBELFBITS,Word) sh_entsize = shdr->sh_entsize;
 	      ElfW2(LIBELFBITS,Word) sh_align = shdr->sh_addralign ?: 1;
+	      if (unlikely (! powerof2 (sh_align)))
+		{
+		  __libelf_seterrno (ELF_E_INVALID_ALIGN);
+		  return -1;
+		}
 
 	      /* Set the sh_entsize value if we can reliably detect it.  */
 	      switch (shdr->sh_type)
@@ -318,9 +331,8 @@ __elfw2(LIBELFBITS,updatenull_wrlock) (Elf *elf, int *change_bop, size_t shnum)
 	      if (elf->flags & ELF_F_LAYOUT)
 		{
 		  size = MAX ((GElf_Word) size,
-			      shdr->sh_offset
-			      + (shdr->sh_type != SHT_NOBITS
-				 ? shdr->sh_size : 0));
+			      (shdr->sh_type != SHT_NOBITS
+			       ? shdr->sh_offset + shdr->sh_size : 0));
 
 		  /* The alignment must be a power of two.  This is a
 		     requirement from the ELF specification.  Additionally
@@ -328,7 +340,7 @@ __elfw2(LIBELFBITS,updatenull_wrlock) (Elf *elf, int *change_bop, size_t shnum)
 		     enough for the largest alignment required by a data
 		     block.  */
 		  if (unlikely (! powerof2 (shdr->sh_addralign))
-		      || unlikely (shdr->sh_addralign < sh_align))
+		      || unlikely ((shdr->sh_addralign ?: 1) < sh_align))
 		    {
 		      __libelf_seterrno (ELF_E_INVALID_ALIGN);
 		      return -1;

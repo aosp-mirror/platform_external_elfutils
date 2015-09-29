@@ -1,5 +1,5 @@
 /* Retrieve ELF descriptor used for DWARF access.
-   Copyright (C) 2002, 2003, 2004, 2005, 2009, 2014 Red Hat, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2009, 2014, 2015 Red Hat, Inc.
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2002.
 
@@ -62,6 +62,7 @@ static const char *errmsgs[] =
     [DWARF_E_IO_ERROR] = N_("I/O error"),
     [DWARF_E_INVALID_ELF] = N_("invalid ELF file"),
     [DWARF_E_NO_DWARF] = N_("no DWARF information"),
+    [DWARF_E_COMPRESSED_ERROR] = N_("cannot decompress DWARF"),
     [DWARF_E_NOELF] = N_("no ELF file"),
     [DWARF_E_GETEHDR_ERROR] = N_("cannot get ELF header"),
     [DWARF_E_NOMEM] = N_("out of memory"),
@@ -93,13 +94,14 @@ static const char *errmsgs[] =
     [DWARF_E_INVALID_CFI] = N_("invalid CFI section"),
     [DWARF_E_NO_ALT_DEBUGLINK] = N_("no alternative debug link found"),
     [DWARF_E_INVALID_OPCODE] = N_("invalid opcode"),
+    [DWARF_E_NOT_CUDIE] = N_("not a CU (unit) DIE"),
   };
 #define nerrmsgs (sizeof (errmsgs) / sizeof (errmsgs[0]))
 
 
 void
-__libdw_seterrno (value)
-     int value;
+internal_function
+__libdw_seterrno (int value)
 {
   global_error = (value >= 0 && value < (int) nerrmsgs
 		  ? value : DWARF_E_UNKNOWN_ERROR);
@@ -107,8 +109,7 @@ __libdw_seterrno (value)
 
 
 const char *
-dwarf_errmsg (error)
-     int error;
+dwarf_errmsg (int error)
 {
   int last_error = global_error;
 

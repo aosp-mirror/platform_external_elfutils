@@ -73,7 +73,8 @@
 
 /* Define ALLOW_UNALIGNED if the architecture allows operations on
    unaligned memory locations.  */
-#if defined __i386__ || defined __x86_64__
+#define SANITIZE_UNDEFINED 1
+#if (defined __i386__ || defined __x86_64__) && ! CHECK_UNDEFINED
 # define ALLOW_UNALIGNED	1
 #else
 # define ALLOW_UNALIGNED	0
@@ -163,7 +164,7 @@ asm (".section predict_data, \"aw\"; .previous\n"
 #define ELFUTILS_HEADER(name) <lib##name.h>
 
 
-#ifdef SHARED
+#ifdef SYMBOL_VERSIONING
 # define OLD_VERSION(name, version) \
   asm (".globl _compat." #version "." #name "\n" \
        "_compat." #version "." #name " = " #name "\n" \
@@ -181,8 +182,8 @@ asm (".section predict_data, \"aw\"; .previous\n"
 # define OLD_VERSION(name, version) /* Nothing for static linking.  */
 # define NEW_VERSION(name, version) /* Nothing for static linking.  */
 # define COMPAT_VERSION_NEWPROTO(name, version, prefix) \
-  error "should use #ifdef SHARED"
-# define COMPAT_VERSION(name, version, prefix) error "should use #ifdef SHARED"
+  error "should use #ifdef SYMBOL_VERSIONING"
+# define COMPAT_VERSION(name, version, prefix) error "should use #ifdef SYMBOL_VERSIONING"
 #endif
 
 

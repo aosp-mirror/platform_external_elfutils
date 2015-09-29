@@ -1,3 +1,41 @@
+2015-09-22  Mark Wielaard  <mjw@redhat.com>
+
+	* *.c: Remove old-style function definitions.
+
+2015-09-09  Chih-Hung Hsieh  <chh@google.com>
+
+	* ebldwarftoregno.c (ebl_dwarf_to_regno): Remove redundant NULL tests
+	on parameters declared with __nonnull_attribute__.
+	* eblinitreg.c (ebl_frame_nregs): Likewise.
+	* eblnormalizepc.c (ebl_normalize_pc): Likewise.
+	* eblunwind.c (ebl_unwind): Likewise.
+
+2015-09-04  Chih-Hung Hsieh  <chh@google.com>
+
+	* eblopenbackend.c (ebl_openbackend_machine): Replace K&R function
+	definition with ansi-C definitions.
+	* eblstother.c (ebl_check_st_other_bits): Likewise.
+
+2015-06-12  Mark Wielaard  <mjw@redhat.com>
+
+	* eblcheckreloctargettype.c (ebl_check_reloc_target_type): Allow
+	SHT_INIT_ARRAY, SHT_FINI_ARRAY and SHT_PREINIT_ARRAY.
+
+2015-05-17  Mark Wielaard  <mjw@redhat.com>
+
+	* eblobjnote.c (ebl_object_note): If allocation buf is large, then
+	allocate it with malloc.
+
+2015-05-17  Mark Wielaard  <mjw@redhat.com>
+
+	* eblopenbackend.c (MAX_PREFIX_LEN): New define (16).
+	(openbackend): Stack allocate symname array using MAX_PREFIX_LEN.
+
+2015-01-27  Mark Wielaard  <mjw@redhat.com>
+
+	* libebl.h: Add comment from README that this is completely
+	UNSUPPORTED.
+
 2014-11-22  Mark Wielaard  <mjw@redhat.com>
 
 	* ebl-hooks.h (bss_plt_p): Remove ehdr argument.

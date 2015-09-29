@@ -1,3 +1,79 @@
+2015-07-11  Pino Toscano  <toscano.pino@tiscali.it>
+
+	* .gitignore: Add more generated files, and anchor some of the
+	existing ones.
+
+2015-06-19  Mark Wielaard  <mjw@redhat.com>
+
+	* configure.ac: Set version to 0.163.
+	* NEWS: Mention 0.163 is bug fixes only.
+
+2015-06-10  Mark Wielaard  <mjw@redhat.com>
+
+	* configure.ac: Set version to 0.162.
+	* NEWS: Add 0.162 additions.
+
+2015-06-08  Mark Wielaard  <mjw@redhat.com>
+
+	* configure.ac (ADD_STACK_USAGE_WARNING): New conditional based on
+	gcc -Wstack-usage check.
+
+2015-05-31  Mark Wielaard  <mjw@redhat.com>
+
+	* configure.ac (MODVERSION): Define using LIBEBL_SUBDIR, eu_version
+	and ac_cv_build.
+
+2015-05-31  Mark Wielaard  <mjw@redhat.com>
+
+	* configure.ac (use_undefined): Use AC_LINK_IFELSE. AC_DEFINE
+	CHECK_UNDEFINED.
+
+2015-05-30  Mark Wielaard  <mjw@redhat.com>
+
+	* configure.ac: Check for bunzip2. Check flex and bison are
+	installed in maintainer-mode. Otherwise check libdw/known-dwarf.h
+	is already generated.
+
+2015-05-21  Mark Wielaard  <mjw@redhat.com>
+
+	* configure.ac: Add --enable-sanitize-undefined.
+	* Makefile.am (DISTCHECK_CONFIGURE_FLAGS): Rename to...
+	(AM_DISTCHECK_CONFIGURE_FLAGS): this. Add --enable-sanitize-undefined.
+
+2015-05-04  Anthony G. Basile  <blueness@gentoo.org>
+
+	* configure.ac (argp_LDADD): Check if libc has argp and set
+	argp_LDADD accordingly.
+
+2015-05-03  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* configure.ac (DEMANGLE): Fix enable_demangler setting.
+
+2015-05-01  Mark Wielaard  <mjw@redhat.com>
+
+	* configure.ac (DEMANGLE): Explicitly set enable_demangler.
+
+2015-05-01  Mark Wielaard  <mjw@redhat.com>
+
+	* configure.ac (debugpred): Use and set use_debugpred_val.
+	(textrelcheck): Explicitly set enable_textrelcheck to yes or no.
+	(symbol-versioning): Likewise for enable_symbol_versioning.
+	AC_MSG_NOTICE overview of enabled/disabled features.
+
+2015-04-23  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* configure.ac: Add --disable-symbol-versioning.
+
+2015-04-14  Mark Wielaard  <mjw@redhat.com>
+
+	* configure.ac (ac_cv_c99): Add explicit checks for all GNU99
+	extensions used.
+
+2015-03-13  Mark Wielaard  <mjw@redhat.com>
+
+	* configure.ac (ac_cv_c99): Add explicit return.
+	(ac_cv_tls): Add stdlib.h include.
+
 2014-12-18  Mark Wielaard  <mjw@redhat.com>
 
 	* configure.ac: Set version to 0.161.

@@ -1,5 +1,5 @@
 /* Return converted data from raw chunk of ELF file.
-   Copyright (C) 2007, 2014 Red Hat, Inc.
+   Copyright (C) 2007, 2014, 2015 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -41,11 +41,7 @@
 #include "common.h"
 
 Elf_Data *
-elf_getdata_rawchunk (elf, offset, size, type)
-     Elf *elf;
-     off64_t offset;
-     size_t size;
-     Elf_Type type;
+elf_getdata_rawchunk (Elf *elf, off64_t offset, size_t size, Elf_Type type)
 {
   if (unlikely (elf == NULL))
     return NULL;
@@ -79,9 +75,24 @@ elf_getdata_rawchunk (elf, offset, size, type)
 
   rwlock_rdlock (elf->lock);
 
-  /* If the file is mmap'ed we can use it directly.  */
+  size_t align = __libelf_type_align (elf->class, type);
   if (elf->map_address != NULL)
-    rawchunk = elf->map_address + elf->start_offset + offset;
+    {
+    /* If the file is mmap'ed we can use it directly, if aligned for type.  */
+      char *rawdata = elf->map_address + elf->start_offset + offset;
+      if (ALLOW_UNALIGNED ||
+	  ((uintptr_t) rawdata & (align - 1)) == 0)
+	rawchunk = rawdata;
+      else
+	{
+	  /* We allocate the memory and memcpy it to get aligned data. */
+	  rawchunk = malloc (size);
+	  if (rawchunk == NULL)
+	    goto nomem;
+	  memcpy (rawchunk, rawdata, size);
+	  flags = ELF_F_MALLOCED;
+	}
+    }
   else
     {
       /* We allocate the memory and read the data from the file.  */
@@ -108,7 +119,6 @@ elf_getdata_rawchunk (elf, offset, size, type)
     }
 
   /* Copy and/or convert the data as needed for aligned native-order access.  */
-  size_t align = __libelf_type_align (elf->class, type);
   void *buffer;
   if (elf->state.elf32.ehdr->e_ident[EI_DATA] == MY_ELFDATA)
     {

@@ -36,9 +36,7 @@
 
 
 Dwarf_Die *
-dwarf_formref_die (attr, result)
-     Dwarf_Attribute *attr;
-     Dwarf_Die *result;
+dwarf_formref_die (Dwarf_Attribute *attr, Dwarf_Die *result)
 {
   if (attr == NULL)
     return NULL;
@@ -95,7 +93,7 @@ dwarf_formref_die (attr, result)
 
       datap = cu->dbg->sectiondata[IDX_debug_types]->d_buf;
       size = cu->dbg->sectiondata[IDX_debug_types]->d_size;
-      offset = cu->type_offset;
+      offset = cu->start + cu->type_offset;
     }
   else
     {

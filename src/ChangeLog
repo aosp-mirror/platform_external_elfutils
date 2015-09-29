@@ -1,3 +1,319 @@
+2015-09-22  Mark Wielaard  <mjw@redhat.com>
+
+	* strip.c (cleanup_debug): Remove old-style function definitions.
+
+2015-09-09  Chih-Hung Hsieh  <chh@google.com>
+
+	* readelf.c (print_debug_exception_table): Initialize variable before
+	it is used, because compiler does not know that error never returns.
+	(dump_arhive_index): Likewise.
+
+2015-09-04  Chih-Hung Hsieh  <chh@google.com>
+
+	* elflint.c (check_group): Replace %Z length modifier with %z.
+	(check_note_data): Likewise.
+	* findtextrel.c (process_file): Likewise.
+	* readelf.c (handle_dynamic): Likewise.
+	(handle_symtab): Likewise.
+	(handle_verneed): Likewise.
+	(handle_verdef): Likewise.
+	(handle_versym): Likewise.
+	(print_hash_info): Likewise.
+	(print_decoded_aranges_section): Likewise.
+	(print_debug_aranges_section): Likewise.
+	(print_debug_line_section): Likewise.
+	(hex_dump): Likewise.
+	(dump_data_section): Likewise.
+	(print_string_section): Likewise.
+	(dump_archive_index): Likewise.
+	* unstrip.c (adjust_relocs): Likewise.
+	(collect_symbols): likewise.
+	(get_section_name): Likewise.
+	(find_alloc_sections_prelink): Likewise.
+	(copy_elided_sections): Likewise.
+	* ldscript.y (add_id_list): Add missing '%s'.
+
+2015-09-03  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (handle_core_item): Handle right shift >= 32 bits.
+
+2015-08-11  Mark Wielaard  <mjw@redhat.com>
+
+	* elflint.c (check_sections): When gnuld and a NOBITS section falls
+	inside a segment make sure any ELF file contents is zero.
+
+2015-07-29  Mark Wielaard  <mjw@redhat.com>
+
+	* unstrip.c (sections_flags_match): New function.
+	(sections_match): Use sections_flags_match.
+	(find_alloc_sections_prelink): Only clear matched sections if there
+	is an undo section.
+	(copy_elided_sections): Add SHF_INFO_LINK to shdr_mem.sh_flags if
+	necessary.
+
+2015-06-27  Pino Toscano  <toscano.pino@tiscali.it>
+
+	* src/strings.c: Define MAP_POPULATE if not defined already.
+
+2015-06-27  Mark Wielaard  <mjw@redhat.com>
+
+	* nm.c (show_symbols): First call elf_getdata, then allocate memory.
+
+2015-06-18  Mark Wielaard  <mjw@redhat.com>
+
+	* findtextrel.c (process_file): Free segments after use.
+
+2015-06-18  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_phdr): Make sure phdr2_mem lifetime/scope equals
+	phdr2 pointer.
+
+2015-06-18  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (handle_gnu_hash): Free lengths on invalid_data.
+
+2015-06-18  Mark Wielaard  <mjw@redhat.com>
+
+	* elflint.c (check_symtab): Only check the PT_TLS phdr if it actually
+	exists. Warn otherwise.
+
+2015-06-18  Mark Wielaard  <mjw@redhat.com>
+
+	* nm.c (show_symbols): Check sizeof (sym_mem[0]), not GElf_Sym to
+	known whether or not we stack allocated memory.
+
+2015-06-18  Mark Wielaard  <mjw@redhat.com>
+
+	* strings.c (readelf): Use "<unknown>" if we cannot retrieve section
+	name.
+
+2015-06-09  Mark Wielaard  <mjw@redhat.com>
+
+	* addr2line.c (print_dwarf_function): Always free scopes before
+	returning.
+
+2015-06-09  Mark Wielaard  <mjw@redhat.com>
+
+	* strip.c (handle_ar): Mark as unused.
+	(process_file): Produce an error when trying to handle an ar.
+
+2015-05-30  Mark Wielaard  <mjw@redhat.com>
+
+	* elfcmp.c (main): Only call memcmp when d_size != 0.
+
+2015-05-23  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am: Define ldgeneric, readelf, nm, size, strip, elflint,
+	findtextrel, elfcmp objdump, ranlib, ar and unstrip no_Wstack_usage.
+
+2015-05-21  Mark Wielaard  <mjw@redhat.com>
+
+	* addr2line.c (handle_address): Set scopes to NULL after free.
+
+2015-05-20  Mark Wielaard  <mjw@redhat.com>
+
+	* addr2line.c (OPT_PRETTY): New constant define.
+	(argp_option): Add "pretty-print".
+	(pretty): New static bool.
+	(parse_opt): Set pretty.
+	(print_dwarf_function): Adjust output when pretty is set.
+	(print_addrsym): Likewise.
+	(handle_address): Likewise.
+
+2015-05-20  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am (addr2line_LDADD): Add demanglelib.
+	* addr2line.c (argp_option): Move demangle under output format.
+	(demangle): New static bool.
+	(demangle_buffer_len): New static size_t.
+	(demangle_buffer): New static char *.
+	(main): free demangle_buffer.
+	(parse_opt): Set demangle.
+	(symname): New static function.
+	(get_diename): Use symname.
+	(print_dwarf_function): Likewise.
+	(print_addrsym): Likewise.
+	(handle_address): Likewise.
+
+2015-05-20  Mark Wielaard  <mjw@redhat.com>
+
+	* addr2line.c (argp_option): Add "addresses", 'a'.
+	(print_addresses): New static bool.
+	(parse_opt): Set print_addresses.
+	(get_addr_width): New static function.
+	(handle_address): Print address if print_addresses is true.
+
+2015-05-20  Mark Wielaard  <mjw@redhat.com>
+
+	* addr2line.c (handle_address): Call strtoumax with base 16. Make
+	sure all input has been processed.
+
+2015-05-20  Mark Wielaard  <mjw@redhat.com>
+
+	* addr2line (argp_option): Group 'section' under "Input format
+	options".
+
+2015-05-12  Mark Wielaard  <mjw@redhat.com>
+
+	* strip.c (debug_fd): New static variable.
+	(tmp_debug_fname): Likewise.
+	(cleanup_debug): New function using the above to clean up temporary
+	debug file.
+	(INTERNAL_ERROR): Call cleanup_debug.
+	(handle_elf): Use debug_fd and tmp_debug_fname statics and call
+	cleanup_debug before any error. Use output_fname instead of fname in
+	error messages when it exists (-o was given). SHT_NOBITS sections
+	can also be moved freely even if SHF_ALLOC is set. Add various
+	sanity checks. Use elf_assert instead of plain assert.
+
+2015-05-08  Mark Wielaard  <mjw@redhat.com>
+
+	* nm.c (show_symbols): Call gelf_fsize with EV_CURRENT.
+	* strip.c (handle_elf): Likewise.
+
+2015-05-06  Mark Wielaard  <mjw@redhat.com>
+
+	* elflint.c (check_gnu_hash): Return early when 2nd hash function
+	shift too big. Check there is enough data available. Make sure
+	bitmask_words is not zero.
+	(check_verdef): Use Elf64_Word for shdr->sh_info cnt.
+	(check_verneed): Likewise.
+	(check_attributes): Break when vendor name isn't terminated.
+	Add overflow check for subsection_len.
+
+2015-05-05  Mark Wielaard  <mjw@redhat.com>
+
+	* nm.c (show_symbols): Handle dwarf_linesrc returning NULL.
+
+2015-05-04  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* ar.c (do_oper_extract): Replace struct timeval with struct timespec
+	and futimes with futimens.
+	* strip.c (process_file): Replace struct timeval with struct timespec.
+	(handle_elf, handle_ar): Replace struct timeval with struct timespec
+	in prototype. Replace futimes with futimens.
+
+2015-05-04  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* addr2line.c (main): Drop mtrace() call and #include <mcheck.h>.
+	* ar.c: Likewise.
+	* ld.c: Likewise.
+	* nm.c: Likewise.
+	* objdump.c: Likewise.
+	* ranlib.c: Likewise.
+	* size.c: Likewise.
+	* strip.c: Likewise.
+	* unstrip.c: Likewise.
+
+2015-05-04  Anthony G. Basile  <blueness@gentoo.org>
+
+	* Makefile.am (readelf_LDADD, nm_LDADD, size_LDADD, strip_LDADD)
+	(ld_LDADD, elflint_LDADD, findtextrel_LDADD, addr2line_LDADD)
+	(elfcmp_LDADD, objdump_LDADD, ranlib_LDADD, strings_LDADD)
+	(ar_LDADD, unstrip_LDADD, stack_LDADD): Append $(argp_LDADD).
+
+2015-03-22  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_debug_frame_section): Cast start to Dwarf_Off
+	before subtracting cie_id. And cast cie_offset to Dwarf_Off before
+	comparison.
+
+2015-03-22  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_gdb_index_section): Check all offsets used
+	against section d_size.
+
+2015-03-17  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_debug): Don't return, but always use dummy_dbg.
+
+2015-03-17  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_gdb_index_section): Add overflow checking for
+	dataend checks.
+
+2015-03-14  Mark Wielaard  <mjw@redhat.com>
+
+	* nm.c (INTERNAL_ERROR): Remove __DATE__.
+	* objdump.c (INTERNAL_ERROR): Likewise.
+	* size.c (INTERNAL_ERROR): Likewise.
+	* strip.c (INTERNAL_ERROR): Likewise.
+
+2015-03-18  Petr Machata  <pmachata@redhat.com>
+
+	* readelf.c (dwarf_tag_string, dwarf_attr_string)
+	(dwarf_form_string, dwarf_lang_string, dwarf_inline_string)
+	(dwarf_encoding_string, dwarf_access_string)
+	(dwarf_visibility_string, dwarf_virtuality_string)
+	(dwarf_identifier_case_string, dwarf_calling_convention_string)
+	(dwarf_ordering_string, dwarf_discr_list_string)
+	(dwarf_locexpr_opcode_string): Adjust uses of know-dwarf.h macros
+	to match the API changes.
+
+2015-03-09  Mark Wielaard  <mjw@redhat.com>
+
+	* elflint.c (compare_hash_gnu_hash): Correct gnu_symbias usage.
+
+2015-01-03  Mark Wielaard  <mjw@redhat.com>
+
+	* elfcmp (main): Check section name is not NULL. Check sh_entsize
+	is not zero for symbol tables. Check phdrs are not NULL.
+	(search_for_copy_reloc): Check sh_entsize is not zero.
+
+2014-12-30  Mark Wielaard  <mjw@redhat.com>
+
+	* elflint.c (check_scn_group): Check d_buf and name are not NULL.
+	(is_rel_dyn): Check d is not NULL. Check shdr->sh_entsize is not
+	zero.
+	(check_dynamic): Check strshdr is not NULL. Check d_tag is positive.
+	(check_symtab_shndx): Check symshdr and data->d_buf are not NULL.
+	Check shdr and symshdr sh_entsize are not zero.
+	(check_gnu_hash): Make sure maskidx is smaller than bitmask_words.
+	Check symshdr->sh_entsize is not zero. Check data->d_buf is not
+	NULL.
+	(compare_hash_gnu_hash): Check sections d_buf are not NULL.
+	Check section data is large enough. Use gnu_symbias.
+	(check_group): Check section val is valid.
+	(has_copy_reloc): Check sh_entsize is not zero.
+	(check_versym): Likewise.
+	(unknown_dependency_p): Likewise.
+	(check_verneed): Break on invalid ref or offset. Don't assert.
+	Report error when next offset is zero, but more vers expected.
+	(check_verdef): Likewise.
+	(check_attributes): Make sure d_buf is not NULL.
+	(check_note): Likewise.
+	(check_note_section): Likewise.
+	(check_program_header): Make sure section name is not NULL.
+
+2014-12-26  Mark Wielaard  <mjw@redhat.com>
+
+	* strings.c (read_elf): Produce error when section data falls outside
+	file.
+
+2014-12-26  Mark Wielaard  <mjw@redhat.com>
+
+	* nm.c (show_symbols): Guard against divide by zero in error check.
+	Add section index number in error message.
+
+2014-12-26  Mark Wielaard  <mjw@redhat.com>
+
+	* nm.c (handle_ar): Skip over /SYM64/ entries.
+
+2014-12-26  Mark Wielaard  <mjw@redhat.com>
+
+	* nm.c (handle_ar): Break on arsym with invalid offset.
+
+2014-12-20  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_debug_macinfo_section): Mark cus sentinel files
+	as -1 non-existent. Check macoff against sentinel cus.
+
+2014-12-20  Mark Wielaard  <mjw@redhat.com>
+
+	* readelf.c (print_debug_exception_table): Add max_action overflow
+	check. Check action_table_end before reading slib128. Check
+	max_ar_filter underflow.
+
 2014-12-18  Ulrich Drepper  <drepper@gmail.com>
 
 	* Makefile.am: Suppress output of textrel_check command.

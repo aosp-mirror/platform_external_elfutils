@@ -1,3 +1,263 @@
+2015-09-08  Mark Wielaard  <mjw@redhat.com>
+
+	* dwfl-proc-attach.c: New test.
+	* Makefile.am (check_PROGRAMS): Add dwfl-proc-attach.
+	(TESTS): Likewise.
+	(dwfl_proc_attach_LDADD): New variable.
+	(dwfl_proc_attach_LDFLAGS): Likewise.
+
+2015-09-04  Chih-Hung Hsieh  <chh@google.com>
+
+	* varlocs.c (print_base_type): Initialize enctype.
+
+2015-09-04  Chih-Hung Hsieh  <chh@google.com>
+
+	* md5-sha1-test.c (md5_expected): Removed.
+	(sha1_expected): Likewise.
+
+2015-09-04  Chih-Hung Hsieh  <chh@google.com>
+
+	* asm-tst1.c (main): Replace %Z length modifier with %z.
+	* asm-tst2.c (main): Likewise.
+	* asm-tst3.c (main): Likewise.
+	* asm-tst4.c (main): Likewise.
+	* asm-tst5.c (main): Likewise.
+	* asm-tst6.c (main): Likewise.
+	* asm-tst7.c (main): Likewise.
+	* asm-tst8.c (main): Likewise.
+	* asm-tst9.c (main): Likewise.
+	* sectiondump.c (print_bytes): Likewise.
+
+2015-08-14  Mark Wielaard  <mjw@redhat.com>
+
+	* run-addr2line-alt-debugpath.sh: New test.
+	* Makefile.am (TESTS): Add run-addr2line-alt-debugpath.sh
+	(EXTRA_DIST): Likewise.
+
+2015-07-29  Mark Wielaard  <mjw@redhat.com>
+
+	* run-unstrip-test3.sh: New test.
+	* testfile-info-link.bz2: New file.
+	* testfile-info-link.debuginfo.bz2: Likewise.
+	* testfile-info-link.stripped.bz2: Likewise.
+	* Makefile.am (TESTS): Add run-unstrip-test3.sh.
+	(EXTRA_DIST): Add run-unstrip-test3.sh, testfile-info-link.bz2,
+	testfile-info-link.debuginfo.bz2, testfile-info-link.stripped.bz2.
+
+2015-06-27  Pino Toscano  <toscano.pino@tiscali.it>
+
+	* tests/run-deleted.sh: Skip when detecting a not implemented
+	dwfl_linux_proc_attach.
+
+2015-06-27  Pino Toscano  <toscano.pino@tiscali.it>
+
+	* tests/dwfl-bug-fd-leak.c (elfutils_open): Check for null results of
+	dwfl_addrmodule.
+
+2015-06-26  Pino Toscano  <toscano.pino@tiscali.it>
+
+	* tests/vdsosyms.c [!__linux__] (main): Mark argv as unused.
+
+2015-06-26  Pino Toscano  <toscano.pino@tiscali.it>
+
+	* tests/backtrace-data.c: Reduce scope of some includes to match their
+	usage.
+	* tests/backtrace.c: Likewise.
+	* tests/deleted.c: Likewise.
+
+2015-06-16  Mark Wielaard  <mjw@redhat.com>
+
+	* run-strip-test.sh: Add strip-in-place (eu-strip without -o) test
+	for non-ET_REL files.
+
+2015-05-30  Mark Wielaard  <mjw@redhat.com>
+
+	* backtrace-subr.sh (check_native_core): Notice core file couldn't be
+	generated before skipping.
+	* run-addr2line-i-demangle-test.sh: Notice demangler is unsupported
+	before skipping.
+	* run-backtrace-demangle.sh: Likewise.
+	* run-stack-demangled-test.sh: Likewise.
+	* run-backtrace-native-biarch.sh: Notice biarch testing is disabled
+	before skipping.
+	* run-backtrace-native-core-biarch.sh: Likewise.
+	* test-subr.sh (testfiles): Notice how bunzip2 fails before skipping.
+
+2015-05-20  Mark Wielaard  <mjw@redhat.com>
+
+	* run-addr2line-i-test.sh: Add pretty test.
+	* run-addr2line-test.sh: Likewise.
+
+2015-05-20  Mark Wielaard  <mjw@redhat.com>
+
+	* run-addr2line-i-demangle-test.sh: New test.
+	* Makefile.am (TESTS): Add run-addr2line-i-demangle-test.sh.
+	(EXTRA_DIST): Likewise.
+
+2015-05-20  Mark Wielaard  <mjw@redhat.com>
+
+	* run-addr2line-test.sh: Add -a test variants.
+	* run-addr2line-i-test.sh: Likewise.
+
+2015-05-20  Mark Wielaard  <mjw@redhat.com>
+
+	* run-addrname-test.sh: Make sure all input addresses are hex.
+
+2015-05-04  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* backtrace-child.c (stdarg, main): Replace assert_perror with assert.
+	* backtrace-data.c (memory_read, maps_lookup, set_initial_registers)
+	(main): Likewise.
+	* backtrace-dwarf.c (main): Likewise.
+	* backtrace.c (prepare_thread, exec_dump): Likewise.
+
+2015-05-04  Anthony G. Basile  <blueness@gentoo.org>
+
+	* Makefile.am (line2addr_LDADD, addrscopes_LDADD, funcscopes_LDADD)
+	(funcretval_LDADD, allregs_LDADD, find_prologues_LDADD)
+	(dwflmodtest_LDADD, dwfl_addr_sect_LDADD, addrcfi_LDADD)
+	(low_high_pc_LDADD, dwflsyms_LDADD, dwfllines_LDADD, varlocs_LDADD)
+	(backtrace_LDADD, aggregate_size_LDADD): Append $(argp_LDADD).
+
+2015-05-01  Mark Wielaard  <mjw@redhat.com>
+
+	* run-stack-d-test.sh: Use --raw and mangled output.
+	* run-stack-i-test.sh: Likewise.
+	* run-stack-demangled-test.sh: New test.
+	* Makefile.am (EXTRA_DIST): Add run-stack-demangled-test.sh.
+	(TESTS): Likewise.
+
+2015-04-01  H.J. Lu  <hjl.tools@gmail.com>
+
+	* Makefile.am (TESTS): Add run-strip-test10.sh.
+	(EXTRA_DIST): Likewise. Add testfile-x32-d.bz2.
+	Add testfile-x32-debug.bz2.
+	* run-strip-test10.sh: New file.
+	* testfile-x32-d.bz2: Likewise.
+	* testfile-x32-debug.bz2: Likewise.
+
+2015-04-01  H.J. Lu  <hjl.tools@gmail.com>
+
+	* Makefile.am (TESTS): Add run-strip-test9.sh.
+	(EXTRA_DIST): Likewise. Add testfile-x32-s.bz2.
+	* run-strip-test9.sh: New file.
+	* testfile-x32-s.bz2: Likewise.
+
+2015-04-01  H.J. Lu  <hjl.tools@gmail.com>
+
+	* Makefile.am (TESTS): Add run-backtrace-core-x32.sh.
+	(EXTRA_DIST): Likewise. Add backtrace.x32.core.bz2.
+	Add backtrace.x32.exec.bz2.
+	* backtrace.x32.core.bz2 : New file.
+	* backtrace.x32.exec.bz2: Likewise.
+	* run-backtrace-core-x32.sh: Likewise.
+
+2015-04-01  H.J. Lu  <hjl.tools@gmail.com>
+
+	* run-addrcfi.sh: Add a test for testfile-x32.
+	* testfile-x32.bz2: New file.
+	* Makefile.am (EXTRA_DIST): Add testfile-x32.bz2.
+
+2015-04-01  H.J. Lu  <hjl.tools@gmail.com>
+
+	* run-allregs.sh: Add a test for testfile-x32-core.
+
+2015-04-01  H.J. Lu  <hjl.tools@gmail.com>
+
+	* run-readelf-mixed-corenote.sh: Add a test for testfile-x32-core.
+	* testfile-x32-core.bz2: New file.
+	* Makefile.am (EXTRA_DIST): Add testfile-x32-core.bz2.
+
+2015-03-18  Petr Machata  <pmachata@redhat.com>
+
+	* addrcfi.c (op_name): Adjust uses of know-dwarf.h macros to match
+	the API changes.
+	* allregs.c (dwarf_encoding_string): Likewise.
+	* show-die-info.c (dwarf_tag_string, dwarf_attr_string): Likewise.
+	* varlocs.c (dwarf_encoding_string, dwarf_opcode_string): Likewise.
+
+2015-03-18  Petr Machata  <pmachata@redhat.com>
+
+	* Makefile.am (EXTRA_DIST): Add run-dwarf-ranges.sh,
+	debug-ranges-no-lowpc.o.bz2.
+
+2015-03-13  Mark Wielaard  <mjw@redhat.com>
+
+	* backtrace-dwarf.c: Add explicit includes.
+	(cleanup_13_abort): Remove unused static declaration.
+	(thread_callback): Add explicit return.
+
+2015-03-13  H.J. Lu  <hjl.tools@gmail.com>
+
+	* backtrace.c (prepare_thread): Use PTRACE_GETREGS/PTRACE_SETREGS
+	instead of PTRACE_POKEUSER.
+	(exec_dump): Check EM_X86_64 instead of ELFCLASS64 for
+	is_x86_64_native.
+
+2015-02-18  Mark Wielaard  <mjw@redhat.com>
+
+	* newdata.c (check_section_data): Use PRId64 for printing loff_t.
+
+2015-02-11  Josh Stone  <jistone@redhat.com>
+
+	* backtrace.c (exec_dump): Initialize jmp.
+
+2015-02-11  Petr Machata  <pmachata@redhat.com>
+
+	* run-dwarf-ranges.sh: New test.
+	* dwarf-ranges.c: New file.
+	* debug-ranges-no-lowpc.s, debug-ranges-no-lowpc.o.bz2: New test case.
+
+2015-01-21  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am (check_PROGRAMS): Add elfstrtab.
+	(TESTS): Likewise.
+	(elfstrtab_LDADD): New variable.
+	* elfstrtab.c: New test.
+
+2015-01-20  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am (check_PROGRAMS): Add newdata.
+	(TESTS): Likewise.
+	(newdata_LDADD): new variable.
+	* newdata.c: New test.
+
+2015-01-20  Mark Wielaard  <mjw@redhat.com>
+
+	* strptr.c: New file.
+	* run-strptr.sh: New test.
+	* Makefile.am (check_PROGRAMS): Add strptr.
+	(TESTS): Add run-strptr.sh.
+	(EXTRA_DIST): Likewise.
+	(strptr_LDADD): New variable.
+
+2015-01-15  Mark Wielaard  <mjw@redhat.com>
+
+	* deleted.c (main): Call prctl(PR_SET_PTRACER, PR_SET_PTRACER_ANY).
+	* vdsosyms.c (main): Use getpid () instead of getppid ().
+
+2014-12-27  Mark Wielaard  <mjw@redhat.com>
+
+	* addrscopes.c (handle_address): Last address in scope is highpc - 1.
+	* funcscopes.c (handle_function): Likewise.
+	* run-addrscopes.sh: Adjust last address in scope.
+	* run-funcscopes.sh: Likewise.
+
+2015-01-07  Mark Wielaard  <mjw@redhat.com>
+
+	* run-addrcfi.sh: Add test for ppc32 eh_frame_hdr address search.
+
+2015-01-14  Mark Wielaard  <mjw@redhat.com>
+
+	* testfile-debug-types.bz2: New testfile.
+	* Makefile.am (EXTRA_DIST): Add testfile-debug-types.bz2.
+	* typeiter2.c (main): Print both name and offset of found form DIE.
+	* run-typeiter.s: Adjust output and add testfile-debug-types.
+
+2014-12-26  Mark Wielaard  <mjw@redhat.com>
+
+	* run-test-archive64.sh: Add nm test.
+
 2014-12-19  Mark Wielaard  <mjw@redhat.com>
 
 	* run-deleted.sh: Don't check libfunc on ppc64.

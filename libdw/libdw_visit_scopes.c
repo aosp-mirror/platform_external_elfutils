@@ -1,5 +1,5 @@
 /* Helper functions to descend DWARF scope trees.
-   Copyright (C) 2005,2006,2007 Red Hat, Inc.
+   Copyright (C) 2005,2006,2007,2015 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -65,12 +65,16 @@ may_have_scopes (Dwarf_Die *die)
 }
 
 int
-__libdw_visit_scopes (depth, root, previsit, postvisit, arg)
-     unsigned int depth;
-     struct Dwarf_Die_Chain *root;
-     int (*previsit) (unsigned int depth, struct Dwarf_Die_Chain *, void *);
-     int (*postvisit) (unsigned int depth, struct Dwarf_Die_Chain *, void *);
-     void *arg;
+internal_function
+__libdw_visit_scopes (unsigned int depth, struct Dwarf_Die_Chain *root,
+		      struct Dwarf_Die_Chain *imports,
+		      int (*previsit) (unsigned int,
+				       struct Dwarf_Die_Chain *,
+				       void *),
+		      int (*postvisit) (unsigned int,
+					struct Dwarf_Die_Chain *,
+					void *),
+		      void *arg)
 {
   struct Dwarf_Die_Chain child;
   int ret;
@@ -81,12 +85,23 @@ __libdw_visit_scopes (depth, root, previsit, postvisit, arg)
 
   inline int recurse (void)
     {
-      return __libdw_visit_scopes (depth + 1, &child,
+      return __libdw_visit_scopes (depth + 1, &child, imports,
 				   previsit, postvisit, arg);
     }
 
-  inline int walk_children ()
+  /* Checks the given DIE hasn't been imported yet to prevent cycles.  */
+  inline bool imports_contains (Dwarf_Die *die)
   {
+    for (struct Dwarf_Die_Chain *import = imports; import != NULL;
+	 import = import->parent)
+      if (import->die.addr == die->addr)
+	return true;
+
+    return false;
+  }
+
+  inline int walk_children (void)
+{
     do
       {
 	/* For an imported unit, it is logically as if the children of
@@ -103,7 +118,17 @@ __libdw_visit_scopes (depth, root, previsit, postvisit, arg)
 	    if (INTUSE(dwarf_formref_die) (attr, &child.die) != NULL
                 && INTUSE(dwarf_child) (&child.die, &child.die) == 0)
 	      {
+		if (imports_contains (&orig_child_die))
+		  {
+		    __libdw_seterrno (DWARF_E_INVALID_DWARF);
+		    return -1;
+		  }
+		struct Dwarf_Die_Chain *orig_imports = imports;
+		struct Dwarf_Die_Chain import = { .die = orig_child_die,
+						  .parent = orig_imports };
+		imports = &import;
 		int result = walk_children ();
+		imports = orig_imports;
 		if (result != DWARF_CB_OK)
 		  return result;
 	      }
@@ -116,24 +141,22 @@ __libdw_visit_scopes (depth, root, previsit, postvisit, arg)
 
 	child.prune = false;
 
-	if (previsit != NULL)
-	  {
-	    int result = (*previsit) (depth + 1, &child, arg);
-	    if (result != DWARF_CB_OK)
-	      return result;
-	  }
+	/* previsit is declared NN */
+	int result = (*previsit) (depth + 1, &child, arg);
+	if (result != DWARF_CB_OK)
+	  return result;
 
 	if (!child.prune && may_have_scopes (&child.die)
 	    && INTUSE(dwarf_haschildren) (&child.die))
 	  {
-	    int result = recurse ();
+	    result = recurse ();
 	    if (result != DWARF_CB_OK)
 	      return result;
 	  }
 
 	if (postvisit != NULL)
 	  {
-	    int result = (*postvisit) (depth + 1, &child, arg);
+	    result = (*postvisit) (depth + 1, &child, arg);
 	    if (result != DWARF_CB_OK)
 	      return result;
 	  }

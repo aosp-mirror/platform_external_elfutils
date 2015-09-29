@@ -554,7 +554,8 @@ check_scn_group (Ebl *ebl, int idx)
 	    continue;
 
 	  Elf_Data *data = elf_getdata (scn, NULL);
-	  if (data == NULL || data->d_size < sizeof (Elf32_Word))
+	  if (data == NULL || data->d_buf == NULL
+	      || data->d_size < sizeof (Elf32_Word))
 	    /* Cannot check the section.  */
 	    continue;
 
@@ -692,8 +693,8 @@ section [%2d] '%s': symbol %zu: invalid name value\n"),
       else
 	{
 	  name = elf_strptr (ebl->elf, shdr->sh_link, sym->st_name);
-	  assert (name != NULL
-		  || strshdr->sh_type != SHT_STRTAB);
+	  if (name == NULL)
+	    name = "";
 	}
 
       if (sym->st_shndx == SHN_XINDEX)
@@ -855,6 +856,12 @@ section [%2d] '%s': symbol %zu does not fit completely in referenced section [%2
 			  if (no_pt_tls++ == 0)
 			    ERROR (gettext ("\
 section [%2d] '%s': symbol %zu: TLS symbol but no TLS program header entry\n"),
+				   idx, section_name (ebl, idx), cnt);
+			}
+		      else if (phdr == NULL)
+			{
+			    ERROR (gettext ("\
+section [%2d] '%s': symbol %zu: TLS symbol but couldn't get TLS program header entry\n"),
 				   idx, section_name (ebl, idx), cnt);
 			}
 		      else
@@ -1061,11 +1068,16 @@ is_rel_dyn (Ebl *ebl, const GElf_Ehdr *ehdr, int idx, const GElf_Shdr *shdr,
       if (rcshdr == NULL)
 	break;
 
-      if (rcshdr->sh_type == SHT_DYNAMIC && rcshdr->sh_entsize)
+      if (rcshdr->sh_type == SHT_DYNAMIC && rcshdr->sh_entsize != 0)
 	{
 	  /* Found the dynamic section.  Look through it.  */
 	  Elf_Data *d = elf_getdata (scn, NULL);
 	  size_t cnt;
+
+	  if (d == NULL)
+	    ERROR (gettext ("\
+section [%2d] '%s': cannot get section data.\n"),
+		   idx, section_name (ebl, idx));
 
 	  for (cnt = 1; cnt < rcshdr->sh_size / rcshdr->sh_entsize; ++cnt)
 	    {
@@ -1099,7 +1111,7 @@ section [%2d] '%s': DT_RELCOUNT value %d too high for this section\n"),
 			 relative.  */
 		      Elf_Data *reldata = elf_getdata (elf_getscn (ebl->elf,
 								   idx), NULL);
-		      if (reldata != NULL)
+		      if (reldata != NULL && shdr->sh_entsize != 0)
 			for (size_t inner = 0;
 			     inner < shdr->sh_size / shdr->sh_entsize;
 			     ++inner)
@@ -1141,7 +1153,8 @@ section [%2d] '%s': DT_RELACOUNT used for this REL section\n"),
 		      /* Does the number specified number of relative
 			 relocations exceed the total number of
 			 relocations?  */
-		      if (dyn->d_un.d_val > shdr->sh_size / shdr->sh_entsize)
+		      if (shdr->sh_entsize != 0
+			  && dyn->d_un.d_val > shdr->sh_size / shdr->sh_entsize)
 			ERROR (gettext ("\
 section [%2d] '%s': DT_RELCOUNT value %d too high for this section\n"),
 			       idx, section_name (ebl, idx),
@@ -1151,7 +1164,7 @@ section [%2d] '%s': DT_RELCOUNT value %d too high for this section\n"),
 			 relative.  */
 		      Elf_Data *reldata = elf_getdata (elf_getscn (ebl->elf,
 								   idx), NULL);
-		      if (reldata != NULL)
+		      if (reldata != NULL && shdr->sh_entsize != 0)
 			for (size_t inner = 0;
 			     inner < shdr->sh_size / shdr->sh_entsize;
 			     ++inner)
@@ -1284,7 +1297,7 @@ section [%2d] '%s': section entry size does not match ElfXX_Rel\n"),
 	  GElf_Shdr *dynshdr = gelf_getshdr (dynscn, &dynshdr_mem);
 	  Elf_Data *dyndata = elf_getdata (dynscn, NULL);
 	  if (dynshdr != NULL && dynshdr->sh_type == SHT_DYNAMIC
-	      && dyndata != NULL)
+	      && dyndata != NULL && dynshdr->sh_entsize != 0)
 	    for (size_t j = 0; j < dynshdr->sh_size / dynshdr->sh_entsize; ++j)
 	      {
 		GElf_Dyn dyn_mem;
@@ -1622,6 +1635,13 @@ check_dynamic (Ebl *ebl, GElf_Ehdr *ehdr, GElf_Shdr *shdr, int idx)
 section [%2d] '%s': referenced as string table for section [%2d] '%s' but type is not SHT_STRTAB\n"),
 	   shdr->sh_link, section_name (ebl, shdr->sh_link),
 	   idx, section_name (ebl, idx));
+  else if (strshdr == NULL)
+    {
+      ERROR (gettext ("\
+section [%2d]: referenced as string table for section [%2d] '%s' but section link value is invalid\n"),
+	   shdr->sh_link, idx, section_name (ebl, idx));
+      return;
+    }
 
   size_t sh_entsize = gelf_fsize (ebl->elf, ELF_T_DYN, 1, EV_CURRENT);
   if (shdr->sh_entsize != sh_entsize)
@@ -1685,10 +1705,10 @@ section [%2d] '%s': entry %zu: level 2 tag %s used\n"),
 
 	  has_dt[dyn->d_tag] = true;
 	}
-      else if (dyn->d_tag <= DT_VALRNGHI
+      else if (dyn->d_tag >= 0 && dyn->d_tag <= DT_VALRNGHI
 	       && DT_VALTAGIDX (dyn->d_tag) < DT_VALNUM)
 	has_val_dt[DT_VALTAGIDX (dyn->d_tag)] = true;
-      else if (dyn->d_tag <= DT_ADDRRNGHI
+      else if (dyn->d_tag >= 0 && dyn->d_tag <= DT_ADDRRNGHI
 	       && DT_ADDRTAGIDX (dyn->d_tag) < DT_ADDRNUM)
 	has_addr_dt[DT_ADDRTAGIDX (dyn->d_tag)] = true;
 
@@ -1896,6 +1916,10 @@ section [%2d] '%s': only relocatable files can have extended section index\n"),
     ERROR (gettext ("\
 section [%2d] '%s': extended section index section not for symbol table\n"),
 	   idx, section_name (ebl, idx));
+  else if (symshdr == NULL)
+    ERROR (gettext ("\
+section [%2d] '%s': sh_link extended section index [%2d] is invalid\n"),
+	   idx, section_name (ebl, idx), shdr->sh_link);
   Elf_Data *symdata = elf_getdata (symscn, NULL);
   if (symdata == NULL)
     ERROR (gettext ("cannot get data for symbol section\n"));
@@ -1906,8 +1930,8 @@ section [%2d] '%s': entry size does not match Elf32_Word\n"),
 	   idx, section_name (ebl, idx));
 
   if (symshdr != NULL
-      && shdr->sh_entsize
-      && symshdr->sh_entsize
+      && shdr->sh_entsize != 0
+      && symshdr->sh_entsize != 0
       && (shdr->sh_size / shdr->sh_entsize
 	  < symshdr->sh_size / symshdr->sh_entsize))
     ERROR (gettext ("\
@@ -1934,7 +1958,7 @@ section [%2d] '%s': extended section index in section [%2zu] '%s' refers to same
     }
 
   Elf_Data *data = elf_getdata (elf_getscn (ebl->elf, idx), NULL);
-  if (data == NULL)
+  if (data == NULL || data->d_buf == NULL)
     {
       ERROR (gettext ("section [%2d] '%s': cannot get section data\n"),
 	     idx, section_name (ebl, idx));
@@ -2033,7 +2057,7 @@ section [%2d] '%s': hash table section is too small (is %ld, expected %ld)\n"),
 
   size_t maxidx = nchain;
 
-  if (symshdr != NULL)
+  if (symshdr != NULL && symshdr->sh_entsize != 0)
     {
       size_t symsize = symshdr->sh_size / symshdr->sh_entsize;
 
@@ -2073,38 +2097,55 @@ static void
 check_gnu_hash (Ebl *ebl, GElf_Shdr *shdr, Elf_Data *data, int idx,
 		GElf_Shdr *symshdr)
 {
+  if (data->d_size < 4 * sizeof (Elf32_Word))
+    {
+      ERROR (gettext ("\
+section [%2d] '%s': not enough data\n"),
+	     idx, section_name (ebl, idx));
+      return;
+    }
+
   Elf32_Word nbuckets = ((Elf32_Word *) data->d_buf)[0];
   Elf32_Word symbias = ((Elf32_Word *) data->d_buf)[1];
   Elf32_Word bitmask_words = ((Elf32_Word *) data->d_buf)[2];
 
-  if (!powerof2 (bitmask_words))
-    ERROR (gettext ("\
-section [%2d] '%s': bitmask size not power of 2: %u\n"),
-	   idx, section_name (ebl, idx), bitmask_words);
+  if (bitmask_words == 0 || !powerof2 (bitmask_words))
+    {
+      ERROR (gettext ("\
+section [%2d] '%s': bitmask size zero or not power of 2: %u\n"),
+	     idx, section_name (ebl, idx), bitmask_words);
+      return;
+    }
 
   size_t bitmask_idxmask = bitmask_words - 1;
   if (gelf_getclass (ebl->elf) == ELFCLASS64)
     bitmask_words *= 2;
   Elf32_Word shift = ((Elf32_Word *) data->d_buf)[3];
 
-  if (shdr->sh_size < (4 + bitmask_words + nbuckets) * sizeof (Elf32_Word))
+  /* Is there still room for the sym chain?
+     Use uint64_t calculation to prevent 32bit overlow.  */
+  uint64_t used_buf = (4ULL + bitmask_words + nbuckets) * sizeof (Elf32_Word);
+  if (used_buf > data->d_size)
     {
       ERROR (gettext ("\
 section [%2d] '%s': hash table section is too small (is %ld, expected at least %ld)\n"),
 	     idx, section_name (ebl, idx), (long int) shdr->sh_size,
-	     (long int) ((4 + bitmask_words + nbuckets) * sizeof (Elf32_Word)));
+	     (long int) used_buf);
       return;
     }
 
   if (shift > 31)
-    ERROR (gettext ("\
+    {
+      ERROR (gettext ("\
 section [%2d] '%s': 2nd hash function shift too big: %u\n"),
-	   idx, section_name (ebl, idx), shift);
+	     idx, section_name (ebl, idx), shift);
+      return;
+    }
 
   size_t maxidx = shdr->sh_size / sizeof (Elf32_Word) - (4 + bitmask_words
 							 + nbuckets);
 
-  if (symshdr != NULL)
+  if (symshdr != NULL && symshdr->sh_entsize != 0)
     maxidx = MIN (maxidx, symshdr->sh_size / symshdr->sh_entsize);
 
   /* We need the symbol section data.  */
@@ -2155,8 +2196,10 @@ section [%2d] '%s': symbol %u referenced in chain for bucket %zu is undefined\n"
 		       idx, section_name (ebl, idx), symidx,
 		       cnt - (4 + bitmask_words));
 
-	      const char *symname = elf_strptr (ebl->elf, symshdr->sh_link,
-						sym->st_name);
+	      const char *symname = (sym != NULL
+				     ? elf_strptr (ebl->elf, symshdr->sh_link,
+						   sym->st_name)
+				     : NULL);
 	      if (symname != NULL)
 		{
 		  Elf32_Word hval = elf_gnu_hash (symname);
@@ -2168,6 +2211,14 @@ section [%2d] '%s': hash value for symbol %u in chain for bucket %zu wrong\n"),
 
 		  /* Set the bits in the bitmask.  */
 		  size_t maskidx = (hval / classbits) & bitmask_idxmask;
+		  if (maskidx >= bitmask_words)
+		    {
+		      ERROR (gettext ("\
+section [%2d] '%s': mask index for symbol %u in chain for bucket %zu wrong\n"),
+			     idx, section_name (ebl, idx), symidx,
+			     cnt - (4 + bitmask_words));
+		      return;
+		    }
 		  if (classbits == 32)
 		    {
 		      collected.p32[maskidx]
@@ -2195,7 +2246,7 @@ section [%2d] '%s': hash value for symbol %u in chain for bucket %zu wrong\n"),
 	ERROR (gettext ("\
 section [%2d] '%s': hash chain for bucket %zu out of bounds\n"),
 	       idx, section_name (ebl, idx), cnt - (4 + bitmask_words));
-      else if (symshdr != NULL
+      else if (symshdr != NULL && symshdr->sh_entsize != 0
 	       && symidx > symshdr->sh_size / symshdr->sh_entsize)
 	ERROR (gettext ("\
 section [%2d] '%s': symbol reference in chain for bucket %zu out of bounds\n"),
@@ -2223,7 +2274,7 @@ section [%2d] '%s': relocatable files cannot have hash tables\n"),
     }
 
   Elf_Data *data = elf_getdata (elf_getscn (ebl->elf, idx), NULL);
-  if (data == NULL)
+  if (data == NULL || data->d_buf == NULL)
     {
       ERROR (gettext ("section [%2d] '%s': cannot get section data\n"),
 	     idx, section_name (ebl, idx));
@@ -2237,6 +2288,10 @@ section [%2d] '%s': relocatable files cannot have hash tables\n"),
     ERROR (gettext ("\
 section [%2d] '%s': hash table not for dynamic symbol table\n"),
 	   idx, section_name (ebl, idx));
+  else if (symshdr == NULL)
+    ERROR (gettext ("\
+section [%2d] '%s': invalid sh_link symbol table section index [%2d]\n"),
+	   idx, section_name (ebl, idx), shdr->sh_link);
 
   if (shdr->sh_entsize != (tag == SHT_GNU_HASH
 			   ? (gelf_getclass (ebl->elf) == ELFCLASS32
@@ -2292,7 +2347,8 @@ compare_hash_gnu_hash (Ebl *ebl, GElf_Ehdr *ehdr, size_t hash_idx,
   GElf_Shdr *gnu_hash_shdr = gelf_getshdr (gnu_hash_scn, &gnu_hash_shdr_mem);
 
   if (hash_shdr == NULL || gnu_hash_shdr == NULL
-      || hash_data == NULL || gnu_hash_data == NULL)
+      || hash_data == NULL || hash_data->d_buf == NULL
+      || gnu_hash_data == NULL || gnu_hash_data->d_buf == NULL)
     /* None of these pointers should be NULL since we used the
        sections already.  We are careful nonetheless.  */
     return;
@@ -2313,28 +2369,73 @@ sh_link in hash sections [%2zu] '%s' and [%2zu] '%s' not identical\n"),
   GElf_Shdr sym_shdr_mem;
   GElf_Shdr *sym_shdr = gelf_getshdr (sym_scn, &sym_shdr_mem);
 
-  if (sym_data == NULL || sym_shdr == NULL)
+  if (sym_data == NULL || sym_data->d_buf == NULL
+      || sym_shdr == NULL || sym_shdr->sh_entsize == 0)
     return;
 
-  int nentries = sym_shdr->sh_size / sym_shdr->sh_entsize;
+  const char *hash_name;
+  const char *gnu_hash_name;
+  hash_name  = elf_strptr (ebl->elf, shstrndx, hash_shdr->sh_name);
+  gnu_hash_name  = elf_strptr (ebl->elf, shstrndx, gnu_hash_shdr->sh_name);
+
+  if (gnu_hash_data->d_size < 4 * sizeof (Elf32_Word))
+    {
+      ERROR (gettext ("\
+hash section [%2zu] '%s' does not contain enough data\n"),
+	     gnu_hash_idx, gnu_hash_name);
+      return;
+    }
+
+  uint32_t nentries = sym_shdr->sh_size / sym_shdr->sh_entsize;
   char *used = alloca (nentries);
   memset (used, '\0', nentries);
 
   /* First go over the GNU_HASH table and mark the entries as used.  */
   const Elf32_Word *gnu_hasharr = (Elf32_Word *) gnu_hash_data->d_buf;
   Elf32_Word gnu_nbucket = gnu_hasharr[0];
+  Elf32_Word gnu_symbias = gnu_hasharr[1];
   const int bitmap_factor = ehdr->e_ident[EI_CLASS] == ELFCLASS32 ? 1 : 2;
   const Elf32_Word *gnu_bucket = (gnu_hasharr
 				  + (4 + gnu_hasharr[2] * bitmap_factor));
-  const Elf32_Word *gnu_chain = gnu_bucket + gnu_hasharr[0] - gnu_hasharr[1];
+  const Elf32_Word *gnu_chain = gnu_bucket + gnu_hasharr[0];
+
+  if (gnu_hasharr[2] == 0)
+    {
+      ERROR (gettext ("\
+hash section [%2zu] '%s' has zero bit mask words\n"),
+	     gnu_hash_idx, gnu_hash_name);
+      return;
+    }
+
+  uint64_t used_buf = ((4ULL + gnu_hasharr[2] * bitmap_factor + gnu_nbucket)
+		       * sizeof (Elf32_Word));
+  uint32_t max_nsyms = (gnu_hash_data->d_size - used_buf) / sizeof (Elf32_Word);
+  if (used_buf > gnu_hash_data->d_size)
+    {
+      ERROR (gettext ("\
+hash section [%2zu] '%s' uses too much data\n"),
+	     gnu_hash_idx, gnu_hash_name);
+      return;
+    }
 
   for (Elf32_Word cnt = 0; cnt < gnu_nbucket; ++cnt)
     {
-      Elf32_Word symidx = gnu_bucket[cnt];
-      if (symidx != STN_UNDEF)
-	do
-	  used[symidx] |= 1;
-	while ((gnu_chain[symidx++] & 1u) == 0);
+      if (gnu_bucket[cnt] != STN_UNDEF)
+	{
+	  Elf32_Word symidx = gnu_bucket[cnt] - gnu_symbias;
+	  do
+	    {
+	      if (symidx >= max_nsyms || symidx + gnu_symbias >= nentries)
+		{
+		  ERROR (gettext ("\
+hash section [%2zu] '%s' invalid symbol index %" PRIu32 " (max_nsyms: %" PRIu32 ", nentries: %" PRIu32 "\n"),
+			 gnu_hash_idx, gnu_hash_name, symidx, max_nsyms, nentries);
+		  return;
+		}
+	      used[symidx + gnu_symbias] |= 1;
+	    }
+	  while ((gnu_chain[symidx++] & 1u) == 0);
+	}
     }
 
   /* Now go over the old hash table and check that we cover the same
@@ -2342,14 +2443,69 @@ sh_link in hash sections [%2zu] '%s' and [%2zu] '%s' not identical\n"),
   if (hash_shdr->sh_entsize == sizeof (Elf32_Word))
     {
       const Elf32_Word *hasharr = (Elf32_Word *) hash_data->d_buf;
+      if (hash_data->d_size < 2 * sizeof (Elf32_Word))
+	{
+	  ERROR (gettext ("\
+hash section [%2zu] '%s' does not contain enough data\n"),
+		 hash_idx, hash_name);
+	  return;
+	}
+
       Elf32_Word nbucket = hasharr[0];
+      Elf32_Word nchain = hasharr[1];
+      uint64_t hash_used = (2ULL + nchain + nbucket) * sizeof (Elf32_Word);
+      if (hash_used > hash_data->d_size)
+	{
+	  ERROR (gettext ("\
+hash section [%2zu] '%s' uses too much data\n"),
+		 hash_idx, hash_name);
+	  return;
+	}
+
       const Elf32_Word *bucket = &hasharr[2];
       const Elf32_Word *chain = &hasharr[2 + nbucket];
 
       for (Elf32_Word cnt = 0; cnt < nbucket; ++cnt)
 	{
 	  Elf32_Word symidx = bucket[cnt];
-	  while (symidx != STN_UNDEF)
+	  while (symidx != STN_UNDEF && symidx < nentries && symidx < nchain)
+	    {
+	      used[symidx] |= 2;
+	      symidx = chain[symidx];
+	    }
+	}
+    }
+  else if (hash_shdr->sh_entsize == sizeof (Elf64_Word))
+    {
+      const Elf64_Xword *hasharr = (Elf64_Xword *) hash_data->d_buf;
+      if (hash_data->d_size < 2 * sizeof (Elf32_Word))
+	{
+	  ERROR (gettext ("\
+hash section [%2zu] '%s' does not contain enough data\n"),
+		 hash_idx, hash_name);
+	  return;
+	}
+
+      Elf64_Xword nbucket = hasharr[0];
+      Elf64_Xword nchain = hasharr[1];
+      uint64_t maxwords = hash_data->d_size / sizeof (Elf64_Xword);
+      if (maxwords < 2
+	  || maxwords - 2 < nbucket
+	  || maxwords - 2 - nbucket < nchain)
+	{
+	  ERROR (gettext ("\
+hash section [%2zu] '%s' uses too much data\n"),
+		 hash_idx, hash_name);
+	  return;
+	}
+
+      const Elf64_Xword *bucket = &hasharr[2];
+      const Elf64_Xword *chain = &hasharr[2 + nbucket];
+
+      for (Elf64_Xword cnt = 0; cnt < nbucket; ++cnt)
+	{
+	  Elf64_Xword symidx = bucket[cnt];
+	  while (symidx != STN_UNDEF && symidx < nentries && symidx < nchain)
 	    {
 	      used[symidx] |= 2;
 	      symidx = chain[symidx];
@@ -2358,20 +2514,10 @@ sh_link in hash sections [%2zu] '%s' and [%2zu] '%s' not identical\n"),
     }
   else
     {
-      const Elf64_Xword *hasharr = (Elf64_Xword *) hash_data->d_buf;
-      Elf64_Xword nbucket = hasharr[0];
-      const Elf64_Xword *bucket = &hasharr[2];
-      const Elf64_Xword *chain = &hasharr[2 + nbucket];
-
-      for (Elf64_Xword cnt = 0; cnt < nbucket; ++cnt)
-	{
-	  Elf64_Xword symidx = bucket[cnt];
-	  while (symidx != STN_UNDEF)
-	    {
-	      used[symidx] |= 2;
-	      symidx = chain[symidx];
-	    }
-	}
+      ERROR (gettext ("\
+hash section [%2zu] '%s' invalid sh_entsize\n"),
+	     gnu_hash_idx, gnu_hash_name);
+      return;
     }
 
   /* Now see which entries are not set in one or both hash tables
@@ -2385,7 +2531,7 @@ sh_link in hash sections [%2zu] '%s' and [%2zu] '%s' not identical\n"),
     ERROR (gettext ("section [%2zu] '%s': reference to symbol index 0\n"),
 	   hash_idx, elf_strptr (ebl->elf, shstrndx, hash_shdr->sh_name));
 
-  for (int cnt = 1; cnt < nentries; ++cnt)
+  for (uint32_t cnt = 1; cnt < nentries; ++cnt)
     if (used[cnt] != 0 && used[cnt] != 3)
       {
 	if (used[cnt] == 1)
@@ -2474,6 +2620,10 @@ section [%2d] '%s': invalid symbol index in sh_info\n"),
 	ERROR (gettext ("\
 section [%2d] '%s': cannot get symbol for signature\n"),
 	       idx, section_name (ebl, idx));
+      else if (elf_strptr (ebl->elf, symshdr->sh_link, sym->st_name) == NULL)
+	ERROR (gettext ("\
+section [%2d] '%s': cannot get symbol name for signature\n"),
+	       idx, section_name (ebl, idx));
       else if (strcmp (elf_strptr (ebl->elf, symshdr->sh_link, sym->st_name),
 		       "") == 0)
 	ERROR (gettext ("\
@@ -2487,7 +2637,7 @@ section [%2d] '%s': signature symbol cannot be empty string\n"),
     }
 
   Elf_Data *data = elf_getdata (elf_getscn (ebl->elf, idx), NULL);
-  if (data == NULL)
+  if (data == NULL || data->d_buf == NULL)
     ERROR (gettext ("section [%2d] '%s': cannot get data: %s\n"),
 	   idx, section_name (ebl, idx), elf_errmsg (-1));
   else
@@ -2536,7 +2686,7 @@ section [%2d] '%s': section group with only one member\n"),
 
 	  if (val > shnum)
 	    ERROR (gettext ("\
-section [%2d] '%s': section index %Zu out of range\n"),
+section [%2d] '%s': section index %zu out of range\n"),
 		   idx, section_name (ebl, idx), cnt / elsize);
 	  else
 	    {
@@ -2558,12 +2708,12 @@ section [%2d] '%s': section group contains another group [%2d] '%s'\n"),
 
 		  if ((refshdr->sh_flags & SHF_GROUP) == 0)
 		    ERROR (gettext ("\
-section [%2d] '%s': element %Zu references section [%2d] '%s' without SHF_GROUP flag set\n"),
+section [%2d] '%s': element %zu references section [%2d] '%s' without SHF_GROUP flag set\n"),
 			   idx, section_name (ebl, idx), cnt / elsize,
 			   val, section_name (ebl, val));
 		}
 
-	      if (++scnref[val] == 2)
+	      if (val < shnum && ++scnref[val] == 2)
 		ERROR (gettext ("\
 section [%2d] '%s' is contained in more than one section group\n"),
 		       val, section_name (ebl, val));
@@ -2648,7 +2798,7 @@ has_copy_reloc (Ebl *ebl, unsigned int symscnndx, unsigned int symndx)
     return 0;
 
   Elf_Data *data = elf_getdata (scn, NULL);
-  if (data == NULL)
+  if (data == NULL || shdr->sh_entsize == 0)
     return 0;
 
   if (shdr->sh_type == SHT_REL)
@@ -2762,7 +2912,7 @@ section [%2d] '%s' refers in sh_link to section [%2d] '%s' which is no dynamic s
 
   /* The number of elements in the version symbol table must be the
      same as the number of symbols.  */
-  if (shdr->sh_entsize && symshdr->sh_entsize
+  if (shdr->sh_entsize != 0 && symshdr->sh_entsize != 0
       && (shdr->sh_size / shdr->sh_entsize
 	  != symshdr->sh_size / symshdr->sh_entsize))
     ERROR (gettext ("\
@@ -2771,7 +2921,7 @@ section [%2d] '%s' has different number of entries than symbol table [%2d] '%s'\
 	   shdr->sh_link, section_name (ebl, shdr->sh_link));
 
   Elf_Data *symdata = elf_getdata (symscn, NULL);
-  if (symdata == NULL)
+  if (symdata == NULL || shdr->sh_entsize == 0)
     /* The error has already been reported.  */
     return;
 
@@ -2862,7 +3012,8 @@ unknown_dependency_p (Elf *elf, const char *fname)
   GElf_Shdr shdr_mem;
   GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
   Elf_Data *data = elf_getdata (scn, NULL);
-  if (shdr != NULL && shdr->sh_type == SHT_DYNAMIC && data != NULL)
+  if (shdr != NULL && shdr->sh_type == SHT_DYNAMIC
+      && data != NULL && shdr->sh_entsize != 0)
     for (size_t j = 0; j < shdr->sh_size / shdr->sh_entsize; ++j)
       {
 	GElf_Dyn dyn_mem;
@@ -2906,8 +3057,10 @@ section [%2d] '%s': sh_link does not link to string table\n"),
       return;
     }
   unsigned int offset = 0;
-  for (int cnt = shdr->sh_info; --cnt >= 0; )
+  for (Elf64_Word cnt = shdr->sh_info; cnt > 0; )
     {
+      cnt--;
+
       /* Get the data at the next offset.  */
       GElf_Verneed needmem;
       GElf_Verneed *need = gelf_getverneed (data, offset, &needmem);
@@ -2923,9 +3076,12 @@ section [%2d] '%s': entry %d has wrong version %d\n"),
 
       if (need->vn_cnt > 0 && need->vn_aux < gelf_fsize (ebl->elf, ELF_T_VNEED,
 							 1, EV_CURRENT))
-	ERROR (gettext ("\
+	{
+	  ERROR (gettext ("\
 section [%2d] '%s': entry %d has wrong offset of auxiliary data\n"),
-	       idx, section_name (ebl, idx), cnt);
+	         idx, section_name (ebl, idx), cnt);
+	  break;
+	}
 
       const char *libname = elf_strptr (ebl->elf, shdr->sh_link,
 					need->vn_file);
@@ -2958,9 +3114,12 @@ section [%2d] '%s': auxiliary entry %d of entry %d has unknown flag\n"),
 	  const char *verstr = elf_strptr (ebl->elf, shdr->sh_link,
 					   aux->vna_name);
 	  if (verstr == NULL)
-	    ERROR (gettext ("\
+	    {
+	      ERROR (gettext ("\
 section [%2d] '%s': auxiliary entry %d of entry %d has invalid name reference\n"),
-		   idx, section_name (ebl, idx), need->vn_cnt - cnt2, cnt);
+		     idx, section_name (ebl, idx), need->vn_cnt - cnt2, cnt);
+	      break;
+	    }
 	  else
 	    {
 	      GElf_Word hashval = elf_hash (verstr);
@@ -2974,7 +3133,6 @@ section [%2d] '%s': auxiliary entry %d of entry %d has wrong hash value: %#x, ex
 				     ver_need);
 	      if (unlikely (res !=0))
 		{
-		  assert (res > 0);
 		  ERROR (gettext ("\
 section [%2d] '%s': auxiliary entry %d of entry %d has duplicate version name '%s'\n"),
 			 idx, section_name (ebl, idx), need->vn_cnt - cnt2,
@@ -3002,9 +3160,20 @@ section [%2d] '%s': auxiliary entry %d of entry %d has wrong next field\n"),
 
       if ((need->vn_next != 0 || cnt > 0)
 	  && offset < auxoffset)
-	ERROR (gettext ("\
+	{
+	  ERROR (gettext ("\
 section [%2d] '%s': entry %d has invalid offset to next entry\n"),
-	       idx, section_name (ebl, idx), cnt);
+	         idx, section_name (ebl, idx), cnt);
+	  break;
+	}
+
+      if (need->vn_next == 0 && cnt > 0)
+	{
+	  ERROR (gettext ("\
+section [%2d] '%s': entry %d has zero offset to next entry, but sh_info says there are more entries\n"),
+	         idx, section_name (ebl, idx), cnt);
+	  break;
+	}
     }
 }
 
@@ -3049,8 +3218,10 @@ section [%2d] '%s': sh_link does not link to string table\n"),
 
   bool has_base = false;
   unsigned int offset = 0;
-  for (int cnt = shdr->sh_info; --cnt >= 0; )
+  for (Elf64_Word cnt = shdr->sh_info; cnt > 0; )
     {
+      cnt--;
+
       /* Get the data at the next offset.  */
       GElf_Verdef defmem;
       GElf_Verdef *def = gelf_getverdef (data, offset, &defmem);
@@ -3081,9 +3252,12 @@ section [%2d] '%s': entry %d has wrong version %d\n"),
 
       if (def->vd_cnt > 0 && def->vd_aux < gelf_fsize (ebl->elf, ELF_T_VDEF,
 						       1, EV_CURRENT))
-	ERROR (gettext ("\
+	{
+	  ERROR (gettext ("\
 section [%2d] '%s': entry %d has wrong offset of auxiliary data\n"),
-	       idx, section_name (ebl, idx), cnt);
+	         idx, section_name (ebl, idx), cnt);
+	  break;
+	}
 
       unsigned int auxoffset = offset + def->vd_aux;
       GElf_Verdaux auxmem;
@@ -3109,7 +3283,6 @@ section [%2d] '%s': entry %d has wrong hash value: %#x, expected %#x\n"),
       int res = add_version (NULL, name, def->vd_ndx, ver_def);
       if (unlikely (res !=0))
 	{
-	  assert (res > 0);
 	  ERROR (gettext ("\
 section [%2d] '%s': entry %d has duplicate version name '%s'\n"),
 		 idx, section_name (ebl, idx), cnt, name);
@@ -3129,9 +3302,12 @@ section [%2d] '%s': entry %d has duplicate version name '%s'\n"),
 
 	  name = elf_strptr (ebl->elf, shdr->sh_link, aux->vda_name);
 	  if (name == NULL)
-	    ERROR (gettext ("\
+	    {
+	      ERROR (gettext ("\
 section [%2d] '%s': entry %d has invalid name reference in auxiliary data\n"),
-		   idx, section_name (ebl, idx), cnt);
+		     idx, section_name (ebl, idx), cnt);
+	      break;
+	    }
 	  else
 	    {
 	      newname = alloca (sizeof (*newname));
@@ -3160,9 +3336,20 @@ section [%2d] '%s': entry %d has wrong next field in auxiliary data\n"),
 
       if ((def->vd_next != 0 || cnt > 0)
 	  && offset < auxoffset)
-	ERROR (gettext ("\
+	{
+	  ERROR (gettext ("\
 section [%2d] '%s': entry %d has invalid offset to next entry\n"),
-	       idx, section_name (ebl, idx), cnt);
+	         idx, section_name (ebl, idx), cnt);
+	  break;
+	}
+
+      if (def->vd_next == 0 && cnt > 0)
+	{
+	  ERROR (gettext ("\
+section [%2d] '%s': entry %d has zero offset to next entry, but sh_info says there are more entries\n"),
+	         idx, section_name (ebl, idx), cnt);
+	  break;
+	}
     }
 
   if (!has_base)
@@ -3201,7 +3388,7 @@ check_attributes (Ebl *ebl, GElf_Ehdr *ehdr, GElf_Shdr *shdr, int idx)
     }
 
   Elf_Data *data = elf_rawdata (elf_getscn (ebl->elf, idx), NULL);
-  if (data == NULL || data->d_size == 0)
+  if (data == NULL || data->d_size == 0 || data->d_buf == NULL)
     {
       ERROR (gettext ("section [%2d] '%s': cannot get section data\n"),
 	     idx, section_name (ebl, idx));
@@ -3256,7 +3443,7 @@ section [%2d] '%s': offset %zu: invalid length in attribute section\n"),
 	  ERROR (gettext ("\
 section [%2d] '%s': offset %zu: unterminated vendor name string\n"),
 		 idx, section_name (ebl, idx), pos (p));
-	  continue;
+	  break;
 	}
       ++q;
 
@@ -3299,7 +3486,9 @@ section [%2d] '%s': offset %zu: zero length field in attribute subsection\n"),
 	    if (MY_ELFDATA != ehdr->e_ident[EI_DATA])
 	      CONVERT (subsection_len);
 
-	    if (p - chunk < (ptrdiff_t) subsection_len)
+	    /* Don't overflow, ptrdiff_t might be 32bits, but signed.  */
+	    if (p - chunk < (ptrdiff_t) subsection_len
+	        || subsection_len >= (uint32_t) PTRDIFF_MAX)
 	      {
 		ERROR (gettext ("\
 section [%2d] '%s': offset %zu: invalid length in attribute subsection\n"),
@@ -3789,9 +3978,39 @@ section [%2zu] '%s' not fully contained in segment of program header entry %d\n"
 		  {
 		    if (shdr->sh_offset < phdr->p_offset + phdr->p_filesz
 			&& !is_debuginfo)
-		      ERROR (gettext ("\
+		      {
+			if (!gnuld)
+			  ERROR (gettext ("\
 section [%2zu] '%s' has type NOBITS but is read from the file in segment of program header entry %d\n"),
-			 cnt, section_name (ebl, cnt), pcnt);
+				 cnt, section_name (ebl, cnt), pcnt);
+			else
+			  {
+			    /* This is truly horrible. GNU ld might put a
+			       NOBITS section in the middle of a PT_LOAD
+			       segment, assuming the next gap in the file
+			       actually consists of zero bits...
+			       So it really is like a PROGBITS section
+			       where the data is all zeros.  Check those
+			       zero bytes are really there.  */
+			    bool bad;
+			    Elf_Data *databits;
+			    databits = elf_getdata_rawchunk (ebl->elf,
+							     shdr->sh_offset,
+							     shdr->sh_size,
+							     ELF_T_BYTE);
+			    bad = (databits == NULL
+				   || databits->d_size != shdr->sh_size);
+			    for (size_t idx = 0;
+				 idx < databits->d_size && ! bad;
+				 idx++)
+			      bad = ((char *) databits->d_buf)[idx] != 0;
+
+			    if (bad)
+			      ERROR (gettext ("\
+section [%2zu] '%s' has type NOBITS but is read from the file in segment of program header entry %d and file contents is non-zero\n"),
+				     cnt, section_name (ebl, cnt), pcnt);
+			  }
+		      }
 		  }
 		else
 		  {
@@ -4027,7 +4246,7 @@ phdr[%d]: unknown core file note type %" PRIu32 " at offset %" PRIu64 "\n"),
 	    else
 	      ERROR (gettext ("\
 section [%2d] '%s': unknown core file note type %" PRIu32
-			      " at offset %Zu\n"),
+			      " at offset %zu\n"),
 		     shndx, section_name (ebl, shndx),
 		     (uint32_t) nhdr.n_type, offset);
 	  }
@@ -4049,12 +4268,12 @@ section [%2d] '%s': unknown core file note type %" PRIu32
 	  default:
 	    if (shndx == 0)
 	      ERROR (gettext ("\
-phdr[%d]: unknown object file note type %" PRIu32 " at offset %Zu\n"),
+phdr[%d]: unknown object file note type %" PRIu32 " at offset %zu\n"),
 		     phndx, (uint32_t) nhdr.n_type, offset);
 	    else
 	      ERROR (gettext ("\
 section [%2d] '%s': unknown object file note type %" PRIu32
-			      " at offset %Zu\n"),
+			      " at offset %zu\n"),
 		     shndx, section_name (ebl, shndx),
 		     (uint32_t) nhdr.n_type, offset);
 	  }
@@ -4084,7 +4303,7 @@ phdr[%d]: no note entries defined for the type of file\n"),
   Elf_Data *data = elf_getdata_rawchunk (ebl->elf,
 					 phdr->p_offset, phdr->p_filesz,
 					 ELF_T_NHDR);
-  if (data != NULL)
+  if (data != NULL && data->d_buf != NULL)
     notes_size = check_note_data (ebl, ehdr, data, 0, cnt, phdr->p_offset);
 
   if (notes_size == 0)
@@ -4103,7 +4322,7 @@ check_note_section (Ebl *ebl, GElf_Ehdr *ehdr, GElf_Shdr *shdr, int idx)
     return;
 
   Elf_Data *data = elf_getdata (elf_getscn (ebl->elf, idx), NULL);
-  if (data == NULL)
+  if (data == NULL || data->d_buf == NULL)
     {
       ERROR (gettext ("section [%2d] '%s': cannot get section data\n"),
 	     idx, section_name (ebl, idx));
@@ -4296,6 +4515,7 @@ program header offset in ELF header and PHDR entry do not match"));
 	      if (shdr != NULL
 		  && shdr->sh_type == (is_debuginfo
 				       ? SHT_NOBITS : SHT_PROGBITS)
+		  && elf_strptr (ebl->elf, shstrndx, shdr->sh_name) != NULL
 		  && ! strcmp (".eh_frame_hdr",
 			       elf_strptr (ebl->elf, shstrndx, shdr->sh_name)))
 		{

@@ -125,7 +125,8 @@ get_macinfo_table (Dwarf *dbg, Dwarf_Word macoff, Dwarf_Die *cudie)
     = INTUSE(dwarf_attr) (cudie, DW_AT_stmt_list, &attr_mem);
   Dwarf_Off line_offset = (Dwarf_Off) -1;
   if (attr != NULL)
-    INTUSE(dwarf_formudata) (attr, &line_offset);
+    if (unlikely (INTUSE(dwarf_formudata) (attr, &line_offset) != 0))
+      return NULL;
 
   Dwarf_Macro_Op_Table *table = libdw_alloc (dbg, Dwarf_Macro_Op_Table,
 					     macinfo_data_size, 1);
@@ -178,7 +179,8 @@ get_table_for_offset (Dwarf *dbg, Dwarf_Word macoff,
       Dwarf_Attribute attr_mem, *attr
 	= INTUSE(dwarf_attr) (cudie, DW_AT_stmt_list, &attr_mem);
       if (attr != NULL)
-	INTUSE(dwarf_formudata) (attr, &line_offset);
+	if (unlikely (INTUSE(dwarf_formudata) (attr, &line_offset) != 0))
+	  return NULL;
     }
 
   /* """The macinfo entry types defined in this standard may, but
@@ -361,7 +363,22 @@ read_macros (Dwarf *dbg, int sec_index,
 	.endp = (void *) endp,
       };
 
-      Dwarf_Attribute attributes[proto->nforms];
+      Dwarf_Attribute *attributes;
+      Dwarf_Attribute *attributesp = NULL;
+      Dwarf_Attribute nattributes[8];
+      if (unlikely (proto->nforms > 8))
+	{
+	  attributesp = malloc (sizeof (Dwarf_Attribute) * proto->nforms);
+	  if (attributesp == NULL)
+	    {
+	      __libdw_seterrno (DWARF_E_NOMEM);
+	      return -1;
+	    }
+	  attributes = attributesp;
+	}
+      else
+	attributes = &nattributes[0];
+
       for (Dwarf_Word i = 0; i < proto->nforms; ++i)
 	{
 	  /* We pretend this is a DW_AT_GNU_macros attribute so that
@@ -373,8 +390,11 @@ read_macros (Dwarf *dbg, int sec_index,
 	  attributes[i].cu = &fake_cu;
 
 	  size_t len = __libdw_form_val_len (&fake_cu, proto->forms[i], readp);
-	  if (len == (size_t) -1)
-	    return -1;
+	  if (unlikely (len == (size_t) -1))
+	    {
+	      free (attributesp);
+	      return -1;
+	    }
 
 	  readp += len;
 	}
@@ -385,7 +405,11 @@ read_macros (Dwarf *dbg, int sec_index,
 	.attributes = attributes,
       };
 
-      if (callback (&macro, arg) != DWARF_CB_OK)
+      int res = callback (&macro, arg);
+      if (unlikely (attributesp != NULL))
+	free (attributesp);
+
+      if (res != DWARF_CB_OK)
 	return readp - startp;
     }
 
@@ -487,11 +511,8 @@ dwarf_getmacros_off (Dwarf *dbg, Dwarf_Off macoff,
 }
 
 ptrdiff_t
-dwarf_getmacros (cudie, callback, arg, token)
-     Dwarf_Die *cudie;
-     int (*callback) (Dwarf_Macro *, void *);
-     void *arg;
-     ptrdiff_t token;
+dwarf_getmacros (Dwarf_Die *cudie, int (*callback) (Dwarf_Macro *, void *),
+		 void *arg, ptrdiff_t token)
 {
   if (cudie == NULL)
     {

@@ -1,5 +1,5 @@
 #! /bin/sh
-# Copyright (C) 2014 Red Hat, Inc.
+# Copyright (C) 2014, 2015 Red Hat, Inc.
 # This file is part of elfutils.
 #
 # This file is free software; you can redistribute it and/or modify
@@ -68,21 +68,21 @@ else
 STACKCMD=${abs_top_builddir}/src/stack
 fi
 
-# Without -d the top function comes out as fu.
-testrun_compare ${abs_top_builddir}/src/stack -n 2 -e testfiledwarfinlines --core testfiledwarfinlines.core<<EOF
+# Without -d the top function comes out as fu. Use --raw to not demangle.
+testrun_compare ${abs_top_builddir}/src/stack -r -n 2 -e testfiledwarfinlines --core testfiledwarfinlines.core<<EOF
 PID 13654 - core
 TID 13654:
-#0  0x00000000004006c8 fu(int)
+#0  0x00000000004006c8 _Z2fui
 #1  0x00000000004004c5 main
 $STACKCMD: tid 13654: shown max number of frames (2, use -n 0 for unlimited)
 EOF
 
 # But when asking for source we see it is actually on line 6.
-# (Which is in function fubar, not fu).
-testrun_compare ${abs_top_builddir}/src/stack -n 2 -s -e testfiledwarfinlines --core testfiledwarfinlines.core<<EOF
+# (Which is in function fubar, not fu). Use --raw to not demangle.
+testrun_compare ${abs_top_builddir}/src/stack -r -n 2 -s -e testfiledwarfinlines --core testfiledwarfinlines.core<<EOF
 PID 13654 - core
 TID 13654:
-#0  0x00000000004006c8 fu(int)
+#0  0x00000000004006c8 _Z2fui
     /home/mark/src/tests/dwarfinlines.cpp:6
 #1  0x00000000004004c5 main
     /home/mark/src/tests/dwarfinlines.cpp:39

@@ -94,6 +94,9 @@ enum
     DW_TAG_rvalue_reference_type = 0x42,
     DW_TAG_template_alias = 0x43,
 
+    /* DWARF 5.  */
+    DW_TAG_atomic_type = 0x47,
+
     DW_TAG_lo_user = 0x4080,
 
     DW_TAG_MIPS_loop = 0x4081,
@@ -586,9 +589,12 @@ enum
     DW_LANG_D = 0x0013,		     /* D */
     DW_LANG_Python = 0x0014,	     /* Python */
     DW_LANG_Go = 0x0016,	     /* Go */
+    DW_LANG_Haskell = 0x0018,	     /* Haskell */
     DW_LANG_C_plus_plus_11 = 0x001a, /* ISO C++:2011 */
     DW_LANG_C11 = 0x001d,	     /* ISO C:2011 */
     DW_LANG_C_plus_plus_14 = 0x0021, /* ISO C++:2014 */
+    DW_LANG_Fortran03 = 0x0022,	     /* ISO/IEC 1539-1:2004 */
+    DW_LANG_Fortran08 = 0x0023,	     /* ISO/IEC 1539-1:2010 */
 
 
     DW_LANG_lo_user = 0x8000,

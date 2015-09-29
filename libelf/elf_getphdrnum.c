@@ -1,5 +1,5 @@
 /* Return number of program headers in the ELF file.
-   Copyright (C) 2010, 2014 Red Hat, Inc.
+   Copyright (C) 2010, 2014, 2015 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -38,9 +38,8 @@
 
 
 int
-__elf_getphdrnum_rdlock (elf, dst)
-     Elf *elf;
-     size_t *dst;
+internal_function
+__elf_getphdrnum_rdlock (Elf *elf, size_t *dst)
 {
  if (unlikely (elf->state.elf64.ehdr == NULL))
    {
@@ -80,9 +79,45 @@ __elf_getphdrnum_rdlock (elf, dst)
 }
 
 int
-elf_getphdrnum (elf, dst)
-     Elf *elf;
-     size_t *dst;
+internal_function
+__elf_getphdrnum_chk_rdlock (Elf *elf, size_t *dst)
+{
+  int result = __elf_getphdrnum_rdlock (elf, dst);
+
+  /* Do some sanity checking to make sure phnum and phoff are consistent.  */
+  Elf64_Off off = (elf->class == ELFCLASS32
+		   ? elf->state.elf32.ehdr->e_phoff
+		   : elf->state.elf64.ehdr->e_phoff);
+  if (unlikely (off == 0))
+    {
+      *dst = 0;
+      return result;
+    }
+
+  if (unlikely (off >= elf->maximum_size))
+    {
+      __libelf_seterrno (ELF_E_INVALID_DATA);
+      return -1;
+    }
+
+  /* Check for too many sections.  */
+  size_t phdr_size = (elf->class == ELFCLASS32
+		      ? sizeof (Elf32_Phdr) : sizeof (Elf64_Phdr));
+  if (unlikely (*dst > SIZE_MAX / phdr_size))
+    {
+      __libelf_seterrno (ELF_E_INVALID_DATA);
+      return -1;
+    }
+
+  /* Truncated file?  Don't return more than can be indexed.  */
+  if (unlikely (elf->maximum_size - off < *dst * phdr_size))
+    *dst = (elf->maximum_size - off) / phdr_size;
+
+  return result;
+}
+
+int
+elf_getphdrnum (Elf *elf, size_t *dst)
 {
   int result;
 
@@ -96,40 +131,7 @@ elf_getphdrnum (elf, dst)
     }
 
   rwlock_rdlock (elf->lock);
-  result = __elf_getphdrnum_rdlock (elf, dst);
-
-  /* Do some sanity checking to make sure phnum and phoff are consistent.  */
-  Elf64_Off off = (elf->class == ELFCLASS32
-		   ? elf->state.elf32.ehdr->e_phoff
-		   : elf->state.elf64.ehdr->e_phoff);
-  if (unlikely (off == 0))
-    {
-      *dst = 0;
-      goto out;
-    }
-
-  if (unlikely (off >= elf->maximum_size))
-    {
-      __libelf_seterrno (ELF_E_INVALID_DATA);
-      result = -1;
-      goto out;
-    }
-
-  /* Check for too many sections.  */
-  size_t phdr_size = (elf->class == ELFCLASS32
-		      ? sizeof (Elf32_Phdr) : sizeof (Elf64_Phdr));
-  if (unlikely (*dst > SIZE_MAX / phdr_size))
-    {
-      __libelf_seterrno (ELF_E_INVALID_DATA);
-      result = -1;
-      goto out;
-    }
-
-  /* Truncated file?  Don't return more than can be indexed.  */
-  if (unlikely (elf->maximum_size - off < *dst * phdr_size))
-    *dst = (elf->maximum_size - off) / phdr_size;
-
-out:
+  result = __elf_getphdrnum_chk_rdlock (elf, dst);
   rwlock_unlock (elf->lock);
 
   return result;

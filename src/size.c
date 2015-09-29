@@ -1,5 +1,5 @@
 /* Print size information from ELF file.
-   Copyright (C) 2000-2007,2009,2012,2014 Red Hat, Inc.
+   Copyright (C) 2000-2007,2009,2012,2014,2015 Red Hat, Inc.
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2000.
 
@@ -28,7 +28,6 @@
 #include <libelf.h>
 #include <libintl.h>
 #include <locale.h>
-#include <mcheck.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdio_ext.h>
@@ -106,8 +105,8 @@ static void handle_elf (Elf *elf, const char *fullname, const char *fname);
 static void show_bsd_totals (void);
 
 #define INTERNAL_ERROR(fname) \
-  error (EXIT_FAILURE, 0, gettext ("%s: INTERNAL ERROR %d (%s-%s): %s"),      \
-	 fname, __LINE__, PACKAGE_VERSION, __DATE__, elf_errmsg (-1))
+  error (EXIT_FAILURE, 0, gettext ("%s: INTERNAL ERROR %d (%s): %s"),      \
+	 fname, __LINE__, PACKAGE_VERSION, elf_errmsg (-1))
 
 
 /* User-selectable options.  */
@@ -159,9 +158,6 @@ main (int argc, char *argv[])
 {
   int remaining;
   int result = 0;
-
-  /* Make memory leak detection possible.  */
-  mtrace ();
 
   /* We use no threads here which can interfere with handling a stream.  */
   __fsetlocking (stdin, FSETLOCKING_BYCALLER);

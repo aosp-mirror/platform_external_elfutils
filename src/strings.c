@@ -43,6 +43,10 @@
 
 #include <system.h>
 
+#ifndef MAP_POPULATE
+# define MAP_POPULATE 0
+#endif
+
 
 /* Prototypes of local functions.  */
 static int read_fd (int fd, const char *fname, off64_t fdlen);
@@ -725,8 +729,25 @@ read_elf (Elf *elf, int fd, const char *fname, off64_t fdlen)
 	 actually have content.  */
       if (shdr != NULL && shdr->sh_type != SHT_NOBITS
 	  && (shdr->sh_flags & SHF_ALLOC) != 0)
-	result |= read_block (fd, fname, fdlen, shdr->sh_offset,
-			      shdr->sh_offset + shdr->sh_size);
+	{
+	  if (shdr->sh_offset > (Elf64_Off) fdlen
+	      || fdlen - shdr->sh_offset < shdr->sh_size)
+	    {
+	      size_t strndx = 0;
+	      const char *sname;
+	      if (unlikely (elf_getshdrstrndx (elf, &strndx) < 0))
+		sname = "<unknown>";
+	      else
+		sname = elf_strptr (elf, strndx, shdr->sh_name) ?: "<unknown>";
+	      error (0, 0,
+		     gettext ("Skipping section %zd '%s' data outside file"),
+		     elf_ndxscn (scn), sname);
+	      result = 1;
+	    }
+	  else
+	    result |= read_block (fd, fname, fdlen, shdr->sh_offset,
+				  shdr->sh_offset + shdr->sh_size);
+	}
     }
   while ((scn = elf_nextscn (elf, scn)) != NULL);
 

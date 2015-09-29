@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 dnl Configure input file for elfutils.                     -*-autoconf-*-
 dnl
-dnl Copyright (C) 1996-2014 Red Hat, Inc.
+dnl Copyright (C) 1996-2015 Red Hat, Inc.
 dnl
 dnl This file is part of elfutils.
 dnl
@@ -17,23 +17,17 @@ dnl  GNU General Public License for more details.
 dnl
 dnl  You should have received a copy of the GNU General Public License
 dnl  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-AC_INIT([elfutils],[0.161],[https://bugzilla.redhat.com/],[elfutils])
+AC_INIT([elfutils],[0.163],[https://bugzilla.redhat.com/],[elfutils])
 
 AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_FILES([config/Makefile])
 
-AC_COPYRIGHT([Copyright (C) 1996-2014 Red Hat, Inc.])
+AC_COPYRIGHT([Copyright (C) 1996-2015 Red Hat, Inc.])
 AC_PREREQ(2.63)			dnl Minimum Autoconf version required.
 
 dnl We use GNU make extensions; automake 1.10 defaults to -Wportability.
 AM_INIT_AUTOMAKE([gnits 1.11 -Wno-portability dist-bzip2 no-dist-gzip parallel-tests])
 AM_MAINTAINER_MODE
-
-dnl Unique ID for this build.
-MODVERSION="Build on $(hostname) $(date +%FT%R:%S%z)"
-AC_SUBST([MODVERSION])
-AC_DEFINE_UNQUOTED(MODVERSION, "$MODVERSION")
-AH_TEMPLATE([MODVERSION], [Identifier for modules in the build.])
 
 AC_CONFIG_SRCDIR([libelf/libelf.h])
 AC_CONFIG_FILES([Makefile])
@@ -79,15 +73,38 @@ m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_CHECK_TOOL([READELF], [readelf])
 AC_CHECK_TOOL([NM], [nm])
 
-AC_CACHE_CHECK([for gcc with C99 support], ac_cv_c99, [dnl
+# We use -std=gnu99 but have explicit checks for some language constructs
+# and GNU extensions since some compilers claim GNU99 support, but don't
+# really support all language extensions. In particular we need
+# Mixed Declarations and Code
+# https://gcc.gnu.org/onlinedocs/gcc/Mixed-Declarations.html
+# Nested Functions
+# https://gcc.gnu.org/onlinedocs/gcc/Nested-Functions.html
+# Arrays of Variable Length
+# https://gcc.gnu.org/onlinedocs/gcc/Variable-Length.html
+AC_CACHE_CHECK([for gcc with GNU99 support], ac_cv_c99, [dnl
 old_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -std=gnu99"
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([dnl
-int foo (int a) { for (int i = 0; i < a; ++i) if (i % 4) break; int s = a; }])],
+int foo (int a)
+{
+  for (int i = 0; i < a; ++i) if (i % 4) break; int s = a; return s;
+}
+
+double bar (double a, double b)
+{
+  double square (double z) { return z * z; }
+  return square (a) + square (b);
+}
+
+void baz (int n)
+{
+  struct S { int x[[n]]; };
+}])],
 		  ac_cv_c99=yes, ac_cv_c99=no)
 CFLAGS="$old_CFLAGS"])
 AS_IF([test "x$ac_cv_c99" != xyes],
-      AC_MSG_ERROR([gcc with C99 support required]))
+      AC_MSG_ERROR([gcc with GNU99 support required]))
 
 AC_CACHE_CHECK([for __thread support], ac_cv_tls, [dnl
 # Use the same flags that we use for our DSOs, so the test is representative.
@@ -97,7 +114,8 @@ save_LDFLAGS="$LDFLAGS"
 CFLAGS="-fpic $CFLAGS"
 LDFLAGS="-shared -Wl,-z,defs,-z,relro $LDFLAGS"
 AC_LINK_IFELSE([dnl
-AC_LANG_PROGRAM([[#undef __thread
+AC_LANG_PROGRAM([[#include <stdlib.h>
+#undef __thread
 static __thread int a; int foo (int b) { return a + b; }]],
 		[[exit (foo (0));]])],
 	       ac_cv_tls=yes, ac_cv_tls=no)
@@ -146,10 +164,10 @@ AC_ARG_ENABLE([debugpred],
 AS_HELP_STRING([--enable-debugpred],[build binaries with support to debug branch prediction]),
 [use_debugpred=$enableval], [use_debugpred=no])
 case $use_debugpred in
- yes) use_debugpred=1 ;;
- *)   use_debugpred=0 ;;
+ yes) use_debugpred_val=1 ;;
+ *)   use_debugpred_val=0 ;;
 esac
-AC_SUBST([DEBUGPRED], $use_debugpred)
+AC_SUBST([DEBUGPRED], $use_debugpred_val)
 
 dnl Enable gprof suport.
 AC_ARG_ENABLE([gprof],
@@ -168,6 +186,29 @@ if test "$use_gcov" = yes; then
   LDFLAGS="$LDFLAGS -fprofile-arcs"
 fi
 AM_CONDITIONAL(GCOV, test "$use_gcov" = yes)
+
+AC_ARG_ENABLE([sanitize-undefined],
+              AS_HELP_STRING([--enable-sanitize-undefined],
+                             [Use gcc undefined behaviour sanitizer]),
+                             [use_undefined=$enableval], [use_undefined=no])
+if test "$use_undefined" = yes; then
+  old_CFLAGS="$CFLAGS"
+  old_CXXFLAGS="$CXXFLAGS"
+  # We explicitly use unaligned access when possible (see ALLOW_UNALIGNED)
+  # We want to fail immediately on first error, don't try to recover.
+  CFLAGS="$CFLAGS -fsanitize=undefined -fno-sanitize-recover"
+  CXXFLAGS="$CXXFLAGS -fsanitize=undefined -fno-sanitize-recover"
+  AC_LINK_IFELSE([AC_LANG_SOURCE([int main (int argc, char **argv) { return 0; }])], use_undefined=yes, use_undefined=no)
+  AS_IF([test "x$use_undefined" != xyes],
+        AC_MSG_WARN([gcc undefined behaviour sanitizer not available])
+        CFLAGS="$old_CFLAGS" CXXFLAGS="$old_CXXFLAGS")
+fi
+case $use_undefined in
+ yes) check_undefined_val=1 ;;
+ *)   check_undefined_val=0 ;;
+esac
+AC_DEFINE_UNQUOTED(CHECK_UNDEFINED, $check_undefined_val,
+		   [Building with -fsanitize=undefined or not])
 
 AC_ARG_ENABLE([valgrind],
 AS_HELP_STRING([--enable-valgrind],[run all tests under valgrind]),
@@ -210,12 +251,57 @@ AC_SUBST([zip_LIBS])
 
 AC_CHECK_LIB([stdc++], [__cxa_demangle], [dnl
 AC_DEFINE([USE_DEMANGLE], [1], [Defined if demangling is enabled])])
-AM_CONDITIONAL(DEMANGLE, test "$ac_cv_lib_stdcpp___cxa_demangle" = yes)
+AM_CONDITIONAL(DEMANGLE, test "x$ac_cv_lib_stdcpp___cxa_demangle" = "xyes")
+AS_IF([test "x$ac_cv_lib_stdcpp___cxa_demangle" = "xyes"],
+      [enable_demangler=yes],[enable_demangler=no])
 
 AC_ARG_ENABLE([textrelcheck],
 AS_HELP_STRING([--disable-textrelcheck],
                [Disable textrelcheck being a fatal error]))
 AM_CONDITIONAL(FATAL_TEXTREL, [test "x$enable_textrelcheck" != "xno"])
+AS_IF([test "x$enable_textrelcheck" != "xno"],
+      [enable_textrelcheck=yes],[enable_textrelcheck=no])
+
+AC_ARG_ENABLE([symbol-versioning],
+AS_HELP_STRING([--disable-symbol-versioning],
+               [Disable symbol versioning in shared objects]))
+AM_CONDITIONAL(SYMBOL_VERSIONING, [test "x$enable_symbol_versioning" != "xno"])
+AS_IF([test "x$enable_symbol_versioning" = "xno"],
+      [AC_MSG_WARN([Disabling symbol versioning breaks ABI compatibility.])
+       enable_symbol_versioning=no],[enable_symbol_versioning=yes])
+
+AC_CACHE_CHECK([whether gcc accepts -Wstack-usage], ac_cv_stack_usage, [dnl
+old_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -Wstack-usage=262144"
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([])],
+		  ac_cv_stack_usage=yes, ac_cv_stack_usage=no)
+CFLAGS="$old_CFLAGS"])
+AM_CONDITIONAL(ADD_STACK_USAGE_WARNING, [test "x$ac_cv_stack_usage" != "xno"])
+
+dnl Check if we have argp available from our libc
+AC_LINK_IFELSE(
+	[AC_LANG_PROGRAM(
+		[#include <argp.h>],
+		[int argc=1; char *argv[]={"test"}; argp_parse(0,argc,argv,0,0,0); return 0;]
+		)],
+	[libc_has_argp="true"],
+	[libc_has_argp="false"]
+)
+
+dnl If our libc doesn't provide argp, then test for libargp
+if test "$libc_has_argp" = "false" ; then
+	AC_MSG_WARN("libc does not have argp")
+	AC_CHECK_LIB([argp], [argp_parse], [have_argp="true"], [have_argp="false"])
+
+	if test "$have_argp" = "false"; then
+		AC_MSG_ERROR("no libargp found")
+	else
+		argp_LDADD="-largp"
+	fi
+else
+	argp_LDADD=""
+fi
+AC_SUBST([argp_LDADD])
 
 dnl The directories with content.
 
@@ -304,6 +390,12 @@ esac
 # Round up to the next release API (x.y) version.
 eu_version=$(( (eu_version + 999) / 1000 ))
 
+dnl Unique ID for this build.
+MODVERSION="Build for ${LIBEBL_SUBDIR} ${eu_version} ${ac_cv_build}"
+AC_SUBST([MODVERSION])
+AC_DEFINE_UNQUOTED(MODVERSION, "$MODVERSION")
+AH_TEMPLATE([MODVERSION], [Identifier for modules in the build.])
+
 AC_CHECK_SIZEOF(long)
 
 # On aarch64 before glibc 2.20 we would get the kernel user_pt_regs instead
@@ -326,4 +418,65 @@ utrace_BIARCH
 CC_BIARCH="$CC $utrace_biarch"
 AC_SUBST([CC_BIARCH])
 
+# In maintainer mode we really need flex and bison.
+# Otherwise we really need a release dir with maintainer files generated.
+if test "x$enable_maintainer_mode" = xyes; then
+  AC_CHECK_PROG(HAVE_FLEX, flex, yes, no)
+  if test "$HAVE_FLEX" = "no"; then
+    AC_MSG_ERROR([flex needed in maintainer mode])
+  fi
+  AC_CHECK_PROG(HAVE_BISON, bison, yes, no)
+  if test "$HAVE_BISON" = "no"; then
+    AC_MSG_ERROR([bison needed in maintainer mode])
+  fi
+else
+  if test ! -f ${srcdir}/libdw/known-dwarf.h; then
+    AC_MSG_ERROR([No libdw/known-dwarf.h. configure --enable-maintainer-mode])
+  fi
+fi
+
+# The testfiles are all compressed, we need bunzip2 when running make check
+AC_CHECK_PROG(HAVE_BUNZIP2, bunzip2, yes, no)
+if test "$HAVE_BUNZIP2" = "no"; then
+  AC_MSG_WARN([No bunzip2, needed to run make check])
+fi
+
 AC_OUTPUT
+
+AC_MSG_NOTICE([
+=====================================================================
+        elfutils: ${PACKAGE_VERSION} (eu_version: ${eu_version})
+=====================================================================
+
+    Prefix                             : ${prefix}
+    Program prefix ("eu-" recommended) : ${program_prefix}
+    Source code location               : ${srcdir}
+    Maintainer mode                    : ${enable_maintainer_mode}
+    libebl modules subdirectory        : ${LIBEBL_SUBDIR}
+    build arch                         : ${ac_cv_build}
+
+  RECOMMENDED FEATURES (should all be yes)
+    gzip support                       : ${with_zlib}
+    bzip2 support                      : ${with_bzlib}
+    lzma/xz support                    : ${with_lzma}
+    libstdc++ demangle support         : ${enable_demangler}
+    File textrel check                 : ${enable_textrelcheck}
+    Symbol versioning                  : ${enable_symbol_versioning}
+
+  NOT RECOMMENDED FEATURES (should all be no)
+    Experimental thread safety         : ${use_locks}
+
+  OTHER FEATURES
+    Deterministic archives by default  : ${default_ar_deterministic}
+    Native language support            : ${USE_NLS}
+
+  EXTRA TEST FEATURES (used with make check)
+    have bunzip2 installed (required)  : ${HAVE_BUNZIP2}
+    debug branch prediction            : ${use_debugpred}
+    gprof support                      : ${use_gprof}
+    gcov support                       : ${use_gcov}
+    run all tests under valgrind       : ${use_valgrind}
+    gcc undefined behaviour sanitizer  : ${use_undefined}
+    use rpath in tests                 : ${tests_use_rpath}
+    test biarch                        : ${utrace_cv_cc_biarch}
+])

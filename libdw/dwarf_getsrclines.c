@@ -1,5 +1,5 @@
 /* Return line number information of CU.
-   Copyright (C) 2004-2010, 2013, 2014 Red Hat, Inc.
+   Copyright (C) 2004-2010, 2013, 2014, 2015 Red Hat, Inc.
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2004.
 
@@ -88,12 +88,36 @@ read_srclines (Dwarf *dbg,
 
   struct linelist *linelist = NULL;
   size_t nlinelist = 0;
+  size_t nfilelist = 0;
+  unsigned int ndirlist = 0;
 
-  /* If there are a large number of lines don't blow up the stack.
-     Keep track of the last malloced linelist record and free them
-     through the next pointer at the end.  */
+  struct filelist null_file =
+    {
+      .info =
+      {
+	.name = "???",
+	.mtime = 0,
+	.length = 0
+      },
+      .next = NULL
+    };
+  struct filelist *filelist = &null_file;
+
+  /* If there are a large number of lines, files or dirs don't blow up
+     the stack.  Stack allocate some entries, only dynamically malloc
+     when more than MAX.  */
 #define MAX_STACK_ALLOC 4096
-  struct linelist *malloc_linelist = NULL;
+#define MAX_STACK_LINES MAX_STACK_ALLOC
+#define MAX_STACK_FILES (MAX_STACK_ALLOC / 4)
+#define MAX_STACK_DIRS  (MAX_STACK_ALLOC / 16)
+
+  struct dirlist
+  {
+    const char *dir;
+    size_t len;
+  };
+  struct dirlist dirstack[MAX_STACK_DIRS];
+  struct dirlist *dirarray = dirstack;
 
   if (unlikely (linep + 4 > lineendp))
     {
@@ -170,65 +194,69 @@ read_srclines (Dwarf *dbg,
 
   /* First comes the list of directories.  Add the compilation
      directory first since the index zero is used for it.  */
-  struct dirlist
-  {
-    const char *dir;
-    size_t len;
-    struct dirlist *next;
-  } comp_dir_elem =
+  struct dirlist comp_dir_elem =
     {
       .dir = comp_dir,
       .len = comp_dir ? strlen (comp_dir) : 0,
-      .next = NULL
     };
-  struct dirlist *dirlist = &comp_dir_elem;
-  unsigned int ndirlist = 1;
+  ndirlist = 1;
 
-  // XXX Directly construct array to conserve memory?
-  while (*linep != 0)
+  /* First count the entries.  */
+  const unsigned char *dirp = linep;
+  while (*dirp != 0)
     {
-      struct dirlist *new_dir =
-	(struct dirlist *) alloca (sizeof (*new_dir));
-
-      new_dir->dir = (char *) linep;
-      uint8_t *endp = memchr (linep, '\0', lineendp - linep);
+      uint8_t *endp = memchr (dirp, '\0', lineendp - dirp);
       if (endp == NULL)
 	goto invalid_data;
-      new_dir->len = endp - linep;
-      new_dir->next = dirlist;
-      dirlist = new_dir;
       ++ndirlist;
+      dirp = endp + 1;
+    }
+
+  /* Arrange the list in array form.  */
+  if (ndirlist >= MAX_STACK_DIRS)
+    {
+      dirarray = (struct dirlist *) malloc (ndirlist * sizeof (*dirarray));
+      if (unlikely (dirarray == NULL))
+	{
+	no_mem:
+	  __libdw_seterrno (DWARF_E_NOMEM);
+	  goto out;
+	}
+    }
+  dirarray[0] = comp_dir_elem;
+  for (unsigned int n = 1; n < ndirlist; n++)
+    {
+      dirarray[n].dir = (char *) linep;
+      uint8_t *endp = memchr (linep, '\0', lineendp - linep);
+      assert (endp != NULL);
+      dirarray[n].len = endp - linep;
       linep = endp + 1;
     }
   /* Skip the final NUL byte.  */
   ++linep;
 
-  /* Rearrange the list in array form.  */
-  struct dirlist **dirarray
-    = (struct dirlist **) alloca (ndirlist * sizeof (*dirarray));
-  for (unsigned int n = ndirlist; n-- > 0; dirlist = dirlist->next)
-    dirarray[n] = dirlist;
+  /* Allocate memory for a new file.  For the first MAX_STACK_FILES
+     entries just return a slot in the preallocated stack array.  */
+  struct filelist flstack[MAX_STACK_FILES];
+#define NEW_FILE() ({							\
+  struct filelist *fl = (nfilelist < MAX_STACK_FILES			\
+			   ? &flstack[nfilelist]			\
+			   : malloc (sizeof (struct filelist)));	\
+  if (unlikely (fl == NULL))						\
+    goto no_mem;							\
+  ++nfilelist;								\
+  fl->next = filelist;							\
+  filelist = fl;							\
+  fl; })
 
   /* Now read the files.  */
-  struct filelist null_file =
-    {
-      .info =
-      {
-	.name = "???",
-	.mtime = 0,
-	.length = 0
-      },
-      .next = NULL
-    };
-  struct filelist *filelist = &null_file;
-  unsigned int nfilelist = 1;
+  nfilelist = 1;
 
   if (unlikely (linep >= lineendp))
     goto invalid_data;
   while (*linep != 0)
     {
-      struct filelist *new_file =
-	(struct filelist *) alloca (sizeof (*new_file));
+      struct filelist *new_file = NEW_FILE ();
 
       /* First comes the file name.  */
       char *fname = (char *) linep;
@@ -255,22 +283,22 @@ read_srclines (Dwarf *dbg,
       else
 	{
 	  new_file->info.name = libdw_alloc (dbg, char, 1,
-					     dirarray[diridx]->len + 1
+					     dirarray[diridx].len + 1
 					     + fnamelen + 1);
 	  char *cp = new_file->info.name;
 
-	  if (dirarray[diridx]->dir != NULL)
+	  if (dirarray[diridx].dir != NULL)
 	    {
 	      /* This value could be NULL in case the DW_AT_comp_dir
 		 was not present.  We cannot do much in this case.
 		 The easiest thing is to convert the path in an
 		 absolute path.  */
-	      cp = stpcpy (cp, dirarray[diridx]->dir);
+	      cp = stpcpy (cp, dirarray[diridx].dir);
 	    }
 	  *cp++ = '/';
 	  strcpy (cp, fname);
 	  assert (strlen (new_file->info.name)
-		  < dirarray[diridx]->len + 1 + fnamelen + 1);
+		  < dirarray[diridx].len + 1 + fnamelen + 1);
 	}
 
       /* Next comes the modification time.  */
@@ -282,10 +310,6 @@ read_srclines (Dwarf *dbg,
       if (unlikely (linep >= lineendp))
 	goto invalid_data;
       get_uleb128 (new_file->info.length, linep, lineendp);
-
-      new_file->next = filelist;
-      filelist = new_file;
-      ++nfilelist;
     }
   /* Skip the final NUL byte.  */
   ++linep;
@@ -302,7 +326,8 @@ read_srclines (Dwarf *dbg,
   Dwarf_Word addr = 0;
   unsigned int op_index = 0;
   unsigned int file = 1;
-  int line = 1;
+  /* We only store an int, but want to check for overflow (see SET below).  */
+  int64_t line = 1;
   unsigned int column = 0;
   uint_fast8_t is_stmt = default_is_stmt;
   bool basic_block = false;
@@ -322,15 +347,16 @@ read_srclines (Dwarf *dbg,
 
   /* Process the instructions.  */
 
-  /* Adds a new line to the matrix.
-     We cannot simply define a function because we want to use alloca.  */
+  /* Adds a new line to the matrix.  For the first MAX_STACK_LINES
+     entries just return a slot in the preallocated stack array.  */
+  struct linelist llstack[MAX_STACK_LINES];
 #define NEW_LINE(end_seq)						\
   do {								\
-    struct linelist *ll = (nlinelist < MAX_STACK_ALLOC		\
-			   ? alloca (sizeof (struct linelist))	\
+    struct linelist *ll = (nlinelist < MAX_STACK_LINES		\
+			   ? &llstack[nlinelist]		\
 			   : malloc (sizeof (struct linelist)));	\
-    if (nlinelist >= MAX_STACK_ALLOC)				\
-      malloc_linelist = ll;						\
+    if (unlikely (ll == NULL))					\
+      goto no_mem;						\
     if (unlikely (add_new_line (ll, end_seq)))			\
       goto invalid_data;						\
   } while (0)
@@ -483,33 +509,29 @@ read_srclines (Dwarf *dbg,
 		  goto invalid_data;
 		get_uleb128 (filelength, linep, lineendp);
 
-		struct filelist *new_file =
-		  (struct filelist *) alloca (sizeof (*new_file));
+		struct filelist *new_file = NEW_FILE ();
 		if (fname[0] == '/')
 		  new_file->info.name = fname;
 		else
 		  {
 		    new_file->info.name =
-		      libdw_alloc (dbg, char, 1, (dirarray[diridx]->len + 1
+		      libdw_alloc (dbg, char, 1, (dirarray[diridx].len + 1
 						  + fnamelen + 1));
 		    char *cp = new_file->info.name;
 
-		    if (dirarray[diridx]->dir != NULL)
+		    if (dirarray[diridx].dir != NULL)
 		      /* This value could be NULL in case the
 			 DW_AT_comp_dir was not present.  We
 			 cannot do much in this case.  The easiest
 			 thing is to convert the path in an
 			 absolute path.  */
-		      cp = stpcpy (cp, dirarray[diridx]->dir);
+		      cp = stpcpy (cp, dirarray[diridx].dir);
 		    *cp++ = '/';
 		    strcpy (cp, fname);
 		  }
 
 		new_file->info.mtime = mtime;
 		new_file->info.length = filelength;
-		new_file->next = filelist;
-		filelist = new_file;
-		++nfilelist;
 	      }
 	      break;
 
@@ -687,18 +709,19 @@ read_srclines (Dwarf *dbg,
 				    1);
   const char **dirs = (void *) &files->info[nfilelist];
 
+  struct filelist *fileslist = filelist;
   files->nfiles = nfilelist;
-  while (nfilelist-- > 0)
+  for (size_t n = nfilelist; n > 0; n--)
     {
-      files->info[nfilelist] = filelist->info;
-      filelist = filelist->next;
+      files->info[n - 1] = fileslist->info;
+      fileslist = fileslist->next;
     }
-  assert (filelist == NULL);
+  assert (fileslist == NULL);
 
   /* Put all the directory strings in an array.  */
   files->ndirs = ndirlist;
   for (unsigned int i = 0; i < ndirlist; ++i)
-    dirs[i] = dirarray[i]->dir;
+    dirs[i] = dirarray[i].dir;
   dirs[ndirlist] = NULL;
 
   /* Pass the file data structure to the caller.  */
@@ -718,12 +741,13 @@ read_srclines (Dwarf *dbg,
   /* The list is in LIFO order and usually they come in clumps with
      ascending addresses.  So fill from the back to probably start with
      runs already in order before we sort.  */
+  struct linelist *lineslist = linelist;
   for (size_t i = nlinelist; i-- > 0; )
     {
-      sortlines[i] = linelist;
-      linelist = linelist->next;
+      sortlines[i] = lineslist;
+      lineslist = lineslist->next;
     }
-  assert (linelist == NULL);
+  assert (lineslist == NULL);
 
   /* Sort by ascending address.  */
   qsort (sortlines, nlinelist, sizeof sortlines[0], &compare_lines);
@@ -754,11 +778,19 @@ read_srclines (Dwarf *dbg,
 
  out:
   /* Free malloced line records, if any.  */
-  for (size_t i = MAX_STACK_ALLOC; i < nlinelist; i++)
+  for (size_t i = MAX_STACK_LINES; i < nlinelist; i++)
     {
-      struct linelist *ll = malloc_linelist->next;
-      free (malloc_linelist);
-      malloc_linelist = ll;
+      struct linelist *ll = linelist->next;
+      free (linelist);
+      linelist = ll;
+    }
+  if (ndirlist >= MAX_STACK_DIRS)
+    free (dirarray);
+  for (size_t i = MAX_STACK_FILES; i < nfilelist; i++)
+    {
+      struct filelist *fl = filelist->next;
+      free (filelist);
+      filelist = fl;
     }
 
   return res;
@@ -838,10 +870,13 @@ __libdw_getcompdir (Dwarf_Die *cudie)
 int
 dwarf_getsrclines (Dwarf_Die *cudie, Dwarf_Lines **lines, size_t *nlines)
 {
-  if (unlikely (cudie == NULL
-		|| (INTUSE(dwarf_tag) (cudie) != DW_TAG_compile_unit
-		    && INTUSE(dwarf_tag) (cudie) != DW_TAG_partial_unit)))
+  if (cudie == NULL)
     return -1;
+  if (! is_cudie (cudie))
+    {
+      __libdw_seterrno (DWARF_E_NOT_CUDIE);
+      return -1;
+    }
 
   /* Get the information if it is not already known.  */
   struct Dwarf_CU *const cu = cudie->cu;

@@ -1,5 +1,5 @@
 /* Peel type aliases and qualifier tags from a type DIE.
-   Copyright (C) 2014 Red Hat, Inc.
+   Copyright (C) 2014, 2015 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -36,9 +36,7 @@
 
 
 int
-dwarf_peel_type (die, result)
-     Dwarf_Die *die;
-     Dwarf_Die *result;
+dwarf_peel_type (Dwarf_Die *die, Dwarf_Die *result)
 {
   int tag;
 
@@ -51,7 +49,8 @@ dwarf_peel_type (die, result)
   while (tag == DW_TAG_typedef
 	 || tag == DW_TAG_const_type
 	 || tag == DW_TAG_volatile_type
-	 || tag == DW_TAG_restrict_type)
+	 || tag == DW_TAG_restrict_type
+	 || tag == DW_TAG_atomic_type)
     {
       Dwarf_Attribute attr_mem;
       Dwarf_Attribute *attr = INTUSE (dwarf_attr_integrate) (die, DW_AT_type,
@@ -59,8 +58,7 @@ dwarf_peel_type (die, result)
       if (attr == NULL)
 	return 1;
 
-      result = INTUSE (dwarf_formref_die) (attr, result);
-      if (result == NULL)
+      if (INTUSE (dwarf_formref_die) (attr, result) == NULL)
 	return -1;
 
       tag = INTUSE (dwarf_tag) (result);

@@ -1,5 +1,5 @@
 /* Return the next data element from the section after possibly converting it.
-   Copyright (C) 1998-2005, 2006, 2007 Red Hat, Inc.
+   Copyright (C) 1998-2005, 2006, 2007, 2015 Red Hat, Inc.
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 1998.
 
@@ -83,8 +83,15 @@ const uint_fast8_t __libelf_type_aligns[EV_NUM - 1][ELFCLASSNUM - 1][ELF_T_NUM] 
 # define TYPE_ALIGNS(Bits)						      \
     {									      \
       [ELF_T_ADDR] = __alignof__ (ElfW2(Bits,Addr)),			      \
+      [ELF_T_EHDR] = __alignof__ (ElfW2(Bits,Ehdr)),			      \
       [ELF_T_HALF] = __alignof__ (ElfW2(Bits,Half)),			      \
+      [ELF_T_OFF] = __alignof__ (ElfW2(Bits,Off)),			      \
+      [ELF_T_PHDR] = __alignof__ (ElfW2(Bits,Phdr)),			      \
+      [ELF_T_SHDR] = __alignof__ (ElfW2(Bits,Shdr)),			      \
+      [ELF_T_SWORD] = __alignof__ (ElfW2(Bits,Sword)),			      \
       [ELF_T_WORD] = __alignof__ (ElfW2(Bits,Word)),			      \
+      [ELF_T_XWORD] = __alignof__ (ElfW2(Bits,Xword)),			      \
+      [ELF_T_SXWORD] = __alignof__ (ElfW2(Bits,Sxword)),		      \
       [ELF_T_SYM] = __alignof__ (ElfW2(Bits,Sym)),			      \
       [ELF_T_SYMINFO] = __alignof__ (ElfW2(Bits,Syminfo)),		      \
       [ELF_T_REL] = __alignof__ (ElfW2(Bits,Rel)),			      \
@@ -97,6 +104,8 @@ const uint_fast8_t __libelf_type_aligns[EV_NUM - 1][ELFCLASSNUM - 1][ELF_T_NUM] 
       [ELF_T_MOVE] = __alignof__ (ElfW2(Bits,Move)),			      \
       [ELF_T_LIB] = __alignof__ (ElfW2(Bits,Lib)),			      \
       [ELF_T_NHDR] = __alignof__ (ElfW2(Bits,Nhdr)),			      \
+      [ELF_T_GNUHASH] = __alignof__ (Elf32_Word),			      \
+      [ELF_T_AUXV] = __alignof__ (ElfW2(Bits,auxv_t)),			      \
     }
     [EV_CURRENT - 1] =
     {
@@ -144,6 +153,25 @@ convert_data (Elf_Scn *scn, int version __attribute__ ((unused)), int eclass,
 	  return;
 	}
 
+      /* Make sure the source is correctly aligned for the conversion
+	 function to directly access the data elements.  */
+      char *rawdata_source;
+      if (ALLOW_UNALIGNED ||
+	  ((((size_t) (char *) scn->rawdata_base)) & (align - 1)) == 0)
+	rawdata_source = scn->rawdata_base;
+      else
+	{
+	  rawdata_source = (char *) malloc (size);
+	  if (rawdata_source == NULL)
+	    {
+	      __libelf_seterrno (ELF_E_NOMEM);
+	      return;
+	    }
+
+	  /* The copy will be appropriately aligned for direct access.  */
+	  memcpy (rawdata_source, scn->rawdata_base, size);
+	}
+
       /* Get the conversion function.  */
 #if EV_NUM != 2
       fp = __elf_xfctstom[version - 1][__libelf_version - 1][eclass - 1][type];
@@ -151,7 +179,10 @@ convert_data (Elf_Scn *scn, int version __attribute__ ((unused)), int eclass,
       fp = __elf_xfctstom[0][0][eclass - 1][type];
 #endif
 
-      fp (scn->data_base, scn->rawdata_base, size, 0);
+      fp (scn->data_base, rawdata_source, size, 0);
+
+      if (rawdata_source != scn->rawdata_base)
+	free (rawdata_source);
     }
 
   scn->data_list.data.d.d_buf = scn->data_base;
@@ -301,6 +332,20 @@ __libelf_set_rawdata_wrlock (Elf_Scn *scn)
   else
     scn->rawdata.d.d_type = shtype_map[LIBELF_EV_IDX][TYPEIDX (type)];
   scn->rawdata.d.d_off = 0;
+
+  /* Make sure the alignment makes sense.  d_align should be aligned both
+     in the section (trivially true since d_off is zero) and in the file.
+     Unfortunately we cannot be too strict because there are ELF files
+     out there that fail this requirement.  We will try to fix those up
+     in elf_update when writing out the image.  But for very large
+     alignment values this can bloat the image considerably.  So here
+     just check and clamp the alignment value to not be bigger than the
+     actual offset of the data in the file.  Given that there is always
+     at least an ehdr this will only trigger for alignment values > 64
+     which should be uncommon.  */
+  align = align ?: 1;
+  if (align > offset)
+    align = offset;
   scn->rawdata.d.d_align = align;
   if (elf->class == ELFCLASS32
       || (offsetof (struct Elf, state.elf32.ehdr)
@@ -337,11 +382,47 @@ __libelf_set_rawdata (Elf_Scn *scn)
   return result;
 }
 
+void
+internal_function
+__libelf_set_data_list_rdlock (Elf_Scn *scn, int wrlocked)
+{
+  if (scn->rawdata.d.d_buf != NULL && scn->rawdata.d.d_size > 0)
+    {
+      Elf *elf = scn->elf;
+
+      /* Upgrade the lock to a write lock if necessary and check
+	 nobody else already did the work.  */
+      if (!wrlocked)
+	{
+	  rwlock_unlock (elf->lock);
+	  rwlock_wrlock (elf->lock);
+	  if (scn->data_list_rear != NULL)
+	    return;
+	}
+
+      /* Convert according to the version and the type.   */
+      convert_data (scn, __libelf_version, elf->class,
+		    (elf->class == ELFCLASS32
+		     || (offsetof (struct Elf, state.elf32.ehdr)
+			 == offsetof (struct Elf, state.elf64.ehdr))
+		     ? elf->state.elf32.ehdr->e_ident[EI_DATA]
+		     : elf->state.elf64.ehdr->e_ident[EI_DATA]),
+		    scn->rawdata.d.d_size, scn->rawdata.d.d_type);
+    }
+  else
+    {
+      /* This is an empty or NOBITS section.  There is no buffer but
+	 the size information etc is important.  */
+      scn->data_list.data.d = scn->rawdata.d;
+      scn->data_list.data.s = scn;
+    }
+
+  scn->data_list_rear = &scn->data_list;
+}
+
 Elf_Data *
 internal_function
-__elf_getdata_rdlock (scn, data)
-     Elf_Scn *scn;
-     Elf_Data *data;
+__elf_getdata_rdlock (Elf_Scn *scn, Elf_Data *data)
 {
   Elf_Data *result = NULL;
   Elf *elf;
@@ -427,51 +508,17 @@ __elf_getdata_rdlock (scn, data)
      empty in case the section has size zero (for whatever reason).
      Now create the converted data in case this is necessary.  */
   if (scn->data_list_rear == NULL)
-    {
-      if (scn->rawdata.d.d_buf != NULL && scn->rawdata.d.d_size > 0)
-	{
-	  if (!locked)
-	    {
-	      rwlock_unlock (elf->lock);
-	      rwlock_wrlock (elf->lock);
-	      if (scn->data_list_rear != NULL)
-		goto pass;
-	    }
+    __libelf_set_data_list_rdlock (scn, locked);
 
-	  /* Convert according to the version and the type.   */
-	  convert_data (scn, __libelf_version, elf->class,
-			(elf->class == ELFCLASS32
-			 || (offsetof (struct Elf, state.elf32.ehdr)
-			     == offsetof (struct Elf, state.elf64.ehdr))
-			 ? elf->state.elf32.ehdr->e_ident[EI_DATA]
-			 : elf->state.elf64.ehdr->e_ident[EI_DATA]),
-			scn->rawdata.d.d_size, scn->rawdata.d.d_type);
-	}
-      else
-	{
-	  /* This is an empty or NOBITS section.  There is no buffer but
-	     the size information etc is important.  */
-	  scn->data_list.data.d = scn->rawdata.d;
-	  scn->data_list.data.s = scn;
-	}
-
-      scn->data_list_rear = &scn->data_list;
-    }
-
-  /* If no data is present we cannot return any.  */
-  if (scn->data_list_rear != NULL)
-  pass:
-    /* Return the first data element in the list.  */
-    result = &scn->data_list.data.d;
+  /* Return the first data element in the list.  */
+  result = &scn->data_list.data.d;
 
  out:
   return result;
 }
 
 Elf_Data *
-elf_getdata (scn, data)
-     Elf_Scn *scn;
-     Elf_Data *data;
+elf_getdata (Elf_Scn *scn, Elf_Data *data)
 {
   Elf_Data *result;
 

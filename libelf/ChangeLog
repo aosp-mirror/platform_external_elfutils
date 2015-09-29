@@ -1,3 +1,193 @@
+2015-09-23  Mark Wielaard  <mjw@redhat.com>
+
+	* elf32_getehdr.c (getehdr_wrlock): Mark as internal_function.
+	* elf32_getshdr.c (getshdr_rdlock): Likewise.
+	(getshdr_wrlock): Likewise.
+	* elf_error.c (__libelf_seterrno): Likewise.
+	* elf_getphdrnum.c (__elf_getphdrnum_rdlock): Likewise.
+	(__elf_getphdrnum_chk_rdlock): Likewise.
+	* elf_getshdrnum.c (__elf_getphdrnum_rdlock): Likewise.
+	(__elf_getphdrnum_chk_rdlock): Likewise.
+	* elf_getshdrnum.c (__elf_getshdrnum_rdlock): Likewise.
+	* elf_readall.c (__libelf_readall): Likewise.
+	* gelf_getehdr.c (__gelf_getehdr_rdlock): Likewise.
+
+2015-09-22  Mark Wielaard  <mjw@redhat.com>
+
+	* *.c: Remove old-style function definitions.
+
+2015-06-22  Mark Wielaard  <mjw@redhat.com>
+
+	* dl-hash.h: Update from glibc.
+
+2015-06-18  Mark Wielaard  <mjw@redhat.com>
+
+	* elf32_updatefile.c (updatefile): Always free shdr_data and scns
+	when allocated on failure paths.
+
+2015-06-18  Mark Wielaard  <mjw@redhat.com>
+
+	* nlist.c (nlist): Check symscn shdr exists before use.
+
+2015-06-16  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_update.c (write_file): Always also use ftruncate before
+	posix_fallocate to make sure file has the right size.
+
+2015-06-04  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_getdata.c (__libelf_type_aligns): Add entries for ELF_T_EHDR,
+	ELF_T_OFF, ELF_T_PHDR, ELF_T_SHDR, ELF_T_SWORD, ELF_T_XWORD,
+	ELF_T_SXWORD, ELF_T_GNUHASH, ELF_T_AUXV.
+	* elf_getdata_rawchunk.c (elf_getdata_rawchunk): Check alignment
+	of rawdata against requested type.
+
+2015-06-02  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_getdata.c (convert_data): Make sure source data is properly
+	aligned for type before calling actual conversion function.
+
+2015-06-04  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_begin.c (get_shnum): Check alignment of Shdr, not Ehdr before
+	direct access.
+
+2015-06-02  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_begin.c (file_read_elf): Split checks for ehdr and shdr
+	alignment, drop phdr alignment check.
+
+2015-05-31  Mark Wielaard  <mjw@redhat.com>
+
+	* elf32_getshdr.c (load_shdr_wrlock): Allocate shdrs with malloc,
+	not alloca and free after conversion when a copy needs to be made.
+
+2015-05-31  Mark Wielaard  <mjw@redhat.com>
+
+	* elf32_getphdr.c (getphdr_wrlock): Allocate phdrs with malloc, not
+	alloca and free after conversion when a copy needs to be made.
+
+2015-05-31  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_getarsym.c (elf_getarsym): Allocate temporary file_date with
+	malloc, not alloca also in !ALLOW_UNALIGNED case.
+
+2015-05-30  Mark Wielaard  <mjw@redhat.com>
+
+	* gelf_xlate.c (elf_cvt_Byte): Only call memmove with non-zero size.
+
+2015-05-30  Mark Wielaard  <mjw@redhat.com>
+
+	* elf32_updatefile.c (updatemmap): Only call mempcpy and update
+	last_position when d_size is non-zero.
+
+2015-05-17  Mark Wielaard  <mjw@redhat.com>
+
+	* elf32_updatefile.c (updatefile): Allocate shdr_data and scns
+	with malloc, not alloca. Free after writing section headers.
+
+2015-05-16  Mark Wielaard  <mjw@redhat.com>
+
+	* elf32_updatefile.c (updatemmap): Allocate temporary shdr storage
+	with malloc, not alloca. Free after writing section header.
+
+2015-05-16  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_getarsym.c (elf_getarsym): Allocate temporary file_date with
+	malloc, not alloca. Call free after out.
+
+2015-05-14  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_update.c (write_file): Use posix_fallocate instead of
+	ftruncate to extend file if necessary.
+
+2015-05-13  Mark Wielaard  <mjw@redhat.com>
+
+	* elf32_updatenull.c (default_ehdr): If e_phnum is zero then set
+	e_phoff also to zero.
+
+2015-05-12  Mark Wielaard  <mjw@redhat.com>
+
+	* elf32_updatenull.c (updatenull_wrlock): Check that sh_addralign
+	is a powerof2.
+	* elf_getdata.c (__libelf_set_rawdata_wrlock): Clamp large d_aligns
+	to the elf image offset.
+
+2015-05-12  Mark Wielaard  <mjw@redhat.com>
+
+	* elf32_newphdr.c (newphdr): Call __libelf_seterrno with
+	ELF_E_INVALID_INDEX before failing. Check whether section zero shdr
+	actually exists if we need to put extended phnum in section zero.
+
+2015-05-08  Mark Wielaard  <mjw@redhat.com>
+
+	* nlist.c (nlist): Call gelf_fsize with EV_CURRENT.
+
+2015-01-03  Mark Wielaard  <mjw@redhat.com>
+
+	* version_xlate.h (elf_cvt_Verdef): Use memmove to copy src to dest.
+	(elf_cvt_Verneed): Likewise.
+
+2015-03-28  Mark Wielaard  <mjw@redhat.com>
+
+	* elf.h: Update from glibc.
+
+2015-03-23  Mark Wielaard  <mjw@redhat.com>
+
+	* elf32_updatenull.c (updatenull_wrlock): Don't extend size with
+	SHT_NOBITS sh_offset.
+
+2015-02-18  Mark Wielaard  <mjw@redhat.com>
+
+	* libelfP.h (__libelf_set_data_list_rdlock): Make internal_function.
+
+2015-02-07  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* elf32_updatenull.c (__elfw2(LIBELFBITS,updatenull_wrlock)): Consider
+	sh_addralign 0 as 1.
+
+2015-01-22  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_strptr (elf_strptr): Make sure returned string is NUL
+	terminated.
+
+2015-01-21  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_strptr.c (elf_strptr): Check data_list_rear == NULL instead
+	of rawdata_base != NULL before using rawdata directly.
+
+2015-01-20  Mark Wielaard  <mjw@redhat.com>
+
+	* libelfP.h (__elf_strptr_internal): New function declaration.
+	* elf_getdata.c (__libelf_set_data_list_rdlock): New internal
+	function extracted from...
+	(__elf_getdata_rdlock): ... here.
+	* elf_newdata.c (elf_newdata): Check scn->rawdata_base and update
+	datalist if necessary.
+
+2015-01-20  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_strptr.c (elf_strptr): Call __elf[32|64]_getshdr_rdlock if
+	necessary.
+
+2014-12-30  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_getphdrnum.c (__elf_getphdrnum_chk_rdlock): New function.
+	(elf_getphdrnum): Call __elf_getphdrnum_chk_rdlock.
+	* gelf_getphdr (gelf_getphdr): Call __elf_getphdrnum_chk_rdlock
+	and always check ndx against phnum.
+	* libelfP.h (__elf_getphdrnum_chk_rdlock): New internal function.
+
+2014-12-25  Mark Wielaard  <mjw@redhat.com>
+
+	* elf_begin.c (__libelf_next_arhdr_wrlock): ar_size cannot be
+	negative. Include start_offset in maxsize.
+
+2014-12-28  Alexander Cherepanov  <cherepan@mccme.ru>
+
+	* elf_begin.c (read_long_names): Don't miss '/' right after
+	another '/'. Fixes a dir traversal vuln in ar extraction.
+
 2014-12-18  Ulrich Drepper  <drepper@gmail.com>
 
 	* Makefile.am: Suppress output of textrel_check command.

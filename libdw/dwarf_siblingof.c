@@ -1,5 +1,5 @@
 /* Return sibling of given DIE.
-   Copyright (C) 2003-2010, 2014 Red Hat, Inc.
+   Copyright (C) 2003-2010, 2014, 2015 Red Hat, Inc.
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2003.
 
@@ -37,16 +37,13 @@
 
 
 int
-dwarf_siblingof (die, result)
-     Dwarf_Die *die;
-     Dwarf_Die *result;
+dwarf_siblingof (Dwarf_Die *die, Dwarf_Die *result)
 {
   /* Ignore previous errors.  */
   if (die == NULL)
     return -1;
 
-  if (result == NULL)
-    return -1;
+  /* result is declared NN */
 
   if (result != die)
     result->addr = NULL;
@@ -78,6 +75,16 @@ dwarf_siblingof (die, result)
 	  if (unlikely (__libdw_formref (&sibattr, &offset) != 0))
 	    /* Something went wrong.  */
 	    return -1;
+
+	  /* The sibling attribute should point after this DIE in the CU.
+	     But not after the end of the CU.  */
+	  size_t size = sibattr.cu->endp - sibattr.cu->startp;
+	  size_t die_off = this_die.addr - this_die.cu->startp;
+	  if (unlikely (offset >= size || offset <= die_off))
+	    {
+	      __libdw_seterrno (DWARF_E_INVALID_DWARF);
+	      return -1;
+	    }
 
 	  /* Compute the next address.  */
 	  addr = sibattr.cu->startp + offset;

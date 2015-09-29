@@ -36,7 +36,6 @@
 #include <fnmatch.h>
 #include <libintl.h>
 #include <locale.h>
-#include <mcheck.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdio_ext.h>
@@ -524,7 +523,7 @@ adjust_relocs (Elf_Scn *outscn, Elf_Scn *inscn, const GElf_Shdr *shdr,
 
     default:
       error (EXIT_FAILURE, 0,
-	     _("unexpected section type in [%Zu] with sh_link to symtab"),
+	     _("unexpected section type in [%zu] with sh_link to symtab"),
 	     elf_ndxscn (inscn));
     }
 }
@@ -772,7 +771,7 @@ collect_symbols (Elf *outelf, bool rel, Elf_Scn *symscn, Elf_Scn *strscn,
 
       if (sym->st_name >= strdata->d_size)
 	error (EXIT_FAILURE, 0,
-	       _("invalid string offset in symbol [%Zu]"), i);
+	       _("invalid string offset in symbol [%zu]"), i);
 
       struct symbol *s = &table[i - 1];
       s->map = &map[i - 1];
@@ -868,12 +867,28 @@ compare_symbols_output (const void *a, const void *b)
 
 #undef CMP
 
+/* Return true if the flags of the sections match, ignoring the SHF_INFO_LINK
+   flag if the section contains relocation information.  */
+static bool
+sections_flags_match (Elf64_Xword sh_flags1, Elf64_Xword sh_flags2,
+		      Elf64_Word sh_type)
+{
+  if (sh_type == SHT_REL || sh_type == SHT_RELA)
+    {
+      sh_flags1 &= ~SHF_INFO_LINK;
+      sh_flags2 &= ~SHF_INFO_LINK;
+    }
+
+  return sh_flags1 == sh_flags2;
+}
+
 /* Return true iff the flags, size, and name match.  */
 static bool
 sections_match (const struct section *sections, size_t i,
 		const GElf_Shdr *shdr, const char *name)
 {
-  return (sections[i].shdr.sh_flags == shdr->sh_flags
+  return (sections_flags_match (sections[i].shdr.sh_flags, shdr->sh_flags,
+				sections[i].shdr.sh_type)
 	  && (sections[i].shdr.sh_size == shdr->sh_size
 	      || (sections[i].shdr.sh_size < shdr->sh_size
 		  && section_can_shrink (&sections[i].shdr)))
@@ -914,7 +929,7 @@ static inline const char *
 get_section_name (size_t ndx, const GElf_Shdr *shdr, const Elf_Data *shstrtab)
 {
   if (shdr->sh_name >= shstrtab->d_size)
-    error (EXIT_FAILURE, 0, _("cannot read section [%Zu] name: %s"),
+    error (EXIT_FAILURE, 0, _("cannot read section [%zu] name: %s"),
 	   ndx, elf_errmsg (-1));
   return shstrtab->d_buf + shdr->sh_name;
 }
@@ -931,10 +946,6 @@ find_alloc_sections_prelink (Elf *debug, Elf_Data *debug_shstrtab,
 			     struct section *sections,
 			     size_t nalloc, size_t nsections)
 {
-  /* Clear assignments that might have been bogus.  */
-  for (size_t i = 0; i < nalloc; ++i)
-    sections[i].outscn = NULL;
-
   Elf_Scn *undo = NULL;
   for (size_t i = nalloc; i < nsections; ++i)
     {
@@ -953,6 +964,10 @@ find_alloc_sections_prelink (Elf *debug, Elf_Data *debug_shstrtab,
   size_t undo_nalloc = 0;
   if (undo != NULL)
     {
+      /* Clear assignments that might have been bogus.  */
+      for (size_t i = 0; i < nalloc; ++i)
+	sections[i].outscn = NULL;
+
       Elf_Data *undodata = elf_rawdata (undo, NULL);
       ELF_CHECK (undodata != NULL,
 		 _("cannot read '.gnu.prelink_undo' section: %s"));
@@ -1050,7 +1065,7 @@ find_alloc_sections_prelink (Elf *debug, Elf_Data *debug_shstrtab,
       if (!match)
 	{
 	  fail = true;
-	  error (0, 0, _("cannot find matching section for [%Zu] '%s'"),
+	  error (0, 0, _("cannot find matching section for [%zu] '%s'"),
 		 elf_ndxscn (scn), name);
 	}
     }
@@ -1255,7 +1270,7 @@ more sections in stripped file than debug file -- arguments reversed?"));
       sections[i].name = elf_strptr (stripped, stripped_shstrndx,
 				     shdr->sh_name);
       if (sections[i].name == NULL)
-	error (EXIT_FAILURE, 0, _("cannot read section [%Zu] name: %s"),
+	error (EXIT_FAILURE, 0, _("cannot read section [%zu] name: %s"),
 	       elf_ndxscn (scn), elf_errmsg (-1));
       sections[i].scn = scn;
       sections[i].outscn = NULL;
@@ -1375,7 +1390,7 @@ more sections in stripped file than debug file -- arguments reversed?"));
 
       if (sec == NULL)
 	error (EXIT_FAILURE, 0,
-	       _("cannot find matching section for [%Zu] '%s'"),
+	       _("cannot find matching section for [%zu] '%s'"),
 	       elf_ndxscn (scn), name);
 
       sec->outscn = scn;
@@ -1501,6 +1516,14 @@ more sections in stripped file than debug file -- arguments reversed?"));
 	shdr_mem.sh_size = sec->shdr.sh_size;
 	shdr_mem.sh_info = sec->shdr.sh_info;
 	shdr_mem.sh_link = sec->shdr.sh_link;
+
+	/* Buggy binutils objdump might have stripped the SHF_INFO_LINK
+	   put it back if necessary.  */
+	if ((sec->shdr.sh_type == SHT_REL || sec->shdr.sh_type == SHT_RELA)
+	    && sec->shdr.sh_flags != shdr_mem.sh_flags
+	    && (sec->shdr.sh_flags & SHF_INFO_LINK) != 0)
+	  shdr_mem.sh_flags |= SHF_INFO_LINK;
+
 	if (sec->shdr.sh_link != SHN_UNDEF)
 	  shdr_mem.sh_link = ndx_section[sec->shdr.sh_link - 1];
 	if (shdr_mem.sh_flags & SHF_INFO_LINK)
@@ -1552,7 +1575,7 @@ more sections in stripped file than debug file -- arguments reversed?"));
 		  {
 		    if (shndx >= stripped_shnum)
 		      error (EXIT_FAILURE, 0,
-			     _("symbol [%Zu] has invalid section index"), i);
+			     _("symbol [%zu] has invalid section index"), i);
 
 		    shndx = ndx_section[shndx - 1];
 		    if (shndx < SHN_LORESERVE)
@@ -2252,9 +2275,6 @@ handle_implicit_modules (const struct arg_info *info)
 int
 main (int argc, char **argv)
 {
-  /* Make memory leak detection possible.  */
-  mtrace ();
-
   /* We use no threads here which can interfere with handling a stream.  */
   __fsetlocking (stdin, FSETLOCKING_BYCALLER);
   __fsetlocking (stdout, FSETLOCKING_BYCALLER);

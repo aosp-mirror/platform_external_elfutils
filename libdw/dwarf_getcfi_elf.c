@@ -1,5 +1,5 @@
 /* Get CFI from ELF file's exception-handling info.
-   Copyright (C) 2009-2010, 2014 Red Hat, Inc.
+   Copyright (C) 2009-2010, 2014, 2015 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -76,7 +76,7 @@ parse_eh_frame_hdr (const uint8_t *hdr, size_t hdr_size, GElf_Addr hdr_vaddr,
 {
   const uint8_t *h = hdr;
 
-  if (*h++ != 1)		/* version */
+  if (hdr_size < 4 || *h++ != 1)		/* version */
     return (void *) -1l;
 
   uint8_t eh_frame_ptr_encoding = *h++;
@@ -125,20 +125,17 @@ parse_eh_frame_hdr (const uint8_t *hdr, size_t hdr_size, GElf_Addr hdr_vaddr,
 static Dwarf_CFI *
 getcfi_gnu_eh_frame (Elf *elf, const GElf_Ehdr *ehdr, const GElf_Phdr *phdr)
 {
-  if (unlikely (phdr->p_filesz < 4))
-    goto invalid;
-
   Elf_Data *data = elf_getdata_rawchunk (elf, phdr->p_offset, phdr->p_filesz,
 					 ELF_T_BYTE);
-  if (data == NULL)
+  if (data == NULL || data->d_buf == NULL)
     {
     invalid_hdr:
-    invalid:
       /* XXX might be read error or corrupt phdr */
       __libdw_seterrno (DWARF_E_INVALID_CFI);
       return NULL;
     }
 
+  size_t vsize, dmax;
   Dwarf_Addr eh_frame_ptr;
   size_t search_table_entries = 0;
   uint8_t search_table_encoding = 0;
@@ -147,7 +144,15 @@ getcfi_gnu_eh_frame (Elf *elf, const GElf_Ehdr *ehdr, const GElf_Phdr *phdr)
 						    &eh_frame_ptr,
 						    &search_table_entries,
 						    &search_table_encoding);
-  if (search_table == (void *) -1l)
+
+  /* Make sure there is enough room for the entries in the table,
+     each entry consists of 2 encoded values.  */
+  vsize = encoded_value_size (data, ehdr->e_ident, search_table_encoding,
+			      NULL);
+  dmax = phdr->p_filesz - (search_table - (const uint8_t *) data->d_buf);
+  if (unlikely (search_table == (void *) -1l
+		|| vsize == 0
+		|| search_table_entries > (dmax / vsize) / 2))
     goto invalid_hdr;
 
   Dwarf_Off eh_frame_offset = eh_frame_ptr - phdr->p_vaddr + phdr->p_offset;
@@ -175,6 +180,7 @@ getcfi_gnu_eh_frame (Elf *elf, const GElf_Ehdr *ehdr, const GElf_Phdr *phdr)
       if (search_table != NULL)
 	{
 	  cfi->search_table = search_table;
+	  cfi->search_table_len = phdr->p_filesz;
 	  cfi->search_table_vaddr = phdr->p_vaddr;
 	  cfi->search_table_encoding = search_table_encoding;
 	  cfi->search_table_entries = search_table_entries;
@@ -211,7 +217,7 @@ getcfi_scn_eh_frame (Elf *elf, const GElf_Ehdr *ehdr,
 		     Elf_Scn *hdr_scn, GElf_Addr hdr_vaddr)
 {
   Elf_Data *data = elf_rawdata (scn, NULL);
-  if (data == NULL)
+  if (data == NULL || data->d_buf == NULL)
     {
       __libdw_seterrno (DWARF_E_INVALID_ELF);
       return NULL;
@@ -223,8 +229,9 @@ getcfi_scn_eh_frame (Elf *elf, const GElf_Ehdr *ehdr,
       if (hdr_scn != NULL)
 	{
 	  Elf_Data *hdr_data = elf_rawdata (hdr_scn, NULL);
-	  if (hdr_data != NULL)
+	  if (hdr_data != NULL && hdr_data->d_buf != NULL)
 	    {
+	      size_t vsize, dmax;
 	      GElf_Addr eh_frame_vaddr;
 	      cfi->search_table_vaddr = hdr_vaddr;
 	      cfi->search_table
@@ -232,7 +239,17 @@ getcfi_scn_eh_frame (Elf *elf, const GElf_Ehdr *ehdr,
 				      hdr_vaddr, ehdr, &eh_frame_vaddr,
 				      &cfi->search_table_entries,
 				      &cfi->search_table_encoding);
-	      if (cfi->search_table == (void *) -1l)
+	      cfi->search_table_len = hdr_data->d_size;
+
+	      /* Make sure there is enough room for the entries in the table,
+		 each entry consists of 2 encoded values.  */
+	      vsize = encoded_value_size (hdr_data, ehdr->e_ident,
+					  cfi->search_table_encoding, NULL);
+	      dmax = hdr_data->d_size - (cfi->search_table
+					 - (const uint8_t *) hdr_data->d_buf);
+	      if (unlikely (cfi->search_table == (void *) -1l
+			    || vsize == 0
+			    || cfi->search_table_entries > (dmax / vsize) / 2))
 		{
 		  free (cfi);
 		  /* XXX might be read error or corrupt phdr */
@@ -294,8 +311,7 @@ getcfi_shdr (Elf *elf, const GElf_Ehdr *ehdr)
 }
 
 Dwarf_CFI *
-dwarf_getcfi_elf (elf)
-     Elf *elf;
+dwarf_getcfi_elf (Elf *elf)
 {
   if (elf_kind (elf) != ELF_K_ELF)
     {

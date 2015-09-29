@@ -1,5 +1,5 @@
 /* Return string pointer from string section.
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2004, 2008, 2009 Red Hat, Inc.
+   Copyright (C) 1998-2002, 2004, 2008, 2009, 2015 Red Hat, Inc.
    This file is part of elfutils.
    Contributed by Ulrich Drepper <drepper@redhat.com>, 1998.
 
@@ -38,10 +38,7 @@
 
 
 char *
-elf_strptr (elf, idx, offset)
-     Elf *elf;
-     size_t idx;
-     size_t offset;
+elf_strptr (Elf *elf, size_t idx, size_t offset)
 {
   if (elf == NULL)
     return NULL;
@@ -86,16 +83,19 @@ elf_strptr (elf, idx, offset)
 	}
     }
 
+  size_t sh_size = 0;
   if (elf->class == ELFCLASS32)
     {
-      if (unlikely (strscn->shdr.e32->sh_type != SHT_STRTAB))
+      Elf32_Shdr *shdr = strscn->shdr.e32 ?: __elf32_getshdr_rdlock (strscn);
+      if (unlikely (shdr->sh_type != SHT_STRTAB))
 	{
 	  /* This is no string section.  */
 	  __libelf_seterrno (ELF_E_INVALID_SECTION);
 	  goto out;
 	}
 
-      if (unlikely (offset >= strscn->shdr.e32->sh_size))
+      sh_size = shdr->sh_size;
+      if (unlikely (offset >= shdr->sh_size))
 	{
 	  /* The given offset is too big, it is beyond this section.  */
 	  __libelf_seterrno (ELF_E_OFFSET_RANGE);
@@ -104,14 +104,16 @@ elf_strptr (elf, idx, offset)
     }
   else
     {
-      if (unlikely (strscn->shdr.e64->sh_type != SHT_STRTAB))
+      Elf64_Shdr *shdr = strscn->shdr.e64 ?: __elf64_getshdr_rdlock (strscn);
+      if (unlikely (shdr->sh_type != SHT_STRTAB))
 	{
 	  /* This is no string section.  */
 	  __libelf_seterrno (ELF_E_INVALID_SECTION);
 	  goto out;
 	}
 
-      if (unlikely (offset >= strscn->shdr.e64->sh_size))
+      sh_size = shdr->sh_size;
+      if (unlikely (offset >= shdr->sh_size))
 	{
 	  /* The given offset is too big, it is beyond this section.  */
 	  __libelf_seterrno (ELF_E_OFFSET_RANGE);
@@ -129,12 +131,25 @@ elf_strptr (elf, idx, offset)
 	goto out;
     }
 
-  if (likely (strscn->rawdata_base != NULL))
-    // XXX Is this correct if a file is read and then new data is added
-    // XXX to the string section?  Likely needs to check offset against
-    // XXX size of rawdata_base buffer and then iterate over rest of the
-    // XXX list.
-    result = &strscn->rawdata_base[offset];
+  if (likely (strscn->data_list_rear == NULL))
+    {
+      // XXX The above is currently correct since elf_newdata will
+      // make sure to convert the rawdata into the datalist if
+      // necessary. But it would be more efficient to keep the rawdata
+      // unconverted and only then iterate over the rest of the (newly
+      // added data) list.  Note that when the ELF file is mmapped
+      // rawdata_base can be set while rawdata.d hasn't been
+      // initialized yet (when data_read is zero). So we cannot just
+      // look at the rawdata.d.d_size.
+
+      /* Make sure the string is NUL terminated.  Start from the end,
+	 which very likely is a NUL char.  */
+      if (likely (memrchr (&strscn->rawdata_base[offset],
+			  '\0', sh_size - offset) != NULL))
+	result = &strscn->rawdata_base[offset];
+      else
+	__libelf_seterrno (ELF_E_INVALID_INDEX);
+    }
   else
     {
       /* This is a file which is currently created.  Use the list of
@@ -145,7 +160,16 @@ elf_strptr (elf, idx, offset)
 	  if (offset >= (size_t) dl->data.d.d_off
 	      && offset < dl->data.d.d_off + dl->data.d.d_size)
 	    {
-	      result = (char *) dl->data.d.d_buf + (offset - dl->data.d.d_off);
+	      /* Make sure the string is NUL terminated.  Start from
+		 the end, which very likely is a NUL char.  */
+	      if (likely (memrchr ((char *) dl->data.d.d_buf
+				   + (offset - dl->data.d.d_off), '\0',
+				   (dl->data.d.d_size
+				    - (offset - dl->data.d.d_off))) != NULL))
+		result = ((char *) dl->data.d.d_buf
+			  + (offset - dl->data.d.d_off));
+	      else
+		__libelf_seterrno (ELF_E_INVALID_INDEX);
 	      break;
 	    }
 

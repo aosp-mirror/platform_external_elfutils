@@ -1,5 +1,5 @@
 /* Internal definitions for libdwarf.
-   Copyright (C) 2002-2011, 2013, 2014 Red Hat, Inc.
+   Copyright (C) 2002-2011, 2013-2015 Red Hat, Inc.
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2002.
 
@@ -97,6 +97,7 @@ enum
   DWARF_E_IO_ERROR,
   DWARF_E_INVALID_ELF,
   DWARF_E_NO_DWARF,
+  DWARF_E_COMPRESSED_ERROR,
   DWARF_E_NOELF,
   DWARF_E_GETEHDR_ERROR,
   DWARF_E_NOMEM,
@@ -128,6 +129,7 @@ enum
   DWARF_E_INVALID_CFI,
   DWARF_E_NO_ALT_DEBUGLINK,
   DWARF_E_INVALID_OPCODE,
+  DWARF_E_NOT_CUDIE,
 };
 
 
@@ -555,6 +557,7 @@ struct Dwarf_Die_Chain
 };
 extern int __libdw_visit_scopes (unsigned int depth,
 				 struct Dwarf_Die_Chain *root,
+				 struct Dwarf_Die_Chain *imports,
 				 int (*previsit) (unsigned int depth,
 						  struct Dwarf_Die_Chain *,
 						  void *arg),
@@ -562,7 +565,7 @@ extern int __libdw_visit_scopes (unsigned int depth,
 						   struct Dwarf_Die_Chain *,
 						   void *arg),
 				 void *arg)
-  __nonnull_attribute__ (2, 3) internal_function;
+  __nonnull_attribute__ (2, 4) internal_function;
 
 /* Parse a DWARF Dwarf_Block into an array of Dwarf_Op's,
    and cache the result (via tsearch).  */
@@ -722,6 +725,12 @@ static inline size_t
 cu_sec_idx (struct Dwarf_CU *cu)
 {
   return cu->type_offset == 0 ? IDX_debug_info : IDX_debug_types;
+}
+
+static inline bool
+is_cudie (Dwarf_Die *cudie)
+{
+  return CUDIE (cudie->cu).addr == cudie->addr;
 }
 
 /* Read up begin/end pair and increment read pointer.

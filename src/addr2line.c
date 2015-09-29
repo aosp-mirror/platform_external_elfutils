@@ -1,5 +1,5 @@
 /* Locate source files and line information for given addresses
-   Copyright (C) 2005-2010, 2012, 2013 Red Hat, Inc.
+   Copyright (C) 2005-2010, 2012, 2013, 2015 Red Hat, Inc.
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2005.
 
@@ -30,7 +30,6 @@
 #include <dwarf.h>
 #include <libintl.h>
 #include <locale.h>
-#include <mcheck.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdio_ext.h>
@@ -51,11 +50,17 @@ ARGP_PROGRAM_BUG_ADDRESS_DEF = PACKAGE_BUGREPORT;
 
 /* Values for the parameters which have no short form.  */
 #define OPT_DEMANGLER 0x100
+#define OPT_PRETTY 0x101  /* 'p' is already used to select the process.  */
 
 /* Definitions of arguments for argp functions.  */
 static const struct argp_option options[] =
 {
-  { NULL, 0, NULL, 0, N_("Output selection options:"), 2 },
+  { NULL, 0, NULL, 0, N_("Input format options:"), 2 },
+  { "section", 'j', "NAME", 0,
+    N_("Treat addresses as offsets relative to NAME section."), 0 },
+
+  { NULL, 0, NULL, 0, N_("Output format options:"), 3 },
+  { "addresses", 'a', NULL, 0, N_("Print address before each entry"), 0 },
   { "basenames", 's', NULL, 0, N_("Show only base names of source files"), 0 },
   { "absolute", 'A', NULL, 0,
     N_("Show absolute file names using compilation directory"), 0 },
@@ -63,16 +68,17 @@ static const struct argp_option options[] =
   { "symbols", 'S', NULL, 0, N_("Also show symbol or section names"), 0 },
   { "symbols-sections", 'x', NULL, 0, N_("Also show symbol and the section names"), 0 },
   { "flags", 'F', NULL, 0, N_("Also show line table flags"), 0 },
-  { "section", 'j', "NAME", 0,
-    N_("Treat addresses as offsets relative to NAME section."), 0 },
   { "inlines", 'i', NULL, 0,
     N_("Show all source locations that caused inline expansion of subroutines at the address."),
     0 },
+  { "demangle", 'C', "ARG", OPTION_ARG_OPTIONAL,
+    N_("Show demangled symbols (ARG is always ignored)"), 0 },
+  { "pretty-print", OPT_PRETTY, NULL, 0,
+    N_("Print all information on one line, and indent inlines"), 0 },
 
   { NULL, 0, NULL, 0, N_("Miscellaneous:"), 0 },
   /* Unsupported options.  */
   { "target", 'b', "ARG", OPTION_HIDDEN, NULL, 0 },
-  { "demangle", 'C', "ARG", OPTION_HIDDEN | OPTION_ARG_OPTIONAL, NULL, 0 },
   { "demangler", OPT_DEMANGLER, "ARG", OPTION_HIDDEN, NULL, 0 },
   { NULL, 0, NULL, 0, NULL, 0 }
 };
@@ -99,6 +105,8 @@ static const struct argp argp =
 /* Handle ADDR.  */
 static int handle_address (const char *addr, Dwfl *dwfl);
 
+/* True when we should print the address for each entry.  */
+static bool print_addresses;
 
 /* True if only base names of files should be shown.  */
 static bool only_basenames;
@@ -124,15 +132,22 @@ static const char *just_section;
 /* True if all inlined subroutines of the current address should be shown.  */
 static bool show_inlines;
 
+/* True if all names need to be demangled.  */
+static bool demangle;
+
+/* True if all information should be printed on one line.  */
+static bool pretty;
+
+#ifdef USE_DEMANGLE
+static size_t demangle_buffer_len = 0;
+static char *demangle_buffer = NULL;
+#endif
 
 int
 main (int argc, char *argv[])
 {
   int remaining;
   int result = 0;
-
-  /* Make memory leak detection possible.  */
-  mtrace ();
 
   /* We use no threads here which can interfere with handling a stream.  */
   (void) __fsetlocking (stdout, FSETLOCKING_BYCALLER);
@@ -184,6 +199,11 @@ main (int argc, char *argv[])
     }
 
   dwfl_end (dwfl);
+
+#ifdef USE_DEMANGLE
+  free (demangle_buffer);
+#endif
+
   return result;
 }
 
@@ -212,10 +232,14 @@ parse_opt (int key, char *arg, struct argp_state *state)
       state->child_inputs[0] = state->input;
       break;
 
+    case 'a':
+      print_addresses = true;
+      break;
+
     case 'b':
     case 'C':
     case OPT_DEMANGLER:
-      /* Ignored for compatibility.  */
+      demangle = true;
       break;
 
     case 's':
@@ -251,12 +275,32 @@ parse_opt (int key, char *arg, struct argp_state *state)
       show_inlines = true;
       break;
 
+    case OPT_PRETTY:
+      pretty = true;
+      break;
+
     default:
       return ARGP_ERR_UNKNOWN;
     }
   return 0;
 }
 
+static const char *
+symname (const char *name)
+{
+#ifdef USE_DEMANGLE
+  // Require GNU v3 ABI by the "_Z" prefix.
+  if (demangle && name[0] == '_' && name[1] == 'Z')
+    {
+      int status = -1;
+      char *dsymname = __cxa_demangle (name, demangle_buffer,
+				       &demangle_buffer_len, &status);
+      if (status == 0)
+	name = demangle_buffer = dsymname;
+    }
+#endif
+  return name;
+}
 
 static const char *
 get_diename (Dwarf_Die *die)
@@ -286,6 +330,7 @@ print_dwarf_function (Dwfl_Module *mod, Dwarf_Addr addr)
   if (nscopes <= 0)
     return false;
 
+  bool res = false;
   for (int i = 0; i < nscopes; ++i)
     switch (dwarf_tag (&scopes[i]))
       {
@@ -293,17 +338,28 @@ print_dwarf_function (Dwfl_Module *mod, Dwarf_Addr addr)
 	{
 	  const char *name = get_diename (&scopes[i]);
 	  if (name == NULL)
-	    return false;
-	  puts (name);
-	  return true;
+	    goto done;
+	  printf ("%s%c", symname (name), pretty ? ' ' : '\n');
+	  res = true;
+	  goto done;
 	}
 
       case DW_TAG_inlined_subroutine:
 	{
 	  const char *name = get_diename (&scopes[i]);
 	  if (name == NULL)
-	    return false;
-	  printf ("%s inlined", name);
+	    goto done;
+
+	  /* When using --pretty-print we only show inlines on their
+	     own line.  Just print the first subroutine name.  */
+	  if (pretty)
+	    {
+	      printf ("%s ", symname (name));
+	      res = true;
+	      goto done;
+	    }
+	  else
+	    printf ("%s inlined", symname (name));
 
 	  Dwarf_Files *files;
 	  if (dwarf_getsrcfiles (cudie, &files, NULL) == 0)
@@ -361,7 +417,9 @@ print_dwarf_function (Dwfl_Module *mod, Dwarf_Addr addr)
 	}
       }
 
-  return false;
+done:
+  free (scopes);
+  return res;
 }
 
 static void
@@ -378,12 +436,13 @@ print_addrsym (Dwfl_Module *mod, GElf_Addr addr)
       if (i >= 0)
 	name = dwfl_module_relocation_info (mod, i, NULL);
       if (name == NULL)
-	puts ("??");
+	printf ("??%c", pretty ? ' ': '\n');
       else
-	printf ("(%s)+%#" PRIx64 "\n", name, addr);
+	printf ("(%s)+%#" PRIx64 "%c", name, addr, pretty ? ' ' : '\n');
     }
   else
     {
+      name = symname (name);
       if (off == 0)
 	printf ("%s", name);
       else
@@ -408,7 +467,7 @@ print_addrsym (Dwfl_Module *mod, GElf_Addr addr)
 		}
 	    }
 	}
-      puts ("");
+      printf ("%c", pretty ? ' ' : '\n');
     }
 }
 
@@ -531,11 +590,34 @@ print_src (const char *src, int lineno, int linecol, Dwarf_Die *cu)
 }
 
 static int
+get_addr_width (Dwfl_Module *mod)
+{
+  // Try to find the address width if possible.
+  static int width = 0;
+  if (width == 0 && mod != NULL)
+    {
+      Dwarf_Addr bias;
+      Elf *elf = dwfl_module_getelf (mod, &bias);
+      if (elf != NULL)
+        {
+	  GElf_Ehdr ehdr_mem;
+	  GElf_Ehdr *ehdr = gelf_getehdr (elf, &ehdr_mem);
+	  if (ehdr != NULL)
+	    width = ehdr->e_ident[EI_CLASS] == ELFCLASS32 ? 8 : 16;
+	}
+    }
+  if (width == 0)
+    width = 16;
+
+  return width;
+}
+
+static int
 handle_address (const char *string, Dwfl *dwfl)
 {
   char *endp;
-  uintmax_t addr = strtoumax (string, &endp, 0);
-  if (endp == string)
+  uintmax_t addr = strtoumax (string, &endp, 16);
+  if (endp == string || *endp != '\0')
     {
       bool parsed = false;
       int i, j;
@@ -584,16 +666,29 @@ handle_address (const char *string, Dwfl *dwfl)
 
   Dwfl_Module *mod = dwfl_addrmodule (dwfl, addr);
 
+  if (print_addresses)
+    {
+      int width = get_addr_width (mod);
+      printf ("0x%.*" PRIx64 "%s", width, addr, pretty ? ": " : "\n");
+    }
+
   if (show_functions)
     {
       /* First determine the function name.  Use the DWARF information if
 	 possible.  */
       if (! print_dwarf_function (mod, addr) && !show_symbols)
-	puts (dwfl_module_addrname (mod, addr) ?: "??");
+	{
+	  const char *name = dwfl_module_addrname (mod, addr);
+	  name = name != NULL ? symname (name) : "??";
+	  printf ("%s%c", name, pretty ? ' ' : '\n');
+	}
     }
 
   if (show_symbols)
     print_addrsym (mod, addr);
+
+  if ((show_functions || show_symbols) && pretty)
+    printf ("at ");
 
   Dwfl_Line *line = dwfl_module_getsrc (mod, addr);
 
@@ -654,6 +749,7 @@ handle_address (const char *string, Dwfl *dwfl)
 	  dwarf_offdie (dwfl_module_getdwarf (mod, &bias),
 			dieoff, &subroutine);
 	  free (scopes);
+	  scopes = NULL;
 
 	  nscopes = dwarf_getscopes_die (&subroutine, &scopes);
 	  if (nscopes > 1)
@@ -671,6 +767,9 @@ handle_address (const char *string, Dwfl *dwfl)
 		      if (dwarf_tag (die) != DW_TAG_inlined_subroutine)
 			continue;
 
+		      if (pretty)
+			printf (" (inlined by) ");
+
 		      if (show_functions)
 			{
 			  /* Search for the parent inline or function.  It
@@ -684,7 +783,9 @@ handle_address (const char *string, Dwfl *dwfl)
 				  || tag == DW_TAG_entry_point
 				  || tag == DW_TAG_subprogram)
 				{
-				  puts (get_diename (parent));
+				  printf ("%s%s",
+					  symname (get_diename (parent)),
+					  pretty ? " at " : "\n");
 				  break;
 				}
 			    }

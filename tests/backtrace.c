@@ -27,6 +27,7 @@
 #include <error.h>
 #include <unistd.h>
 #include <dwarf.h>
+#ifdef __linux__
 #include <sys/resource.h>
 #include <sys/ptrace.h>
 #include <signal.h>
@@ -37,6 +38,7 @@
 #include <string.h>
 #include <argp.h>
 #include ELFUTILS_HEADER(dwfl)
+#endif
 
 #ifndef __linux__
 
@@ -260,15 +262,19 @@ prepare_thread (pid_t pid2 __attribute__ ((unused)),
   abort ();
 #else /* x86_64 */
   long l;
+  struct user_regs_struct user_regs;
   errno = 0;
-  l = ptrace (PTRACE_POKEUSER, pid2,
-	      (void *) (intptr_t) offsetof (struct user_regs_struct, rip), jmp);
-  assert_perror (errno);
+  l = ptrace (PTRACE_GETREGS, pid2, 0, (intptr_t) &user_regs);
+  assert (errno == 0);
+  assert (l == 0);
+  user_regs.rip = (intptr_t) jmp;
+  l = ptrace (PTRACE_SETREGS, pid2, 0, (intptr_t) &user_regs);
+  assert (errno == 0);
   assert (l == 0);
   l = ptrace (PTRACE_CONT, pid2, NULL, (void *) (intptr_t) SIGUSR2);
   int status;
   pid_t got = waitpid (pid2, &status, __WALL);
-  assert_perror (errno);
+  assert (errno == 0);
   assert (got == pid2);
   assert (WIFSTOPPED (status));
   assert (WSTOPSIG (status) == SIGUSR1);
@@ -336,7 +342,7 @@ exec_dump (const char *exec)
   errno = 0;
   int status;
   pid_t got = waitpid (pid, &status, 0);
-  assert_perror (errno);
+  assert (errno == 0);
   assert (got == pid);
   assert (WIFSTOPPED (status));
   // Main thread will signal SIGUSR2.  Other thread will signal SIGUSR1.
@@ -346,7 +352,7 @@ exec_dump (const char *exec)
      __WCLONE, probably despite pthread_create already had to be called the new
      task is not yet alive enough for waitpid.  */
   pid_t pid2 = waitpid (-1, &status, __WALL);
-  assert_perror (errno);
+  assert (errno == 0);
   assert (pid2 > 0);
   assert (pid2 != pid);
   assert (WIFSTOPPED (status));
@@ -375,9 +381,9 @@ exec_dump (const char *exec)
 #ifndef __x86_64__
   is_x86_64_native = false;
 #else /* __x86_64__ */
-  is_x86_64_native = ehdr->e_ident[EI_CLASS] == ELFCLASS64;
+  is_x86_64_native = ehdr->e_machine == EM_X86_64;
 #endif /* __x86_64__ */
-  void (*jmp) (void);
+  void (*jmp) (void) = 0;
   if (is_x86_64_native)
     {
       // Find inferior symbol named "jmp".

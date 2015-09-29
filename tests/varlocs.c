@@ -1,5 +1,5 @@
 /* Test program for dwarf location functions.
-   Copyright (C) 2013 Red Hat, Inc.
+   Copyright (C) 2013, 2015 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -64,9 +64,9 @@ dwarf_encoding_string (unsigned int code)
 {
   static const char *const known[] =
     {
-#define ONE_KNOWN_DW_ATE(NAME, CODE) [CODE] = #NAME,
-      ALL_KNOWN_DW_ATE
-#undef ONE_KNOWN_DW_ATE
+#define DWARF_ONE_KNOWN_DW_ATE(NAME, CODE) [CODE] = #NAME,
+      DWARF_ALL_KNOWN_DW_ATE
+#undef DWARF_ONE_KNOWN_DW_ATE
     };
 
   if (likely (code < sizeof (known) / sizeof (known[0])))
@@ -82,7 +82,7 @@ print_base_type (Dwarf_Die *base)
   assert (dwarf_tag (base) == DW_TAG_base_type);
 
   Dwarf_Attribute encoding;
-  Dwarf_Word enctype;
+  Dwarf_Word enctype = 0;
   if (dwarf_attr (base, DW_AT_encoding, &encoding) == NULL
       || dwarf_formudata (&encoding, &enctype) != 0)
     error (EXIT_FAILURE, 0, "base type without encoding");
@@ -108,11 +108,9 @@ dwarf_opcode_string (unsigned int code)
 {
   static const char *const known[] =
     {
-#define ONE_KNOWN_DW_OP_DESC(NAME, CODE, DESC) ONE_KNOWN_DW_OP (NAME, CODE)
-#define ONE_KNOWN_DW_OP(NAME, CODE) [CODE] = #NAME,
-      ALL_KNOWN_DW_OP
-#undef ONE_KNOWN_DW_OP
-#undef ONE_KNOWN_DW_OP_DESC
+#define DWARF_ONE_KNOWN_DW_OP(NAME, CODE) [CODE] = #NAME,
+      DWARF_ALL_KNOWN_DW_OP
+#undef DWARF_ONE_KNOWN_DW_OP
     };
 
   if (likely (code < sizeof (known) / sizeof (known[0])))

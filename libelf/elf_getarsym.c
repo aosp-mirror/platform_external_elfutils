@@ -1,5 +1,5 @@
 /* Return symbol table of archive.
-   Copyright (C) 1998-2000, 2002, 2005, 2009, 2012, 2014 Red Hat, Inc.
+   Copyright (C) 1998-2000, 2002, 2005, 2009, 2012, 2014, 2015 Red Hat, Inc.
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 1998.
 
@@ -74,9 +74,7 @@ read_number_entries (uint64_t *nump, Elf *elf, size_t *offp, bool index64_p)
 }
 
 Elf_Arsym *
-elf_getarsym (elf, ptr)
-     Elf *elf;
-     size_t *ptr;
+elf_getarsym (Elf *elf, size_t *ptr)
 {
   if (elf->kind != ELF_K_AR)
     {
@@ -105,6 +103,9 @@ elf_getarsym (elf, ptr)
 
       /* In case we find no index remember this for the next call.  */
       elf->state.ar.ar_sym = (Elf_Arsym *) -1l;
+
+      /* We might have to allocate some temporary data for reading.  */
+      void *temp_data = NULL;
 
       struct ar_hdr *index_hdr;
       if (elf->map_address == NULL)
@@ -210,7 +211,13 @@ elf_getarsym (elf, ptr)
 
 	  if (elf->map_address == NULL)
 	    {
-	      file_data = alloca (sz);
+	      temp_data = malloc (sz);
+	      if (unlikely (temp_data == NULL))
+		{
+		  __libelf_seterrno (ELF_E_NOMEM);
+		  goto out;
+		}
+	      file_data = temp_data;
 
 	      ar_sym_len += index_size - n * w;
 	      Elf_Arsym *newp = (Elf_Arsym *) realloc (elf->state.ar.ar_sym,
@@ -246,7 +253,15 @@ elf_getarsym (elf, ptr)
 	      file_data = (void *) (elf->map_address + off);
 	      if (!ALLOW_UNALIGNED
 		  && ((uintptr_t) file_data & -(uintptr_t) n) != 0)
-		file_data = memcpy (alloca (sz), elf->map_address + off, sz);
+		{
+		  temp_data = malloc (sz);
+		  if (unlikely (temp_data == NULL))
+		    {
+		      __libelf_seterrno (ELF_E_NOMEM);
+		      goto out;
+		    }
+		  file_data = memcpy (temp_data, elf->map_address + off, sz);
+		}
 	      str_data = (char *) (elf->map_address + off + sz);
 	    }
 
@@ -299,6 +314,7 @@ elf_getarsym (elf, ptr)
       result = elf->state.ar.ar_sym;
 
     out:
+      free (temp_data);
       rwlock_unlock (elf->lock);
     }
 

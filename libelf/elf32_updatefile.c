@@ -1,5 +1,5 @@
 /* Write changed data structures.
-   Copyright (C) 2000-2010, 2014 Red Hat, Inc.
+   Copyright (C) 2000-2010, 2014, 2015 Red Hat, Inc.
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2000.
 
@@ -206,7 +206,12 @@ __elfw2(LIBELFBITS,updatemmap) (Elf *elf, int change_bo, size_t shnum)
 	return 1;
 
       Elf_ScnList *list = &elf->state.ELFW(elf,LIBELFBITS).scns;
-      Elf_Scn **scns = (Elf_Scn **) alloca (shnum * sizeof (Elf_Scn *));
+      Elf_Scn **scns = (Elf_Scn **) malloc (shnum * sizeof (Elf_Scn *));
+      if (unlikely (scns == NULL))
+	{
+	  __libelf_seterrno (ELF_E_NOMEM);
+	  return -1;
+	}
       char *const shdr_start = ((char *) elf->map_address + elf->start_offset
 				+ ehdr->e_shoff);
       char *const shdr_end = shdr_start + ehdr->e_shnum * ehdr->e_shentsize;
@@ -238,7 +243,12 @@ __elfw2(LIBELFBITS,updatemmap) (Elf *elf, int change_bo, size_t shnum)
 		      < ((char *) elf->map_address + elf->start_offset
 			 + elf->maximum_size));
 
-	      void *p = alloca (sizeof (ElfW2(LIBELFBITS,Shdr)));
+	      void *p = malloc (sizeof (ElfW2(LIBELFBITS,Shdr)));
+	      if (unlikely (p == NULL))
+		{
+		  __libelf_seterrno (ELF_E_NOMEM);
+		  return -1;
+		}
 	      scn->shdr.ELFW(e,LIBELFBITS)
 		= memcpy (p, scn->shdr.ELFW(e,LIBELFBITS),
 			  sizeof (ElfW2(LIBELFBITS,Shdr)));
@@ -260,7 +270,7 @@ __elfw2(LIBELFBITS,updatemmap) (Elf *elf, int change_bo, size_t shnum)
 		  > (char *) scn->data_list.data.d.d_buf))
 	    {
 	      void *p = malloc (scn->data_list.data.d.d_size);
-	      if (p == NULL)
+	      if (unlikely (p == NULL))
 		{
 		  __libelf_seterrno (ELF_E_NOMEM);
 		  return -1;
@@ -357,7 +367,7 @@ __elfw2(LIBELFBITS,updatemmap) (Elf *elf, int change_bo, size_t shnum)
 
 			last_position += dl->data.d.d_size;
 		      }
-		    else
+		    else if (dl->data.d.d_size != 0)
 		      last_position = mempcpy (last_position,
 					       dl->data.d.d_buf,
 					       dl->data.d.d_size);
@@ -421,12 +431,17 @@ __elfw2(LIBELFBITS,updatemmap) (Elf *elf, int change_bo, size_t shnum)
 		 entry we now have to adjust the pointer again so
 		 point to new place in the mapping.  */
 	      if (!elf->state.ELFW(elf,LIBELFBITS).shdr_malloced
-		  && (scn->shdr_flags & ELF_F_MALLOCED) == 0)
-		scn->shdr.ELFW(e,LIBELFBITS) = &shdr_dest[scn->index];
+		  && (scn->shdr_flags & ELF_F_MALLOCED) == 0
+		  && scn->shdr.ELFW(e,LIBELFBITS) != &shdr_dest[scn->index])
+		{
+		  free (scn->shdr.ELFW(e,LIBELFBITS));
+		  scn->shdr.ELFW(e,LIBELFBITS) = &shdr_dest[scn->index];
+		}
 
 	      scn->shdr_flags &= ~ELF_F_DIRTY;
 	    }
 	}
+      free (scns);
     }
 
   /* That was the last part.  Clear the overall flag.  */
@@ -582,7 +597,7 @@ __elfw2(LIBELFBITS,updatefile) (Elf *elf, int change_bo, size_t shnum)
 	  /* Allocate sufficient memory.  */
 	  tmp_phdr = (ElfW2(LIBELFBITS,Phdr) *)
 	    malloc (sizeof (ElfW2(LIBELFBITS,Phdr)) * phnum);
-	  if (tmp_phdr == NULL)
+	  if (unlikely (tmp_phdr == NULL))
 	    {
 	      __libelf_seterrno (ELF_E_NOMEM);
 	      return 1;
@@ -640,17 +655,32 @@ __elfw2(LIBELFBITS,updatefile) (Elf *elf, int change_bo, size_t shnum)
 #endif
 
       ElfW2(LIBELFBITS,Shdr) *shdr_data;
+      ElfW2(LIBELFBITS,Shdr) *shdr_data_mem = NULL;
       if (change_bo || elf->state.ELFW(elf,LIBELFBITS).shdr == NULL
 	  || (elf->flags & ELF_F_DIRTY))
-	shdr_data = (ElfW2(LIBELFBITS,Shdr) *)
-	  alloca (shnum * sizeof (ElfW2(LIBELFBITS,Shdr)));
+	{
+	  shdr_data_mem = (ElfW2(LIBELFBITS,Shdr) *)
+	    malloc (shnum * sizeof (ElfW2(LIBELFBITS,Shdr)));
+	  if (unlikely (shdr_data_mem == NULL))
+	    {
+	      __libelf_seterrno (ELF_E_NOMEM);
+	      return -1;
+	    }
+	  shdr_data = shdr_data_mem;
+	}
       else
 	shdr_data = elf->state.ELFW(elf,LIBELFBITS).shdr;
       int shdr_flags = elf->flags;
 
       /* Get all sections into the array and sort them.  */
       Elf_ScnList *list = &elf->state.ELFW(elf,LIBELFBITS).scns;
-      Elf_Scn **scns = (Elf_Scn **) alloca (shnum * sizeof (Elf_Scn *));
+      Elf_Scn **scns = (Elf_Scn **) malloc (shnum * sizeof (Elf_Scn *));
+      if (unlikely (scns == NULL))
+	{
+	  free (shdr_data_mem);
+	  __libelf_seterrno (ELF_E_NOMEM);
+	  return -1;
+	}
       sort_sections (scns, list);
 
       for (size_t cnt = 0; cnt < shnum; ++cnt)
@@ -685,7 +715,12 @@ __elfw2(LIBELFBITS,updatefile) (Elf *elf, int change_bo, size_t shnum)
 					(scn_start + dl->data.d.d_off)
 					- last_offset, fillbuf,
 					&filled) != 0))
-		      return 1;
+		      {
+		      fail_free:
+			free (shdr_data_mem);
+			free (scns);
+			return 1;
+		      }
 		  }
 
 		if ((scn->flags | dl->flags | elf->flags) & ELF_F_DIRTY)
@@ -714,10 +749,10 @@ __elfw2(LIBELFBITS,updatefile) (Elf *elf, int change_bo, size_t shnum)
 			if (dl->data.d.d_size > MAX_TMPBUF)
 			  {
 			    buf = malloc (dl->data.d.d_size);
-			    if (buf == NULL)
+			    if (unlikely (buf == NULL))
 			      {
 				__libelf_seterrno (ELF_E_NOMEM);
-				return 1;
+				goto fail_free;
 			      }
 			  }
 
@@ -734,7 +769,7 @@ __elfw2(LIBELFBITS,updatefile) (Elf *elf, int change_bo, size_t shnum)
 			  free (buf);
 
 			__libelf_seterrno (ELF_E_WRITE_ERROR);
-			return 1;
+			goto fail_free;
 		      }
 
 		    if (buf != dl->data.d.d_buf && buf != tmpbuf)
@@ -759,7 +794,7 @@ __elfw2(LIBELFBITS,updatefile) (Elf *elf, int change_bo, size_t shnum)
 		  if (unlikely (fill (elf->fildes, last_offset,
 				      scn_start - last_offset, fillbuf,
 				      &filled) != 0))
-		    return 1;
+		    goto fail_free;
 		}
 
 	      last_offset = scn_start + shdr->sh_size;
@@ -787,7 +822,7 @@ __elfw2(LIBELFBITS,updatefile) (Elf *elf, int change_bo, size_t shnum)
 	  && unlikely (fill (elf->fildes, last_offset,
 			     shdr_offset - last_offset,
 			     fillbuf, &filled) != 0))
-	return 1;
+	goto fail_free;
 
       /* Write out the section header table.  */
       if (shdr_flags & ELF_F_DIRTY
@@ -797,8 +832,11 @@ __elfw2(LIBELFBITS,updatefile) (Elf *elf, int change_bo, size_t shnum)
 		       != sizeof (ElfW2(LIBELFBITS,Shdr)) * shnum))
 	{
 	  __libelf_seterrno (ELF_E_WRITE_ERROR);
-	  return 1;
+	  goto fail_free;
 	}
+
+      free (shdr_data_mem);
+      free (scns);
     }
 
   /* That was the last part.  Clear the overall flag.  */

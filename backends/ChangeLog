@@ -1,3 +1,98 @@
+2015-09-22  Mark Wielaard  <mjw@redhat.com>
+
+	* arm_attrs.c: Remove old-style function definitions.
+	* linux-core-note.c: Likewise.
+	* ppc_attrs.c: Likewise.
+
+2015-09-04  Chih-Hung Hsieh  <chh@google.com>
+
+	* aarch64_init.c (aarch64_init): Replace K&R function definition
+	with ansi-C definitions.
+	* alpha_init.c (alpha_init): Likewise.
+	* arm_init.c (arm_init): Likewise.
+	* i386_init.c (i386_init): Likewise.
+	* ia64_init.c (ia64_init): Likewise.
+	* ppc64_init.c (ppc64_init): Likewise.
+	* ppc_init.c (ppc_init): Likewise.
+	* s390_init.c (s390_init): Likewise.
+	* sh_init.c (sh_init): Likewise.
+	* sparc_init.c (sparc_init): Likewise.
+	* tilegx_init.c (tilegx_init): Likewise.
+	* x86_64_init.c (x86_64_init): Likewise.
+
+2015-09-03  Mark Wielaard  <mjw@redhat.com>
+
+	* sparc_regs.c (sparc_register_info): Use ebl->class not ebl->machine.
+
+2015-06-26  Pino Toscano  <toscano.pino@tiscali.it>
+
+	* i386_initreg.c: Reduce scope of some includes to match their usage.
+
+2015-04-28  Mark Wielaard  <mjw@redhat.com>
+
+	* aarch64_reloc.def: Drop "64" from TLS_DTPMOD64, TLS_DTPREL64 and
+	TLS_TPREL64.
+
+2015-04-01  H.J. Lu  <hjl.tools@gmail.com>
+
+	* Makefile.am (x86_64_SRCS): Add x32_corenote.c.
+	* linux-core-note.c (PR_REG): New.
+	(PRPSINFO_UID_T): Likewise.
+	(ALIGN_PRPSINFO_UID_T): Likewise.
+	(TYPE_PRPSINFO_UID_T): Likewise.
+	(PRPSINFO_GID_T): Likewise.
+	(ALIGN_PRPSINFO_GID_T): Likewise.
+	(TYPE_PRPSINFO_GID_T): Likewise.
+	(pr_reg): Replace ULONG with PR_REG.
+	(pr_uid): Replace UID_T with PRPSINFO_UID_T.
+	(uid): Likewise.
+	(pr_gid): Replace GID_T with PRPSINFO_GID_T.
+	(gid): Likewise.
+	* x32_corenote.c: New file.
+	* x86_64_corenote.c (BITS): New.  Support x32.
+	(BACKEND): Support x32.
+	(ULONG): Likewise.
+	(ALIGN_ULONG): Likewise.
+	(TYPE_ULONG): Likewise.
+	(PRPSINFO_UID_T): New.
+	(ALIGN_PRPSINFO_UID_T): Likewise.
+	(TYPE_PRPSINFO_UID_T): Likewise.
+	(PRPSINFO_GID_T): Likewise.
+	(ALIGN_PRPSINFO_GID_T): Likewise.
+	(TYPE_PRPSINFO_GID_T): Likewise.
+	(PR_REG): Likewise.
+	(ALIGN_PR_REG): Likewise.
+	* x86_64_init.c (x32_core_note): New.
+	(x86_64_init): Set eh->core_note to x32_core_note for x32.
+
+2015-03-23  Mark Wielaard  <mjw@redhat.com>
+
+	* aarch64_symbol.c (aarch64_check_special_symbol): Accept
+	_GLOBAL_OFFSET_TABLE_ pointing anywhere in .got.
+
+2015-03-09  Mark Wielaard  <mjw@redhat.com>
+
+	* aarch64_reloc.def (COPY): Add DYN.
+	* arm_reloc.def (COPY): Likewise.
+	* i386_reloc.def (COPY): Likewise.
+	* ia64_reloc.def (COPY): Likewise.
+	* ppc64_reloc.def (COPY): Likewise.
+	* ppc_reloc.def (COPY): Likewise.
+	* s390_reloc.def (COPY): Likewise.
+	* sh_reloc.def (COPY): Likewise.
+	* sparc_reloc.def (COPY): Likewise.
+	* tilegx_reloc.def (COPY): Likewise.
+	* x86_64_reloc.def (COPY): Likewise.
+
+2015-02-23  Petr Machata  <pmachata@redhat.com>
+
+	* arm_symbol.c (arm_symbol_type_name): New function.
+	* arm_init.c (arm_init): Initialize the hook.
+
+2014-12-30  Mark Wielaard  <mjw@redhat.com>
+
+	* ppc_symbol.c (find_dyn_got): Check sh_entsize is not zero.
+
 2014-12-18  Ulrich Drepper  <drepper@gmail.com>
 
 	* Makefile.am: Suppress output of textrel_check command.

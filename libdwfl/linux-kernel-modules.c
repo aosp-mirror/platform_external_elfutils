@@ -28,8 +28,8 @@
 
 /* We include this before config.h because it can't handle _FILE_OFFSET_BITS.
    Everything we need here is fine if its declarations just come first.  */
-
-#undef _FILE_OFFSET_BITS  // Undo the damage caused by AndroidConfig.h.
+/* Some makefiles, e.g. HOST_linux-x86.mk, predefine _FILE_OFFSET_BITS.  */
+#undef _FILE_OFFSET_BITS
 #include <fts.h>
 
 #include <config.h>

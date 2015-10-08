@@ -1013,13 +1013,15 @@ find_alloc_sections_prelink (Elf *debug, Elf_Data *debug_shstrtab,
 	error (EXIT_FAILURE, 0, _("invalid contents in '%s' section"),
 	       ".gnu.prelink_undo");
 
-      union
-      {
-	Elf32_Shdr s32[shnum - 1];
-	Elf64_Shdr s64[shnum - 1];
-      } shdr;
-      dst.d_buf = &shdr;
-      dst.d_size = sizeof shdr;
+      bool class32 = ehdr.e32.e_ident[EI_CLASS] == ELFCLASS32;
+      size_t shsize = class32 ? sizeof (Elf32_Shdr) : sizeof (Elf64_Shdr);
+      if (unlikely ((shnum - 1) > SIZE_MAX / shsize))
+	error (EXIT_FAILURE, 0, _("overflow with shnum = %zu in '%s' section"),
+	       (size_t) shnum, ".gnu.prelink_undo");
+      const size_t shdr_bytes = (shnum - 1) * shsize;
+      void *shdr = xmalloc (shdr_bytes);
+      dst.d_buf = shdr;
+      dst.d_size = shdr_bytes;
       ELF_CHECK (gelf_xlatetom (main, &dst, &src,
 				main_ehdr->e_ident[EI_DATA]) != NULL,
 		 _("cannot read '.gnu.prelink_undo' section: %s"));
@@ -1028,9 +1030,11 @@ find_alloc_sections_prelink (Elf *debug, Elf_Data *debug_shstrtab,
       for (size_t i = 0; i < shnum - 1; ++i)
 	{
 	  struct section *sec = &undo_sections[undo_nalloc];
-	  if (ehdr.e32.e_ident[EI_CLASS] == ELFCLASS32)
+	  Elf32_Shdr (*s32)[shnum - 1] = shdr;
+	  Elf64_Shdr (*s64)[shnum - 1] = shdr;
+	  if (class32)
 	    {
-#define COPY(field) sec->shdr.field = shdr.s32[i].field
+#define COPY(field) sec->shdr.field = (*s32)[i].field
 	      COPY (sh_name);
 	      COPY (sh_type);
 	      COPY (sh_flags);
@@ -1044,7 +1048,7 @@ find_alloc_sections_prelink (Elf *debug, Elf_Data *debug_shstrtab,
 #undef	COPY
 	    }
 	  else
-	    sec->shdr = shdr.s64[i];
+	    sec->shdr = (*s64)[i];
 	  if (sec->shdr.sh_flags & SHF_ALLOC)
 	    {
 	      sec->shdr.sh_addr += bias;
@@ -1057,6 +1061,7 @@ find_alloc_sections_prelink (Elf *debug, Elf_Data *debug_shstrtab,
 	}
       qsort (undo_sections, undo_nalloc,
 	     sizeof undo_sections[0], compare_sections_nonrel);
+      free (shdr);
     }
 
   bool fail = false;

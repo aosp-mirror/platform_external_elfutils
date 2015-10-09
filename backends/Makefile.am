@@ -84,7 +84,7 @@ libebl_aarch64_pic_a_SOURCES = $(aarch64_SRCS)
 am_libebl_aarch64_pic_a_OBJECTS = $(aarch64_SRCS:.c=.os)
 
 sparc_SRCS = sparc_init.c sparc_symbol.c sparc_regs.c sparc_retval.c \
-	     sparc_corenote.c sparc64_corenote.c sparc_auxv.c
+	     sparc_corenote.c sparc64_corenote.c sparc_auxv.c sparc_attrs.c
 libebl_sparc_pic_a_SOURCES = $(sparc_SRCS)
 am_libebl_sparc_pic_a_OBJECTS = $(sparc_SRCS:.c=.os)
 
@@ -114,9 +114,9 @@ am_libebl_tilegx_pic_a_OBJECTS = $(tilegx_SRCS:.c=.os)
 
 libebl_%.so libebl_%.map: libebl_%_pic.a $(libelf) $(libdw)
 	@rm -f $(@:.so=.map)
-	echo 'ELFUTILS_$(PACKAGE_VERSION) { global: $*_init; local: *; };' \
+	$(AM_V_at)echo 'ELFUTILS_$(PACKAGE_VERSION) { global: $*_init; local: *; };' \
 	  > $(@:.so=.map)
-	$(LINK) -shared -o $(@:.map=.so) \
+	$(AM_V_CCLD)$(LINK) -shared -o $(@:.map=.so) \
 		-Wl,--whole-archive $< $(cpu_$*) -Wl,--no-whole-archive \
 		-Wl,--version-script,$(@:.so=.map) \
 		-Wl,-z,defs -Wl,--as-needed $(libelf) $(libdw)

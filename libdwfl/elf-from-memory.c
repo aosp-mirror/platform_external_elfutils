@@ -191,22 +191,23 @@ elf_from_remote_memory (GElf_Addr ehdr_vma,
       xlatefrom.d_buf = buffer;
     }
 
-  typedef union
-  {
-    Elf32_Phdr p32[phnum];
-    Elf64_Phdr p64[phnum];
-  } phdrsn;
-
-  phdrsp = malloc (sizeof (phdrsn));
+  bool class32 = ehdr.e32.e_ident[EI_CLASS] == ELFCLASS32;
+  size_t phdr_size = class32 ? sizeof (Elf32_Phdr) : sizeof (Elf64_Phdr);
+  if (unlikely (phnum > SIZE_MAX / phdr_size))
+    {
+      free (buffer);
+      goto no_memory;
+    }
+  const size_t phdrsp_bytes = phnum * phdr_size;
+  phdrsp = malloc (phdrsp_bytes);
   if (unlikely (phdrsp == NULL))
     {
       free (buffer);
       goto no_memory;
     }
-  phdrsn *phdrs = (phdrsn *) phdrsp;
 
-  xlateto.d_buf = phdrs;
-  xlateto.d_size = sizeof (phdrsn);
+  xlateto.d_buf = phdrsp;
+  xlateto.d_size = phdrsp_bytes;
 
   /* Scan for PT_LOAD segments to find the total size of the file image.  */
   size_t contents_size = 0;
@@ -214,6 +215,8 @@ elf_from_remote_memory (GElf_Addr ehdr_vma,
   GElf_Off segments_end_mem = 0;
   GElf_Addr loadbase = ehdr_vma;
   bool found_base = false;
+  Elf32_Phdr (*p32)[phnum] = phdrsp;
+  Elf64_Phdr (*p64)[phnum] = phdrsp;
   switch (ehdr.e32.e_ident[EI_CLASS])
     {
       /* Sanity checks segments and calculates segment_end,
@@ -249,9 +252,9 @@ elf_from_remote_memory (GElf_Addr ehdr_vma,
 			  ehdr.e32.e_ident[EI_DATA]) == NULL)
 	goto libelf_error;
       for (uint_fast16_t i = 0; i < phnum; ++i)
-	if (phdrs->p32[i].p_type == PT_LOAD)
-	  if (handle_segment (phdrs->p32[i].p_vaddr, phdrs->p32[i].p_offset,
-			      phdrs->p32[i].p_filesz, phdrs->p32[i].p_memsz))
+	if ((*p32)[i].p_type == PT_LOAD)
+	  if (handle_segment ((*p32)[i].p_vaddr, (*p32)[i].p_offset,
+			      (*p32)[i].p_filesz, (*p32)[i].p_memsz))
 	    goto bad_elf;
       break;
 
@@ -260,9 +263,9 @@ elf_from_remote_memory (GElf_Addr ehdr_vma,
 			  ehdr.e64.e_ident[EI_DATA]) == NULL)
 	goto libelf_error;
       for (uint_fast16_t i = 0; i < phnum; ++i)
-	if (phdrs->p64[i].p_type == PT_LOAD)
-	  if (handle_segment (phdrs->p64[i].p_vaddr, phdrs->p64[i].p_offset,
-			      phdrs->p64[i].p_filesz, phdrs->p64[i].p_memsz))
+	if ((*p64)[i].p_type == PT_LOAD)
+	  if (handle_segment ((*p64)[i].p_vaddr, (*p64)[i].p_offset,
+			      (*p64)[i].p_filesz, (*p64)[i].p_memsz))
 	    goto bad_elf;
       break;
 
@@ -315,9 +318,9 @@ elf_from_remote_memory (GElf_Addr ehdr_vma,
 
     case ELFCLASS32:
       for (uint_fast16_t i = 0; i < phnum; ++i)
-	if (phdrs->p32[i].p_type == PT_LOAD)
-	  if (handle_segment (phdrs->p32[i].p_vaddr, phdrs->p32[i].p_offset,
-			      phdrs->p32[i].p_filesz))
+	if ((*p32)[i].p_type == PT_LOAD)
+	  if (handle_segment ((*p32)[i].p_vaddr, (*p32)[i].p_offset,
+			      (*p32)[i].p_filesz))
 	    goto read_error;
 
       /* If the segments visible in memory didn't include the section
@@ -342,9 +345,9 @@ elf_from_remote_memory (GElf_Addr ehdr_vma,
 
     case ELFCLASS64:
       for (uint_fast16_t i = 0; i < phnum; ++i)
-	if (phdrs->p64[i].p_type == PT_LOAD)
-	  if (handle_segment (phdrs->p64[i].p_vaddr, phdrs->p64[i].p_offset,
-			      phdrs->p64[i].p_filesz))
+	if ((*p64)[i].p_type == PT_LOAD)
+	  if (handle_segment ((*p64)[i].p_vaddr, (*p64)[i].p_offset,
+			      (*p64)[i].p_filesz))
 	    goto read_error;
 
       /* If the segments visible in memory didn't include the section
@@ -373,7 +376,7 @@ elf_from_remote_memory (GElf_Addr ehdr_vma,
     }
 
   free (phdrsp);
-  phdrs = phdrsp = NULL;
+  phdrsp = NULL;
 
   /* Now we have the image.  Open libelf on it.  */
 

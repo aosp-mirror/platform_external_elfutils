@@ -29,7 +29,7 @@
 ##
 include $(top_srcdir)/config/eu.am
 if BUILD_STATIC
-AM_CFLAGS += -fpic
+AM_CFLAGS += -fPIC
 endif
 AM_CPPFLAGS += -I$(srcdir)/../libelf
 VERSION = 1
@@ -108,13 +108,13 @@ libdw.so$(EXEEXT): $(srcdir)/libdw.map libdw_pic.a ../libdwelf/libdwelf_pic.a \
 	  ../libelf/libelf.so
 # The rpath is necessary for libebl because its $ORIGIN use will
 # not fly in a setuid executable that links in libdw.
-	$(LINK) -shared -o $@ -Wl,--soname,$@.$(VERSION),-z,defs \
+	$(AM_V_CCLD)$(LINK) -shared -o $@ -Wl,--soname,$@.$(VERSION),-z,defs \
 		-Wl,--enable-new-dtags,-rpath,$(pkglibdir) \
 		-Wl,--version-script,$<,--no-undefined \
 		-Wl,--whole-archive $(filter-out $<,$^) -Wl,--no-whole-archive\
 		-ldl $(argp_LDADD) $(zip_LIBS)
 	@$(textrel_check)
-	ln -fs $@ $@.$(VERSION)
+	$(AM_V_at)ln -fs $@ $@.$(VERSION)
 
 install: install-am libdw.so
 	$(mkinstalldirs) $(DESTDIR)$(libdir)

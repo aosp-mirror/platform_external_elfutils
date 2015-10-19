@@ -59,7 +59,7 @@ get_pid_class (pid_t pid)
   if (asprintf (&fname, PROCEXEFMT, pid) < 0)
     return ELFCLASSNONE;
 
-  int fd = open64 (fname, O_RDONLY);
+  int fd = open (fname, O_RDONLY);
   free (fname);
   if (fd < 0)
     return ELFCLASSNONE;
@@ -95,7 +95,7 @@ grovel_auxv (pid_t pid, Dwfl *dwfl, GElf_Addr *sysinfo_ehdr)
   if (asprintf (&fname, PROCAUXVFMT, pid) < 0)
     return ENOMEM;
 
-  int fd = open64 (fname, O_RDONLY);
+  int fd = open (fname, O_RDONLY);
   free (fname);
   if (fd < 0)
     return errno == ENOENT ? 0 : errno;
@@ -315,10 +315,17 @@ read_proc_memory (void *arg, void *data, GElf_Addr address,
 		  size_t minread, size_t maxread)
 {
   const int fd = *(const int *) arg;
-  ssize_t nread = pread64 (fd, data, maxread, (off64_t) address);
-  /* Some kernels don't actually let us do this read, ignore those errors.  */
-  if (nread < 0 && (errno == EINVAL || errno == EPERM))
-    return 0;
+
+  /* This code relies on the fact the Linux kernel accepts negative
+     offsets when seeking /dev/$$/mem files, as a special case. In
+     particular pread cannot be used here, because it will always
+     return EINVAL when passed a negative offset.  */
+
+  if (lseek (fd, (off_t) address, SEEK_SET) == -1)
+    return -1;
+
+  ssize_t nread = read (fd, data, maxread);
+
   if (nread > 0 && (size_t) nread < minread)
     nread = 0;
   return nread;
@@ -362,7 +369,7 @@ dwfl_linux_proc_find_elf (Dwfl_Module *mod __attribute__ ((unused)),
 
       if (pid == -1)
 	{
-	  int fd = open64 (module_name, O_RDONLY);
+	  int fd = open (module_name, O_RDONLY);
 	  if (fd >= 0)
 	    {
 	      *file_name = strdup (module_name);
@@ -399,7 +406,7 @@ dwfl_linux_proc_find_elf (Dwfl_Module *mod __attribute__ ((unused)),
       if (asprintf (&fname, PROCMEMFMT, pid) < 0)
 	goto detach;
 
-      int fd = open64 (fname, O_RDONLY);
+      int fd = open (fname, O_RDONLY);
       free (fname);
       if (fd < 0)
 	goto detach;

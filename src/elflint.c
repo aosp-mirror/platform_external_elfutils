@@ -164,9 +164,9 @@ main (int argc, char *argv[])
       else
 	{
 	  unsigned int prev_error_count = error_count;
-	  struct stat64 st;
+	  struct stat st;
 
-	  if (fstat64 (fd, &st) != 0)
+	  if (fstat (fd, &st) != 0)
 	    {
 	      printf ("cannot stat '%s': %m\n", argv[remaining]);
 	      close (fd);
@@ -864,7 +864,7 @@ section [%2d] '%s': symbol %zu: TLS symbol but no TLS program header entry\n"),
 section [%2d] '%s': symbol %zu: TLS symbol but couldn't get TLS program header entry\n"),
 				   idx, section_name (ebl, idx), cnt);
 			}
-		      else
+		      else if (!is_debuginfo)
 			{
 			  if (st_value
 			      < destshdr->sh_offset - phdr->p_offset)
@@ -1254,9 +1254,10 @@ section [%2d] '%s': sh_info should be zero\n"),
 		}
 	    }
 
-	  if (((*destshdrp)->sh_flags & (SHF_MERGE | SHF_STRINGS)) != 0)
+	  if ((((*destshdrp)->sh_flags & SHF_MERGE) != 0)
+	      && ((*destshdrp)->sh_flags & SHF_STRINGS) != 0)
 	    ERROR (gettext ("\
-section [%2d] '%s': no relocations for merge-able sections possible\n"),
+section [%2d] '%s': no relocations for merge-able string sections possible\n"),
 		   idx, section_name (ebl, idx));
 	}
     }
@@ -3938,15 +3939,24 @@ section [%2zu] '%s' has unexpected type %d for an executable section\n"),
 	      break;
 	    }
 
-	  if ((shdr->sh_flags & SHF_WRITE)
-	      && !ebl_check_special_section (ebl, cnt, shdr,
-					     section_name (ebl, cnt)))
-	    ERROR (gettext ("\
+	  if (shdr->sh_flags & SHF_WRITE)
+	    {
+	      if (is_debuginfo && shdr->sh_type != SHT_NOBITS)
+		ERROR (gettext ("\
+section [%2zu] '%s' must be of type NOBITS in debuginfo files\n"),
+		       cnt, section_name (ebl, cnt));
+
+	      if (!is_debuginfo
+		  && !ebl_check_special_section (ebl, cnt, shdr,
+						 section_name (ebl, cnt)))
+		ERROR (gettext ("\
 section [%2zu] '%s' is both executable and writable\n"),
-		   cnt, section_name (ebl, cnt));
+		       cnt, section_name (ebl, cnt));
+	    }
 	}
 
-      if (ehdr->e_type != ET_REL && (shdr->sh_flags & SHF_ALLOC) != 0)
+      if (ehdr->e_type != ET_REL && (shdr->sh_flags & SHF_ALLOC) != 0
+	  && !is_debuginfo)
 	{
 	  /* Make sure the section is contained in a loaded segment
 	     and that the initialization part matches NOBITS sections.  */
@@ -4459,10 +4469,26 @@ more than one GNU_RELRO entry in program header\n"));
 		      if ((phdr2->p_flags & PF_W) == 0)
 			ERROR (gettext ("\
 loadable segment GNU_RELRO applies to is not writable\n"));
-		      if ((phdr2->p_flags & ~PF_W) != (phdr->p_flags & ~PF_W))
-			ERROR (gettext ("\
+		      /* Unless fully covered, relro flags could be a
+			 subset of the phdrs2 flags.  For example the load
+			 segment could also have PF_X set.  */
+		      if (phdr->p_vaddr == phdr2->p_vaddr
+			  && (phdr->p_vaddr + phdr->p_memsz
+			      == phdr2->p_vaddr + phdr2->p_memsz))
+			{
+			  if ((phdr2->p_flags & ~PF_W)
+			      != (phdr->p_flags & ~PF_W))
+			    ERROR (gettext ("\
 loadable segment [%u] flags do not match GNU_RELRO [%u] flags\n"),
-			       cnt, inner);
+				   cnt, inner);
+			}
+		      else
+			{
+			  if ((phdr->p_flags & ~phdr2->p_flags) != 0)
+			    ERROR (gettext ("\
+GNU_RELRO [%u] flags are not a subset of the loadable segment [%u] flags\n"),
+				   inner, cnt);
+			}
 		      break;
 		    }
 		}

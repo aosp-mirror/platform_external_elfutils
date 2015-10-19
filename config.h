@@ -41,7 +41,7 @@
 #define LIBEBL_SUBDIR "elfutils"
 
 /* Identifier for modules in the build. */
-#define MODVERSION "Build for elfutils 163 x86_64-unknown-linux-gnu"
+#define MODVERSION "Build for elfutils 164 x86_64-unknown-linux-gnu"
 
 /* Define to 32 or 64 if a specific implementation is wanted. */
 /* #undef NATIVE_ELF */
@@ -56,7 +56,7 @@
 #define PACKAGE_NAME "elfutils"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "elfutils 0.163"
+#define PACKAGE_STRING "elfutils 0.164"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "elfutils"
@@ -65,7 +65,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.163"
+#define PACKAGE_VERSION "0.164"
 
 /* The size of `long', as computed by sizeof. */
 #if __LP64__
@@ -93,7 +93,7 @@
 #define USE_ZLIB 1
 
 /* Version number of package */
-#define VERSION "0.163"
+#define VERSION "0.164"
 
 /* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
    `char[]'. */

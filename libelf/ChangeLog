@@ -1,3 +1,20 @@
+2015-10-14  Mark Wielaard  <mjw@redhat.com>
+
+	* elf.h: Update from glibc. Add section compression constants and
+	structures.
+
+2015-10-20  Jose E. Marchesi  <jose.marchesi@oracle.com>
+
+	* elf_begin.c (get_shnum): Elf64_Shdr.sh_size is an Elf64_Xword.
+	Fix the size argument to pread_retry.
+
+2015-10-13  Chih-Hung Hsieh  <chh@google.com>
+
+	* elf32_updatefile.c (__elfw2(LIBELFBITS,updatemmap)): Move nested
+	function 'fill_mmap' to file scope.
+	* elf_begin.c (elf_begin): Move nested function 'lock_dup_elf'
+	to file scope.
+
 2015-10-09  Josh Stone  <jistone@redhat.com>
 
 	* libelf.h: Replace loff_t with int64_t throughout.

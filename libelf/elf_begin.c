@@ -216,7 +216,7 @@ get_shnum (void *map_address, unsigned char *e_ident, int fildes, off_t offset,
 						 + offset))->sh_size,
 			sizeof (Elf64_Xword));
 	      else
-		if (unlikely (pread_retry (fildes, &size, sizeof (Elf64_Word),
+		if (unlikely (pread_retry (fildes, &size, sizeof (Elf64_Xword),
 					   offset + ehdr.e64->e_shoff
 					   + offsetof (Elf64_Shdr, sh_size))
 			      != sizeof (Elf64_Xword)))
@@ -1039,6 +1039,19 @@ write_file (int fd, Elf_Cmd cmd)
   return result;
 }
 
+/* Lock if necessary before dup an archive.  */
+static inline Elf *
+lock_dup_elf (int fildes, Elf_Cmd cmd, Elf *ref)
+{
+  /* We need wrlock to dup an archive.  */
+  if (ref->kind == ELF_K_AR)
+    {
+      rwlock_unlock (ref->lock);
+      rwlock_wrlock (ref->lock);
+    }
+    /* Duplicate the descriptor.  */
+  return dup_elf (fildes, cmd, ref);
+}
 
 /* Return a descriptor for the file belonging to FILDES.  */
 Elf *
@@ -1063,19 +1076,6 @@ elf_begin (int fildes, Elf_Cmd cmd, Elf *ref)
       return NULL;
     }
 
-  Elf *lock_dup_elf (void)
-  {
-    /* We need wrlock to dup an archive.  */
-    if (ref->kind == ELF_K_AR)
-      {
-	rwlock_unlock (ref->lock);
-	rwlock_wrlock (ref->lock);
-      }
-
-    /* Duplicate the descriptor.  */
-    return dup_elf (fildes, cmd, ref);
-  }
-
   switch (cmd)
     {
     case ELF_C_NULL:
@@ -1096,7 +1096,7 @@ elf_begin (int fildes, Elf_Cmd cmd, Elf *ref)
     case ELF_C_READ:
     case ELF_C_READ_MMAP:
       if (ref != NULL)
-	retval = lock_dup_elf ();
+	retval = lock_dup_elf (fildes, cmd, ref);
       else
 	/* Create descriptor for existing file.  */
 	retval = read_file (fildes, 0, ~((size_t) 0), cmd, NULL);
@@ -1117,7 +1117,7 @@ elf_begin (int fildes, Elf_Cmd cmd, Elf *ref)
 	      retval = NULL;
 	    }
 	  else
-	    retval = lock_dup_elf ();
+	    retval = lock_dup_elf (fildes, cmd, ref);
 	}
       else
 	/* Create descriptor for existing file.  */

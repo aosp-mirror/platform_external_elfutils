@@ -17,10 +17,6 @@
 #ifndef ANDROID_FIXUP_H
 #define ANDROID_FIXUP_H
 
-/* These two don't seem like things we want in bionic, but elfutils uses every crazy thing. */
-#define strdupa(s) strcpy(alloca(strlen(s) + 1), s)
-#define strndupa(s, n) strncpy(alloca(strnlen(s, n) + 1), s, n)
-
 static inline void *rawmemchr(const void *s, int c)
 {
     const unsigned char *ptr = s;

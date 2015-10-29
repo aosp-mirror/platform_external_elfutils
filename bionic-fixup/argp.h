@@ -20,10 +20,6 @@
 // We don't have an implementation, but elfutils unconditionally includes this,
 // and relies on its transitive includes in places.
 
-#include <ctype.h>
 #include <errno.h>
-#include <getopt.h>
-#include <limits.h>
-#include <stdio.h>
 
 #endif /* ELFUTILS_ARGP_H */

@@ -28,9 +28,6 @@ ifeq ($(HOST_OS),linux)
 
 include $(CLEAR_VARS)
 
-# Clang has no nested functions.
-LOCAL_CLANG := false
-
 LOCAL_SRC_FILES := $(LIBDWELF_SRC_FILES)
 
 LOCAL_C_INCLUDES := \
@@ -61,9 +58,6 @@ endif # linux
 #
 
 include $(CLEAR_VARS)
-
-# Clang has no nested functions.
-LOCAL_CLANG := false
 
 LOCAL_SRC_FILES := $(LIBDWELF_SRC_FILES)
 

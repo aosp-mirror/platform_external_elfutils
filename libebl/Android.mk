@@ -78,9 +78,6 @@ ifeq ($(HOST_OS),linux)
 #
 include $(CLEAR_VARS)
 
-# Disable clang like other elfutils libraries.
-LOCAL_CLANG := false
-
 LOCAL_SRC_FILES := $(LIBEBL_SRC_FILES)
 
 LOCAL_C_INCLUDES := \
@@ -92,8 +89,6 @@ LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/../libdw
 
 LOCAL_CFLAGS += -DHAVE_CONFIG_H -std=gnu99 -D_GNU_SOURCE
-
-LOCAL_CLANG := false
 
 LOCAL_MODULE:= libebl
 
@@ -108,9 +103,6 @@ endif # linux
 #
 
 include $(CLEAR_VARS)
-
-# Disable clang like other elfutils libraries.
-LOCAL_CLANG := false
 
 LOCAL_SRC_FILES := $(LIBEBL_SRC_FILES)
 

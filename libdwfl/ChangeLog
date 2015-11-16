@@ -1,3 +1,15 @@
+2015-11-13  Chih-Hung Hsieh <chh@google.com>
+
+	* gzip.c (unzip): Move nested functions to file scope.
+
+2015-10-21  Chih-Hung Hsieh <chh@google.com>
+	    Mark Wielaard  <mjw@redhat.com>
+
+	* dwfl_module_getsrc_file.c (dwfl_module_getsrc_file): Move nested
+	functions 'dwarf_line_file', 'dwfl_line', and 'dwfl_line_file' to
+	file scope. Rename dwarf_line_file to dwfl_dwarf_line_file. Don't
+	use INTUSE.
+
 2015-10-21  Chih-Hung Hsieh <chh@google.com>
 
 	* frame_unwind.c (expr_eval): Move nested function 'push' and 'pop'

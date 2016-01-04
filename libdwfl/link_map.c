@@ -42,6 +42,62 @@
 #define PROBE_VAL64	sizeof (Elf64_Phdr)
 
 
+static inline bool
+do_check64 (size_t i, const Elf64_auxv_t (*a64)[], uint_fast8_t *elfdata)
+{
+  /* The AUXV pointer might not even be naturally aligned for 64-bit
+     data, because note payloads in a core file are not aligned.  */
+
+  uint64_t type = read_8ubyte_unaligned_noncvt (&(*a64)[i].a_type);
+  uint64_t val = read_8ubyte_unaligned_noncvt (&(*a64)[i].a_un.a_val);
+
+  if (type == BE64 (PROBE_TYPE)
+      && val == BE64 (PROBE_VAL64))
+    {
+      *elfdata = ELFDATA2MSB;
+      return true;
+    }
+
+  if (type == LE64 (PROBE_TYPE)
+      && val == LE64 (PROBE_VAL64))
+    {
+      *elfdata = ELFDATA2LSB;
+      return true;
+    }
+
+  return false;
+}
+
+#define check64(n) do_check64 (n, a64, elfdata)
+
+static inline bool
+do_check32 (size_t i, const Elf32_auxv_t (*a32)[], uint_fast8_t *elfdata)
+{
+  /* The AUXV pointer might not even be naturally aligned for 32-bit
+     data, because note payloads in a core file are not aligned.  */
+
+  uint32_t type = read_4ubyte_unaligned_noncvt (&(*a32)[i].a_type);
+  uint32_t val = read_4ubyte_unaligned_noncvt (&(*a32)[i].a_un.a_val);
+
+  if (type == BE32 (PROBE_TYPE)
+      && val == BE32 (PROBE_VAL32))
+    {
+      *elfdata = ELFDATA2MSB;
+      return true;
+    }
+
+  if (type == LE32 (PROBE_TYPE)
+      && val == LE32 (PROBE_VAL32))
+    {
+      *elfdata = ELFDATA2LSB;
+      return true;
+    }
+
+  return false;
+}
+
+#define check32(n) do_check32 (n, a32, elfdata)
+
 /* Examine an auxv data block and determine its format.
    Return true iff we figured it out.  */
 static bool
@@ -50,56 +106,6 @@ auxv_format_probe (const void *auxv, size_t size,
 {
   const Elf32_auxv_t (*a32)[size / sizeof (Elf32_auxv_t)] = (void *) auxv;
   const Elf64_auxv_t (*a64)[size / sizeof (Elf64_auxv_t)] = (void *) auxv;
-
-  inline bool check64 (size_t i)
-  {
-    /* The AUXV pointer might not even be naturally aligned for 64-bit
-       data, because note payloads in a core file are not aligned.  */
-
-    uint64_t type = read_8ubyte_unaligned_noncvt (&(*a64)[i].a_type);
-    uint64_t val = read_8ubyte_unaligned_noncvt (&(*a64)[i].a_un.a_val);
-
-    if (type == BE64 (PROBE_TYPE)
-	&& val == BE64 (PROBE_VAL64))
-      {
-	*elfdata = ELFDATA2MSB;
-	return true;
-      }
-
-    if (type == LE64 (PROBE_TYPE)
-	&& val == LE64 (PROBE_VAL64))
-      {
-	*elfdata = ELFDATA2LSB;
-	return true;
-      }
-
-    return false;
-  }
-
-  inline bool check32 (size_t i)
-  {
-    /* The AUXV pointer might not even be naturally aligned for 32-bit
-       data, because note payloads in a core file are not aligned.  */
-
-    uint32_t type = read_4ubyte_unaligned_noncvt (&(*a32)[i].a_type);
-    uint32_t val = read_4ubyte_unaligned_noncvt (&(*a32)[i].a_un.a_val);
-
-    if (type == BE32 (PROBE_TYPE)
-	&& val == BE32 (PROBE_VAL32))
-      {
-	*elfdata = ELFDATA2MSB;
-	return true;
-      }
-
-    if (type == LE32 (PROBE_TYPE)
-	&& val == LE32 (PROBE_VAL32))
-      {
-	*elfdata = ELFDATA2LSB;
-	return true;
-      }
-
-    return false;
-  }
 
   for (size_t i = 0; i < size / sizeof (Elf64_auxv_t); ++i)
     {
@@ -356,8 +362,10 @@ report_r_debug (uint_fast8_t elfclass, uint_fast8_t elfdata,
       if (name != NULL && name[0] == '\0')
 	name = NULL;
 
-      if (iterations == 1 && dwfl->executable_for_core != NULL)
-	name = dwfl->executable_for_core;
+      if (iterations == 1
+	  && dwfl->user_core != NULL
+	  && dwfl->user_core->executable_for_core != NULL)
+	name = dwfl->user_core->executable_for_core;
 
       struct r_debug_info_module *r_debug_info_module = NULL;
       if (r_debug_info != NULL)
@@ -789,7 +797,10 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 	  bool in_ok = (*memory_callback) (dwfl, phdr_segndx, &in.d_buf,
 					   &in.d_size, phdr, phnum * phent,
 					   memory_callback_arg);
-	  if (! in_ok && dwfl->executable_for_core != NULL)
+	  bool in_from_exec = false;
+	  if (! in_ok
+	      && dwfl->user_core != NULL
+	      && dwfl->user_core->executable_for_core != NULL)
 	    {
 	      /* AUXV -> PHDR -> DYNAMIC
 		 Both AUXV and DYNAMIC should be always present in a core file.
@@ -797,7 +808,7 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 		 EXECUTABLE_FOR_CORE to find where DYNAMIC is located in the
 		 core file.  */
 
-	      int fd = open (dwfl->executable_for_core, O_RDONLY);
+	      int fd = open (dwfl->user_core->executable_for_core, O_RDONLY);
 	      Elf *elf;
 	      Dwfl_Error error = DWFL_E_ERRNO;
 	      if (fd != -1)
@@ -851,6 +862,7 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 		  return false;
 		}
 	      in_ok = true;
+	      in_from_exec = true;
 	    }
 	  if (in_ok)
 	    {
@@ -899,8 +911,11 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 		    }
 		}
 
-	      (*memory_callback) (dwfl, -1, &in.d_buf, &in.d_size, 0, 0,
-				  memory_callback_arg);
+	      if (in_from_exec)
+		free (in.d_buf);
+	      else
+		(*memory_callback) (dwfl, -1, &in.d_buf, &in.d_size, 0, 0,
+				    memory_callback_arg);
 	      free (buf);
 	    }
 	  else

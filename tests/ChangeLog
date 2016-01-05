@@ -1,3 +1,31 @@
+2015-12-08  Jose E. Marchesi  <jose.marchesi@oracle.com>
+
+	* run-backtrace-core-sparc.sh: New file.
+	* backtrace.sparc.core.bz2: New file.
+	* backtrace.sparc.exec.bz2: New file.
+	* Makefile.am (EXTRA_DIST): ... and added all here.
+	(TESTS): Added run-backtrace-core-sparc.sh.
+
+2015-12-02  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am (valgrind_cmd): Use --leak-check=full.
+	* run-backtrace-demangle.sh: Disable valgrind.
+	* run-stack-demangled-test.sh: Likewise.
+	* run-stack-d-test.sh: Likewise.
+	* run-stack-i-test.sh: Likewise.
+
+2015-12-01  Mark Wielaard  <mjw@redhat.com>
+
+	* test-flag-nobits.c (main): Call elf_end.
+	* rerequest_tag.c (main): Call dwarf_end.
+	* funcscopes.c (handle_function): Free scopes.
+	* dwarf-getstring.c (main): Call dwarf_end.
+	* allregs.c (main): Free state.info.
+	* alldts.c (main): Free dyn.
+	* addrcfi.c (handle_address): Free stuff.frame between handle_cfi
+	calls.
+	* addrscopes.c (handle_address): Free scopes.
+
 2015-10-16  Mark Wielaard  <mjw@redhat.com>
 
 	* Makefile.am [BUILD_STATIC] (libdw): Add -lz.

@@ -1,3 +1,32 @@
+2015-12-02  Mark Wielaard  <mjw@redhat.com>
+
+	* fde.c (intern_fde): Don't leak duplicate FDEs.
+
+2015-12-01  Mark Wielaard  <mjw@redhat.com>
+
+	* fde.c (intern_fde): Don't intern an fde that doesn't cover a
+	valid code range.
+
+2015-12-01  Mark Wielaard  <mjw@redhat.com>
+
+	* dwarf_end.c (dwarf_end): Call cu_free on fake_loc_cu if it exists.
+
+2015-10-14  Chih-Hung Hsieh  <chh@google.com>
+
+	* dwarf_entry_breakpoints.c (dwarf_entry_breakpoints): Move recursive
+	functions 'add_bkpt', 'entrypc_bkpt', and 'search_range' to file scope.
+
+2015-10-14  Chih-Hung Hsieh  <chh@google.com>
+
+	* libdw_visit_scopes.c (__libdw_visit_scopes): Move recursive nested
+	function 'walk_children' to file scope; inline 'recurse' at its call
+	site.
+
+2015-10-19  Mark Wielaard  <mjw@redhat.com>
+
+	* frame-cache.c (__libdw_destroy_frame_cache): Call ebl_closebackend
+	if necessary.
+
 2015-10-16  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* dwarf_getsrclines.c (read_srclines): Initialize state early.

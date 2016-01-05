@@ -1,3 +1,31 @@
+2015-12-02  Mark Wielaard  <mjw@redhat.com>
+
+	* nm.c (process_file): Accept fd and pass it on.
+	(handle_elf): Likewise.
+	(find_no_debuginfo): New.
+	(struct getdbg): Likewise.
+	(getdbg_dwflmod): Likewise.
+	(show_symbols): Take fd. If the file is ET_REL use libdwfl to get
+	the relocated Dwarf.
+
+2015-12-02  Mark Wielaard  <mjw@redhat.com>
+
+	* nm.c (get_local_names): Check for duplicates in local_root tree.
+
+2015-12-02  Mark Wielaard  <mjw@redhat.com>
+
+	* unstrip.c (struct data_list): New.
+	(new_data_list): Likewise.
+	(record_new_data): Likewise.
+	(free_new_data): Likewise.
+	(adjust_relocs): Call record_new_data.
+	(add_new_section_symbols): Likewise.
+	(copy_elided_sections): Call free_new_data.
+
+2015-12-01  Mark Wielaard  <mjw@redhat.com>
+
+	* elfcmp.c (main): Close ebl1 and ebl2 backends.
+
 2015-10-16  Mark Wielaard  <mjw@redhat.com>
 
 	* Makefile.am [BUILD_STATIC](libdw): Add -lz.

@@ -1,3 +1,65 @@
+2015-11-18  Chih-Hung Hsieh <chh@google.com>
+
+	* linux-proc-maps.c (proc_maps_report): Move nested function
+	'report' to file scope.
+
+2015-11-18  Chih-Hung Hsieh <chh@google.com>
+
+	* core-file.c (elf_begin_rand): Move nested function 'fail' to file
+	scope.
+	* core-file.c (dwfl_elf_phdr_memory_callback): Move nested functions
+	'update_end' and 'more' to file scope.
+
+2015-11-17  Chih-Hung Hsieh <chh@google.com>
+
+	* link_map.c (auxv_format_probe): Move nested functions
+	check64 and check32 to file scope.
+
+2015-12-08  Jose E. Marchesi  <jose.marchesi@oracle.com>
+
+	* dwfl_frame.c (state_fetch_pc): Add a backend-defined offset to
+	the value of the return address register as defined by the CFI
+	abi.
+	* frame_unwind.c (handle_cfi): Likewise.
+
+2015-12-01  Mark Wielaard  <mjw@redhat.com>
+
+	* link_map.c (dwfl_link_map_report): Track whether in.d_buf comes
+	from exec or memory_callback, free as appropriate.
+
+2015-12-01  Mark Wielaard  <mjw@redhat.com>
+
+	* libdwflP.h (struct Dwfl_User_Core): New.
+	(struct DWfl): Replace executable_for_core with user_core.
+	* argp-std.c (parse_opt): Store core and fd in Dwfl user_core.
+	* core-file.c (dwfl_core_file_report): Check and store
+	executable_for_core in Dwfl user_core.
+	* dwfl_build_id_find_elf.c (dwfl_build_id_find_elf): Check and use
+	executable_for_core in Dwfl user_core.
+	* dwfl_end.c (dwfl_end): Release resources held in Dwfl user_core.
+	* link-map.c (report_r_debug): Check executable_for_core in Dwfl
+	user_core.
+	(dwfl_link_map_report): Likewise.
+
+2015-11-16  Chih-Hung Hsieh <chh@google.com>
+
+	* dwfl_module_getdwarf.c (find_prelink_address_sync): Move nested
+	function 'consider_shdr' to file scope.
+	* dwfl_module_getdwarf.c (find_dynsym): Move nested function
+	'translate_offs' to file scope.
+
+2015-11-16  Chih-Hung Hsieh <chh@google.com>
+
+	* dwfl_module_addrsym.c (__libdwfl_addrsym): Move nested functions
+	'same_section', 'binding_value', 'try_sym_value', and 'search_table'
+	to file scope.
+
+2015-11-19  Mark Wielaard  <mjw@redhat.com>
+
+	* dwfl_module.c (__libdwfl_module_free): Remove Dwfl_Module Ebl from
+	eh_cfi and dwarf_cfi cache if necessary before calling dwarf_end and
+	dwarf_cfi_end.
+
 2015-11-13  Chih-Hung Hsieh <chh@google.com>
 
 	* gzip.c (unzip): Move nested functions to file scope.

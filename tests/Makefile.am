@@ -52,7 +52,8 @@ check_PROGRAMS = arextract arsymtest newfile saridx scnnames sectiondump \
 		  backtrace-data backtrace-dwarf debuglink debugaltlink \
 		  buildid deleted deleted-lib.so aggregate_size vdsosyms \
 		  getsrc_die strptr newdata elfstrtab dwfl-proc-attach \
-		  elfshphehdr elfstrmerge
+		  elfshphehdr elfstrmerge dwelfgnucompressed elfgetchdr \
+		  elfgetzdata elfputzdata zstrptr
 
 asm_TESTS = asm-tst1 asm-tst2 asm-tst3 asm-tst4 asm-tst5 \
 	    asm-tst6 asm-tst7 asm-tst8 asm-tst9
@@ -80,7 +81,7 @@ TESTS = run-arextract.sh run-arsymtest.sh newfile test-nlist \
 	run-strip-test9.sh run-strip-test10.sh \
 	run-strip-groups.sh run-strip-reloc.sh run-strip-strmerge.sh \
 	run-unstrip-test.sh run-unstrip-test2.sh \
-	run-unstrip-test3.sh run-unstrip-M.sh \
+	run-unstrip-test3.sh run-unstrip-M.sh run-elfstrmerge-test.sh \
 	run-ecp-test.sh run-ecp-test2.sh run-alldts.sh \
 	run-elflint-test.sh run-elflint-self.sh run-ranlib-test.sh \
 	run-ranlib-test2.sh run-ranlib-test3.sh run-ranlib-test4.sh \
@@ -90,7 +91,7 @@ TESTS = run-arextract.sh run-arsymtest.sh newfile test-nlist \
 	run-readelf-test1.sh run-readelf-test2.sh run-readelf-test3.sh \
 	run-readelf-test4.sh run-readelf-twofiles.sh \
 	run-readelf-macro.sh run-readelf-loc.sh \
-	run-readelf-aranges.sh run-readelf-line.sh \
+	run-readelf-aranges.sh run-readelf-line.sh run-readelf-z.sh \
 	run-native-test.sh run-bug1-test.sh \
 	run-debuglink.sh run-debugaltlink.sh run-buildid.sh \
 	dwfl-bug-addr-overflow run-addrname-test.sh \
@@ -116,11 +117,15 @@ TESTS = run-arextract.sh run-arsymtest.sh newfile test-nlist \
 	run-backtrace-core-s390x.sh run-backtrace-core-s390.sh \
 	run-backtrace-core-aarch64.sh run-backtrace-core-sparc.sh \
 	run-backtrace-demangle.sh run-stack-d-test.sh run-stack-i-test.sh \
-	run-stack-demangled-test.sh \
+	run-stack-demangled-test.sh run-readelf-zx.sh run-readelf-zp.sh \
 	run-readelf-dwz-multi.sh run-allfcts-multi.sh run-deleted.sh \
 	run-linkmap-cut.sh run-aggregate-size.sh vdsosyms run-readelf-A.sh \
 	run-getsrc-die.sh run-strptr.sh newdata elfstrtab dwfl-proc-attach \
-	elfshphehdr run-lfs-symbols.sh
+	elfshphehdr run-lfs-symbols.sh run-dwelfgnucompressed.sh \
+	run-elfgetchdr.sh \
+	run-elfgetzdata.sh run-elfputzdata.sh run-zstrptr.sh \
+	run-compress-test.sh \
+	run-readelf-zdebug.sh run-readelf-zdebug-rel.sh
 
 if !BIARCH
 export ELFUTILS_DISABLE_BIARCH = 1
@@ -131,16 +136,12 @@ export ELFUTILS_DISABLE_DEMANGLE = 1
 endif
 
 if !STANDALONE
-check_PROGRAMS += msg_tst md5-sha1-test
-TESTS += msg_tst md5-sha1-test
+check_PROGRAMS += msg_tst md5-sha1-test system-elf-libelf-test
+TESTS += msg_tst md5-sha1-test system-elf-libelf-test
 endif
 
 if LZMA
 TESTS += run-readelf-s.sh run-dwflsyms.sh
-endif
-
-if ZLIB
-TESTS += run-readelf-zdebug.sh
 endif
 
 if HAVE_LIBASM
@@ -167,7 +168,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh \
 	     run-unstrip-test.sh run-unstrip-test2.sh \
 	     testfile-info-link.bz2 testfile-info-link.debuginfo.bz2 \
 	     testfile-info-link.stripped.bz2 run-unstrip-test3.sh \
-	     run-unstrip-M.sh \
+	     run-unstrip-M.sh run-elfstrmerge-test.sh \
 	     run-elflint-self.sh run-ranlib-test.sh run-ranlib-test2.sh \
 	     run-ranlib-test3.sh run-ranlib-test4.sh \
 	     run-addrscopes.sh run-strings-test.sh run-funcscopes.sh \
@@ -208,6 +209,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh \
 	     run-readelf-macro.sh testfilemacro.bz2 \
 	     run-readelf-loc.sh testfileloc.bz2 \
 	     run-readelf-aranges.sh run-readelf-line.sh testfilefoobarbaz.bz2 \
+	     run-readelf-z.sh \
 	     run-readelf-dwz-multi.sh libtestfile_multi_shared.so.bz2 \
 	     testfile_multi.dwz.bz2 testfile_multi_main.bz2 \
 	     testfile-dwzstr.bz2 testfile-dwzstr.multi.bz2 \
@@ -296,6 +298,9 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh \
 	     run-stack-demangled-test.sh \
 	     testfiledwarfinlines.bz2 testfiledwarfinlines.core.bz2 \
 	     run-readelf-zdebug.sh testfile-debug.bz2 testfile-zdebug.bz2 \
+	     run-readelf-zdebug-rel.sh testfile-debug-rel.o.bz2 \
+	     testfile-debug-rel-g.o.bz2 testfile-debug-rel-z.o.bz2 \
+	     run-readelf-zx.sh run-readelf-zp.sh \
 	     run-deleted.sh run-linkmap-cut.sh linkmap-cut-lib.so.bz2 \
 	     linkmap-cut.bz2 linkmap-cut.core.bz2 \
 	     run-aggregate-size.sh testfile-sizes1.o.bz2 testfile-sizes2.o.bz2 \
@@ -306,7 +311,14 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh \
 	     testfile-x32-core.bz2 testfile-x32.bz2 \
 	     backtrace.x32.core.bz2 backtrace.x32.exec.bz2 \
 	     testfile-x32-s.bz2 testfile-x32-d.bz2 testfile-x32-debug.bz2 \
-	     run-lfs-symbols.sh lfs-symbols testfile-nolfs.bz2
+	     run-lfs-symbols.sh lfs-symbols testfile-nolfs.bz2 \
+	     testfile-zgnu32.bz2 testfile-zgnu64.bz2 \
+	     testfile-zgnu32be.bz2 testfile-zgnu64be.bz2 \
+	     run-dwelfgnucompressed.sh \
+	     testfile-zgabi32.bz2 testfile-zgabi64.bz2 \
+	     testfile-zgabi32be.bz2 testfile-zgabi64be.bz2 \
+	     run-elfgetchdr.sh run-elfgetzdata.sh run-elfputzdata.sh \
+	     run-zstrptr.sh run-compress-test.sh
 
 if USE_VALGRIND
 valgrind_cmd='valgrind -q --leak-check=full --error-exitcode=1'
@@ -455,6 +467,16 @@ dwfl_proc_attach_LDADD = $(libdw)
 dwfl_proc_attach_LDFLAGS = -pthread $(AM_LDFLAGS)
 elfshphehdr_LDADD =$(libelf)
 elfstrmerge_LDADD = $(libebl) $(libelf)
+dwelfgnucompressed_LDADD = $(libelf) $(libdw)
+elfgetchdr_LDADD = $(libelf) $(libdw)
+elfgetzdata_LDADD = $(libelf)
+elfputzdata_LDADD = $(libelf)
+zstrptr_LDADD = $(libelf)
+
+# We want to test the libelf header against the system elf.h header.
+# Don't include any -I CPPFLAGS.
+system_elf_libelf_test_CPPFLAGS =
+system_elf_libelf_test_LDADD = $(libelf)
 
 if GCOV
 check: check-am coverage

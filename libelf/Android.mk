@@ -17,6 +17,7 @@ LOCAL_PATH := $(call my-dir)
 LIBELF_SRC_FILES := \
 	elf32_checksum.c \
 	elf32_fsize.c \
+	elf32_getchdr.c \
 	elf32_getehdr.c \
 	elf32_getphdr.c \
 	elf32_getshdr.c \
@@ -29,6 +30,7 @@ LIBELF_SRC_FILES := \
 	elf32_xlatetom.c \
 	elf64_checksum.c \
 	elf64_fsize.c \
+	elf64_getchdr.c \
 	elf64_getehdr.c \
 	elf64_getphdr.c \
 	elf64_getshdr.c \
@@ -42,6 +44,7 @@ LIBELF_SRC_FILES := \
 	elf_begin.c \
 	elf_clone.c \
 	elf_cntl.c \
+	elf_compress.c \
 	elf_end.c \
 	elf_error.c \
 	elf_fill.c \
@@ -82,6 +85,7 @@ LIBELF_SRC_FILES := \
 	gelf_checksum.c \
 	gelf_fsize.c \
 	gelf_getauxv.c \
+	gelf_getchdr.c \
 	gelf_getclass.c \
 	gelf_getdyn.c \
 	gelf_getehdr.c \
@@ -148,6 +152,8 @@ LOCAL_CFLAGS += -Wno-pointer-arith
 
 LOCAL_MODULE := libelf
 
+LOCAL_STATIC_LIBRARIES := libz
+
 LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)
 
 include $(BUILD_HOST_STATIC_LIBRARY)
@@ -170,6 +176,8 @@ LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/../lib \
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../bionic-fixup
+
+LOCAL_STATIC_LIBRARIES := libz
 
 LOCAL_CFLAGS += -DHAVE_CONFIG_H -std=gnu99 -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 

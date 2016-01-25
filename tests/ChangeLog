@@ -1,3 +1,113 @@
+2016-01-13  Mark Wielaard  <mjw@redhat.com>
+
+	* dwfl-bug-fd-leak.c: Skip test unless on __linux__.
+
+2016-01-13  Mark Wielaard  <mjw@redhat.com>
+
+	* dwfl-proc-attach.c: Guard linux specific header.
+
+2016-01-13  Mark Wielaard  <mjw@redhat.com>
+
+	* system-elf-libelf-test.c: New test.
+	* Makefile.am (TESTS): Add system-elf-libelf-test, if !STANDALONE.
+	(check_PROGRAMS): Likewise.
+	(system_elf_libelf_test_CPPFLAGS): New variable.
+	(system_elf_libelf_test_LDADD): Likewise.
+
+2016-01-08  Mark Wielaard  <mjw@redhat.com>
+
+	* elfputzdata.c (main): Fix parentheses in strncmp test.
+
+2016-01-08  Mark Wielaard  <mjw@redhat.com>
+
+	* elfputzdata.c (main): Use PRId64 to print 64 bit value.
+
+2016-01-08  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am (TESTS): Always unconditionally add
+	run-readelf-zdebug.sh and run-readelf-zdebug-rel.sh.
+
+2015-12-16  Mark Wielaard  <mjw@redhat.com>
+
+	* run-compress-test.sh: New test.
+	* Makefile.am (TESTS): Add run-compress-test.sh.
+	(EXTRA_DISTS): Likewise.
+
+2015-11-26  Mark Wielaard  <mjw@redhat.com>
+
+	* zstrptr.c: New file.
+	* run-zstrptr.sh: New test.
+	* elfputzdata.c (main): (re)compress .shstrtab.
+	* run-elfputzdata.sh: Expect .shstrtab compression.
+	* Makefile.am (check_PROGRAMS): Add zstrptr.
+	(TESTS): Add run-zstrptr.sh.
+	(EXTRA_DIST): Likewise.
+	(zstrptr_LDADD): New variable.
+
+2015-10-20  Mark Wielaard  <mjw@redhat.com>
+
+	* run-readelf-zx.sh: New test.
+	* run-readelf-zp.sh: Likewise.
+	* Makefile.am (TESTS): Add run-readelf-zx.sh and run-readelf-zp.sh.
+	(EXTRA_DIST): Likewise.
+
+2015-10-21  Mark Wielaard  <mjw@redhat.com>
+
+	* Makefile.am (check_PROGRAMS): Add elfgetzdata and elfputzdata.
+	(TESTS): Add run-elfgetzdata.sh and run-elfputzdata.sh.
+	(EXTRA_DIST: Likewise.
+	(elfgetzdata_LDADD): New variable.
+	(elfputzdata_LDADD): Likewise.
+	* elfgetzdata.c: New file.
+	* elfputzdata.c: Likewise.
+	* msg_tst.c: Handle ELF_E_ALREADY_COMPRESSED,
+	ELF_E_UNKNOWN_COMPRESSION_TYPE, ELF_E_COMPRESS_ERROR and
+	ELF_E_DECOMPRESS_ERROR.
+	* run-elfgetzdata.sh: New test.
+	* run-elfputzdata.sh: Likewise.
+
+2015-10-28  Mark Wielaard  <mjw@redhat.com>
+
+	* run-readelf-z.sh: New test.
+	* Makefile.am (TESTS): Add run-readelf-z.sh.
+	(EXTRA_DIST): Likewise.
+
+2015-10-28  Mark Wielaard  <mjw@redhat.com>
+
+	* elfgetchdr.c: New file.
+	* run-elfgetchdr.sh: New test.
+	* testfile-zgabi32.bz2: New testfile.
+	* testfile-zgabi32be.bz2: Likewise.
+	* testfile-zgabi64.bz2: Likewise.
+	* testfile-zgabi64be.bz2: Likewise.
+	* Makefile.am (check_PROGRAMS): Add elfgetchdr.
+	(TESTS): Add run-elfgetchdr.sh.
+	(EXTRA_DIST): Add run-elfgetchdr.sh, testfile-zgabi32.bz2,
+	testfile-zgabi32be.bz2, testfile-zgabi64.bz2, testfile-zgabi64be.bz2.
+	(welfgetchdr_LDADD): New variable.
+	* msg_tst.c: Add ELF_E_NOT_COMPRESSED, ELF_E_INVALID_SECTION_TYPE
+	and ELF_E_INVALID_SECTION_FLAGS,
+
+
+2015-10-28  Mark Wielaard  <mjw@redhat.com>
+
+	* dwelfgnucompressed.c: New file.
+	* run-dwelfgnucompressed.sh: New test.
+	* testfile-zgnu32.bz2: New testfile.
+	* testfile-zgnu64.bz2: Likewise.
+	* Makefile.am (check_PROGRAMS): Add dwelfgnucompressed.
+	(TESTS): Add run-dwelfgnucompressed.sh.
+	(EXTRA_DIST): Add run-dwelfgnucompressed.sh, testfile-zgnu32.bz2,
+	testfile-zgnu64.bz2, testfile-zgnu32be.bz2, testfile-zgnu64be.bz2.
+	(dwelfgnucompressed_LDADD): New variable.
+
+2015-12-31  Mark Wielaard  <mjw@redhat.com>
+
+	* elfstrmerge.c (main): Warn about STT_SECTION symbol for shstrhndx.
+	* run-elfstrmerge-test.sh: New test.
+	* Makefile.am (TESTS): Add run-elfstrmerge-test.sh
+	(EXTRA_DIST): Likewise.
+
 2015-12-08  Jose E. Marchesi  <jose.marchesi@oracle.com>
 
 	* run-backtrace-core-sparc.sh: New file.

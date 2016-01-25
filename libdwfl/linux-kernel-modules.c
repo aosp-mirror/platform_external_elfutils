@@ -65,12 +65,9 @@
 #define MODULE_SECT_NAME_LEN 32	/* Minimum any linux/module.h has had.  */
 
 
-#if defined (USE_ZLIB) || defined (USE_BZLIB) || defined (USE_LZMA)
 static const char *vmlinux_suffixes[] =
   {
-#ifdef USE_ZLIB
     ".gz",
-#endif
 #ifdef USE_BZLIB
     ".bz2",
 #endif
@@ -78,7 +75,6 @@ static const char *vmlinux_suffixes[] =
     ".xz",
 #endif
   };
-#endif
 
 /* Try to open the given file as it is or under the debuginfo directory.  */
 static int
@@ -115,7 +111,6 @@ try_kernel_name (Dwfl *dwfl, char **fname, bool try_debug)
 	}
     }
 
-#if defined (USE_ZLIB) || defined (USE_BZLIB) || defined (USE_LZMA)
   if (fd < 0)
     for (size_t i = 0;
 	 i < sizeof vmlinux_suffixes / sizeof vmlinux_suffixes[0];
@@ -134,7 +129,6 @@ try_kernel_name (Dwfl *dwfl, char **fname, bool try_debug)
 	      }
 	  }
       }
-#endif
 
   if (fd < 0)
     {
@@ -304,9 +298,7 @@ check_suffix (const FTSENT *f, size_t namelen)
     return sizeof sfx - 1
 
   TRY (".ko");
-#if USE_ZLIB
   TRY (".ko.gz");
-#endif
 #if USE_BZLIB
   TRY (".ko.bz2");
 #endif

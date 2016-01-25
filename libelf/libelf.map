@@ -138,3 +138,13 @@ ELFUTILS_1.6 {
   global:
     elf_getphdrnum;
 } ELFUTILS_1.5;
+
+ELFUTILS_1.7 {
+  global:
+    elf32_getchdr;
+    elf64_getchdr;
+    gelf_getchdr;
+
+    elf_compress;
+    elf_compress_gnu;
+} ELFUTILS_1.6;

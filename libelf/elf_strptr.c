@@ -37,6 +37,21 @@
 #include "libelfP.h"
 
 
+static void *
+get_zdata (Elf_Scn *strscn)
+{
+  size_t zsize, zalign;
+  void *zdata = __libelf_decompress_elf (strscn, &zsize, &zalign);
+  if (zdata == NULL)
+    return NULL;
+
+  strscn->zdata_base = zdata;
+  strscn->zdata_size = zsize;
+  strscn->zdata_align = zalign;
+
+  return zdata;
+}
+
 char *
 elf_strptr (Elf *elf, size_t idx, size_t offset)
 {
@@ -94,8 +109,16 @@ elf_strptr (Elf *elf, size_t idx, size_t offset)
 	  goto out;
 	}
 
-      sh_size = shdr->sh_size;
-      if (unlikely (offset >= shdr->sh_size))
+      if ((shdr->sh_flags & SHF_COMPRESSED) == 0)
+	sh_size = shdr->sh_size;
+      else
+	{
+	  if (strscn->zdata_base == NULL && get_zdata (strscn) == NULL)
+	    goto out;
+	  sh_size = strscn->zdata_size;
+	}
+
+      if (unlikely (offset >= sh_size))
 	{
 	  /* The given offset is too big, it is beyond this section.  */
 	  __libelf_seterrno (ELF_E_OFFSET_RANGE);
@@ -112,8 +135,16 @@ elf_strptr (Elf *elf, size_t idx, size_t offset)
 	  goto out;
 	}
 
-      sh_size = shdr->sh_size;
-      if (unlikely (offset >= shdr->sh_size))
+      if ((shdr->sh_flags & SHF_COMPRESSED) == 0)
+	sh_size = shdr->sh_size;
+      else
+	{
+	  if (strscn->zdata_base == NULL && get_zdata (strscn) == NULL)
+	    goto out;
+	  sh_size = strscn->zdata_size;
+	}
+
+      if (unlikely (offset >= sh_size))
 	{
 	  /* The given offset is too big, it is beyond this section.  */
 	  __libelf_seterrno (ELF_E_OFFSET_RANGE);
@@ -131,7 +162,17 @@ elf_strptr (Elf *elf, size_t idx, size_t offset)
 	goto out;
     }
 
-  if (likely (strscn->data_list_rear == NULL))
+  if (unlikely (strscn->zdata_base != NULL))
+    {
+      /* Make sure the string is NUL terminated.  Start from the end,
+         which very likely is a NUL char.  */
+      if (likely (memrchr (&strscn->zdata_base[offset],
+			   '\0', sh_size - offset) != NULL))
+        result = &strscn->zdata_base[offset];
+      else
+        __libelf_seterrno (ELF_E_INVALID_INDEX);
+    }
+  else if (likely (strscn->data_list_rear == NULL))
     {
       // XXX The above is currently correct since elf_newdata will
       // make sure to convert the rawdata into the datalist if

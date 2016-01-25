@@ -50,6 +50,7 @@ TYPE (Syminfo, LIBELFBITS)
 TYPE (Move, LIBELFBITS)
 TYPE (Lib, LIBELFBITS)
 TYPE (auxv_t, LIBELFBITS)
+TYPE (Chdr, LIBELFBITS)
 
 
 /* Prepare for the next round.  */

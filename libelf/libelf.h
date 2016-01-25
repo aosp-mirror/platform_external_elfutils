@@ -1,5 +1,5 @@
 /* Interface for libelf.
-   Copyright (C) 1998-2010 Red Hat, Inc.
+   Copyright (C) 1998-2010, 2015 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -35,6 +35,34 @@
 /* Get the ELF types.  */
 #include <elf.h>
 
+#ifndef SHF_COMPRESSED
+ /* Older glibc elf.h might not yet define the ELF compression types.  */
+ #define SHF_COMPRESSED      (1 << 11)  /* Section with compressed data. */
+
+ /* Section compression header.  Used when SHF_COMPRESSED is set.  */
+
+ typedef struct
+ {
+   Elf32_Word   ch_type;        /* Compression format.  */
+   Elf32_Word   ch_size;        /* Uncompressed data size.  */
+   Elf32_Word   ch_addralign;   /* Uncompressed data alignment.  */
+ } Elf32_Chdr;
+
+ typedef struct
+ {
+   Elf64_Word   ch_type;        /* Compression format.  */
+   Elf64_Word   ch_reserved;
+   Elf64_Xword  ch_size;        /* Uncompressed data size.  */
+   Elf64_Xword  ch_addralign;   /* Uncompressed data alignment.  */
+ } Elf64_Chdr;
+
+ /* Legal values for ch_type (compression algorithm).  */
+ #define ELFCOMPRESS_ZLIB       1          /* ZLIB/DEFLATE algorithm.  */
+ #define ELFCOMPRESS_LOOS       0x60000000 /* Start of OS-specific.  */
+ #define ELFCOMPRESS_HIOS       0x6fffffff /* End of OS-specific.  */
+ #define ELFCOMPRESS_LOPROC     0x70000000 /* Start of processor-specific.  */
+ #define ELFCOMPRESS_HIPROC     0x7fffffff /* End of processor-specific.  */
+#endif
 
 /* Known translation types.  */
 typedef enum
@@ -64,6 +92,7 @@ typedef enum
   ELF_T_LIB,			/* Elf32_Lib, Elf64_Lib, ... */
   ELF_T_GNUHASH,		/* GNU-style hash section.  */
   ELF_T_AUXV,			/* Elf32_auxv_t, Elf64_auxv_t, ... */
+  ELF_T_CHDR,			/* Compressed, Elf32_Chdr, Elf64_Chdr, ... */
   /* Keep this the last entry.  */
   ELF_T_NUM
 } Elf_Type;
@@ -116,6 +145,12 @@ enum
 #define ELF_F_PERMISSIVE	ELF_F_PERMISSIVE
 };
 
+/* Flags for elf_compress[_gnu].  */
+enum
+{
+  ELF_CHF_FORCE = 0x1
+#define ELF_CHF_FORCE ELF_CHF_FORCE
+};
 
 /* Identification values for recognized object files.  */
 typedef enum
@@ -267,6 +302,62 @@ extern Elf32_Shdr *elf32_getshdr (Elf_Scn *__scn);
 /* Similar for ELFCLASS64.  */
 extern Elf64_Shdr *elf64_getshdr (Elf_Scn *__scn);
 
+/* Returns compression header for a section if section data is
+   compressed.  Returns NULL and sets elf_errno if the section isn't
+   compressed or an error occurred.  */
+extern Elf32_Chdr *elf32_getchdr (Elf_Scn *__scn);
+extern Elf64_Chdr *elf64_getchdr (Elf_Scn *__scn);
+
+/* Compress or decompress the data of a section and adjust the section
+   header.
+
+   elf_compress works by setting or clearing the SHF_COMPRESS flag
+   from the section Shdr and will encode or decode a Elf32_Chdr or
+   Elf64_Chdr at the start of the section data.  elf_compress_gnu will
+   encode or decode any section, but is traditionally only used for
+   sections that have a name starting with ".debug" when
+   uncompressed or ".zdebug" when compressed and stores just the
+   uncompressed size.  The GNU compression method is deprecated and
+   should only be used for legacy support.
+
+   elf_compress takes a compression type that should be either zero to
+   decompress or an ELFCOMPRESS algorithm to use for compression.
+   Currently only ELFCOMPRESS_ZLIB is supported.  elf_compress_gnu
+   will compress in the traditional GNU compression format when
+   compress is one and decompress the section data when compress is
+   zero.
+
+   The FLAGS argument can be zero or ELF_CHF_FORCE.  If FLAGS contains
+   ELF_CHF_FORCE then it will always compress the section, even if
+   that would not reduce the size of the data section (including the
+   header).  Otherwise elf_compress and elf_compress_gnu will compress
+   the section only if the total data size is reduced.
+
+   On successful compression or decompression the function returns
+   one.  If (not forced) compression is requested and the data section
+   would not actually reduce in size, the section is not actually
+   compressed and zero is returned.  Otherwise -1 is returned and
+   elf_errno is set.
+
+   It is an error to request compression for a section that already
+   has SHF_COMPRESSED set, or (for elf_compress) to request
+   decompression for an section that doesn't have SHF_COMPRESSED set.
+   It is always an error to call these functions on SHT_NOBITS
+   sections or if the section has the SHF_ALLOC flag set.
+   elf_compress_gnu will not check whether the section name starts
+   with ".debug" or .zdebug".  It is the responsibilty of the caller
+   to make sure the deprecated GNU compression method is only called
+   on correctly named sections (and to change the name of the section
+   when using elf_compress_gnu).
+
+   All previous returned Shdrs and Elf_Data buffers are invalidated by
+   this call and should no longer be accessed.
+
+   Note that although this changes the header and data returned it
+   doesn't mark the section as dirty.  To keep the changes when
+   calling elf_update the section has to be flagged ELF_F_DIRTY.  */
+extern int elf_compress (Elf_Scn *scn, int type, unsigned int flags);
+extern int elf_compress_gnu (Elf_Scn *scn, int compress, unsigned int flags);
 
 /* Set or clear flags for ELF file.  */
 extern unsigned int elf_flagelf (Elf *__elf, Elf_Cmd __cmd,
@@ -288,8 +379,11 @@ extern unsigned int elf_flagshdr (Elf_Scn *__scn, Elf_Cmd __cmd,
 				  unsigned int __flags);
 
 
-/* Get data from section while translating from file representation
-   to memory representation.  */
+/* Get data from section while translating from file representation to
+   memory representation.  The Elf_Data d_type is set based on the
+   section type if known.  Otherwise d_type is set to ELF_T_BYTE.  If
+   the section contains compressed data then d_type is always set to
+   ELF_T_CHDR.  */
 extern Elf_Data *elf_getdata (Elf_Scn *__scn, Elf_Data *__data);
 
 /* Get uninterpreted section content.  */

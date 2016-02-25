@@ -134,9 +134,6 @@ include $(CLEAR_VARS)
 # Clang has no nested functions.
 LOCAL_CLANG := false
 
-# b/25642296, local __thread variable does not work with arm64 clang/llvm.
-LOCAL_CLANG_arm64 := false
-
 LOCAL_SRC_FILES := $(LIBDWFL_SRC_FILES)
 
 LOCAL_C_INCLUDES := \

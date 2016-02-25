@@ -166,9 +166,6 @@ endif # linux
 
 include $(CLEAR_VARS)
 
-# b/25642296, local __thread variable does not work with arm64 clang/llvm.
-LOCAL_CLANG_arm64 := false
-
 LOCAL_SRC_FILES := $(LIBELF_SRC_FILES)
 
 LOCAL_C_INCLUDES := \

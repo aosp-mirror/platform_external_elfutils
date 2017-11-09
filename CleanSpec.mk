@@ -44,14 +44,14 @@
 #$(call add-clean-step, find $(OUT_DIR) -type f -name "IGTalkSession*" -print0 | xargs -0 rm -f)
 #$(call add-clean-step, rm -rf $(PRODUCT_OUT)/data/*)
 
-$(call add-clean-step, rm -rf $(OUT)/obj/STATIC_LIBRARIES/libdw_intermediates)
-$(call add-clean-step, rm -rf $(OUT)/obj/STATIC_LIBRARIES/libdwfl_intermediates)
-$(call add-clean-step, rm -rf $(OUT)/obj/STATIC_LIBRARIES/libelf_intermediates)
-$(call add-clean-step, rm -rf $(OUT)/obj/STATIC_LIBRARIES/libebl_intermediates)
-$(call add-clean-step, rm -rf $(ANDROID_HOST_OUT)/obj/STATIC_LIBRARIES/libdw_intermediates)
-$(call add-clean-step, rm -rf $(ANDROID_HOST_OUT)/obj/STATIC_LIBRARIES/libdwfl_intermediates)
-$(call add-clean-step, rm -rf $(ANDROID_HOST_OUT)/obj/STATIC_LIBRARIES/libelf_intermediates)
-$(call add-clean-step, rm -rf $(ANDROID_HOST_OUT)/obj/STATIC_LIBRARIES/libebl_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/STATIC_LIBRARIES/libdw_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/STATIC_LIBRARIES/libdwfl_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/STATIC_LIBRARIES/libelf_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/STATIC_LIBRARIES/libebl_intermediates)
+$(call add-clean-step, rm -rf $(HOST_OUT)/obj/STATIC_LIBRARIES/libdw_intermediates)
+$(call add-clean-step, rm -rf $(HOST_OUT)/obj/STATIC_LIBRARIES/libdwfl_intermediates)
+$(call add-clean-step, rm -rf $(HOST_OUT)/obj/STATIC_LIBRARIES/libelf_intermediates)
+$(call add-clean-step, rm -rf $(HOST_OUT)/obj/STATIC_LIBRARIES/libebl_intermediates)
 
 # ************************************************
 # NEWER CLEAN STEPS MUST BE AT THE END OF THE LIST

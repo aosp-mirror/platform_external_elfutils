@@ -1,3 +1,8 @@
+2018-11-09  Mark Wielaard  <mark@klomp.org>
+
+	* strip.c (remove_debug_relocations): Check if section is gnu
+	compressed and decompress and recompress it.
+
 2018-11-12  Mark Wielaard  <mark@klomp.org>
 
 	* elflint.c (check_note_data): Recognize NT_GNU_BUILD_ATTRIBUTE_OPEN

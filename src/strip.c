@@ -485,11 +485,21 @@ remove_debug_relocations (Ebl *ebl, Elf *elf, GElf_Ehdr *ehdr,
 	     (and recompress if necessary at the end).  */
 	  GElf_Chdr tchdr;
 	  int tcompress_type = 0;
-	  if (gelf_getchdr (tscn, &tchdr) != NULL)
+	  bool is_gnu_compressed = false;
+	  if (strncmp (tname, ".zdebug", strlen ("zdebug")) == 0)
 	    {
-	      tcompress_type = tchdr.ch_type;
-	      if (elf_compress (tscn, 0, 0) != 1)
+	      is_gnu_compressed = true;
+	      if (elf_compress_gnu (tscn, 0, 0) != 1)
 		INTERNAL_ERROR (fname);
+	    }
+	  else
+	    {
+	      if (gelf_getchdr (tscn, &tchdr) != NULL)
+		{
+		  tcompress_type = tchdr.ch_type;
+		  if (elf_compress (tscn, 0, 0) != 1)
+		    INTERNAL_ERROR (fname);
+		}
 	    }
 
 	  Elf_Data *tdata = elf_getdata (tscn, NULL);
@@ -686,9 +696,16 @@ remove_debug_relocations (Ebl *ebl, Elf *elf, GElf_Ehdr *ehdr,
 	  shdr->sh_size = reldata->d_size = nrels * shdr->sh_entsize;
 	  gelf_update_shdr (scn, shdr);
 
-	  if (tcompress_type != 0)
-	    if (elf_compress (tscn, tcompress_type, ELF_CHF_FORCE) != 1)
-	      INTERNAL_ERROR (fname);
+	  if (is_gnu_compressed)
+	    {
+	      if (elf_compress_gnu (tscn, 1, ELF_CHF_FORCE) != 1)
+		INTERNAL_ERROR (fname);
+	    }
+	  else if (tcompress_type != 0)
+	    {
+	      if (elf_compress (tscn, tcompress_type, ELF_CHF_FORCE) != 1)
+		INTERNAL_ERROR (fname);
+	    }
 	}
     }
 }

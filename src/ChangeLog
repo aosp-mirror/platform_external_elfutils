@@ -1,3 +1,8 @@
+2018-11-10  Mark Wielaard  <mark@klomp.org>
+
+	* elflint.c (check_program_header): Allow PT_GNU_EH_FRAME segment
+	to be matched against SHT_X86_64_UNWIND section.
+
 2018-11-09  Mark Wielaard  <mark@klomp.org>
 
 	* strip.c (remove_debug_relocations): Check if section is gnu

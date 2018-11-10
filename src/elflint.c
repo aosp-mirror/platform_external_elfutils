@@ -4633,8 +4633,10 @@ program header offset in ELF header and PHDR entry do not match"));
 	      any = true;
 	      shdr = gelf_getshdr (scn, &shdr_mem);
 	      if (shdr != NULL
-		  && shdr->sh_type == (is_debuginfo
-				       ? SHT_NOBITS : SHT_PROGBITS)
+		  && ((is_debuginfo && shdr->sh_type == SHT_NOBITS)
+		      || (! is_debuginfo
+			  && (shdr->sh_type == SHT_PROGBITS
+			      || shdr->sh_type == SHT_X86_64_UNWIND)))
 		  && elf_strptr (ebl->elf, shstrndx, shdr->sh_name) != NULL
 		  && ! strcmp (".eh_frame_hdr",
 			       elf_strptr (ebl->elf, shstrndx, shdr->sh_name)))

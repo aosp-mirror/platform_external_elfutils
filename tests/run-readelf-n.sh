@@ -48,8 +48,25 @@ Note segment of 32 bytes at offset 0x300:
 
 Note segment of 68 bytes at offset 0x320:
   Owner          Data size  Type
-  GNU                   16  VERSION
+  GNU                   16  GNU_ABI_TAG
     OS: Linux, ABI: 3.2.0
   GNU                   20  GNU_BUILD_ID
     Build ID: 83cb2229fabd2065d1361f5b46424cd75270f94b
+EOF
+
+# NT_VERSION note type clashes with "GNU" owner type NT_GNU_ABI_TAG.
+# Uses owner name (with zero desc) for version string.
+testfiles testfile11
+testrun_compare ${abs_top_builddir}/src/readelf -n testfile11 << EOF
+
+Note section [ 2] '.note.ABI-tag' of 32 bytes at offset 0x128:
+  Owner          Data size  Type
+  GNU                   16  GNU_ABI_TAG
+    OS: Linux, ABI: 2.2.5
+
+Note section [35] '.note' of 60 bytes at offset 0x13364:
+  Owner          Data size  Type
+  01.01                  0  VERSION
+  01.01                  0  VERSION
+  01.01                  0  VERSION
 EOF

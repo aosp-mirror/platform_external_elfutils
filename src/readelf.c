@@ -12201,6 +12201,7 @@ handle_notes_data (Ebl *ebl, const GElf_Ehdr *ehdr,
 	      ? ebl_core_note_type_name (ebl, nhdr.n_type,
 					 buf, sizeof (buf))
 	      : ebl_object_note_type_name (ebl, name, nhdr.n_type,
+					   nhdr.n_descsz,
 					   buf2, sizeof (buf2)));
 
       /* Filter out invalid entries.  */

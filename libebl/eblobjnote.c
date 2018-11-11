@@ -135,6 +135,14 @@ ebl_object_note (Ebl *ebl, const char *name, uint32_t type,
 	  return;
 	}
 
+      /* NT_VERSION doesn't have any info.  All data is in the name.  */
+      if (descsz == 0 && type == NT_VERSION)
+	return;
+
+      /* Everything else should have the "GNU" owner name.  */
+      if (strcmp ("GNU", name) != 0)
+	return;
+
       switch (type)
 	{
 	case NT_GNU_BUILD_ID:
@@ -337,7 +345,7 @@ ebl_object_note (Ebl *ebl, const char *name, uint32_t type,
 	  break;
 
 	case NT_GNU_ABI_TAG:
-	  if (strcmp (name, "GNU") == 0 && descsz >= 8 && descsz % 4 == 0)
+	  if (descsz >= 8 && descsz % 4 == 0)
 	    {
 	      Elf_Data in =
 		{

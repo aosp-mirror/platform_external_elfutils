@@ -1,3 +1,12 @@
+2018-11-11  Mark Wielaard  <mark@klomp.org>
+
+	* eblobjnote.c (ebl_object_note): Recognize NT_VERSION with zero
+	descriptor. Add explicit "GNU" name check.
+	* eblobjnotetypename.c (ebl_object_note_type_name): Add extra
+	argument descsz. Recognize NT_VERSION using descsz. With "GNU"
+	name it is  NT_GNU_ABI_TAG.
+	* libebl.h (ebl_object_note_type_name): Add extra argument descsz.
+
 2018-10-18  Mark Wielaard  <mark@klomp.org>
 
 	* eblobjnote.c (ebl_object_note): Handle NT_GNU_PROPERTY_TYPE_0.

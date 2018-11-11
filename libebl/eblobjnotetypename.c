@@ -39,6 +39,7 @@
 
 const char *
 ebl_object_note_type_name (Ebl *ebl, const char *name, uint32_t type,
+			   GElf_Word descsz,
 			   char *buf, size_t len)
 {
   const char *res = ebl->object_note_type_name (name, type, buf, len);
@@ -80,14 +81,19 @@ ebl_object_note_type_name (Ebl *ebl, const char *name, uint32_t type,
 
       if (strcmp (name, "GNU") != 0)
 	{
+	  /* NT_VERSION is special, all data is in the name.  */
+	  if (descsz == 0 && type == NT_VERSION)
+	    return "VERSION";
+
 	  snprintf (buf, len, "%s: %" PRIu32, gettext ("<unknown>"), type);
 	  return buf;
 	}
 
+      /* And finally all the "GNU" note types.  */
       static const char *knowntypes[] =
 	{
 #define KNOWNSTYPE(name) [NT_##name] = #name
-	  KNOWNSTYPE (VERSION),
+	  KNOWNSTYPE (GNU_ABI_TAG),
 	  KNOWNSTYPE (GNU_HWCAP),
 	  KNOWNSTYPE (GNU_BUILD_ID),
 	  KNOWNSTYPE (GNU_GOLD_VERSION),

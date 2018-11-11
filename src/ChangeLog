@@ -1,3 +1,10 @@
+2018-11-11  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (handle_notes_data): Pass n_descsz to
+	ebl_object_note_type_name.
+	* elflint.c (check_note_data): Recognize NT_VERSION, add owner
+	name to unknown note error.
+
 2018-10-20  Mark Wielaard  <mark@klomp.org>
 
 	* readelf.c (process_elf_file): Use dwelf_elf_begin to open pure_elf.

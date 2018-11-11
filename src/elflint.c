@@ -1,5 +1,5 @@
 /* Pedantic checking of ELF files compliance with gABI/psABI spec.
-   Copyright (C) 2001-2015, 2017 Red Hat, Inc.
+   Copyright (C) 2001-2015, 2017, 2018 Red Hat, Inc.
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2001.
 
@@ -4332,7 +4332,17 @@ section [%2d] '%s': unknown core file note type %" PRIu32
 	  case NT_GNU_BUILD_ID:
 	  case NT_GNU_GOLD_VERSION:
 	  case NT_GNU_PROPERTY_TYPE_0:
-	    break;
+	    if (nhdr.n_namesz == sizeof ELF_NOTE_GNU
+		&& strcmp (data->d_buf + name_offset, ELF_NOTE_GNU) == 0)
+	      break;
+	    else
+	      {
+		/* NT_VERSION is 1, same as NT_GNU_ABI_TAG.  It has no
+		   descriptor and (ab)uses the name as version string.  */
+		if (nhdr.n_descsz == 0 && nhdr.n_type == NT_VERSION)
+		  break;
+	      }
+	      goto unknown_note;
 
 	  case 0:
 	    /* Linux vDSOs use a type 0 note for the kernel version word.  */
@@ -4341,16 +4351,21 @@ section [%2d] '%s': unknown core file note type %" PRIu32
 	      break;
 	    FALLTHROUGH;
 	  default:
+	    {
+	    unknown_note:
 	    if (shndx == 0)
 	      ERROR (gettext ("\
-phdr[%d]: unknown object file note type %" PRIu32 " at offset %zu\n"),
-		     phndx, (uint32_t) nhdr.n_type, offset);
+phdr[%d]: unknown object file note type %" PRIu32 " with owner name '%s' at offset %zu\n"),
+		     phndx, (uint32_t) nhdr.n_type,
+		     (char *) data->d_buf + name_offset, offset);
 	    else
 	      ERROR (gettext ("\
 section [%2d] '%s': unknown object file note type %" PRIu32
-			      " at offset %zu\n"),
+			      " with owner name '%s' at offset %zu\n"),
 		     shndx, section_name (ebl, shndx),
-		     (uint32_t) nhdr.n_type, offset);
+		     (uint32_t) nhdr.n_type,
+		     (char *) data->d_buf + name_offset, offset);
+	    }
 	  }
     }
 

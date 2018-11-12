@@ -1,3 +1,7 @@
+2018-11-12  Mark Wielaard  <mark@klomp.org>
+
+	* run-readelf-n.sh: Add testfile-annobingroup.o test.
+
 2018-11-11  Mark Wielaard  <mark@klomp.org>
 
 	* run-readelf-n.sh: Fix NT_GNU_ABI_TAG type. Add testfile11 test

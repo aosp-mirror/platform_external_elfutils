@@ -4344,6 +4344,19 @@ section [%2d] '%s': unknown core file note type %" PRIu32
 	      }
 	      goto unknown_note;
 
+	  case NT_GNU_BUILD_ATTRIBUTE_OPEN:
+	  case NT_GNU_BUILD_ATTRIBUTE_FUNC:
+	    /* GNU Build Attributes store most data in the owner
+	       name, which must start with the
+	       ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX "GA".  */
+	    if (nhdr.n_namesz >= sizeof ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX
+		&& strncmp (data->d_buf + name_offset,
+			    ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX,
+			    strlen (ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX)) == 0)
+	      break;
+	    else
+	      goto unknown_note;
+
 	  case 0:
 	    /* Linux vDSOs use a type 0 note for the kernel version word.  */
 	    if (nhdr.n_namesz == sizeof "Linux"

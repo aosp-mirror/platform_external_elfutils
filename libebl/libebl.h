@@ -179,8 +179,8 @@ extern const char *ebl_object_note_type_name (Ebl *ebl, const char *name,
 					      char *buf, size_t len);
 
 /* Print information about object note if available.  */
-extern void ebl_object_note (Ebl *ebl, const char *name, uint32_t type,
-			     uint32_t descsz, const char *desc);
+extern void ebl_object_note (Ebl *ebl, uint32_t namesz, const char *name,
+			     uint32_t type, uint32_t descsz, const char *desc);
 
 /* Check whether an attribute in a .gnu_attributes section is recognized.
    Fills in *TAG_NAME with the name for this tag.

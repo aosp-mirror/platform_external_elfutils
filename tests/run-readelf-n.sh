@@ -70,3 +70,58 @@ Note section [35] '.note' of 60 bytes at offset 0x13364:
   01.01                  0  VERSION
   01.01                  0  VERSION
 EOF
+
+# See run-annobingroup.sh
+testfiles testfile-annobingroup.o
+testrun_compare ${abs_top_builddir}/src/readelf -n testfile-annobingroup.o << EOF
+
+Note section [ 5] '.gnu.build.attributes' of 272 bytes at offset 0x50:
+  Owner          Data size  Type
+  GA                    16  GNU Build Attribute OPEN
+    Address Range: 0 - 0
+    VERSION: "3p8"
+  GA                     0  GNU Build Attribute OPEN
+    TOOL: "gcc 8.1.1 20180712"
+  GA                     0  GNU Build Attribute OPEN
+    "GOW": 5
+  GA                     0  GNU Build Attribute OPEN
+    STACK_PROT: 0
+  GA                     0  GNU Build Attribute OPEN
+    "stack_clash": FALSE
+  GA                     0  GNU Build Attribute OPEN
+    "cf_protection": 0
+  GA                     0  GNU Build Attribute OPEN
+    PIC: 0
+  GA                     0  GNU Build Attribute OPEN
+    SHORT_ENUM: FALSE
+  GA                     0  GNU Build Attribute OPEN
+    ABI: c001100000012
+  GA                     0  GNU Build Attribute OPEN
+    "stack_realign": FALSE
+
+Note section [ 7] '.gnu.build.attributes..text.unlikely' of 216 bytes at offset 0x160:
+  Owner          Data size  Type
+  GA                    16  GNU Build Attribute FUNC
+    Address Range: 0 - 0
+    ABI: c001100000012
+  GA                     0  GNU Build Attribute FUNC
+    "stack_realign": FALSE
+  GA                     0  GNU Build Attribute FUNC
+    STACK_PROT: 0
+  GA                     0  GNU Build Attribute FUNC
+    "stack_clash": FALSE
+  GA                     0  GNU Build Attribute FUNC
+    "cf_protection": 0
+  GA                     0  GNU Build Attribute FUNC
+    PIC: 0
+  GA                     0  GNU Build Attribute FUNC
+    "GOW": 5
+  GA                     0  GNU Build Attribute FUNC
+    SHORT_ENUM: FALSE
+
+Note section [22] '.note.gnu.property' of 48 bytes at offset 0x40c:
+  Owner          Data size  Type
+  GNU                   32  GNU_PROPERTY_TYPE_0
+    X86 0xc0000000 data: 00 00 00 00
+    X86 0xc0000001 data: 00 00 00 00
+EOF

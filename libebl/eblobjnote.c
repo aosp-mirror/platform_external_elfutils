@@ -37,11 +37,14 @@
 #include <string.h>
 #include <libeblP.h>
 
+#include "common.h"
 #include "libelfP.h"
+#include "libdwP.h"
+#include "memory-access.h"
 
 
 void
-ebl_object_note (Ebl *ebl, const char *name, uint32_t type,
+ebl_object_note (Ebl *ebl, uint32_t namesz, const char *name, uint32_t type,
 		 uint32_t descsz, const char *desc)
 {
   if (! ebl->object_note (name, type, descsz, desc))
@@ -132,6 +135,152 @@ ebl_object_note (Ebl *ebl, const char *name, uint32_t type,
 	  printf ("%s,", pname);
 	  printf (gettext (" Args: "));
 	  printf ("'%s'\n", args);
+	  return;
+	}
+
+      if (strncmp (name, ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX,
+		   strlen (ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX)) == 0
+	  && (type == NT_GNU_BUILD_ATTRIBUTE_OPEN
+	      || type == NT_GNU_BUILD_ATTRIBUTE_FUNC))
+	{
+	  /* There might or might not be a pair of addresses in the desc.  */
+	  if (descsz > 0)
+	    {
+	      printf ("    Address Range: ");
+
+	      union
+	      {
+		Elf64_Addr a64[2];
+		Elf32_Addr a32[2];
+	      } addrs;
+
+	      size_t addr_size = gelf_fsize (ebl->elf, ELF_T_ADDR,
+					     2, EV_CURRENT);
+	      if (descsz != addr_size)
+		printf ("<unknown data>\n");
+	      else
+		{
+		  Elf_Data src =
+		    {
+		     .d_type = ELF_T_ADDR, .d_version = EV_CURRENT,
+		     .d_buf = (void *) desc, .d_size = descsz
+		    };
+
+		  Elf_Data dst =
+		    {
+		     .d_type = ELF_T_ADDR, .d_version = EV_CURRENT,
+		     .d_buf = &addrs, .d_size = descsz
+		    };
+
+		  if (gelf_xlatetom (ebl->elf, &dst, &src,
+				     elf_getident (ebl->elf,
+						   NULL)[EI_DATA]) == NULL)
+		    printf ("%s\n", elf_errmsg (-1));
+		  else
+		    {
+		      if (addr_size == 4)
+			printf ("%#" PRIx32 " - %#" PRIx32 "\n",
+				addrs.a32[0], addrs.a32[1]);
+		      else
+			printf ("%#" PRIx64 " - %#" PRIx64 "\n",
+				addrs.a64[0], addrs.a64[1]);
+		    }
+		}
+	    }
+
+	  /* Most data actually is inside the name.
+	     https://fedoraproject.org/wiki/Toolchain/Watermark  */
+
+	  /* We need at least 2 chars of data to describe the
+	     attribute and value encodings.  */
+	  const char *data = (name
+			      + strlen (ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX));
+	  if (namesz < 2)
+	    {
+	      printf ("<insufficient data>\n");
+	      return;
+	    }
+
+	  printf ("    ");
+
+	  /* In most cases the value comes right after the encoding bytes.  */
+	  const char *value = &data[2];
+	  switch (data[1])
+	    {
+	    case GNU_BUILD_ATTRIBUTE_VERSION:
+	      printf ("VERSION: ");
+	      break;
+	    case GNU_BUILD_ATTRIBUTE_STACK_PROT:
+	      printf ("STACK_PROT: ");
+	      break;
+	    case GNU_BUILD_ATTRIBUTE_RELRO:
+	      printf ("RELRO: ");
+	      break;
+	    case GNU_BUILD_ATTRIBUTE_STACK_SIZE:
+	      printf ("STACK_SIZE: ");
+	      break;
+	    case GNU_BUILD_ATTRIBUTE_TOOL:
+	      printf ("TOOL: ");
+	      break;
+	    case GNU_BUILD_ATTRIBUTE_ABI:
+	      printf ("ABI: ");
+	      break;
+	    case GNU_BUILD_ATTRIBUTE_PIC:
+	      printf ("PIC: ");
+	      break;
+	    case GNU_BUILD_ATTRIBUTE_SHORT_ENUM:
+	      printf ("SHORT_ENUM: ");
+	      break;
+	    case 32 ... 126:
+	      printf ("\"%s\": ", &data[1]);
+	      value += strlen (&data[1]) + 1;
+	      break;
+	    default:
+	      printf ("<unknown>: ");
+	      break;
+	    }
+
+	  switch (data[0])
+	    {
+	    case GNU_BUILD_ATTRIBUTE_TYPE_NUMERIC:
+	      {
+		/* Any numbers are always in (unsigned) little endian.  */
+		static const Dwarf dbg
+		  = { .other_byte_order = MY_ELFDATA != ELFDATA2LSB };
+		size_t bytes = namesz - (value - name);
+		uint64_t val;
+		if (bytes == 1)
+		  val = *(unsigned char *) value;
+		else if (bytes == 2)
+		  val = read_2ubyte_unaligned (&dbg, value);
+		else if (bytes == 4)
+		  val = read_4ubyte_unaligned (&dbg, value);
+		else if (bytes == 8)
+		  val = read_8ubyte_unaligned (&dbg, value);
+		else
+		  goto unknown;
+		printf ("%" PRIx64, val);
+	      }
+	      break;
+	    case GNU_BUILD_ATTRIBUTE_TYPE_STRING:
+	      printf ("\"%s\"", value);
+	      break;
+	    case GNU_BUILD_ATTRIBUTE_TYPE_BOOL_TRUE:
+	      printf ("TRUE");
+	      break;
+	    case GNU_BUILD_ATTRIBUTE_TYPE_BOOL_FALSE:
+	      printf ("FALSE");
+	      break;
+	    default:
+	      {
+	      unknown:
+		printf ("<unknown>");
+	      }
+	      break;
+	    }
+
+	  printf ("\n");
+
 	  return;
 	}
 

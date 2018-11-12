@@ -12193,10 +12193,21 @@ handle_notes_data (Ebl *ebl, const GElf_Ehdr *ehdr,
       const char *name = nhdr.n_namesz == 0 ? "" : data->d_buf + name_offset;
       const char *desc = data->d_buf + desc_offset;
 
+      /* GNU Build Attributes are weird, they store most of their data
+	 into the owner name field.  Extract just the owner name
+	 prefix here, then use the rest later as data.  */
+      bool is_gnu_build_attr
+	= strncmp (name, ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX,
+		   strlen (ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX)) == 0;
+      const char *print_name = (is_gnu_build_attr
+				? ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX : name);
+      size_t print_namesz = (is_gnu_build_attr
+			     ? strlen (print_name) : nhdr.n_namesz);
+
       char buf[100];
       char buf2[100];
       printf (gettext ("  %-13.*s  %9" PRId32 "  %s\n"),
-	      (int) nhdr.n_namesz, name, nhdr.n_descsz,
+	      (int) print_namesz, print_name, nhdr.n_descsz,
 	      ehdr->e_type == ET_CORE
 	      ? ebl_core_note_type_name (ebl, nhdr.n_type,
 					 buf, sizeof (buf))
@@ -12237,7 +12248,8 @@ handle_notes_data (Ebl *ebl, const GElf_Ehdr *ehdr,
 		handle_core_note (ebl, &nhdr, name, desc);
 	    }
 	  else
-	    ebl_object_note (ebl, name, nhdr.n_type, nhdr.n_descsz, desc);
+	    ebl_object_note (ebl, nhdr.n_namesz, name, nhdr.n_type,
+			     nhdr.n_descsz, desc);
 	}
     }
 

@@ -1,3 +1,11 @@
+2018-11-12  Mark Wielaard  <mark@klomp.org>
+
+	* libebl.h (ebl_object_note): Add new argument namesz.
+	* eblobjnote.c (ebl_object_note): Likewise and handle GNU Build
+	Attribute notes.
+	* eblobjnotetypename.c (ebl_object_note_type_name): Handle GNU
+	Build Attribute notes.
+
 2018-11-11  Mark Wielaard  <mark@klomp.org>
 
 	* eblobjnote.c (ebl_object_note): Recognize NT_VERSION with zero

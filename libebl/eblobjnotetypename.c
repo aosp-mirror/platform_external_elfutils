@@ -1,5 +1,5 @@
 /* Return note type name.
-   Copyright (C) 2002, 2007, 2009, 2011, 2016 Red Hat, Inc.
+   Copyright (C) 2002, 2007, 2009, 2011, 2016, 2018 Red Hat, Inc.
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2002.
 
@@ -77,6 +77,29 @@ ebl_object_note_type_name (Ebl *ebl, const char *name, uint32_t type,
 	      snprintf (buf, len, "%s: %" PRIu32, gettext ("<unknown>"), type);
 	      return buf;
 	    }
+	}
+
+      if (strncmp (name, ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX,
+		   strlen (ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX)) == 0)
+	{
+	  /* GNU Build Attribute notes (ab)use the owner name to store
+	     most of their data.  Don't decode everything here.  Just
+	     the type.*/
+	  char *t = buf;
+	  const char *gba = "GNU Build Attribute";
+	  int w = snprintf (t, len, "%s ", gba);
+	  t += w;
+	  len -= w;
+	  if (type == NT_GNU_BUILD_ATTRIBUTE_OPEN)
+	    w = snprintf (t, len, "OPEN");
+	  else if (type == NT_GNU_BUILD_ATTRIBUTE_FUNC)
+	    w = snprintf (t, len, "FUNC");
+	  else
+	    w = snprintf (t, len, "%x", type);
+	  t += w;
+	  len -= w;
+
+	  return buf;
 	}
 
       if (strcmp (name, "GNU") != 0)

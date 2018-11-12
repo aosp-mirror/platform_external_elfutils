@@ -1,3 +1,11 @@
+2018-11-12  Mark Wielaard  <mark@klomp.org>
+
+	* elflint.c (check_note_data): Recognize NT_GNU_BUILD_ATTRIBUTE_OPEN
+	and NT_GNU_BUILD_ATTRIBUTE_OPEN.
+	* readelf.c (handle_notes_data): Handle
+	ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX. Pass nhdr.n_namesz to
+	ebl_object_note.
+
 2018-11-11  Mark Wielaard  <mark@klomp.org>
 
 	* readelf.c (handle_notes_data): Pass n_descsz to

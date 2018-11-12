@@ -1,3 +1,12 @@
+2018-11-12  Mark Wielaard  <mark@klomp.org>
+
+	* elf-knowledge.c (ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX): New define.
+	(NT_GNU_BUILD_ATTRIBUTE_{OPEN,FUNC}): Likewise.
+	(GNU_BUILD_ATTRIBUTE_TYPE_{NUMERIC,STRING,BOOL_TRUE,BOOL_FALSE}):
+	Likewise.
+	(GNU_BUILD_ATTRIBUTE_{VERSION,STACK_PROT,RELRO,STACK_SIZE,TOOL,ABI,
+	PIC,SHORT_ENUM}): Likewise.
+
 2018-11-09  Mark Wielaard  <mark@klomp.org>
 
 	* elf_compress.c (__libelf_reset_rawdata): Make rawdata change

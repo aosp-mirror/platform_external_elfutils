@@ -268,9 +268,15 @@ __libelf_set_rawdata_wrlock (Elf_Scn *scn)
       /* First a test whether the section is valid at all.  */
       size_t entsize;
 
-      /* Compressed data has a header, but then compressed data.  */
+      /* Compressed data has a header, but then compressed data.
+	 Make sure to set the alignment of the header explicitly,
+	 don't trust the file alignment for the section, it is
+	 often wrong.  */
       if ((flags & SHF_COMPRESSED) != 0)
-	entsize = 1;
+	{
+	  entsize = 1;
+	  align = __libelf_type_align (elf->class, ELF_T_CHDR);
+	}
       else if (type == SHT_HASH)
 	{
 	  GElf_Ehdr ehdr_mem;

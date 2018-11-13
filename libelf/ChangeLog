@@ -1,3 +1,10 @@
+2018-11-13  Mark Wielaard  <mark@klomp.org>
+
+	* elf_getdata.c (__libelf_set_rawdata_wrlock): Explicitly set the
+	alignment of SHF_COMPRESSED data to the alignment of ELF_T_CHDR.
+	* elf_compress.c (elf_compress): After compression set sh_addralign
+	to the alignment of ELF_T_CHDR.
+
 2018-11-09  Mark Wielaard  <mark@klomp.org>
 
 	* elf_compress_gnu.c (elf_compress_gnu): Use elf_getdata.

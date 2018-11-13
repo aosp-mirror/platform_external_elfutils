@@ -455,14 +455,14 @@ elf_compress (Elf_Scn *scn, int type, unsigned int flags)
 	{
 	  Elf32_Shdr *shdr = elf32_getshdr (scn);
 	  shdr->sh_size = new_size;
-	  shdr->sh_addralign = 1;
+	  shdr->sh_addralign = __libelf_type_align (ELFCLASS32, ELF_T_CHDR);
 	  shdr->sh_flags |= SHF_COMPRESSED;
 	}
       else
 	{
 	  Elf64_Shdr *shdr = elf64_getshdr (scn);
 	  shdr->sh_size = new_size;
-	  shdr->sh_addralign = 1;
+	  shdr->sh_addralign = __libelf_type_align (ELFCLASS64, ELF_T_CHDR);
 	  shdr->sh_flags |= SHF_COMPRESSED;
 	}
 

@@ -91,13 +91,11 @@ ebl_object_note_type_name (Ebl *ebl, const char *name, uint32_t type,
 	  t += w;
 	  len -= w;
 	  if (type == NT_GNU_BUILD_ATTRIBUTE_OPEN)
-	    w = snprintf (t, len, "OPEN");
+	    snprintf (t, len, "OPEN");
 	  else if (type == NT_GNU_BUILD_ATTRIBUTE_FUNC)
-	    w = snprintf (t, len, "FUNC");
+	    snprintf (t, len, "FUNC");
 	  else
-	    w = snprintf (t, len, "%x", type);
-	  t += w;
-	  len -= w;
+	    snprintf (t, len, "%x", type);
 
 	  return buf;
 	}

@@ -34,7 +34,7 @@ git checkout -b "$VERSION" "elfutils-${VERSION}"
 # Create dist
 autoreconf -v -f -i
 ./configure --enable-maintainer-mode
-make dist
+make -j$(nproc) && make dist
 
 # Sign
 mkdir $VERSION

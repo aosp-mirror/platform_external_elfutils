@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ja\n"
 "Report-Msgid-Bugs-To: https://sourceware.org/bugzilla/\n"
-"POT-Creation-Date: 2018-11-14 13:04+0100\n"
+"POT-Creation-Date: 2018-11-16 12:42+0100\n"
 "PO-Revision-Date: 2009-09-20 15:32+0900\n"
 "Last-Translator: Hyu_gabaru Ryu_ichi <hyu_gabaru@yahoo.co.jp>\n"
 "Language-Team: Japanese <jp@li.org>\n"
@@ -528,7 +528,7 @@ msgid "No backend"
 msgstr "バックエンドがありません"
 
 #: libebl/eblcorenotetypename.c:100 libebl/eblobjnotetypename.c:77
-#: libebl/eblobjnotetypename.c:111 libebl/eblobjnotetypename.c:132
+#: libebl/eblobjnotetypename.c:109 libebl/eblobjnotetypename.c:130
 #: libebl/eblosabiname.c:73 libebl/eblsectionname.c:83
 #: libebl/eblsectiontypename.c:115 libebl/eblsegmenttypename.c:79
 msgid "<unknown>"

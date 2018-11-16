@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: elfutils.master.es\n"
 "Report-Msgid-Bugs-To: https://sourceware.org/bugzilla/\n"
-"POT-Creation-Date: 2018-11-14 13:04+0100\n"
+"POT-Creation-Date: 2018-11-16 12:42+0100\n"
 "PO-Revision-Date: 2011-01-10 15:17-0300\n"
 "Last-Translator: Claudio Rodrigo Pereyra Diaz <claudiorodrigo@pereyradiaz."
 "com.ar>\n"
@@ -529,7 +529,7 @@ msgid "No backend"
 msgstr "No hay segundo plano (Backend)"
 
 #: libebl/eblcorenotetypename.c:100 libebl/eblobjnotetypename.c:77
-#: libebl/eblobjnotetypename.c:111 libebl/eblobjnotetypename.c:132
+#: libebl/eblobjnotetypename.c:109 libebl/eblobjnotetypename.c:130
 #: libebl/eblosabiname.c:73 libebl/eblsectionname.c:83
 #: libebl/eblsectiontypename.c:115 libebl/eblsegmenttypename.c:79
 msgid "<unknown>"

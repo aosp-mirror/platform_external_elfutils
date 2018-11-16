@@ -1,3 +1,8 @@
+2018-11-16  Mark Wielaard  <mark@klomp.org>
+
+	* libebl.h (__elf32_msize): Mark with const attribute.
+	(__elf64_msize): Likewise.
+
 2018-11-13  Mark Wielaard  <mark@klomp.org>
 
 	* elf_getdata.c (__libelf_set_rawdata_wrlock): Explicitly set the

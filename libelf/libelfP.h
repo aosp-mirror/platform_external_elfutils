@@ -461,9 +461,9 @@ extern Elf_Type __libelf_data_type (Elf *elf, int sh_type, GElf_Xword align)
    These functions cannot be marked internal since they are aliases
    of the export elfXX_fsize functions.*/
 extern size_t __elf32_msize (Elf_Type __type, size_t __count,
-			     unsigned int __version);
+			     unsigned int __version) __const_attribute__;
 extern size_t __elf64_msize (Elf_Type __type, size_t __count,
-			     unsigned int __version);
+			     unsigned int __version) __const_attribute__;
 
 
 /* Create Elf descriptor from memory image.  */

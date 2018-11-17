@@ -1,3 +1,8 @@
+2018-11-17  Mark Wielaard  <mark@klomp.org>
+
+	* elf32_updatefile.c (updatemmap): Make sure to call convert
+	function on a properly aligned destination.
+
 2018-11-16  Mark Wielaard  <mark@klomp.org>
 
 	* libebl.h (__elf32_msize): Mark with const attribute.

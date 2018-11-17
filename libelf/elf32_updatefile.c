@@ -1,5 +1,5 @@
 /* Write changed data structures.
-   Copyright (C) 2000-2010, 2014, 2015, 2016 Red Hat, Inc.
+   Copyright (C) 2000-2010, 2014, 2015, 2016, 2018 Red Hat, Inc.
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2000.
 
@@ -354,7 +354,9 @@ __elfw2(LIBELFBITS,updatemmap) (Elf *elf, int change_bo, size_t shnum)
 		       user's section data with the latest one, rather than
 		       crashing.  */
 
-		    if (unlikely (change_bo))
+		    if (unlikely (change_bo
+				  && dl->data.d.d_size != 0
+				  && dl->data.d.d_type != ELF_T_BYTE))
 		      {
 #if EV_NUM != 2
 			xfct_t fctp;
@@ -364,9 +366,33 @@ __elfw2(LIBELFBITS,updatemmap) (Elf *elf, int change_bo, size_t shnum)
 # define fctp __elf_xfctstom[0][EV_CURRENT - 1][ELFW(ELFCLASS, LIBELFBITS) - 1][dl->data.d.d_type]
 #endif
 
-			/* Do the real work.  */
-			(*fctp) (last_position, dl->data.d.d_buf,
-				 dl->data.d.d_size, 1);
+			size_t align;
+			align = __libelf_type_align (ELFW(ELFCLASS,LIBELFBITS),
+						     dl->data.d.d_type);
+			if ((((uintptr_t) last_position)
+			     & (uintptr_t) (align - 1)) == 0)
+			  {
+			    /* No need to copy, we can convert directly.  */
+			    (*fctp) (last_position, dl->data.d.d_buf,
+				     dl->data.d.d_size, 1);
+			  }
+			else
+			  {
+			    /* We have to do the conversion on properly
+			       aligned memory first.  */
+			    size_t size = dl->data.d.d_size;
+			    char *converted = aligned_alloc (align, size);
+			    if (converted == NULL)
+			      {
+				__libelf_seterrno (ELF_E_NOMEM);
+				return 1;
+			      }
+                            (*fctp) (converted, dl->data.d.d_buf, size, 1);
+
+			    /* And then write it to the mmapped file.  */
+			    memcpy (last_position, converted, size);
+			    free (converted);
+			  }
 
 			last_position += dl->data.d.d_size;
 		      }

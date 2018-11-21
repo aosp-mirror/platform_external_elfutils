@@ -1,3 +1,8 @@
+2018-11-21  Mark Wielaard  <mark@klomp.org>
+
+	* backtrace-subr.sh (check_unsupported): Call test_cleanup before
+	exit.
+
 2018-11-17  Mark Wielaard  <mark@klomp.org>
 
 	* run-strip-version.sh: New test.

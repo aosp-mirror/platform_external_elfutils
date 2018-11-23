@@ -1,3 +1,8 @@
+2018-10-23  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_child.c (__libdw_find_attr): Initialize readp to NULL.
+	* dwarf_getattrs.c (dwarf_getattrs): Initialize die_addr to NULL.
+
 2018-10-20  Mark Wielaard  <mark@klomp.org>
 
 	* libdw.map (ELFUTILS_0.175): New section. Add dwelf_elf_begin.

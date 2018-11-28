@@ -47,7 +47,7 @@
 int
 main (int argc __attribute__ ((unused)), char **argv)
 {
-  fprintf (stderr, "%s: Unwinding not supported for this architecture\n",
+  fprintf (stderr, "%s: x86_64 linux only test\n",
           argv[0]);
   return 77;
 }

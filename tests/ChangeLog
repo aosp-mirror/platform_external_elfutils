@@ -1,3 +1,8 @@
+2018-11-28  Mark Wielaard  <mark@klomp.org>
+
+	* backtrace-data.c (main): Improve error message.
+	* run-backtrace-data.sh: Skip exit 77 return.
+
 2018-11-21  Mark Wielaard  <mark@klomp.org>
 
 	* backtrace-subr.sh (check_unsupported): Call test_cleanup before

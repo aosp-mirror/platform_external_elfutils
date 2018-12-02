@@ -125,3 +125,104 @@ Note section [22] '.note.gnu.property' of 48 bytes at offset 0x40c:
     X86 0xc0000000 data: 00 00 00 00
     X86 0xc0000001 data: 00 00 00 00
 EOF
+
+#
+# = gnu_props.S
+#
+# #define NT_GNU_PROPERTY_TYPE_0 5
+# #define GNU_PROPERTY_STACK_SIZE 1
+# #define GNU_PROPERTY_NO_COPY_ON_PROTECTED 2
+
+# /* Normal notes always have alignment and padding of 4 bytes,
+#    but GNU Property notes use 4 byte words, with 8 byte padding
+#    for ELFCLASS64.  */
+# #if __SIZEOF_PTRDIFF_T__  == 8
+# # define ALIGN 3
+# #elif __SIZEOF_PTRDIFF_T__  == 4
+# # define ALIGN 2
+# #endif
+#
+# 	.section ".note.gnu.property", "a"
+# 	.p2align ALIGN
+# 	/* First note.  */
+# 	.long 1f - 0f			/* name length.  */
+# 	.long 4f - 2f			/* data length.  */
+# 	.long NT_GNU_PROPERTY_TYPE_0	/* note type.  */
+# 0:
+# 	.asciz "GNU"			/* vendor name.  */
+# 1:
+# 	.p2align ALIGN			/* Padding.  */
+# 2:
+# 	.long GNU_PROPERTY_STACK_SIZE	/* pr_type.  */
+# 	.long 4f - 3f			/* pr_datasz.  */
+# 3:
+# 	.dc.a 0x280000			/* Stack size.  */
+# 4:
+# 	.p2align ALIGN
+#
+# 	/* Second note.  */
+# 	.long 6f - 5f				/* name length.  */
+# 	.long 8f - 7f				/* data length.  */
+# 	.long NT_GNU_PROPERTY_TYPE_0		/* note type.  */
+# 5:
+# 	.asciz "GNU"				/* vendor name.  */
+# 6:
+# 	.p2align ALIGN				/* Padding.  */
+# 7:
+# 	.long GNU_PROPERTY_NO_COPY_ON_PROTECTED /* pr_type.  */
+# 	.long 0					/* pr_datasz.  */
+# 	/* No data.  */
+# 8:
+# 	.p2align ALIGN
+#
+# On x86_64
+# gcc -m64 -c -o testfile_gnu_props_64le.o gnu_props.S
+# gcc -m32 -c -o testfile_gnu_props_32le.o gnu_props.S
+
+testfiles testfile_gnu_props.32le.o testfile_gnu_props.64le.o
+
+testrun_compare ${abs_top_builddir}/src/readelf -n testfile_gnu_props.32le.o << EOF
+
+Note section [ 4] '.note.gnu.property' of 52 bytes at offset 0x34:
+  Owner          Data size  Type
+  GNU                   12  GNU_PROPERTY_TYPE_0
+    STACK_SIZE 0x280000
+  GNU                    8  GNU_PROPERTY_TYPE_0
+    NO_COPY_ON_PROTECTION
+EOF
+
+testrun_compare ${abs_top_builddir}/src/readelf -n testfile_gnu_props.64le.o << EOF
+
+Note section [ 4] '.note.gnu.property' of 56 bytes at offset 0x40:
+  Owner          Data size  Type
+  GNU                   16  GNU_PROPERTY_TYPE_0
+    STACK_SIZE 0x280000
+  GNU                    8  GNU_PROPERTY_TYPE_0
+    NO_COPY_ON_PROTECTION
+EOF
+
+# On ppc64
+# gcc -m32 -c -o testfile_gnu_props.32be.o gnu_props.S
+# gcc -m64 -c -o testfile_gnu_props.64be.o gnu_props.S
+
+testfiles testfile_gnu_props.32be.o testfile_gnu_props.64be.o
+
+testrun_compare ${abs_top_builddir}/src/readelf -n testfile_gnu_props.32be.o << EOF
+
+Note section [ 4] '.note.gnu.property' of 52 bytes at offset 0x34:
+  Owner          Data size  Type
+  GNU                   12  GNU_PROPERTY_TYPE_0
+    STACK_SIZE 0x280000
+  GNU                    8  GNU_PROPERTY_TYPE_0
+    NO_COPY_ON_PROTECTION
+EOF
+
+testrun_compare ${abs_top_builddir}/src/readelf -n testfile_gnu_props.64be.o << EOF
+
+Note section [ 4] '.note.gnu.property' of 56 bytes at offset 0x40:
+  Owner          Data size  Type
+  GNU                   16  GNU_PROPERTY_TYPE_0
+    STACK_SIZE 0x280000
+  GNU                    8  GNU_PROPERTY_TYPE_0
+    NO_COPY_ON_PROTECTION
+EOF

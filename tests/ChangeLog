@@ -1,3 +1,12 @@
+2018-12-02  Mark Wielaard  <mark@klomp.org>
+
+	* testfile_gnu_props.32le.o.bz2: New testfile.
+	* testfile_gnu_props.64le.o.bz2: Likewise.
+	* testfile_gnu_props.32be.o.bz2: Likewise.
+	* testfile_gnu_props.64be.o.bz2: Likewise.
+	* Makefile (EXTRA_DIST): Add new testfiles.
+	* run-readelf-n.sh: Run tests on new testfiles.
+
 2018-11-28  Mark Wielaard  <mark@klomp.org>
 
 	* backtrace-data.c (main): Improve error message.

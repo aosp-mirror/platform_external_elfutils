@@ -360,15 +360,22 @@ ebl_object_note (Ebl *ebl, uint32_t namesz, const char *name, uint32_t type,
 		  if (prop.pr_type == GNU_PROPERTY_STACK_SIZE)
 		    {
 		      printf ("STACK_SIZE ");
-		      if (prop.pr_datasz == 4 || prop.pr_datasz == 8)
+		      union
 			{
-			  GElf_Addr addr;
+			  Elf64_Addr a64;
+			  Elf32_Addr a32;
+			} addr;
+		      if ((elfclass == ELFCLASS32 && prop.pr_datasz == 4)
+			  || (elfclass == ELFCLASS64 && prop.pr_datasz == 8))
+			{
 			  in.d_type = ELF_T_ADDR;
 			  out.d_type = ELF_T_ADDR;
 			  in.d_size = prop.pr_datasz;
-			  out.d_size = sizeof (addr);
+			  out.d_size = prop.pr_datasz;
 			  in.d_buf = (void *) desc;
-			  out.d_buf = (void *) &addr;
+			  out.d_buf = (elfclass == ELFCLASS32
+				       ? (void *) &addr.a32
+				       : (void *) &addr.a64);
 
 			  if (gelf_xlatetom (ebl->elf, &out, &in,
 					     elfident[EI_DATA]) == NULL)
@@ -376,7 +383,10 @@ ebl_object_note (Ebl *ebl, uint32_t namesz, const char *name, uint32_t type,
 			      printf ("%s\n", elf_errmsg (-1));
 			      return;
 			    }
-			  printf ("%#" PRIx64 "\n", addr);
+			  if (elfclass == ELFCLASS32)
+			    printf ("%#" PRIx32 "\n", addr.a32);
+			  else
+			    printf ("%#" PRIx64 "\n", addr.a64);
 			}
 		      else
 			printf (" (garbage datasz: %" PRIx32 ")\n",

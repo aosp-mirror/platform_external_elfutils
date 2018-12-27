@@ -1,5 +1,16 @@
 2018-12-27  Jim Wilson  <jimw@sifive.com>
 
+	* Makefile.am (riscv_SRCS): Add riscv64_corenote.c.
+	* riscv64_corenote.c: New file.
+	* riscv_corenote.c (BITS): New.
+	(BACKEND): Conditional on BITS.
+	(ULONG, UID_T, GID_T, ALIGN_ULONG, ALIGN_UID_T, ALIGN_GID_T): Likewise.
+	(TYPE_ULONG, TYPE_UID_T, TYPE_GID_T): Likewise.
+	(prstatus_regs): Use BITS/8 instead of 8.
+	(PRSTATUS_REGS_SIZE): Likewise.
+	* riscv_init.c (riscv64_core_note): Declare.
+	(riscv_init): If ELFCLASS64 then use riscv64_core_note hook.
+
 	* Makefile.am (riscv_SRCS): Add riscv_retval.c.
 	* riscv_init.c: Include libelfP.h.
 	(riscv_return_value_location_lp64d): Declare.

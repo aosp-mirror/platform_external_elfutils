@@ -41,6 +41,8 @@
 extern __typeof (EBLHOOK (return_value_location))
   riscv_return_value_location_lp64d attribute_hidden;
 
+extern __typeof (EBLHOOK (core_note)) riscv64_core_note attribute_hidden;
+
 const char *
 riscv_init (Elf *elf,
 	    GElf_Half machine __attribute__ ((unused)),
@@ -62,7 +64,10 @@ riscv_init (Elf *elf,
   HOOK (eh, check_special_symbol);
   HOOK (eh, machine_flag_check);
   HOOK (eh, set_initial_registers_tid);
-  HOOK (eh, core_note);
+  if (eh->class == ELFCLASS64)
+    eh->core_note = riscv64_core_note;
+  else
+    HOOK (eh, core_note);
   if (eh->class == ELFCLASS64
       && ((elf->state.elf64.ehdr->e_flags & EF_RISCV_FLOAT_ABI)
 	  == EF_RISCV_FLOAT_ABI_DOUBLE))

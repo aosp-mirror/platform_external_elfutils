@@ -35,27 +35,48 @@
 #include <stdio.h>
 #include <sys/time.h>
 
-#define BACKEND	riscv_
+#ifndef BITS
+# define BITS		32
+# define BACKEND	riscv_
+#else
+# define BITS		64
+# define BACKEND	riscv64_
+#endif
+
 #include "libebl_CPU.h"
 
-#define	ULONG			uint64_t
+#if BITS == 32
+# define ULONG			uint32_t
+# define UID_T			uint16_t
+# define GID_T			uint16_t
+# define ALIGN_ULONG		4
+# define ALIGN_UID_T		2
+# define ALIGN_GID_T		2
+# define TYPE_ULONG		ELF_T_WORD
+# define TYPE_UID_T		ELF_T_HALF
+# define TYPE_GID_T		ELF_T_HALF
+#else
+# define ULONG			uint64_t
+# define UID_T			uint32_t
+# define GID_T			uint32_t
+# define ALIGN_ULONG		8
+# define ALIGN_UID_T		4
+# define ALIGN_GID_T		4
+# define TYPE_ULONG		ELF_T_XWORD
+# define TYPE_UID_T		ELF_T_WORD
+# define TYPE_GID_T		ELF_T_WORD
+#endif
+
 #define PID_T			int32_t
-#define	UID_T			uint32_t
-#define	GID_T			uint32_t
-#define ALIGN_ULONG		8
 #define ALIGN_PID_T		4
-#define ALIGN_UID_T		4
-#define ALIGN_GID_T		4
-#define TYPE_ULONG		ELF_T_XWORD
 #define TYPE_PID_T		ELF_T_SWORD
-#define TYPE_UID_T		ELF_T_WORD
-#define TYPE_GID_T		ELF_T_WORD
+
 
 static const Ebl_Register_Location prstatus_regs[] =
   {
-    { .offset = 8, .regno = 1, .count = 31, .bits = 64 } /* x1..x31 */
+    { .offset = BITS/8, .regno = 1, .count = 31, .bits = BITS } /* x1..x31 */
   };
-#define PRSTATUS_REGS_SIZE	(32 * 8)
+#define PRSTATUS_REGS_SIZE	(32 * (BITS/8))
 
 #define PRSTATUS_REGSET_ITEMS						\
   {									\

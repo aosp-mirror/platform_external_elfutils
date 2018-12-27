@@ -33,12 +33,16 @@
 #define RELOC_PREFIX	R_RISCV_
 #include "libebl_CPU.h"
 
+#include "libelfP.h"
+
 /* This defines the common reloc hooks based on riscv_reloc.def.  */
 #include "common-reloc.c"
 
+extern __typeof (EBLHOOK (return_value_location))
+  riscv_return_value_location_lp64d attribute_hidden;
 
 const char *
-riscv_init (Elf *elf __attribute__ ((unused)),
+riscv_init (Elf *elf,
 	    GElf_Half machine __attribute__ ((unused)),
 	    Ebl *eh,
 	    size_t ehlen)
@@ -59,6 +63,10 @@ riscv_init (Elf *elf __attribute__ ((unused)),
   HOOK (eh, machine_flag_check);
   HOOK (eh, set_initial_registers_tid);
   HOOK (eh, core_note);
+  if (eh->class == ELFCLASS64
+      && ((elf->state.elf64.ehdr->e_flags & EF_RISCV_FLOAT_ABI)
+	  == EF_RISCV_FLOAT_ABI_DOUBLE))
+    eh->return_value_location = riscv_return_value_location_lp64d;
 
   return MODVERSION;
 }

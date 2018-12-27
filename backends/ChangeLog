@@ -1,5 +1,13 @@
 2018-12-27  Jim Wilson  <jimw@sifive.com>
 
+	* Makefile.am (riscv_SRCS): Add riscv_retval.c.
+	* riscv_init.c: Include libelfP.h.
+	(riscv_return_value_location_lp64d): Declare.
+	(riscv_init): Delete unused attribute from elf parameter.  Register
+	riscv_return_value_location_lp64d hook if 64-bit ELF and 64-bit FP
+	registers.
+	* riscv_retval.c: New file.
+
 	* riscv_corenote.c (prstatus_regs): Change offset from 1 to 8.
 	(PRSTATUS_REGSET_ITEMS): New.
 

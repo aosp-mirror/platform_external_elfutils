@@ -1,3 +1,7 @@
+2018-12-27  Jim Wilson  <jimw@sifive.com>
+
+	* run-readelf-mixed-corenote.sh: Update with new riscv64 output.
+
 2018-12-02  Mark Wielaard  <mark@klomp.org>
 
 	* testfile_gnu_props.32le.o.bz2: New testfile.

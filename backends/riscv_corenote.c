@@ -53,8 +53,15 @@
 
 static const Ebl_Register_Location prstatus_regs[] =
   {
-    { .offset = 1, .regno = 1, .count = 31, .bits = 64 } /* x1..x31 */
+    { .offset = 8, .regno = 1, .count = 31, .bits = 64 } /* x1..x31 */
   };
 #define PRSTATUS_REGS_SIZE	(32 * 8)
+
+#define PRSTATUS_REGSET_ITEMS						\
+  {									\
+    .name = "pc", .type = ELF_T_ADDR, .format = 'x',			\
+    .offset = offsetof (struct EBLHOOK(prstatus), pr_reg[0]),		\
+    .group = "register", .pc_register = true				\
+  }
 
 #include "linux-core-note.c"

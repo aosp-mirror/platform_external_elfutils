@@ -1,3 +1,8 @@
+2018-12-27  Jim Wilson  <jimw@sifive.com>
+
+	* riscv_corenote.c (prstatus_regs): Change offset from 1 to 8.
+	(PRSTATUS_REGSET_ITEMS): New.
+
 2018-11-06  Mark Wielaard  <mark@klomp.org>
 
 	* x86_64_symbol.c (x86_64_section_type_name): New function.

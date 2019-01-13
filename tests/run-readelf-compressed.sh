@@ -17,6 +17,11 @@
 
 . $srcdir/test-subr.sh
 
+if ! grep -q -F '#define USE_BZLIB' ${abs_top_builddir}/config.h; then
+  echo "elfutils built without bzip2 support"
+  exit 77
+fi
+
 # See run-strip-reloc.sh
 testfiles hello_i386.ko
 

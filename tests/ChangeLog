@@ -1,3 +1,7 @@
+2019-01-09  Ulf Hermann <ulf.hermann@qt.io>
+
+	* run-readelf-compressed.sh: Skip if USE_BZIP2 not found.
+
 2018-12-27  Jim Wilson  <jimw@sifive.com>
 
 	* run-readelf-mixed-corenote.sh: Update with new riscv64 output.

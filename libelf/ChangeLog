@@ -1,3 +1,8 @@
+2019-01-16  Mark Wielaard  <mark@klomp.org>
+
+	* note_xlate.h (elf_cvt_note): Check n_namesz and n_descsz don't
+	overflow note_len into note header.
+
 2018-11-17  Mark Wielaard  <mark@klomp.org>
 
 	* elf32_updatefile.c (updatemmap): Make sure to call convert

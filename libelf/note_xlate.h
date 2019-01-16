@@ -46,13 +46,13 @@ elf_cvt_note (void *dest, const void *src, size_t len, int encode,
       /* desc needs to be aligned.  */
       note_len += n->n_namesz;
       note_len = nhdr8 ? NOTE_ALIGN8 (note_len) : NOTE_ALIGN4 (note_len);
-      if (note_len > len || note_len < 8)
+      if (note_len > len || note_len < sizeof *n)
 	break;
 
       /* data as a whole needs to be aligned.  */
       note_len += n->n_descsz;
       note_len = nhdr8 ? NOTE_ALIGN8 (note_len) : NOTE_ALIGN4 (note_len);
-      if (note_len > len || note_len < 8)
+      if (note_len > len || note_len < sizeof *n)
 	break;
 
       /* Copy or skip the note data.  */

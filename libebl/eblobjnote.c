@@ -350,6 +350,13 @@ ebl_object_note (Ebl *ebl, uint32_t namesz, const char *name, uint32_t type,
 		  desc += 8;
 		  descsz -= 8;
 
+		  if (prop.pr_datasz > descsz)
+		    {
+		      printf ("BAD property datasz: %" PRId32 "\n",
+			      prop.pr_datasz);
+		      return;
+		    }
+
 		  int elfclass = gelf_getclass (ebl->elf);
 		  char *elfident = elf_getident (ebl->elf, NULL);
 		  GElf_Ehdr ehdr;

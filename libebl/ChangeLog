@@ -1,3 +1,7 @@
+2019-01-16  Mark Wielaard  <mark@klomp.org>
+
+	* eblobjnte.c (ebl_object_note): Check pr_datasz isn't too large.
+
 2018-12-02  Mark Wielaard  <mark@klomp.org>
 
 	* eblobjnte.c (ebl_object_note): For GNU_PROPERTY_STACK_SIZE use

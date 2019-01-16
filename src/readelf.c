@@ -12153,7 +12153,7 @@ handle_core_note (Ebl *ebl, const GElf_Nhdr *nhdr,
   size_t nitems;
   const Ebl_Core_Item *items;
 
-  if (! ebl_core_note (ebl, nhdr, name,
+  if (! ebl_core_note (ebl, nhdr, name, desc,
 		       &regs_offset, &nregloc, &reglocs, &nitems, &items))
     return;
 

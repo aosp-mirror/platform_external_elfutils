@@ -319,7 +319,8 @@ typedef struct
 
 /* Describe the format of a core file note with the given header and NAME.
    NAME is not guaranteed terminated, it's NHDR->n_namesz raw bytes.  */
-extern int ebl_core_note (Ebl *ebl, const GElf_Nhdr *nhdr, const char *name,
+extern int ebl_core_note (Ebl *ebl, const GElf_Nhdr *nhdr,
+			  const char *name, const char *desc,
 			  GElf_Word *regs_offset, size_t *nregloc,
 			  const Ebl_Register_Location **reglocs,
 			  size_t *nitems, const Ebl_Core_Item **items)

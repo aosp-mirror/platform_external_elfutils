@@ -1,5 +1,11 @@
 2019-01-16  Mark Wielaard  <mark@klomp.org>
 
+	* libebl.h (ebl_core_note): Add desc as argument.
+	* eblcorenote.c (ebl_core_note): Take desc as an argument, check
+	it contains a zero terminated string if it is an NT_PLATFORM note.
+
+2019-01-16  Mark Wielaard  <mark@klomp.org>
+
 	* eblobjnte.c (ebl_object_note): Check pr_datasz isn't too large.
 
 2018-12-02  Mark Wielaard  <mark@klomp.org>

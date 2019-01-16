@@ -1,3 +1,7 @@
+2019-01-16  Mark Wielaard  <mark@klomp.org>
+
+	* readelf (handle_core_note): Pass desc to ebl_core_note.
+
 2018-11-10  Mark Wielaard  <mark@klomp.org>
 
 	* elflint.c (check_program_header): Allow PT_GNU_EH_FRAME segment

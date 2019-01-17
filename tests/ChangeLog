@@ -1,3 +1,9 @@
+2019-01-18  Ulf Hermann <ulf.hermann@qt.io>
+
+	* run-annobingroup.sh: Use different files for strip output.
+	* run-strip-test-many.sh: Use different files for strip output,
+	check results of strip, unstrip, elflint.
+
 2019-01-24  Mark Wielaard  <mark@klomp.org>
 
 	* addsections.c (add_sections): Change the name of the old shstrtab

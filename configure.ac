@@ -323,6 +323,11 @@ if test "$use_valgrind" = yes; then
 fi
 AM_CONDITIONAL(USE_VALGRIND, test "$use_valgrind" = yes)
 
+AC_ARG_ENABLE([install-elfh],
+AS_HELP_STRING([--enable-install-elfh],[install elf.h in include dir]),
+               [install_elfh=$enableval], [install_elfh=no])
+AM_CONDITIONAL(INSTALL_ELFH, test "$install_elfh" = yes)
+
 AM_CONDITIONAL(BUILD_STATIC, [dnl
 test "$use_gprof" = yes -o "$use_gcov" = yes])
 
@@ -658,6 +663,7 @@ AC_MSG_NOTICE([
 
   NOT RECOMMENDED FEATURES (should all be no)
     Experimental thread safety         : ${use_locks}
+    install elf.h                      : ${install_elfh}
 
   OTHER FEATURES
     Deterministic archives by default  : ${default_ar_deterministic}
@@ -673,3 +679,9 @@ AC_MSG_NOTICE([
     use rpath in tests                 : ${tests_use_rpath}
     test biarch                        : ${utrace_cv_cc_biarch}
 ])
+
+if test "$install_elfh" = yes; then
+  if test "${prefix}" = "/usr/local" -o "${prefix}" = "/usr"; then
+    AC_MSG_WARN([installing elf.h in ${includedir} might conflict with glibc/system elf.h])
+  fi
+fi

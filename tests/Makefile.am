@@ -595,8 +595,12 @@ elfcopy_LDADD = $(libelf)
 addsections_LDADD = $(libelf)
 
 # We want to test the libelf header against the system elf.h header.
-# Don't include any -I CPPFLAGS.
+# Don't include any -I CPPFLAGS. Except when we install our own elf.h.
+if !INSTALL_ELFH
 system_elf_libelf_test_CPPFLAGS =
+else
+system_elf_libelf_test_CPPFLAGS = -I$(top_srcdir)/libelf
+endif
 system_elf_libelf_test_LDADD = $(libelf)
 
 # A lock file used to make sure only one test dumps core at a time

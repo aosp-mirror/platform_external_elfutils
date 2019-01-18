@@ -1,3 +1,8 @@
+2019-01-18  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (INSTALL_ELFH): Add elf.h to include_HEADERS when
+	defined, otherwise (the default) add elf.h to noinst_HEADERS.
+
 2019-01-16  Mark Wielaard  <mark@klomp.org>
 
 	* note_xlate.h (elf_cvt_note): Check n_namesz and n_descsz don't

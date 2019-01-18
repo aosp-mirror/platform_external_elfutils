@@ -1,3 +1,8 @@
+2019-01-24  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (system_elf_libelf_test_CPPFLAGS): Guard by
+	!INSTALL_ELFH.
+
 2019-01-31  Mark Wielaard  <mark@klomp.org>
 
 	* backtrace-child.c (stdarg): Remove assert (errno == 0).

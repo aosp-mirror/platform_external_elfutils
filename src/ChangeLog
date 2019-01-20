@@ -1,3 +1,8 @@
+2019-01-20  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (print_debug_line_section): Check terminating NUL byte
+	for dir and file tables.
+
 2019-01-16  Mark Wielaard  <mark@klomp.org>
 
 	* readelf (handle_core_note): Pass desc to ebl_core_note.

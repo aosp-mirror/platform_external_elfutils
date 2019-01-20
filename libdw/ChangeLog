@@ -1,3 +1,8 @@
+2019-01-20  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_getsrclines.c (read_srclines): Check terminating NUL byte
+	for dir and file lists.
+
 2018-10-23  Mark Wielaard  <mark@klomp.org>
 
 	* dwarf_child.c (__libdw_find_attr): Initialize readp to NULL.

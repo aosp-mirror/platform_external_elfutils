@@ -8444,7 +8444,7 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 	}
       else
 	{
-	  while (*linep != 0)
+	  while (linep < lineendp && *linep != 0)
 	    {
 	      unsigned char *endp = memchr (linep, '\0', lineendp - linep);
 	      if (unlikely (endp == NULL))
@@ -8454,6 +8454,8 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 
 	      linep = endp + 1;
 	    }
+	  if (linep >= lineendp || *linep != 0)
+	    goto invalid_unit;
 	  /* Skip the final NUL byte.  */
 	  ++linep;
 	}
@@ -8523,7 +8525,7 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
       else
 	{
 	  puts (gettext (" Entry Dir   Time      Size      Name"));
-	  for (unsigned int cnt = 1; *linep != 0; ++cnt)
+	  for (unsigned int cnt = 1; linep < lineendp && *linep != 0; ++cnt)
 	    {
 	      /* First comes the file name.  */
 	      char *fname = (char *) linep;
@@ -8553,6 +8555,8 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 	      printf (" %-5u %-5u %-9u %-9u %s\n",
 		      cnt, diridx, mtime, fsize, fname);
 	    }
+	  if (linep >= lineendp || *linep != '\0')
+	    goto invalid_unit;
 	  /* Skip the final NUL byte.  */
 	  ++linep;
 	}

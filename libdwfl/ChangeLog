@@ -1,3 +1,8 @@
+2019-01-20  Mark Wielaard  <mark@klomp.org>
+
+	* dwfl_segment_report_module.c (dwfl_segment_report_module): Check
+	dyn_filesz vs dyn_data_size after read_portion call.
+
 2019-01-16  Mark Wielaard  <mark@klomp.org>
 
 	* linux-core-attach.c (core_next_thread): Pass desc to ebl_core_note.

@@ -783,6 +783,12 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   if (dyn_filesz != 0 && dyn_filesz % dyn_entsize == 0
       && ! read_portion (&dyn_data, &dyn_data_size, dyn_vaddr, dyn_filesz))
     {
+      /* dyn_data_size will be zero if we got everything from the initial
+         buffer, otherwise it will be the size of the new buffer that
+         could be read.  */
+      if (dyn_data_size != 0)
+	dyn_filesz = dyn_data_size;
+
       void *dyns = malloc (dyn_filesz);
       Elf32_Dyn (*d32)[dyn_filesz / sizeof (Elf32_Dyn)] = dyns;
       Elf64_Dyn (*d64)[dyn_filesz / sizeof (Elf64_Dyn)] = dyns;

@@ -1,3 +1,8 @@
+2019-01-22  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (print_debug_line_section): Check we are not at end of
+	line data when reading parameters for unknown opcodes.
+
 2019-01-20  Mark Wielaard  <mark@klomp.org>
 
 	* readelf.c (print_debug_line_section): Check terminating NUL byte

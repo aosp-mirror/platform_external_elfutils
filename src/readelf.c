@@ -8845,7 +8845,8 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 				" unknown opcode with %" PRIu8 " parameters:",
 				standard_opcode_lengths[opcode]),
 		      standard_opcode_lengths[opcode]);
-	      for (int n = standard_opcode_lengths[opcode]; n > 0; --n)
+	      for (int n = standard_opcode_lengths[opcode];
+		   n > 0 && linep < lineendp; --n)
 		{
 		  get_uleb128 (u128, linep, lineendp);
 		  if (n != standard_opcode_lengths[opcode])

@@ -1944,7 +1944,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 		      INTERNAL_ERROR (fname);
 
 		    if (sym->st_shndx == SHN_UNDEF
-			|| (sym->st_shndx >= shnum
+			|| (sym->st_shndx >= SHN_LORESERVE
 			    && sym->st_shndx != SHN_XINDEX))
 		      {
 			/* This is no section index, leave it alone

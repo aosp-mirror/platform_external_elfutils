@@ -1,3 +1,9 @@
+2019-01-24  Mark Wielaard  <mark@klomp.org>
+
+	* addsections.c (add_sections): Change the name of the old shstrtab
+	section to ".old_shstrtab" and give the old shstrtab name to the
+	new shstrtab section.
+
 2019-01-09  Ulf Hermann <ulf.hermann@qt.io>
 
 	* run-readelf-compressed.sh: Skip if USE_BZIP2 not found.

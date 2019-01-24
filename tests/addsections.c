@@ -92,7 +92,7 @@ add_sections (const char *name, size_t nr, int use_mmap)
 
   /* We will add a new shstrtab section with two new names at the end.
      Just get the current shstrtab table and add two entries '.extra'
-     and '.new_shstrtab' at the end of the table, so all existing indexes
+     and '.old_shstrtab' at the end of the table, so all existing indexes
      are still valid.  */
   size_t shstrndx;
   if (elf_getshdrstrndx (elf, &shstrndx) < 0)
@@ -115,7 +115,7 @@ add_sections (const char *name, size_t nr, int use_mmap)
     }
   size_t new_shstrtab_size = (shstrtab_data->d_size
 			      + strlen (".extra") + 1
-			      + strlen (".new_shstrtab") + 1);
+			      + strlen (".old_shstrtab") + 1);
   void *new_shstrtab_buf = malloc (new_shstrtab_size);
   if (new_shstrtab_buf == NULL)
     {
@@ -124,9 +124,30 @@ add_sections (const char *name, size_t nr, int use_mmap)
     }
   memcpy (new_shstrtab_buf, shstrtab_data->d_buf, shstrtab_data->d_size);
   size_t extra_idx = shstrtab_data->d_size;
-  size_t new_shstrtab_idx = extra_idx + strlen (".extra") + 1;
+  size_t old_shstrtab_idx = extra_idx + strlen (".extra") + 1;
   strcpy (new_shstrtab_buf + extra_idx, ".extra");
-  strcpy (new_shstrtab_buf + new_shstrtab_idx, ".new_shstrtab");
+  strcpy (new_shstrtab_buf + old_shstrtab_idx, ".old_shstrtab");
+
+  /* Change the name of the old shstrtab section, because elflint
+     has a strict check on the name/type for .shstrtab.  */
+  GElf_Shdr shdr_mem;
+  GElf_Shdr *shdr = gelf_getshdr (shstrtab_scn, &shdr_mem);
+  if (shdr == NULL)
+    {
+      printf ("cannot get header for old shstrtab section: %s\n",
+              elf_errmsg (-1));
+      exit (1);
+    }
+
+  size_t shstrtab_idx = shdr->sh_name;
+  shdr->sh_name = old_shstrtab_idx;
+
+  if (gelf_update_shdr (shstrtab_scn, shdr) == 0)
+    {
+      printf ("cannot update old shstrtab section header: %s\n",
+	      elf_errmsg (-1));
+      exit (1);
+    }
 
   // Add lots of .extra sections...
   size_t cnt = 0;
@@ -153,8 +174,7 @@ add_sections (const char *name, size_t nr, int use_mmap)
       data->d_type = ELF_T_BYTE;
       data->d_align = 1;
 
-      GElf_Shdr shdr_mem;
-      GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
+      shdr = gelf_getshdr (scn, &shdr_mem);
       if (shdr == NULL)
 	{
 	  printf ("cannot get header for new section (%zd): %s\n", cnt,
@@ -201,8 +221,7 @@ add_sections (const char *name, size_t nr, int use_mmap)
   new_shstrtab_data->d_type = ELF_T_BYTE;
   new_shstrtab_data->d_align = 1;
 
-  GElf_Shdr shdr_mem;
-  GElf_Shdr *shdr = gelf_getshdr (new_shstrtab_scn, &shdr_mem);
+  shdr = gelf_getshdr (new_shstrtab_scn, &shdr_mem);
   if (shdr == NULL)
     {
       printf ("cannot get header for new shstrtab section: %s\n",
@@ -218,7 +237,7 @@ add_sections (const char *name, size_t nr, int use_mmap)
   shdr->sh_addralign = 1;
   shdr->sh_entsize = 0;
   shdr->sh_size = new_shstrtab_size;
-  shdr->sh_name = new_shstrtab_idx;
+  shdr->sh_name = shstrtab_idx;
 
   // Finished new shstrtab section, update the header.
   if (gelf_update_shdr (new_shstrtab_scn, shdr) == 0)

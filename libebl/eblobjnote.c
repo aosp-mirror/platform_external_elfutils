@@ -496,16 +496,17 @@ ebl_object_note (Ebl *ebl, uint32_t namesz, const char *name, uint32_t type,
 			  printf ("%02" PRIx8 "\n", (uint8_t) desc[i]);
 			}
 		    }
+
 		  if (elfclass == ELFCLASS32)
-		    {
-		      desc += NOTE_ALIGN4 (prop.pr_datasz);
-		      descsz -= NOTE_ALIGN4 (prop.pr_datasz);
-		    }
+		    prop.pr_datasz = NOTE_ALIGN4 (prop.pr_datasz);
 		  else
-		    {
-		      desc += NOTE_ALIGN8 (prop.pr_datasz);
-		      descsz -= NOTE_ALIGN8 (prop.pr_datasz);
-		    }
+		    prop.pr_datasz = NOTE_ALIGN8 (prop.pr_datasz);
+
+		  desc += prop.pr_datasz;
+		  if (descsz > prop.pr_datasz)
+		    descsz -= prop.pr_datasz;
+		  else
+		    descsz = 0;
 		}
 	    }
 	  break;

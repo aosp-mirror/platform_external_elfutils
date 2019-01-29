@@ -106,7 +106,7 @@ maps_lookup (pid_t pid, Dwarf_Addr addr, GElf_Addr *basep)
     {
       // 37e3c22000-37e3c23000 rw-p 00022000 00:11 49532 /lib64/ld-2.14.90.so */
       unsigned long start, end, offset;
-      i = fscanf (f, "%lx-%lx %*s %lx %*x:%*x %*x", &start, &end, &offset);
+      i = fscanf (f, "%lx-%lx %*s %lx %*x:%*x %*u", &start, &end, &offset);
       assert (errno == 0);
       if (i != 3)
           break;

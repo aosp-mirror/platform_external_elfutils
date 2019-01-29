@@ -1,3 +1,8 @@
+2019-01-29  Yonghong Song  <yhs@fb.com>
+
+	* backtrace-data.c (maps_lookup): Use %*u, not %*x, to parse
+	inode number.
+
 2019-01-18  Ulf Hermann <ulf.hermann@qt.io>
 
 	* run-annobingroup.sh: Use different files for strip output.

@@ -1,3 +1,13 @@
+2019-01-31  Mark Wielaard  <mark@klomp.org>
+
+	* backtrace-child.c (stdarg): Remove assert (errno == 0).
+	(main): Likewise.
+	* backtrace-data.c (maps_lookup): Likewise.
+	(set_initial_registers): Likewise.
+	(main): Likewise.
+	* backtrace.c (prepare_thread): Likewise.
+	(exec_dump): Likewise.
+
 2019-01-29  Yonghong Song  <yhs@fb.com>
 
 	* backtrace-data.c (maps_lookup): Use %*u, not %*x, to parse

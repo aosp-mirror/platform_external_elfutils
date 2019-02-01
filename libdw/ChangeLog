@@ -1,3 +1,9 @@
+2019-02-02  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_nextcu.c (__libdw_next_unit): Define bytes_end.
+	Check there are enough bytes to read extended lenght, version
+	and unit.
+
 2019-01-20  Mark Wielaard  <mark@klomp.org>
 
 	* dwarf_getsrclines.c (read_srclines): Check terminating NUL byte

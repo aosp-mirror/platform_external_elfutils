@@ -8703,7 +8703,8 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 
 		case DW_LNE_set_discriminator:
 		  /* Takes one ULEB128 parameter, the discriminator.  */
-		  if (unlikely (standard_opcode_lengths[opcode] != 1))
+		  if (unlikely (standard_opcode_lengths[opcode] != 1
+				|| lineendp - linep < 1))
 		    goto invalid_unit;
 
 		  get_uleb128 (u128, linep, lineendp);
@@ -8730,6 +8731,8 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 		case DW_LNS_advance_pc:
 		  /* Takes one uleb128 parameter which is added to the
 		     address.  */
+		  if (lineendp - linep < 1)
+		    goto invalid_unit;
 		  get_uleb128 (u128, linep, lineendp);
 		  advance_pc (u128);
 		  {
@@ -8745,6 +8748,8 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 		case DW_LNS_advance_line:
 		  /* Takes one sleb128 parameter which is added to the
 		     line.  */
+		  if (lineendp - linep < 1)
+		    goto invalid_unit;
 		  get_sleb128 (s128, linep, lineendp);
 		  line += s128;
 		  printf (gettext ("\
@@ -8754,6 +8759,8 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 
 		case DW_LNS_set_file:
 		  /* Takes one uleb128 parameter which is stored in file.  */
+		  if (lineendp - linep < 1)
+		    goto invalid_unit;
 		  get_uleb128 (u128, linep, lineendp);
 		  printf (gettext (" set file to %" PRIu64 "\n"),
 			  (uint64_t) u128);
@@ -8761,7 +8768,8 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 
 		case DW_LNS_set_column:
 		  /* Takes one uleb128 parameter which is stored in column.  */
-		  if (unlikely (standard_opcode_lengths[opcode] != 1))
+		  if (unlikely (standard_opcode_lengths[opcode] != 1
+				|| lineendp - linep < 1))
 		    goto invalid_unit;
 
 		  get_uleb128 (u128, linep, lineendp);
@@ -8801,7 +8809,8 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 		case DW_LNS_fixed_advance_pc:
 		  /* Takes one 16 bit parameter which is added to the
 		     address.  */
-		  if (unlikely (standard_opcode_lengths[opcode] != 1))
+		  if (unlikely (standard_opcode_lengths[opcode] != 1
+				|| lineendp - linep < 2))
 		    goto invalid_unit;
 
 		  u128 = read_2ubyte_unaligned_inc (dbg, linep);
@@ -8828,7 +8837,8 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 
 		case DW_LNS_set_isa:
 		  /* Takes one uleb128 parameter which is stored in isa.  */
-		  if (unlikely (standard_opcode_lengths[opcode] != 1))
+		  if (unlikely (standard_opcode_lengths[opcode] != 1
+				|| lineendp - linep < 1))
 		    goto invalid_unit;
 
 		  get_uleb128 (u128, linep, lineendp);

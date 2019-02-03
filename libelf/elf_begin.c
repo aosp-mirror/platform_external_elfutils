@@ -1108,7 +1108,7 @@ elf_begin (int fildes, Elf_Cmd cmd, Elf *ref)
 {
   Elf *retval;
 
-  if (unlikely (! __libelf_version_initialized))
+  if (unlikely (__libelf_version != EV_CURRENT))
     {
       /* Version wasn't set so far.  */
       __libelf_seterrno (ELF_E_NO_VERSION);

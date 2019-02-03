@@ -313,7 +313,7 @@ __libelf_reset_rawdata (Elf_Scn *scn, void *buf, size_t size, size_t align,
 {
   /* This is the new raw data, replace and possibly free old data.  */
   scn->rawdata.d.d_off = 0;
-  scn->rawdata.d.d_version = __libelf_version;
+  scn->rawdata.d.d_version = EV_CURRENT;
   scn->rawdata.d.d_buf = buf;
   scn->rawdata.d.d_size = size;
   scn->rawdata.d.d_align = align;

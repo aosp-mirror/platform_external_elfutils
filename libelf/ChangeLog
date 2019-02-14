@@ -1,3 +1,8 @@
+2019-02-14  Mark Wielaard  <mark@klomp.org>
+
+	* elf_begin.c (read_long_names): Make sure ar_size is properly
+	terminated. Sanity check len early if we can.
+
 2019-01-18  Mark Wielaard  <mark@klomp.org>
 
 	* Makefile.am (INSTALL_ELFH): Add elf.h to include_HEADERS when

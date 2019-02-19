@@ -1,3 +1,13 @@
+2019-02-19  Mark Wielaard  <mark@klomp.org>
+
+	* elf_compress.c (do_deflate_cleanup): Remove ei_data argument,
+	check cdatap is not NULL before calling free.
+	(deflate_cleanup): Add cdata as argument.
+	(__libelf_compress): Also check whether the d_size is not zero
+	before converting data. Call deflate_cleanup with an extra
+	argument depending on whether there is converted data to free.
+	Always allocate allocate at least one byte for buf_out.
+
 2019-02-14  Mark Wielaard  <mark@klomp.org>
 
 	* elf_begin.c (read_long_names): Make sure ar_size is properly

@@ -1,3 +1,10 @@
+2019-02-24  Mark Wielaard  <mark@klomp.org>
+
+	* elf32_fsize.c (local_strong_alias): Remove definition.
+	(msize): Remove alias.
+	* libelfP.h (__elf32_msize): Remove definition.
+	(__elf64_msize): Likewise.
+
 2019-02-21  Mark Wielaard  <mark@klomp.org>
 
 	* common.h (determine_kind): Only accept EV_CURRENT.

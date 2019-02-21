@@ -444,16 +444,6 @@ extern const uint_fast8_t __libelf_type_aligns[ELFCLASSNUM - 1][ELF_T_NUM]
 extern Elf_Type __libelf_data_type (Elf *elf, int sh_type, GElf_Xword align)
   internal_function;
 
-/* The libelf API does not have such a function but it is still useful.
-   Get the memory size for the given type.
-
-   These functions cannot be marked internal since they are aliases
-   of the export elfXX_fsize functions.*/
-extern size_t __elf32_msize (Elf_Type __type, size_t __count,
-			     unsigned int __version) __const_attribute__;
-extern size_t __elf64_msize (Elf_Type __type, size_t __count,
-			     unsigned int __version) __const_attribute__;
-
 
 /* Create Elf descriptor from memory image.  */
 extern Elf *__libelf_read_mmaped_file (int fildes, void *map_address,

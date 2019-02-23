@@ -413,8 +413,6 @@ typedef void (*xfct_t) (void *, const void *, size_t, int);
 /* The table with the function pointers.  */
 extern const xfct_t __elf_xfctstom[ELFCLASSNUM - 1][ELF_T_NUM]
   attribute_hidden;
-extern const xfct_t __elf_xfctstof[ELFCLASSNUM - 1][ELF_T_NUM]
-  attribute_hidden;
 
 
 /* Array with sizes of the external types indexed by ELF version, binary

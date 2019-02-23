@@ -1,5 +1,10 @@
 2019-02-24  Mark Wielaard  <mark@klomp.org>
 
+	* gelf_xlate.c (__elf_xfctstof): Remove alias.
+	* libelfP.h (__elf_xfctstof): Remove definition.
+
+2019-02-24  Mark Wielaard  <mark@klomp.org>
+
 	* elf32_fsize.c (local_strong_alias): Remove definition.
 	(msize): Remove alias.
 	* libelfP.h (__elf32_msize): Remove definition.

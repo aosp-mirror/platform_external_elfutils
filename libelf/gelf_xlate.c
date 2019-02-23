@@ -208,7 +208,3 @@ const xfct_t __elf_xfctstom[ELFCLASSNUM - 1][ELF_T_NUM] =
 	[ELF_T_GNUHASH] = elf_cvt_gnuhash
       }
 };
-/* For now we only handle the case where the memory representation is the
-   same as the file representation.  Should this change we have to define
-   separate functions.  For now reuse them.  */
-strong_alias (__elf_xfctstom, __elf_xfctstof)

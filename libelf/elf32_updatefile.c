@@ -365,6 +365,7 @@ __elfw2(LIBELFBITS,updatemmap) (Elf *elf, int change_bo, size_t shnum)
 			    char *converted = aligned_alloc (align, size);
 			    if (converted == NULL)
 			      {
+				free (scns);
 				__libelf_seterrno (ELF_E_NOMEM);
 				return 1;
 			      }

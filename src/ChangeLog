@@ -1,3 +1,7 @@
+2019-03-27  Mark Wielaard  <mark@klomp.org>
+
+	* strip (handle_elf): Assert that symbol section number exists.
+
 2019-01-24  Mark Wielaard  <mark@klomp.org>
 
 	* strip.c (handle_elf): Fix check test for SHN_XINDEX symbol.

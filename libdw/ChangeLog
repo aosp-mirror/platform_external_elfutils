@@ -1,3 +1,8 @@
+2019-04-27  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_getlocation.c (store_implicit_value): Check dbg isn't
+	NULL.
+
 2019-02-02  Mark Wielaard  <mark@klomp.org>
 
 	* dwarf_nextcu.c (__libdw_next_unit): Define bytes_end.

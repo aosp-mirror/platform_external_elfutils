@@ -125,6 +125,8 @@ loc_compare (const void *p1, const void *p2)
 static int
 store_implicit_value (Dwarf *dbg, void **cache, Dwarf_Op *op)
 {
+  if (dbg == NULL)
+    return -1;
   struct loc_block_s *block = libdw_alloc (dbg, struct loc_block_s,
 					   sizeof (struct loc_block_s), 1);
   const unsigned char *data = (const unsigned char *) (uintptr_t) op->number2;

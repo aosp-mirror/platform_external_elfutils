@@ -1,5 +1,10 @@
 2019-04-28  Mark Wielaard  <mark@klomp.org>
 
+	* nm.c (show_symbols_sysv): Check gelf_getshdr doesn't return
+	NULL. Simplify naming of invalid sections, don't use alloca.
+
+2019-04-28  Mark Wielaard  <mark@klomp.org>
+
 	* elfcmp.c (main): Check shdr1 and shdr2 are not NULL.
 
 2019-04-03  Mark Wielaard  <mark@klomp.org>

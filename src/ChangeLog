@@ -1,3 +1,7 @@
+2019-04-28  Mark Wielaard  <mark@klomp.org>
+
+	* elfcmp.c (main): Check shdr1 and shdr2 are not NULL.
+
 2019-04-03  Mark Wielaard  <mark@klomp.org>
 
 	* readelf.c (attr_callback): Print DW_AT_data_member_location as

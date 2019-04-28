@@ -898,7 +898,7 @@ dwarf_getlocation_addr (Dwarf_Attribute *attr, Dwarf_Addr address,
 	}
     }
 
-  int result = check_constant_offset (attr, &llbufs[0], &listlens[0]);
+  int result = check_constant_offset (attr, llbufs, listlens);
   if (result != 1)
     return result ?: 1;
 

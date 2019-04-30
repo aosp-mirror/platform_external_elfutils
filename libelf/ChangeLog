@@ -1,3 +1,8 @@
+2019-04-30  Mark Wielaard  <mark@klomp.org>
+
+	* note_xlate.h (elf_cvt_note): Indicate we only translated the note
+	header if we ran out of data by updating len, src and dest.
+
 2019-04-01  Mao Han  <han_mao@c-sky.com>
 
 	* elf.h: Update from glibc.

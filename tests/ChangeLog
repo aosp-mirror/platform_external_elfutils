@@ -1,5 +1,10 @@
 2019-04-30  Mark Wielaard  <mark@klomp.org>
 
+	* backtrace-dwarf.c (frame_callback): Explicitly check symname is
+	NULL.
+
+2019-04-30  Mark Wielaard  <mark@klomp.org>
+
 	* backtrace.c (frame_callback): Explicitly check symname is NULL.
 
 2019-03-04  Mark Wielaard  <mark@klomp.org>

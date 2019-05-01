@@ -1,3 +1,8 @@
+2019-05-01  Mark Wielaard  <mark@klomp.org>
+
+	* gelf_getnote.c (gelf_getnote): Check n_namesz doesn't overflow
+	offset.
+
 2019-04-30  Mark Wielaard  <mark@klomp.org>
 
 	* note_xlate.h (elf_cvt_note): Indicate we only translated the note

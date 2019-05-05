@@ -1,3 +1,12 @@
+2019-05-10  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (TESTS): Add run-readelf-discr.sh.
+	(EXTRA_DIST): Likewise and add testfile-rng.debug.bz2 and
+	testfile-urng.debug.bz2.
+	* run-readelf-discr.sh: New test.
+	* testfile-rng.debug.bz2: New test file.
+	* testfile-urng.debug.bz2: Likewise.
+
 2019-04-30  Mark Wielaard  <mark@klomp.org>
 
 	* xlate_notes.c: New file.

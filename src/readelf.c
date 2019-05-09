@@ -312,6 +312,17 @@ static void dump_archive_index (Elf *, const char *);
 static char *yes_str;
 static char *no_str;
 
+static void
+cleanup_list (struct section_argument *list)
+{
+  while (list != NULL)
+    {
+      struct section_argument *a = list;
+      list = a->next;
+      free (a);
+    }
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -352,6 +363,9 @@ main (int argc, char *argv[])
       close (fd);
     }
   while (++remaining < argc);
+
+  cleanup_list (dump_data_sections);
+  cleanup_list (string_sections);
 
   return error_message_count != 0;
 }

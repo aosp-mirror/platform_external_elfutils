@@ -225,6 +225,7 @@ copy_elf (const char *in, const char *out, bool use_mmap, bool reverse_offs)
 	      && shdr.sh_addralign == 1
 	      && last_shdr.sh_type != SHT_NOBITS
 	      && shdr.sh_type != SHT_NOBITS
+	      && last_shdr.sh_offset + last_shdr.sh_size == shdr.sh_offset
 	      && (phnum == 0
 		  || ((shdr.sh_flags & SHF_ALLOC) == 0
 		      && (last_shdr.sh_flags & SHF_ALLOC) == 0)))

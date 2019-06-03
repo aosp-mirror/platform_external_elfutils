@@ -1,3 +1,8 @@
+2019-06-03  Mark Wielaard  <mark@klomp.org>
+
+	* elfcopy.c (copy_elf): When swapping the sh_offsets of two sections,
+	make sure they are actually next to each other.
+
 2019-05-12  Mark Wielaard  <mark@klomp.org>
 
 	* Makefile.am (check_PROGRAMS): Add elfrdwrnop.

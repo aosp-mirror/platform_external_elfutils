@@ -60,7 +60,8 @@ check_PROGRAMS = arextract arsymtest newfile saridx scnnames sectiondump \
 		  fillfile dwarf_default_lower_bound dwarf-die-addr-die \
 		  get-units-invalid get-units-split attr-integrate-skel \
 		  all-dwarf-ranges unit-info next_cfi \
-		  elfcopy addsections xlate_notes elfrdwrnop
+		  elfcopy addsections xlate_notes elfrdwrnop \
+		  dwelf_elf_e_machine_string
 
 asm_TESTS = asm-tst1 asm-tst2 asm-tst3 asm-tst4 asm-tst5 \
 	    asm-tst6 asm-tst7 asm-tst8 asm-tst9
@@ -162,7 +163,8 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-copyadd-sections.sh run-copymany-sections.sh \
 	run-typeiter-many.sh run-strip-test-many.sh \
 	run-strip-version.sh run-xlate-note.sh \
-	run-readelf-discr.sh
+	run-readelf-discr.sh \
+	run-dwelf_elf_e_machine_string.sh
 
 if !BIARCH
 export ELFUTILS_DISABLE_BIARCH = 1
@@ -431,7 +433,9 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-strip-version.sh testfile-version.bz2 \
 	     run-xlate-note.sh \
 	     run-readelf-discr.sh \
-	     testfile-rng.debug.bz2 testfile-urng.debug.bz2
+	     testfile-rng.debug.bz2 testfile-urng.debug.bz2 \
+	     run-dwelf_elf_e_machine_string.sh
+
 
 if USE_VALGRIND
 valgrind_cmd='valgrind -q --leak-check=full --error-exitcode=1'
@@ -603,6 +607,7 @@ elfcopy_LDADD = $(libelf)
 addsections_LDADD = $(libelf)
 xlate_notes_LDADD = $(libelf)
 elfrdwrnop_LDADD = $(libelf)
+dwelf_elf_e_machine_string_LDADD = $(libelf) $(libdw)
 
 # We want to test the libelf header against the system elf.h header.
 # Don't include any -I CPPFLAGS. Except when we install our own elf.h.

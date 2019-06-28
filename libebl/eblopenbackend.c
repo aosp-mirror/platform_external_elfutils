@@ -283,7 +283,6 @@ try_dlopen (const char *dsoname, Elf *elf, GElf_Half machine, size_t cnt,
 	  result->elf = elf;
 
 	  /* A few entries are mandatory.  */
-	  assert (result->name != NULL);
 	  assert (result->destr != NULL);
 
 	  return result;
@@ -398,7 +397,6 @@ openbackend (Elf *elf, const char *emulation, GElf_Half machine)
 	   Return that information.  */
 	result->dlhandle = NULL;
 	result->elf = elf;
-	result->name = machines[cnt].prefix;
 	fill_defaults (result);
 
 	return result;
@@ -408,7 +406,6 @@ openbackend (Elf *elf, const char *emulation, GElf_Half machine)
   result->dlhandle = NULL;
   result->elf = elf;
   result->emulation = "<unknown>";
-  result->name = "<unknown>";
   fill_defaults (result);
 
   return result;

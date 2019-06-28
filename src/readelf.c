@@ -1084,7 +1084,12 @@ print_ehdr (Ebl *ebl, GElf_Ehdr *ehdr)
   fputs_unlocked (gettext ("  Type:                              "), stdout);
   print_file_type (ehdr->e_type);
 
-  printf (gettext ("  Machine:                           %s\n"), ebl->name);
+  const char *machine = dwelf_elf_e_machine_string (ehdr->e_machine);
+  if (machine != NULL)
+    printf (gettext ("  Machine:                           %s\n"), machine);
+  else
+    printf (gettext ("  Machine:                           <unknown>: 0x%x\n"),
+	    ehdr->e_machine);
 
   printf (gettext ("  Version:                           %d %s\n"),
 	  ehdr->e_version,

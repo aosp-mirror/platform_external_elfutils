@@ -1,3 +1,8 @@
+2019-06-28  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (print_ehdr): Use dwelf_elf_e_machine_string instead of
+	ebl->name. If unknown print hex value.
+
 2019-06-25  Mark Wielaard  <mark@klomp.org>
 
 	* stack.c (parse_opt): Fix dwfl_core_file_attach error message.

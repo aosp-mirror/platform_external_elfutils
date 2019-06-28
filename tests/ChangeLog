@@ -1,3 +1,12 @@
+2019-06-28  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (check_PROGRAMS): Add dwelf_elf_e_machine_string.
+	(TESTS): Add run-dwelf_elf_e_machine_string.sh.
+	(EXTRA_DIST): Likewise.
+	(dwelf_elf_e_machine_string_LDADD): New variable.
+	* dwelf_elf_e_machine_string.c: New file.
+	* run-dwelf_elf_e_machine_string.sh: New test.
+
 2019-07-01  Mark Wielaard  <mark@klomp.org>
 
 	* run-large-elf-file.sh: Add 2GB to mem_needed when running under

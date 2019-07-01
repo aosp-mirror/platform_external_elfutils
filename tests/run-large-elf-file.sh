@@ -36,10 +36,16 @@ if test $space_available -lt 10; then
 fi
 
 # Make sure the files fit into memory, assume 6GB needed (2.5 * 2 + 1 extra).
+# Running under valgrind might need even more.
+mem_needed=6
+if [ "x$VALGRIND_CMD" != "x" ]; then
+  mem_needed=$[${mem_needed} + 2]
+fi
+echo "mem_needed: $mem_needed"
 mem_available=$(free -g | grep ^Mem: | awk -F ' +' '{print $7}')
 echo "mem_available: $mem_available"
-if test $mem_available -lt 6; then
-  echo "Need at least 6GB free available memory"
+if test $mem_available -lt $mem_needed; then
+  echo "Need at least ${mem_needed}GB free available memory"
   exit 77
 fi
 

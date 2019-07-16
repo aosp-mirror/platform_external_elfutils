@@ -3571,7 +3571,9 @@ print_attributes (Ebl *ebl, const GElf_Ehdr *ehdr)
 
       if (shdr == NULL || (shdr->sh_type != SHT_GNU_ATTRIBUTES
 			   && (shdr->sh_type != SHT_ARM_ATTRIBUTES
-			       || ehdr->e_machine != EM_ARM)))
+			       || ehdr->e_machine != EM_ARM)
+			   && (shdr->sh_type != SHT_CSKY_ATTRIBUTES
+			       || ehdr->e_machine != EM_CSKY)))
 	continue;
 
       printf (gettext ("\

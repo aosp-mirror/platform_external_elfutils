@@ -212,7 +212,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile-nobitsalign.bz2 testfile-nobitsalign.strip.bz2 \
 	     run-strip-reloc.sh hello_i386.ko.bz2 hello_x86_64.ko.bz2 \
 	     hello_ppc64.ko.bz2 hello_s390.ko.bz2 hello_aarch64.ko.bz2 \
-	     hello_m68k.ko.bz2 hello_riscv64.ko.bz2 \
+	     hello_m68k.ko.bz2 hello_riscv64.ko.bz2 hello_csky.ko.bz2 \
 	     run-unstrip-test.sh run-unstrip-test2.sh \
 	     testfile-info-link.bz2 testfile-info-link.debuginfo.bz2 \
 	     testfile-info-link.stripped.bz2 run-unstrip-test3.sh \
@@ -229,6 +229,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile11-debugframe.bz2 testfile12-debugframe.bz2 \
 	     testfileaarch64-debugframe.bz2 testfilearm-debugframe.bz2 \
 	     testfileppc32-debugframe.bz2 testfileppc64-debugframe.bz2 \
+	     testfilecsky.bz2 \
 	     run-varlocs-self.sh run-exprlocs-self.sh \
 	     run-find-prologues.sh run-allregs.sh run-native-test.sh \
 	     run-addrname-test.sh run-dwfl-bug-offline-rel.sh \

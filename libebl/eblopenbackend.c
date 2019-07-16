@@ -135,6 +135,7 @@ static const struct
   { "bpf", "elf_bpf", "bpf", 3, EM_BPF, 0, 0 },
   { "riscv", "elf_riscv", "riscv", 5, EM_RISCV, ELFCLASS64, ELFDATA2LSB },
   { "riscv", "elf_riscv", "riscv", 5, EM_RISCV, ELFCLASS32, ELFDATA2LSB },
+  { "csky", "elf_csky", "csky", 4, EM_CSKY, ELFCLASS32, ELFDATA2LSB },
 };
 #define nmachines (sizeof (machines) / sizeof (machines[0]))
 

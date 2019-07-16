@@ -1,3 +1,12 @@
+2019-07-16  Mao Han  <han_mao@c-sky.com>
+
+	* hello_csky.ko.bz2: New testfile.
+	* run-addrcfi.sh: Add C-SKY testfile.
+	* run-strip-reloc.sh: Likewise.
+	* testfilecsky.bz2: New testfile.
+	* Makefile.am (EXTRA_DIST): Add hello_csky.ko.bz2 and
+	testfilecsky.bz2.
+
 2019-06-28  Mark Wielaard  <mark@klomp.org>
 
 	* Makefile.am (check_PROGRAMS): Add dwelf_elf_e_machine_string.

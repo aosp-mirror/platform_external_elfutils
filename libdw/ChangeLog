@@ -1,3 +1,7 @@
+2019-08-12  Mark Wielaard  <mark@klomp.org>
+
+	* libdw.map (ELFUTILS_0.177): Add new version of dwelf_elf_begin.
+
 2019-06-28  Mark Wielaard  <mark@klomp.org>
 
 	* libdw.map (ELFUTILS_0.177): New section. Add

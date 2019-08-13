@@ -1,3 +1,12 @@
+2019-07-26  Florian Weimer  <fweimer@redhat.com>
+	    Mark Wielaard  <mark@klomp.org>
+
+	* run-elfclassify.sh: New test.
+	* run-elfclassify-self.sh: Likewise.
+	* Makefile.sh (TESTS): Add run-elfclassify.sh and
+	run-elfclassify-self.sh.
+	(EXTRA_DIST): Likewise.
+
 2019-07-16  Mao Han  <han_mao@c-sky.com>
 
 	* hello_csky.ko.bz2: New testfile.

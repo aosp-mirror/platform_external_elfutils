@@ -1,4 +1,11 @@
-2019-07-13 Mao Han <han_mao@c-sky.com>
+2019-07-26  Florian Weimer  <fweimer@redhat.com>
+	    Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (bin_PROGRAMS): Add elfclassify.
+	(elfclassify_LDADD): New variable.
+	* elfclassify.c: New tool.
+
+2019-07-13  Mao Han  <han_mao@c-sky.com>
 
 	* elflint.c: Add C-SKY.
 

@@ -1,3 +1,7 @@
+2019-08-14  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* elfutils.spec.in (%files): Add %{_bindir}/eu-elfclassify.
+
 2019-08-13  Mark Wielaard  <mark@klomp.org>
 
 	* Makefile.am (elfutils.spec.in): Use git --get user.name and

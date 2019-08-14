@@ -169,6 +169,7 @@ rm -rf ${RPM_BUILD_ROOT}
 %{_bindir}/eu-strip
 %{_bindir}/eu-findtextrel
 %{_bindir}/eu-addr2line
+%{_bindir}/eu-elfclassify
 %{_bindir}/eu-elfcmp
 %{_bindir}/eu-ranlib
 %{_bindir}/eu-strings

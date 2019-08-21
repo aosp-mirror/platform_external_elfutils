@@ -1,3 +1,10 @@
+2019-08-26  Mark Wielaard  <mark@klomp.org>
+
+	* readelf (options): Add OPTION_ARG_OPTIONAL "SECTION" for notes.
+	(notes_section): New global variable.
+	(parse_opt): Set notes_section.
+	(handle_notes): Check if notes_section is set.
+
 2019-07-26  Florian Weimer  <fweimer@redhat.com>
 	    Mark Wielaard  <mark@klomp.org>
 

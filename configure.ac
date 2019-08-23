@@ -497,8 +497,7 @@ AC_SUBST([argp_LDADD])
 dnl The directories with content.
 
 dnl Documentation.
-dnl Commented out for now.
-dnl AC_CONFIG_FILES([doc/Makefile])
+AC_CONFIG_FILES([doc/Makefile])
 
 dnl Support library.
 AC_CONFIG_FILES([lib/Makefile])

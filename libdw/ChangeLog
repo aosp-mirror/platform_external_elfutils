@@ -1,3 +1,11 @@
+2019-08-26  Jonathon Anderson  <jma14@rice.edu>
+
+	* libdw_alloc.c (__libdw_allocate): Added thread-safe stack allocator.
+	* libdwP.h (Dwarf): Likewise.
+	* dwarf_begin_elf.c (dwarf_begin_elf): Support for above.
+	* dwarf_end.c (dwarf_end): Likewise.
+	* Makefile.am: Use -pthread to provide rwlocks.
+
 2019-07-05  Omar Sandoval  <osandov@fb.com>
 
 	* Makefile.am (libdw_so_LIBS): Replace libebl.a with libebl_pic.a.

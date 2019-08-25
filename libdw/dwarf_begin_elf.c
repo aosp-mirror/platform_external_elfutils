@@ -397,7 +397,7 @@ dwarf_begin_elf (Elf *elf, Dwarf_Cmd cmd, Elf_Scn *scngrp)
   assert (sizeof (struct Dwarf) < mem_default_size);
 
   /* Allocate the data structure.  */
-  Dwarf *result = (Dwarf *) calloc (1, sizeof (Dwarf) + mem_default_size);
+  Dwarf *result = (Dwarf *) calloc (1, sizeof (Dwarf));
   if (unlikely (result == NULL)
       || unlikely (Dwarf_Sig8_Hash_init (&result->sig8_hash, 11) < 0))
     {
@@ -414,14 +414,17 @@ dwarf_begin_elf (Elf *elf, Dwarf_Cmd cmd, Elf_Scn *scngrp)
   result->elf = elf;
   result->alt_fd = -1;
 
-  /* Initialize the memory handling.  */
+  /* Initialize the memory handling.  Initial blocks are allocated on first
+     actual allocation.  */
   result->mem_default_size = mem_default_size;
   result->oom_handler = __libdw_oom;
-  result->mem_tail = (struct libdw_memblock *) (result + 1);
-  result->mem_tail->size = (result->mem_default_size
-			    - offsetof (struct libdw_memblock, mem));
-  result->mem_tail->remaining = result->mem_tail->size;
-  result->mem_tail->prev = NULL;
+  if (pthread_key_create (&result->mem_key, NULL) != 0)
+    {
+      free (result);
+      __libdw_seterrno (DWARF_E_NOMEM); /* no memory or max pthread keys.  */
+      return NULL;
+    }
+  atomic_init (&result->mem_tail, (uintptr_t)NULL);
 
   if (cmd == DWARF_C_READ || cmd == DWARF_C_RDWR)
     {

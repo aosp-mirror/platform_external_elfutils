@@ -1,3 +1,12 @@
+2019-10-28  Jonathon Anderson  <jma14@rice.edu>
+
+	* libdw_alloc.c: Added __libdw_alloc_tail.
+	(__libdw_allocate): Switch to use the mem_tails array.
+	* libdwP.h (Dwarf): Likewise.
+	* dwarf_begin_elf.c (dwarf_begin_elf): Support for above.
+	* dwarf_end.c (dwarf_end): Likewise.
+	* atomics.h: Add support for thread_local.
+
 2019-10-28  Mark Wielaard  <mark@klomp.org>
 
 	* dwarf_sig8_hash.h: Include libdw.h. Remove COMPARE. Include

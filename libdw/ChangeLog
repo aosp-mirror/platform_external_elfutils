@@ -1,3 +1,7 @@
+2019-08-25  Jonathon Anderson  <jma14@rice.edu>
+
+	* dwarf_getcfi.c (dwarf_getcfi): Set default_same_value to false.
+
 2019-08-12  Mark Wielaard  <mark@klomp.org>
 
 	* libdw.map (ELFUTILS_0.177): Add new version of dwelf_elf_begin.

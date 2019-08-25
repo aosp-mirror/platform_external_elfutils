@@ -335,6 +335,35 @@ if test "$use_valgrind" = yes; then
 fi
 AM_CONDITIONAL(USE_VALGRIND, test "$use_valgrind" = yes)
 
+AC_ARG_WITH([valgrind],
+AS_HELP_STRING([--with-valgrind],[include directory for Valgrind headers]),
+[with_valgrind_headers=$withval], [with_valgrind_headers=no])
+if test "x$with_valgrind_headers" != xno; then
+    save_CFLAGS="$CFLAGS"
+    CFLAGS="$CFLAGS -I$with_valgrind_headers"
+    AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+      #include <valgrind/valgrind.h>
+      int main() { return 0; }
+    ]])], [ HAVE_VALGRIND_HEADERS="yes"
+            CFLAGS="$save_CFLAGS -I$with_valgrind_headers" ],
+          [ AC_MSG_ERROR([invalid valgrind include directory: $with_valgrind_headers]) ])
+fi
+
+AC_ARG_ENABLE([valgrind-annotations],
+AS_HELP_STRING([--enable-valgrind-annotations],[insert extra annotations for better valgrind support]),
+[use_vg_annotations=$enableval], [use_vg_annotations=no])
+if test "$use_vg_annotations" = yes; then
+    if test "x$HAVE_VALGRIND_HEADERS" != "xyes"; then
+      AC_MSG_CHECKING([whether Valgrind headers are available])
+      AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+        #include <valgrind/valgrind.h>
+        int main() { return 0; }
+      ]])], [ AC_MSG_RESULT([yes]) ],
+            [ AC_MSG_ERROR([valgrind annotations requested but no headers are available]) ])
+    fi
+fi
+AM_CONDITIONAL(USE_VG_ANNOTATIONS, test "$use_vg_annotations" = yes)
+
 AC_ARG_ENABLE([install-elfh],
 AS_HELP_STRING([--enable-install-elfh],[install elf.h in include dir]),
                [install_elfh=$enableval], [install_elfh=no])
@@ -669,6 +698,7 @@ AC_MSG_NOTICE([
   OTHER FEATURES
     Deterministic archives by default  : ${default_ar_deterministic}
     Native language support            : ${USE_NLS}
+    Extra Valgrind annotations         : ${use_vg_annotations}
 
   EXTRA TEST FEATURES (used with make check)
     have bunzip2 installed (required)  : ${HAVE_BUNZIP2}

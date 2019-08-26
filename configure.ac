@@ -336,15 +336,6 @@ AS_HELP_STRING([--enable-tests-rpath],[build $ORIGIN-using rpath into tests]),
 	       [tests_use_rpath=$enableval], [tests_use_rpath=no])
 AM_CONDITIONAL(TESTS_RPATH, test "$tests_use_rpath" = yes)
 
-LIBEBL_SUBDIR="$PACKAGE"
-AC_ARG_ENABLE([libebl-subdir],
-AS_HELP_STRING([--enable-libebl-subdir=DIR],
-[install libebl_CPU modules in $(libdir)/DIR]), [dnl
-LIBEBL_SUBDIR="$enable_libebl_subdir"])
-AC_SUBST([LIBEBL_SUBDIR])
-AC_DEFINE_UNQUOTED(LIBEBL_SUBDIR, "$LIBEBL_SUBDIR")
-AH_TEMPLATE([LIBEBL_SUBDIR], [$libdir subdirectory containing libebl modules.])
-
 dnl zlib is mandatory.
 save_LIBS="$LIBS"
 LIBS=
@@ -584,7 +575,7 @@ esac
 eu_version=$(( (eu_version + 999) / 1000 ))
 
 dnl Unique ID for this build.
-MODVERSION="Build for ${LIBEBL_SUBDIR} ${eu_version} ${ac_cv_build}"
+MODVERSION="Build for ${eu_version} ${ac_cv_build}"
 AC_SUBST([MODVERSION])
 AC_DEFINE_UNQUOTED(MODVERSION, "$MODVERSION")
 AH_TEMPLATE([MODVERSION], [Identifier for modules in the build.])
@@ -649,7 +640,6 @@ AC_MSG_NOTICE([
     Program prefix ("eu-" recommended) : ${program_prefix}
     Source code location               : ${srcdir}
     Maintainer mode                    : ${enable_maintainer_mode}
-    libebl modules subdirectory        : ${LIBEBL_SUBDIR}
     build arch                         : ${ac_cv_build}
 
   RECOMMENDED FEATURES (should all be yes)

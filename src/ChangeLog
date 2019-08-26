@@ -1,3 +1,10 @@
+2019-07-05  Omar Sandoval  <osandov@fb.com>
+
+	* Makefile.am: Remove -ldl.
+	(elflint_LDADD): Add $(libdw).
+	(elfcmp_LDADD): Add $(libdw).
+	(objdump_LDADD): Add $(libdw).
+
 2019-08-26  Mark Wielaard  <mark@klomp.org>
 
 	* readelf (options): Add OPTION_ARG_OPTIONAL "SECTION" for notes.

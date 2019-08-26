@@ -121,9 +121,7 @@ ${abs_top_builddir}/src/objdump \
 ${abs_top_builddir}/src/readelf`
 
 self_test_files_lib=`echo ${abs_top_builddir}/libelf/libelf.so \
-${abs_top_builddir}/libdw/libdw.so \
-${abs_top_builddir}/backends/libebl_i386.so \
-${abs_top_builddir}/backends/libebl_x86_64.so`
+${abs_top_builddir}/libdw/libdw.so`
 
 self_test_files_obj=`echo ${abs_top_builddir}/src/size.o \
 ${abs_top_builddir}/src/strip.o`

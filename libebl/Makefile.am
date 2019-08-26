@@ -33,7 +33,6 @@ AM_CFLAGS += $(fpic_CFLAGS)
 endif
 AM_CPPFLAGS += -I$(srcdir)/../libelf -I$(srcdir)/../libdw -I$(srcdir)/../libasm
 VERSION = 1
-LIBEBL_SUBDIR = @LIBEBL_SUBDIR@
 
 lib_LIBRARIES = libebl.a
 noinst_LIBRARIES = libebl_pic.a

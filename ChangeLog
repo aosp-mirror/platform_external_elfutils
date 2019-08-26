@@ -1,3 +1,9 @@
+2019-07-05  Omar Sandoval  <osandov@fb.com>
+
+	* configure.ac: Get rid of --enable-libebl-subdir.
+	* Makefile.am (SUBDIRS): Reorder backends and libcpu before libebl to
+	satisfy build dependencies.
+
 2019-08-13  Mark Wielaard  <mark@klomp.org>
 
 	* configure.ac: Set version to 0.177.

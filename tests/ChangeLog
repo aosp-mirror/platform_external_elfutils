@@ -1,3 +1,8 @@
+2019-07-05  Omar Sandoval  <osandov@fb.com>
+
+	* Makefile.am: Remove -ldl.
+	* tests-subr.sh (self_test_files): Remove libebl_{i386,x86_64}.so.
+
 2019-07-26  Florian Weimer  <fweimer@redhat.com>
 	    Mark Wielaard  <mark@klomp.org>
 

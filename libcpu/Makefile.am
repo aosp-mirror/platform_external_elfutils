@@ -35,19 +35,15 @@ LEXCOMPILE = $(LEX) $(LFLAGS) $(AM_LFLAGS) -P$(<F:lex.l=)
 LEX_OUTPUT_ROOT = lex.$(<F:lex.l=)
 AM_YFLAGS = -p$(<F:parse.y=)
 
-noinst_LIBRARIES = libcpu_i386.a libcpu_x86_64.a
+noinst_LIBRARIES = libcpu.a
 
-libcpu_i386_a_SOURCES = i386_disasm.c i386_dis.h
-libcpu_x86_64_a_SOURCES = x86_64_disasm.c x86_64_dis.h
+libcpu_a_SOURCES = i386_disasm.c i386_dis.h x86_64_disasm.c x86_64_dis.h \
+		   bpf_disasm.c
 
 i386_gendis_SOURCES = i386_gendis.c i386_lex.l i386_parse.y
 
 i386_disasm.o: i386.mnemonics $(srcdir)/i386_dis.h
 x86_64_disasm.o: x86_64.mnemonics $(srcdir)/x86_64_dis.h
-
-noinst_LIBRARIES += libcpu_bpf.a
-libcpu_bpf_a_SOURCES = bpf_disasm.c
-libcpu_bpf_a_CFLAGS = $(AM_CFLAGS) -Wno-format-nonliteral
 
 %_defs: $(srcdir)/defs/i386
 	$(AM_V_GEN)m4 -D$* -DDISASSEMBLER $< > $@T
@@ -85,6 +81,8 @@ i386_lex.o: i386_parse.h
 i386_gendis_LDADD = $(libeu) -lm
 
 i386_parse.h: i386_parse.c ;
+
+bpf_disasm_CFLAGS = -Wno-format-nonliteral
 
 EXTRA_DIST = defs/i386
 

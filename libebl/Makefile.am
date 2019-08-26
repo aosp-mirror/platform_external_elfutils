@@ -28,12 +28,15 @@
 ## not, see <http://www.gnu.org/licenses/>.
 ##
 include $(top_srcdir)/config/eu.am
+if BUILD_STATIC
 AM_CFLAGS += $(fpic_CFLAGS)
+endif
 AM_CPPFLAGS += -I$(srcdir)/../libelf -I$(srcdir)/../libdw -I$(srcdir)/../libasm
 VERSION = 1
 LIBEBL_SUBDIR = @LIBEBL_SUBDIR@
 
 lib_LIBRARIES = libebl.a
+noinst_LIBRARIES = libebl_pic.a
 
 pkginclude_HEADERS = libebl.h
 
@@ -57,6 +60,9 @@ libebl_a_SOURCES = eblopenbackend.c eblclosebackend.c eblreloctypename.c \
 		   eblresolvesym.c eblcheckreloctargettype.c \
 		   ebl_data_marker_symbol.c
 
+libebl_pic_a_SOURCES =
+am_libebl_pic_a_OBJECTS = $(libebl_a_SOURCES:.c=.os)
+
 noinst_HEADERS = libeblP.h ebl-hooks.h
 
-CLEANFILES += $(am_libebl_pic_a_OBJECTS)
+MOSTLYCLEANFILES = $(am_libebl_pic_a_OBJECTS)

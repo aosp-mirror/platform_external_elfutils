@@ -1,6 +1,8 @@
 2019-07-05  Omar Sandoval  <osandov@fb.com>
 
-	* Makefile.am (gen_SOURCES): Remove.
+	* Makefile.am: Make libebl.a non-PIC by default.
+	Add libebl_pic.a.
+	(gen_SOURCES): Remove.
 
 2019-04-29 Mao Han <han_mao@c-sky.com>
 

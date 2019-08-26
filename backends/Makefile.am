@@ -44,7 +44,7 @@ noinst_LIBRARIES = $(libebl_pic)
 noinst_DATA = $(libebl_pic:_pic.a=.so)
 
 
-libcpu = ../libcpu/libcpu.a
+libcpu = ../libcpu/libcpu_pic.a
 libelf = ../libelf/libelf.so
 libdw = ../libdw/libdw.so
 libeu = ../lib/libeu.a

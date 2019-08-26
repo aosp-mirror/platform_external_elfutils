@@ -106,7 +106,7 @@ libdw_pic_a_SOURCES =
 am_libdw_pic_a_OBJECTS = $(libdw_a_SOURCES:.c=.os)
 
 libdw_so_LIBS = libdw_pic.a ../libdwelf/libdwelf_pic.a \
-	  ../libdwfl/libdwfl_pic.a ../libebl/libebl.a
+	  ../libdwfl/libdwfl_pic.a ../libebl/libebl_pic.a
 libdw_so_DEPS = ../lib/libeu.a ../libelf/libelf.so
 libdw_so_LDLIBS = $(libdw_so_DEPS) -ldl -lz $(argp_LDADD) $(zip_LIBS)
 libdw_so_SOURCES =

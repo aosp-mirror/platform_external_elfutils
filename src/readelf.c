@@ -12634,6 +12634,7 @@ for_each_section_argument (Elf *elf, const struct section_argument *list,
 	    error (EXIT_FAILURE, 0, gettext ("cannot get section header: %s"),
 		   elf_errmsg (-1));
 	  name = elf_strptr (elf, shstrndx, shdr_mem.sh_name);
+	  (*dump) (scn, &shdr_mem, name);
 	}
       else
 	{

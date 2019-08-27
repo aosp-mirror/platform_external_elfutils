@@ -1,3 +1,8 @@
+2019-08-28  Mark Wielaard  <mark@klomp.org>
+
+	* COPYING: Rename to...
+	* COPYING-GFDL: ... this.
+
 2019-08-23  Ben Woodard  <woodard@redhat.com>
 
 	* Updated the eu-readelf man page to make it match the options

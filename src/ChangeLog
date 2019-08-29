@@ -1,3 +1,8 @@
+2019-08-26  Mark Wielaard  <mark@klomp.org>
+
+	* nm.c (show_symbols): Remember nentries_orig and check before
+	freeing sym_mem.
+
 2019-07-05  Omar Sandoval  <osandov@fb.com>
 
 	* Makefile.am: Remove -ldl.

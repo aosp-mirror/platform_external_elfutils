@@ -34,10 +34,7 @@ endif
 AM_CPPFLAGS += -I$(srcdir)/../libelf -I$(srcdir)/../libdw -I$(srcdir)/../libasm
 VERSION = 1
 
-lib_LIBRARIES = libebl.a
-noinst_LIBRARIES = libebl_pic.a
-
-pkginclude_HEADERS = libebl.h
+noinst_LIBRARIES = libebl.a libebl_pic.a
 
 libebl_a_SOURCES = eblopenbackend.c eblclosebackend.c eblreloctypename.c \
 		   eblsegmenttypename.c eblsectiontypename.c \
@@ -62,6 +59,6 @@ libebl_a_SOURCES = eblopenbackend.c eblclosebackend.c eblreloctypename.c \
 libebl_pic_a_SOURCES =
 am_libebl_pic_a_OBJECTS = $(libebl_a_SOURCES:.c=.os)
 
-noinst_HEADERS = libeblP.h ebl-hooks.h
+noinst_HEADERS = libebl.h libeblP.h ebl-hooks.h
 
 MOSTLYCLEANFILES = $(am_libebl_pic_a_OBJECTS)

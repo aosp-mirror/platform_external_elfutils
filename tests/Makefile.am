@@ -165,7 +165,8 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-strip-version.sh run-xlate-note.sh \
 	run-readelf-discr.sh \
 	run-dwelf_elf_e_machine_string.sh \
-	run-elfclassify.sh run-elfclassify-self.sh
+	run-elfclassify.sh run-elfclassify-self.sh \
+	run-disasm-riscv64.sh
 
 if !BIARCH
 export ELFUTILS_DISABLE_BIARCH = 1

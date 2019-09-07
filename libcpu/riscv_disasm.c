@@ -139,13 +139,13 @@ riscv_disasm (Ebl *ebl,
       // Determine length.
       size_t length;
       if ((first & 0x3) != 0x3)
-      	length = 2;
+	length = 2;
       else if ((first & 0x1f) != 0x1f)
-      	length = 4;
+	length = 4;
       else if ((first & 0x3f) != 0x3f)
-      	length = 6;
+	length = 6;
       else if ((first & 0x7f) != 0x7f)
-      	length = 8;
+	length = 8;
       else
 	{
 	  uint16_t nnn = (first >> 12) & 0x7;
@@ -195,7 +195,7 @@ riscv_disasm (Ebl *ebl,
 		  op[2] = addrbuf;
 		}
 	      else if (first == 0)
-	      	mne = "unimp";
+		mne = "unimp";
 	      break;
 	    case 1:
 	      rs1 = (first >> 7) & 0x1f;
@@ -223,7 +223,7 @@ riscv_disasm (Ebl *ebl,
 	      op[0] = FREGP ((first >> 2) & 0x7);
 	      opaddr = ((first << 1) & 0xc0) | ((first >> 7) & 0x38);
 	      snprintf (addrbuf, sizeof (addrbuf), "%" PRIu64 "(%s)",
-	      		opaddr, REGP ((first >> 7) & 0x7));
+			opaddr, REGP ((first >> 7) & 0x7));
 	      op[1] = addrbuf;
 	      mne = "fld";
 	      break;
@@ -232,16 +232,16 @@ riscv_disasm (Ebl *ebl,
 		{
 		  mne = "jal";
 		  opaddr = (((first << 3) & 0x20) | ((first >> 2) & 0xe)
-		  	    | ((first << 1) & 0x80) | ((first >> 1) | 0x40)
-		  	    | ((first << 2) & 0x400) | (first & 0xb00)
-		  	    | ((first >> 6) & 0x10));
+			    | ((first << 1) & 0x80) | ((first >> 1) | 0x40)
+			    | ((first << 2) & 0x400) | (first & 0xb00)
+			    | ((first >> 6) & 0x10));
 		  snprintf (addrbuf, sizeof (addrbuf), "0x%" PRIx64, opaddr);
 		  op[0] = addrbuf;
 		}
 	      else
 		{
 		  int32_t imm = (((UINT32_C (0) - ((first >> 12) & 0x1)) << 5)
-		  		 | ((first >> 2) & 0x1f));
+				 | ((first >> 2) & 0x1f));
 		  uint16_t reg = (first >> 7) & 0x1f;
 		  if (reg == 0)
 		    {
@@ -277,7 +277,7 @@ riscv_disasm (Ebl *ebl,
 	      opaddr = (((first >> 7) & 0x38) | ((first << 1) & 0x40)
 			| ((first >> 4) & 0x4));
 	      snprintf (addrbuf, sizeof (addrbuf), "%" PRId64 "(%s)",
-	      		opaddr, REGP ((first >> 7) & 0x7));
+			opaddr, REGP ((first >> 7) & 0x7));
 	      op[1] = addrbuf;
 	      break;
 	    case 7:
@@ -297,8 +297,8 @@ riscv_disasm (Ebl *ebl,
 	      else
 		{
 		  uint16_t uimm = (((first << 4) & 0xc0)
-		  		   | ((first >> 7) & 0x20)
-		  		   | ((first >> 2) & 0x1c));
+				   | ((first >> 7) & 0x20)
+				   | ((first >> 2) & 0x1c));
 		  mne = "lw";
 		  op[0] = REG (rd);
 		  snprintf (addrbuf, sizeof (addrbuf), "%" PRIu16 "(%s)", uimm, REG (2));
@@ -312,7 +312,7 @@ riscv_disasm (Ebl *ebl,
 		  op[0] = FREGP ((first >> 2) & 0x7);
 		  opaddr = (((first << 1) & 0x40)
 		            | ((first >> 7) & 0x38)
-		  	    | ((first >> 4) & 0x4));
+			    | ((first >> 4) & 0x4));
 		}
 	      else
 		{
@@ -321,7 +321,7 @@ riscv_disasm (Ebl *ebl,
 		  opaddr = ((first >> 7) & 0x38) | ((first << 1) & 0xc0);
 		}
 	      snprintf (addrbuf, sizeof (addrbuf), "%" PRId64 "(%s)",
-	      		opaddr, REGP ((first >> 7) & 0x7));
+			opaddr, REGP ((first >> 7) & 0x7));
 	      op[1] = addrbuf;
 	      break;
 	    case 10:
@@ -330,8 +330,8 @@ riscv_disasm (Ebl *ebl,
 		  mne = "addi";
 		  op[0] = op[1] = REG (2);
 		  opaddr = (((first >> 2) & 0x10) | ((first << 3) & 0x20)
-		  	    | ((first << 1) & 0x40) | ((first << 4) & 0x180)
-		  	    | ((UINT64_C (0) - ((first >> 12) & 0x1)) << 9));
+			    | ((first << 1) & 0x40) | ((first << 4) & 0x180)
+			    | ((UINT64_C (0) - ((first >> 12) & 0x1)) << 9));
 		  snprintf (addrbuf, sizeof (addrbuf), "%" PRId64, opaddr);
 		  op[2] = addrbuf;
 		}
@@ -438,9 +438,9 @@ riscv_disasm (Ebl *ebl,
 		    }
 		  else
 		    {
-	      	      mne = rs1 != 0 ? "add" : "c.add";
-	      	      op[2] = REG (rs2);
-	      	      op[1] = op[0];
+		      mne = rs1 != 0 ? "add" : "c.add";
+		      op[2] = REG (rs2);
+		      op[1] = op[0];
 		    }
 		}
 	      break;
@@ -448,7 +448,7 @@ riscv_disasm (Ebl *ebl,
 	      op[0] = FREGP ((first >> 2) & 0x7);
 	      opaddr = ((first << 1) & 0xc0) | ((first >> 7) & 0x38);
 	      snprintf (addrbuf, sizeof (addrbuf), "%" PRIu64 "(%s)",
-	      		opaddr, REGP ((first >> 7) & 0x7));
+			opaddr, REGP ((first >> 7) & 0x7));
 	      op[1] = addrbuf;
 	      mne = "fsd";
 	      break;
@@ -497,7 +497,7 @@ riscv_disasm (Ebl *ebl,
 		  mne = "fsw";
 		  op[0] = FREGP ((first >> 2) & 0x7);
 		  opaddr = (((first >> 7) & 0x38) | ((first << 1) & 0x40)
-		  	    | ((first >> 4) & 0x4));
+			    | ((first >> 4) & 0x4));
 		}
 	      else
 		{
@@ -506,7 +506,7 @@ riscv_disasm (Ebl *ebl,
 		  opaddr = ((first >> 7) & 0x38) | ((first << 1) & 0xc0);
 		}
 	      snprintf (addrbuf, sizeof (addrbuf), "%" PRId64 "(%s)",
-	      		opaddr, REGP ((first >> 7) & 0x7));
+			opaddr, REGP ((first >> 7) & 0x7));
 	      op[1] = addrbuf;
 	      break;
 	    case 23:
@@ -639,11 +639,11 @@ riscv_disasm (Ebl *ebl,
 		      mne = "nop";
 		      op[0] = op[1] = NULL;
 		    }
-		  else 
+		  else
 		    mne = "mv";
 		}
 	      else if (func == 0x3 && opaddr == 1)
-	      	mne = "seqz";
+		mne = "seqz";
 	      else if (func == 0x4 && opaddr == -1)
 		{
 		  mne = "not";
@@ -658,7 +658,7 @@ riscv_disasm (Ebl *ebl,
 		    {
 		      op[1] = op[2];
 		      op[2] = NULL;
-		      mne = "li";		    	
+		      mne = "li";
 		    }
 		}
 	      if (mne != NULL && idx == 0x06)
@@ -713,7 +713,7 @@ riscv_disasm (Ebl *ebl,
 		  "amominu", NULL, NULL, NULL, "amomaxu", NULL, NULL, NULL
 		};
 	      if (amomne[func] != NULL && width >= 2 && width <= 3
-	      	  && (func != 0x02 || rs2 == 0))
+		  && (func != 0x02 || rs2 == 0))
 		{
 		  if (func == 0x02)
 		    {
@@ -977,7 +977,7 @@ riscv_disasm (Ebl *ebl,
 		      op[2] = FREG (rs2);
 		      static const char *const fltcmpmne[3] =
 			{
-			  "fle.", "flt.", "feq."	
+			  "fle.", "flt.", "feq."
 			};
 		      char *cp = stpcpy (mnebuf, fltcmpmne[rm]);
 		      *cp++ = widthchar[width];
@@ -1067,9 +1067,9 @@ riscv_disasm (Ebl *ebl,
 	      if (rd != 0)
 		op[0] = REG (rd);
 	      opaddr = addr + ((UINT64_C (0) - ((word >> 11) & 0x100000))
-	      		       | (word & 0xff000)
-	      		       | ((word >> 9) & 0x800)
-	      		       | ((word >> 20) & 0x7fe));
+			       | (word & 0xff000)
+			       | ((word >> 9) & 0x800)
+			       | ((word >> 20) & 0x7fe));
 	      // TODO translate address
 	      snprintf (addrbuf, sizeof (addrbuf), "0x%" PRIx64, opaddr);
 	      op[rd != 0] = addrbuf;
@@ -1080,17 +1080,17 @@ riscv_disasm (Ebl *ebl,
 	      rd = (word >> 7) & 0x1f;
 	      rs1 = (word >> 15) & 0x1f;
 	      if (word == 0x00000073)
-	      	mne = "ecall";
+		mne = "ecall";
 	      else if (word == 0x00100073)
-	      	mne = "ebreak";
+		mne = "ebreak";
 	      else if (word == 0x00200073)
-	      	mne = "uret";
+		mne = "uret";
 	      else if (word == 0x10200073)
-	      	mne = "sret";
+		mne = "sret";
 	      else if (word == 0x30200073)
-	      	mne = "mret";
+		mne = "mret";
 	      else if (word == 0x10500073)
-	      	mne = "wfi";
+		mne = "wfi";
 	      else if ((word & 0x3000) == 0x2000 && rs1 == 0)
 		{
 		  uint32_t csr = word >> 20;
@@ -1490,7 +1490,7 @@ riscv_disasm (Ebl *ebl,
       *startp = data + length;
       retval = outcb (strp, len, outcbarg);
       if (retval != 0)
-      	break;
+	break;
     }
 
  do_ret:

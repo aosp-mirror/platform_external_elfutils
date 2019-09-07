@@ -453,7 +453,7 @@ riscv_disasm (Ebl *ebl,
 	      mne = "fsd";
 	      break;
 	    case 16:
-	      opaddr = (((INT64_C (0) - ((first >> 12) & 0x1)) << 11)
+	      opaddr = (((UINT64_C (0) - ((first >> 12) & 0x1)) << 11)
 			| ((first << 2) & 0x400)
 			| ((first >> 1) & 0x300)
 			| ((first << 1) & 0x80)

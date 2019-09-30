@@ -1,3 +1,9 @@
+2019-09-28  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* elflint.c (main): When an input file cannot be opened,
+	include its name into the error diagnostics.
+	* readelf.c (main): Likewise.
+
 2019-09-02  Mark Wielaard  <mark@klomp.org>
 
 	* readelf.c (PRINT_DYNSYM_TABLE): New argp key value.

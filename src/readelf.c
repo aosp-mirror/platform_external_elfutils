@@ -365,7 +365,7 @@ main (int argc, char *argv[])
       int fd = open (argv[remaining], O_RDONLY);
       if (fd == -1)
 	{
-	  error (0, errno, gettext ("cannot open input file"));
+	  error (0, errno, _("cannot open input file '%s'"), argv[remaining]);
 	  continue;
 	}
 

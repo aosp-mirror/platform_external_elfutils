@@ -279,24 +279,15 @@ dwfl_getthreads (Dwfl *dwfl, int (*callback) (Dwfl_Thread *thread, void *arg),
 						    process->callbacks_arg,
 						    &thread.callbacks_arg);
       if (thread.tid < 0)
-	{
-	  Dwfl_Error saved_errno = dwfl_errno ();
-	  thread_free_all_states (&thread);
-	  __libdwfl_seterrno (saved_errno);
-	  return -1;
-	}
+	return -1;
       if (thread.tid == 0)
 	{
-	  thread_free_all_states (&thread);
 	  __libdwfl_seterrno (DWFL_E_NOERROR);
 	  return 0;
 	}
       int err = callback (&thread, arg);
       if (err != DWARF_CB_OK)
-	{
-	  thread_free_all_states (&thread);
-	  return err;
-	}
+	return err;
       assert (thread.unwound == NULL);
     }
   /* NOTREACHED */
@@ -356,11 +347,8 @@ getthread (Dwfl *dwfl, pid_t tid,
       if (process->callbacks->get_thread (dwfl, tid, process->callbacks_arg,
 					  &thread.callbacks_arg))
 	{
-	  int err;
 	  thread.tid = tid;
-	  err = callback (&thread, arg);
-	  thread_free_all_states (&thread);
-	  return err;
+	  return callback (&thread, arg);
 	}
 
       return -1;

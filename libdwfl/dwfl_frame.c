@@ -71,19 +71,14 @@ state_fetch_pc (Dwfl_Frame *state)
 /* Do not call it on your own, to be used by thread_* functions only.  */
 
 static void
-state_free (Dwfl_Frame *state)
+free_states (Dwfl_Frame *state)
 {
-  Dwfl_Thread *thread = state->thread;
-  assert (thread->unwound == state);
-  thread->unwound = state->unwound;
-  free (state);
-}
-
-static void
-thread_free_all_states (Dwfl_Thread *thread)
-{
-  while (thread->unwound)
-    state_free (thread->unwound);
+  while (state)
+    {
+      Dwfl_Frame *next = state->unwound;
+      free(state);
+      state = next;
+    }
 }
 
 static Dwfl_Frame *
@@ -399,12 +394,6 @@ dwfl_thread_getframes (Dwfl_Thread *thread,
 		       int (*callback) (Dwfl_Frame *state, void *arg),
 		       void *arg)
 {
-  if (thread->unwound != NULL)
-    {
-      /* We had to be called from inside CALLBACK.  */
-      __libdwfl_seterrno (DWFL_E_ATTACH_STATE_CONFLICT);
-      return -1;
-    }
   Ebl *ebl = thread->process->ebl;
   if (ebl_frame_nregs (ebl) == 0)
     {
@@ -420,33 +409,34 @@ dwfl_thread_getframes (Dwfl_Thread *thread,
   if (! process->callbacks->set_initial_registers (thread,
 						   thread->callbacks_arg))
     {
-      thread_free_all_states (thread);
+      free_states (thread->unwound);
+      thread->unwound = NULL;
       return -1;
     }
-  if (! state_fetch_pc (thread->unwound))
+  Dwfl_Frame *state = thread->unwound;
+  thread->unwound = NULL;
+  if (! state_fetch_pc (state))
     {
       if (process->callbacks->thread_detach)
 	process->callbacks->thread_detach (thread, thread->callbacks_arg);
-      thread_free_all_states (thread);
+      free_states (state);
       return -1;
     }
-
-  Dwfl_Frame *state;
   do
     {
-      state = thread->unwound;
       int err = callback (state, arg);
       if (err != DWARF_CB_OK)
 	{
 	  if (process->callbacks->thread_detach)
 	    process->callbacks->thread_detach (thread, thread->callbacks_arg);
-	  thread_free_all_states (thread);
+	  free_states (state);
 	  return err;
 	}
       __libdwfl_frame_unwind (state);
+      Dwfl_Frame *next = state->unwound;
       /* The old frame is no longer needed.  */
-      state_free (thread->unwound);
-      state = thread->unwound;
+      free (state);
+      state = next;
     }
   while (state && state->pc_state == DWFL_FRAME_STATE_PC_SET);
 
@@ -455,12 +445,12 @@ dwfl_thread_getframes (Dwfl_Thread *thread,
     process->callbacks->thread_detach (thread, thread->callbacks_arg);
   if (state == NULL || state->pc_state == DWFL_FRAME_STATE_ERROR)
     {
-      thread_free_all_states (thread);
+      free_states (state);
       __libdwfl_seterrno (err);
       return -1;
     }
   assert (state->pc_state == DWFL_FRAME_STATE_PC_UNDEFINED);
-  thread_free_all_states (thread);
+  free_states (state);
   return 0;
 }
 INTDEF(dwfl_thread_getframes)

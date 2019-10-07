@@ -3,6 +3,11 @@
 	* dwfl_frame.c (dwfl_getthreads): Get rid of unnecessary
 	thread_free_all_states calls.
 	(getthread): Ditto.
+	(state_free): Remove function.
+	(thread_free_all_states): Remove function.
+	(free_states): Add function.
+	(dwfl_thread_getframes): Don't update thread->unwound while unwinding.
+	* libdwflP.h (struct Dwfl_Thread): Update comment for unwound member.
 
 2019-08-12  Mark Wielaard  <mark@klomp.org>
 

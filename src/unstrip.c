@@ -576,7 +576,7 @@ adjust_relocs (Elf_Scn *outscn, Elf_Scn *inscn, const GElf_Shdr *shdr,
 
 	record_new_data (versym);
 	data->d_buf = versym;
-	data->d_size = nent * shdr->sh_entsize;
+	data->d_size = nent * sizeof versym[0];
 	elf_flagdata (data, ELF_C_SET, ELF_F_DIRTY);
 	update_sh_size (outscn, data);
       }

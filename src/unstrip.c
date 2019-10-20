@@ -1397,6 +1397,16 @@ more sections in stripped file than debug file -- arguments reversed?"));
   if (unlikely (stripped_shnum == 0))
     error (EXIT_FAILURE, 0, _("no sections in stripped file"));
 
+  /* Used as sanity check for allocated section offset, if the section
+     offset needs to be preserved.  We want to know the max size of the
+     ELF file, to check if any existing section offsets are OK.  */
+  int64_t max_off = -1;
+  if (stripped_ehdr->e_type != ET_REL)
+    {
+      elf_flagelf (stripped, ELF_C_SET, ELF_F_LAYOUT);
+      max_off = elf_update (stripped, ELF_C_NULL);
+    }
+
   /* Cache the stripped file's section details.  */
   struct section sections[stripped_shnum - 1];
   Elf_Scn *scn = NULL;
@@ -1697,6 +1707,11 @@ more sections in stripped file than debug file -- arguments reversed?"));
 	/* Preserve the file layout of the allocated sections.  */
 	if (stripped_ehdr->e_type != ET_REL && (shdr_mem.sh_flags & SHF_ALLOC))
 	  {
+	    if (max_off > 0 && sec->shdr.sh_offset > (Elf64_Off) max_off)
+		error (EXIT_FAILURE, 0,
+		       "allocated section offset too large [%zd] %" PRIx64,
+		       elf_ndxscn (sec->scn), sec->shdr.sh_offset);
+
 	    shdr_mem.sh_offset = sec->shdr.sh_offset;
 	    placed[elf_ndxscn (sec->outscn) - 1] = true;
 

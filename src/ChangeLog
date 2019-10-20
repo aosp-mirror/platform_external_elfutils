@@ -1,3 +1,7 @@
+2019-10-20  Mark Wielaard  <mark@klomp.org>
+
+	* unstrip.c (copy_elided_sections): Set and check max_off.
+
 2019-10-21  Mark Wielaard  <mark@klomp.org>
 
 	* unstrip.c (adjust_relocs): Add map_size argument and check ndx

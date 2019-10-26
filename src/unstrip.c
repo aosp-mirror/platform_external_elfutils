@@ -854,7 +854,9 @@ collect_symbols (Elf *outelf, bool rel, Elf_Scn *symscn, Elf_Scn *strscn,
       if (sym->st_shndx != SHN_XINDEX)
 	shndx = sym->st_shndx;
 
-      if (sym->st_name >= strdata->d_size)
+      if (sym->st_name >= strdata->d_size
+	  || memrchr (strdata->d_buf + sym->st_name, '\0',
+		      strdata->d_size - sym->st_name) == NULL)
 	error (EXIT_FAILURE, 0,
 	       _("invalid string offset in symbol [%zu]"), i);
 

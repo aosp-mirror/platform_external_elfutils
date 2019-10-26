@@ -1,3 +1,8 @@
+2019-10-26  Mark Wielaard  <mark@klomp.org>
+
+	* unstrip.c (collect_symbols): Check symbol strings are
+	terminated.
+
 2019-10-18  Mark Wielaard  <mark@klomp.org>
 
 	* unstrip.c (adjust_relocs): Set versym data d_size to the actual

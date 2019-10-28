@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 dnl Configure input file for elfutils.                     -*-autoconf-*-
 dnl
-dnl Copyright (C) 1996-2018 Red Hat, Inc.
+dnl Copyright (C) 1996-2019 Red Hat, Inc.
 dnl
 dnl This file is part of elfutils.
 dnl
@@ -88,8 +88,6 @@ AS_IF([test "$use_locks" = yes],
 AH_TEMPLATE([USE_LOCKS], [Defined if libraries should be thread-safe.])
 
 AC_PROG_CC
-AC_PROG_CXX
-AX_CXX_COMPILE_STDCXX(11, noext, optional)
 AC_PROG_RANLIB
 AC_PROG_YACC
 AM_PROG_LEX
@@ -676,17 +674,25 @@ fi
 
 # Look for libmicrohttpd, libcurl, libarchive, sqlite for debuginfo server
 # minimum versions as per rhel7.  Single --enable-* option arranges to build
-# both client libs and server process.
+# both client and server.
+AC_ARG_ENABLE([debuginfod],AC_HELP_STRING([--enable-debuginfod], [Build debuginfod server and client]))
+AC_PROG_CXX
+AX_CXX_COMPILE_STDCXX(11, noext, optional)
+AS_IF([test "x$enable_debuginfod" != "xno"], [
+    AC_MSG_NOTICE([checking debuginfod dependencies, disable to skip])
+    enable_debuginfod=yes # presume success
+    PKG_PROG_PKG_CONFIG
+    if test "x$ac_cv_prog_ac_ct_CXX" = "x"; then enable_debuginfod=no; fi
+    PKG_CHECK_MODULES([libmicrohttpd],[libmicrohttpd >= 0.9.33],[],[enable_debuginfod=no])
+    PKG_CHECK_MODULES([libcurl],[libcurl >= 7.29.0],[],[enable_debuginfod=no])
+    PKG_CHECK_MODULES([sqlite3],[sqlite3 >= 3.7.17],[],[enable_debuginfod=no])
+    PKG_CHECK_MODULES([libarchive],[libarchive >= 3.1.2],[],[enable_debuginfod=no])
+    if test "x$enable_debuginfod" = "xno"; then
+      AC_MSG_ERROR([C++ compiler or dependencies not found, use --disable-debuginfod to disable.])
+    fi
+])
 
-PKG_PROG_PKG_CONFIG
-AC_ARG_ENABLE([debuginfod], AC_HELP_STRING([--enable-debuginfod], [Build debuginfo server and client solib]))
-AS_IF([test "x$enable_debuginfod" = "xyes"], [
-    AC_DEFINE([ENABLE_DEBUGINFOD],[1],[Build debuginfo-server])
-    PKG_CHECK_MODULES([libmicrohttpd],[libmicrohttpd >= 0.9.33])
-    PKG_CHECK_MODULES([libcurl],[libcurl >= 7.29.0])
-    PKG_CHECK_MODULES([sqlite3],[sqlite3 >= 3.7.17])
-    PKG_CHECK_MODULES([libarchive],[libarchive >= 3.1.2])
-], [enable_debuginfod="no"])
+AS_IF([test "x$enable_debuginfod" != "xno"],AC_DEFINE([ENABLE_DEBUGINFOD],[1],[Build debuginfod]))
 AM_CONDITIONAL([DEBUGINFOD],[test "x$enable_debuginfod" = "xyes"])
 
 
@@ -719,7 +725,7 @@ AC_MSG_NOTICE([
     Deterministic archives by default  : ${default_ar_deterministic}
     Native language support            : ${USE_NLS}
     Extra Valgrind annotations         : ${use_vg_annotations}
-    Debuginfo client/server support    : ${enable_debuginfod}
+    Debuginfod client/server support   : ${enable_debuginfod}
 
   EXTRA TEST FEATURES (used with make check)
     have bunzip2 installed (required)  : ${HAVE_BUNZIP2}

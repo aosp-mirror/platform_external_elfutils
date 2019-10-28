@@ -31,7 +31,9 @@
 ##
 include $(top_srcdir)/config/eu.am
 AM_CPPFLAGS += -I$(srcdir) -I$(srcdir)/../libelf -I$(srcdir)/../libebl \
-	   -I$(srcdir)/../libdw -I$(srcdir)/../libdwelf
+	   -I$(srcdir)/../libdw -I$(srcdir)/../libdwelf \
+	   $(libmicrohttpd_CFLAGS) $(libcurl_CFLAGS) $(sqlite3_CFLAGS) \
+	   $(libarchive_CFLAGS)
 VERSION = 1
 
 # Disable eu- prefixing for artifacts (binaries & man pages) in this
@@ -55,7 +57,9 @@ libeu = ../lib/libeu.a
 
 AM_LDFLAGS = -Wl,-rpath-link,../libelf:../libdw:.
 
-bin_PROGRAMS = debuginfod-find
+bin_PROGRAMS = debuginfod debuginfod-find
+debuginfod_SOURCES = debuginfod.cxx
+debuginfod_LDADD = $(libdw) $(libelf) $(libeu) $(libdebuginfod) $(libmicrohttpd_LIBS) $(libcurl_LIBS) $(sqlite3_LIBS) $(libarchive_LIBS) -lpthread -ldl
 
 debuginfod_find_SOURCES = debuginfod-find.c
 debuginfod_find_LDADD = $(libeu) $(libdebuginfod)

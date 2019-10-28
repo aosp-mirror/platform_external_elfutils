@@ -1,3 +1,9 @@
+2019-10-28  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.cxx: New file: debuginfod server.
+	* debuginfod.8: New file: man page.
+	* Makefile.am: Build it.
+
 2019-10-28  Aaron Merey  <amerey@redhat.com>
 
 	* debuginfod-client.c: New file: debuginfod client library.

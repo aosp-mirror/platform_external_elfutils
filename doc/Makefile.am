@@ -19,10 +19,11 @@
 EXTRA_DIST = COPYING-GFDL README
 dist_man1_MANS=readelf.1 elfclassify.1
 notrans_dist_man3_MANS=elf_update.3 elf_getdata.3 elf_clone.3 elf_begin.3
-
+notrans_dist_man8_MANS=
 notrans_dist_man1_MANS=
 
 if DEBUGINFOD
+notrans_dist_man8_MANS += debuginfod.8
 notrans_dist_man3_MANS += debuginfod_find_debuginfo.3 debuginfod_find_source.3 debuginfod_find_executable.3
 notrans_dist_man1_MANS += debuginfod-find.1
 endif

@@ -12,6 +12,11 @@ Requires: elfutils-libelf = %{version}-%{release}
 Requires: glibc >= 2.7
 Requires: libstdc++
 Requires: default-yama-scope
+%if 0%{?rhel} >= 8 || 0%{?fedora} >= 20
+Recommends: elfutils-debuginfod-client
+%else
+Requires: elfutils-debuginfod-client
+%endif
 
 # ExcludeArch: xxx
 
@@ -23,10 +28,20 @@ BuildRequires: flex >= 2.5.4a
 BuildRequires: bzip2
 BuildRequires: m4
 BuildRequires: gettext
-BuildRequires: zlib-devel
+BuildRequires: pkgconfig(zlib)
+%if 0%{?rhel} == 7
 BuildRequires: bzip2-devel
-BuildRequires: xz-devel
+%else
+BuildRequires: pkgconfig(bzip2)
+%endif
+BuildRequires: pkgconfig(liblzma)
 BuildRequires: gcc-c++
+BuildRequires: pkgconfig(libmicrohttpd) >= 0.9.33
+BuildRequires: pkgconfig(libcurl) >= 7.29.0
+BuildRequires: pkgconfig(sqlite3) >= 3.7.17
+BuildRequires: pkgconfig(libarchive) >= 3.1.2
+# for the run-debuginfod-find.sh test case in %check for /usr/sbin/ss
+BuildRequires: iproute
 
 %define _gnu %{nil}
 %define _programprefix eu-
@@ -116,18 +131,53 @@ interprocess services, communication and introspection
 (like synchronisation, signaling, debugging, tracing and
 profiling) of processes.
 
+%package debuginfod-client
+Summary: Libraries and command-line frontend for HTTP ELF/DWARF file server addressed by build-id.
+License: GPLv3+ and (GPLv2+ or LGPLv3+)
+
+%package debuginfod-client-devel
+Summary: Libraries and headers to build debuginfod client applications.
+License: GPLv2+ or LGPLv3+
+
+%package debuginfod
+Summary: HTTP ELF/DWARF file server addressed by build-id.
+License: GPLv3+
+BuildRequires: systemd
+Requires(post):   systemd
+Requires(preun):  systemd
+Requires(postun): systemd
+Requires: shadow-utils
+Requires: /usr/bin/rpm2cpio
+
+%description debuginfod-client
+The elfutils-debuginfod-client package contains shared libraries
+dynamically loaded from -ldw, which use a debuginfod service
+to look up debuginfo and associated data. Also includes a
+command-line frontend.
+
+%description debuginfod-client-devel
+The elfutils-debuginfod-client-devel package contains the libraries
+to create applications to use the debuginfod service.
+
+%description debuginfod
+The elfutils-debuginfod package contains the debuginfod binary
+and control files for a service that can provide ELF/DWARF
+files to remote clients, based on build-id identification.
+The ELF/DWARF file searching functions in libdwfl can query
+such servers to download those files on demand.
+
 %prep
 %setup -q
 
 %build
-%configure --program-prefix=%{_programprefix}
+%configure --program-prefix=%{_programprefix} --enable-debuginfod
 make
 
 %install
 rm -rf ${RPM_BUILD_ROOT}
 mkdir -p ${RPM_BUILD_ROOT}%{_prefix}
 
-%makeinstall
+%make_install
 
 chmod +x ${RPM_BUILD_ROOT}%{_prefix}/%{_lib}/lib*.so*
 
@@ -139,6 +189,11 @@ chmod +x ${RPM_BUILD_ROOT}%{_prefix}/%{_lib}/lib*.so*
 )
 
 install -Dm0644 config/10-default-yama-scope.conf ${RPM_BUILD_ROOT}%{_sysctldir}/10-default-yama-scope.conf
+
+install -Dm0644 config/debuginfod.service ${RPM_BUILD_ROOT}%{_unitdir}/debuginfod.service
+install -Dm0644 config/debuginfod.sysconfig ${RPM_BUILD_ROOT}%{_sysconfdir}/sysconfig/debuginfod
+mkdir -p ${RPM_BUILD_ROOT}%{_localstatedir}/cache/debuginfod
+touch ${RPM_BUILD_ROOT}%{_localstatedir}/cache/debuginfod/debuginfod.sqlite
 
 %check
 make check
@@ -224,6 +279,43 @@ rm -rf ${RPM_BUILD_ROOT}
 
 %files default-yama-scope
 %{_sysctldir}/10-default-yama-scope.conf
+
+%files debuginfod-client
+%defattr(-,root,root)
+%{_libdir}/libdebuginfod-%{version}.so
+%{_bindir}/debuginfod-find
+%{_mandir}/man1/debuginfod-find.1*
+
+%files debuginfod-client-devel
+%defattr(-,root,root)
+%{_libdir}/pkgconfig/libdebuginfod.pc
+%{_mandir}/man3/debuginfod_*.3*
+%{_includedir}/elfutils/debuginfod.h
+%{_libdir}/libdebuginfod.so*
+
+%files debuginfod
+%defattr(-,root,root)
+%{_bindir}/debuginfod
+%config(noreplace) %verify(not md5 size mtime) %{_sysconfdir}/sysconfig/debuginfod
+%{_unitdir}/debuginfod.service
+%{_sysconfdir}/sysconfig/debuginfod
+%{_mandir}/man8/debuginfod.8*
+
+%dir %attr(0700,debuginfod,debuginfod) %{_localstatedir}/cache/debuginfod
+%verify(not md5 size mtime) %attr(0600,debuginfod,debuginfod) %{_localstatedir}/cache/debuginfod/debuginfod.sqlite
+
+%pre debuginfod
+getent group debuginfod >/dev/null || groupadd -r debuginfod
+getent passwd debuginfod >/dev/null || \
+    useradd -r -g debuginfod -d /var/cache/debuginfod -s /sbin/nologin \
+            -c "elfutils debuginfo server" debuginfod
+exit 0
+
+%post debuginfod
+%systemd_post debuginfod.service
+
+%postun debuginfod
+%systemd_postun_with_restart debuginfod.service
 
 %changelog
 * Tue Aug 13 2019 Mark Wielaard <mark@klomp.org> 0.177-1

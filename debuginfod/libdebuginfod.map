@@ -1,0 +1,7 @@
+ELFUTILS_0 { };
+ELFUTILS_0.178 {
+  global:
+  debuginfod_find_debuginfo;
+  debuginfod_find_executable;
+  debuginfod_find_source;
+} ELFUTILS_0;

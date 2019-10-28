@@ -31,13 +31,14 @@
 ##
 include $(top_srcdir)/config/eu.am
 AM_CPPFLAGS += -I$(srcdir) -I$(srcdir)/../libelf -I$(srcdir)/../libebl \
-	   -I$(srcdir)/../libdw -I$(srcdir)/../libdwelf
+	   -I$(srcdir)/../libdw -I$(srcdir)/../libdwelf -I$(srcdir)/../debuginfod
 VERSION = 1
 
 noinst_LIBRARIES = libdwfl.a
 noinst_LIBRARIES += libdwfl_pic.a
 
 pkginclude_HEADERS = libdwfl.h
+
 
 libdwfl_a_SOURCES = dwfl_begin.c dwfl_end.c dwfl_error.c dwfl_version.c \
 		    dwfl_module.c dwfl_report_elf.c relocate.c \

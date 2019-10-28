@@ -1,0 +1,9 @@
+2019-10-28  Aaron Merey  <amerey@redhat.com>
+
+	* debuginfod-client.c: New file: debuginfod client library.
+	* debuginfod.h: New file: header for same.
+	* libdebuginfod.map: New file: govern its solib exports.
+	* debuginfod-find.c: New file: command line frontend.
+	* debuginfod-find.1, debuginfod_find_source.3,
+	debuginfod_find_executable.3, debuginfod_find_debuginfo.3:
+	New man pages.

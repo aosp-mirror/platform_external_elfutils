@@ -29,10 +29,10 @@
 ## not, see <http://www.gnu.org/licenses/>.
 ##
 EXTRA_DIST = elfutils.spec.in known-dwarf.awk 10-default-yama-scope.conf
-	     libelf.pc.in libdw.pc.in
+	     libelf.pc.in libdw.pc.in libdebuginfod.pc.in
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libelf.pc libdw.pc
+pkgconfig_DATA = libelf.pc libdw.pc libdebuginfod.pc
 
 if MAINTAINER_MODE
 $(srcdir)/elfutils.spec.in: $(top_srcdir)/NEWS

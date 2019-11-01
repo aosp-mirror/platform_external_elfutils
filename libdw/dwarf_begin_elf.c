@@ -223,7 +223,7 @@ valid_p (Dwarf *result)
      inside the .debug_loc or .debug_loclists section.  */
   if (result != NULL && result->sectiondata[IDX_debug_loc] != NULL)
     {
-      result->fake_loc_cu = (Dwarf_CU *) calloc (1, sizeof (Dwarf_CU));
+      result->fake_loc_cu = (Dwarf_CU *) malloc (sizeof (Dwarf_CU));
       if (unlikely (result->fake_loc_cu == NULL))
 	{
 	  Dwarf_Sig8_Hash_free (&result->sig8_hash);
@@ -240,12 +240,16 @@ valid_p (Dwarf *result)
 	  result->fake_loc_cu->endp
 	    = (result->sectiondata[IDX_debug_loc]->d_buf
 	       + result->sectiondata[IDX_debug_loc]->d_size);
+	  result->fake_loc_cu->locs = NULL;
+	  result->fake_loc_cu->address_size = 0;
+	  result->fake_loc_cu->version = 0;
+	  result->fake_loc_cu->split = NULL;
 	}
     }
 
   if (result != NULL && result->sectiondata[IDX_debug_loclists] != NULL)
     {
-      result->fake_loclists_cu = (Dwarf_CU *) calloc (1, sizeof (Dwarf_CU));
+      result->fake_loclists_cu = (Dwarf_CU *) malloc (sizeof (Dwarf_CU));
       if (unlikely (result->fake_loclists_cu == NULL))
 	{
 	  Dwarf_Sig8_Hash_free (&result->sig8_hash);
@@ -263,6 +267,10 @@ valid_p (Dwarf *result)
 	  result->fake_loclists_cu->endp
 	    = (result->sectiondata[IDX_debug_loclists]->d_buf
 	       + result->sectiondata[IDX_debug_loclists]->d_size);
+	  result->fake_loclists_cu->locs = NULL;
+	  result->fake_loclists_cu->address_size = 0;
+	  result->fake_loclists_cu->version = 0;
+	  result->fake_loclists_cu->split = NULL;
 	}
     }
 
@@ -272,7 +280,7 @@ valid_p (Dwarf *result)
      inside the .debug_addr section, if it exists.  */
   if (result != NULL && result->sectiondata[IDX_debug_addr] != NULL)
     {
-      result->fake_addr_cu = (Dwarf_CU *) calloc (1, sizeof (Dwarf_CU));
+      result->fake_addr_cu = (Dwarf_CU *) malloc (sizeof (Dwarf_CU));
       if (unlikely (result->fake_addr_cu == NULL))
 	{
 	  Dwarf_Sig8_Hash_free (&result->sig8_hash);
@@ -291,6 +299,10 @@ valid_p (Dwarf *result)
 	  result->fake_addr_cu->endp
 	    = (result->sectiondata[IDX_debug_addr]->d_buf
 	       + result->sectiondata[IDX_debug_addr]->d_size);
+	  result->fake_addr_cu->locs = NULL;
+	  result->fake_addr_cu->address_size = 0;
+	  result->fake_addr_cu->version = 0;
+	  result->fake_addr_cu->split = NULL;
 	}
     }
 

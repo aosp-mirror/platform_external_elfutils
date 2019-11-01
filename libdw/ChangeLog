@@ -1,3 +1,9 @@
+2019-11-01  Jonathon Anderson  <jma14@rice.edu>
+
+	* dwarf_begin_elf.c (valid_p): Switch calloc for malloc for fake CUs.
+	Add explicit initialization of some fields.
+	* dwarf_end.c (cu_free): Add clause to limit freeing of CU internals.
+
 2019-08-26  Jonathon Anderson  <jma14@rice.edu>
 
 	* libdw_alloc.c (__libdw_allocate): Added thread-safe stack allocator.

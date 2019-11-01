@@ -52,18 +52,23 @@ cu_free (void *arg)
 {
   struct Dwarf_CU *p = (struct Dwarf_CU *) arg;
 
-  Dwarf_Abbrev_Hash_free (&p->abbrev_hash);
-
   tdestroy (p->locs, noop_free);
 
-  /* Free split dwarf one way (from skeleton to split).  */
-  if (p->unit_type == DW_UT_skeleton
-      && p->split != NULL && p->split != (void *)-1)
+  /* Only free the CU internals if its not a fake CU.  */
+  if(p != p->dbg->fake_loc_cu && p != p->dbg->fake_loclists_cu
+     && p != p->dbg->fake_addr_cu)
     {
-      /* The fake_addr_cu might be shared, only release one.  */
-      if (p->dbg->fake_addr_cu == p->split->dbg->fake_addr_cu)
-	p->split->dbg->fake_addr_cu = NULL;
-      INTUSE(dwarf_end) (p->split->dbg);
+      Dwarf_Abbrev_Hash_free (&p->abbrev_hash);
+
+      /* Free split dwarf one way (from skeleton to split).  */
+      if (p->unit_type == DW_UT_skeleton
+	  && p->split != NULL && p->split != (void *)-1)
+	{
+	  /* The fake_addr_cu might be shared, only release one.  */
+	  if (p->dbg->fake_addr_cu == p->split->dbg->fake_addr_cu)
+	    p->split->dbg->fake_addr_cu = NULL;
+	  INTUSE(dwarf_end) (p->split->dbg);
+	}
     }
 }
 

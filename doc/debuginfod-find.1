@@ -18,11 +18,11 @@
 debuginfod-find \- request debuginfo-related data
 
 .SH SYNOPSIS
-.B debuginfod-find debuginfo \fIBUILDID\fP
+.B debuginfod-find [\fIOPTION\fP]... debuginfo \fIBUILDID\fP
 
-.B debuginfod-find executable \fIBUILDID\fP
+.B debuginfod-find [\fIOPTION\fP]... executable \fIBUILDID\fP
 
-.B debuginfod-find source \fIBUILDID\fP \fI/FILENAME\fP
+.B debuginfod-find [\fIOPTION\fP]... source \fIBUILDID\fP \fI/FILENAME\fP
 
 .SH DESCRIPTION
 \fBdebuginfod-find\fP queries one or more \fBdebuginfod\fP servers for
@@ -90,6 +90,13 @@ l l.
 /path/to/foo.c	source BUILDID /path/to/foo.c
 \../bar/foo.c AT_comp_dir=/zoo/	source BUILDID /zoo//../bar/foo.c
 .TE
+
+.SH "OPTIONS"
+
+.TP
+.B "\-v"
+Increase verbosity, including printing frequent download-progress messages.
+
 
 .SH "SECURITY"
 

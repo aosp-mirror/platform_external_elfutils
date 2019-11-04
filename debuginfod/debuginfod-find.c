@@ -42,10 +42,39 @@ static const char args_doc[] = N_("debuginfo BUILDID\n"
                                   "executable BUILDID\n"
                                   "source BUILDID /FILENAME");
 
+/* Definitions of arguments for argp functions.  */
+static const struct argp_option options[] =
+  {
+   { "verbose", 'v', NULL, 0, "Increase verbosity.", 0 },
+   { NULL, 0, NULL, 0, NULL, 0 }
+  };
+
+
+
+int progressfn(long a, long b)
+{
+  fprintf (stderr, "Progress %ld / %ld\n", a, b);
+  return 0;
+}
+
+
+static error_t parse_opt (int key, char *arg, struct argp_state *state)
+{
+  (void) arg;
+  (void) state;
+  switch (key)
+    {
+    case 'v': debuginfod_set_progressfn (& progressfn); break;
+    default: return ARGP_ERR_UNKNOWN;
+    }
+  return 0;
+}
+
+
 /* Data structure to communicate with argp functions.  */
 static struct argp argp =
   {
-   NULL, NULL, args_doc, doc, NULL, NULL, NULL
+   options, parse_opt, args_doc, doc, NULL, NULL, NULL
   };
 
 
@@ -61,7 +90,7 @@ main(int argc, char** argv)
       argp_help (&argp, stderr, ARGP_HELP_USAGE, argv[0]);
       return 1;
     }
-  
+
   int rc;
   char *cache_name;
 

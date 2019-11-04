@@ -99,6 +99,9 @@ static const char url_delim_char = ' ';
 static const char *server_timeout_envvar = DEBUGINFOD_TIMEOUT_ENV_VAR;
 static int server_timeout = 5;
 
+/* Progress/interrupt callback function. */
+static debuginfod_progressfn_t progressfn;
+
 /* Data associated with a particular CURL easy handle. Passed to
    the write callback.  */
 struct handle_data
@@ -229,8 +232,14 @@ debuginfod_clean_cache(char *cache_path, char *interval_path, char *max_unused_p
     return -errno;
 
   FTSENT *f;
+  long files = 0;
   while ((f = fts_read(fts)) != NULL)
     {
+      files++;
+      if (progressfn) /* inform/check progress callback */
+        if ((*progressfn) (files, 0))
+          break;
+
       switch (f->fts_info)
         {
         case FTS_F:
@@ -263,13 +272,14 @@ debuginfod_clean_cache(char *cache_path, char *interval_path, char *max_unused_p
 /* Query each of the server URLs found in $DEBUGINFOD_URLS for the file
    with the specified build-id, type (debuginfo, executable or source)
    and filename. filename may be NULL. If found, return a file
-   descriptor for the target, otherwise return an error code.  */
+   descriptor for the target, otherwise return an error code.
+*/
 static int
 debuginfod_query_server (const unsigned char *build_id,
-                        int build_id_len,
-                        const char *type,
-                        const char *filename,
-                        char **path)
+                         int build_id_len,
+                         const char *type,
+                         const char *filename,
+                         char **path)
 {
   char *urls_envvar;
   char *server_urls;
@@ -486,9 +496,54 @@ debuginfod_query_server (const unsigned char *build_id,
 
   /* Query servers in parallel.  */
   int still_running;
+  long loops = 0;
   do
     {
       CURLMcode curl_res;
+
+      if (progressfn) /* inform/check progress callback */
+        {
+          loops ++;
+          long pa = loops; /* default params for progress callback */
+          long pb = 0;
+          if (target_handle) /* we've committed to a server; report its download progress */
+            {
+#ifdef CURLINFO_SIZE_DOWNLOAD_T
+              curl_off_t dl;
+              curl_res = curl_easy_getinfo(target_handle,
+                                           CURLINFO_SIZE_DOWNLOAD_T,
+                                           &dl);
+              if (curl_res == 0 && dl >= 0)
+                pa = (dl > LONG_MAX ? LONG_MAX : (long)dl);
+#else
+              double dl;
+              curl_res = curl_easy_getinfo(target_handle,
+                                           CURLINFO_SIZE_DOWNLOAD,
+                                           &dl);
+              if (curl_res == 0)
+                pa = (dl > LONG_MAX ? LONG_MAX : (long)dl);
+#endif
+
+#ifdef CURLINFO_CURLINFO_CONTENT_LENGTH_DOWNLOAD_T
+              curl_off_t cl;
+              curl_res = curl_easy_getinfo(target_handle,
+                                           CURLINFO_CONTENT_LENGTH_DOWNLOAD_T,
+                                           &cl);
+              if (curl_res == 0 && cl >= 0)
+                pb = (cl > LONG_MAX ? LONG_MAX : (long)cl);
+#else
+              double cl;
+              curl_res = curl_easy_getinfo(target_handle,
+                                           CURLINFO_CONTENT_LENGTH_DOWNLOAD,
+                                           &cl);
+              if (curl_res == 0)
+                pb = (cl > LONG_MAX ? LONG_MAX : (long)cl);
+#endif
+            }
+
+          if ((*progressfn) (pa, pb))
+            break;
+        }
 
       /* Wait 1 second, the minimum DEBUGINFOD_TIMEOUT.  */
       curl_multi_wait(curlm, NULL, 0, 1000, NULL);
@@ -623,32 +678,38 @@ debuginfod_query_server (const unsigned char *build_id,
 /* See debuginfod.h  */
 int
 debuginfod_find_debuginfo (const unsigned char *build_id, int build_id_len,
-                          char **path)
+                           char **path)
 {
   return debuginfod_query_server(build_id, build_id_len,
-                                "debuginfo", NULL, path);
+                                 "debuginfo", NULL, path);
 }
 
 
 /* See debuginfod.h  */
 int
 debuginfod_find_executable(const unsigned char *build_id, int build_id_len,
-                          char **path)
+                           char **path)
 {
   return debuginfod_query_server(build_id, build_id_len,
-                                "executable", NULL, path);
+                                 "executable", NULL, path);
 }
 
 /* See debuginfod.h  */
-int debuginfod_find_source(const unsigned char *build_id,
-                          int build_id_len,
-                          const char *filename,
-                          char **path)
+int debuginfod_find_source(const unsigned char *build_id, int build_id_len,
+                           const char *filename, char **path)
 {
   return debuginfod_query_server(build_id, build_id_len,
-                                "source", filename, path);
+                                 "source", filename, path);
 }
 
+
+debuginfod_progressfn_t
+debuginfod_set_progressfn(debuginfod_progressfn_t fn)
+{
+  debuginfod_progressfn_t it = progressfn;
+  progressfn = fn;
+  return it;
+}
 
 
 /* NB: these are thread-unsafe. */

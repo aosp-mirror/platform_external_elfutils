@@ -49,17 +49,20 @@ extern "C" {
    Caller must free() it later. */
   
 int debuginfod_find_debuginfo (const unsigned char *build_id,
-                             int build_id_len,
-                             char **path);
-
-int debuginfod_find_executable (const unsigned char *build_id,
                                int build_id_len,
                                char **path);
 
+int debuginfod_find_executable (const unsigned char *build_id,
+                                int build_id_len,
+                                char **path);
+
 int debuginfod_find_source (const unsigned char *build_id,
-                           int build_id_len,
-                           const char *filename,
-                           char **path);
+                            int build_id_len,
+                            const char *filename,
+                            char **path);
+
+typedef int (*debuginfod_progressfn_t)(long a, long b);
+debuginfod_progressfn_t debuginfod_set_progressfn(debuginfod_progressfn_t fn);
 
 #ifdef __cplusplus
 }

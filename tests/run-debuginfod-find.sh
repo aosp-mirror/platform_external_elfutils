@@ -42,7 +42,8 @@ ldpath=`testrun sh -c 'echo $LD_LIBRARY_PATH'`
 
 mkdir F R
 # not tempfiles F R - they are directories which we clean up manually
-env DEBUGINFOD_TEST_WEBAPI_SLEEP=3 LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod -F -R -vvvv -d $DB -p $PORT1 -t0 -g0 R F &
+env DEBUGINFOD_TEST_WEBAPI_SLEEP=3 LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod -F -R -vvvv -d $DB \
+-p $PORT1 -t0 -g0 R F &
 PID1=$!
 sleep 3
 export DEBUGINFOD_URLS=http://localhost:$PORT1/   # or without trailing /
@@ -110,8 +111,11 @@ kill -USR1 $PID1
 sleep 3
 
 # Rerun same tests for the prog2 binary
-filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID2`
+filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find -v debuginfo $BUILDID2 2>vlog`
 cmp $filename F/prog2
+cat vlog
+grep -q Progress vlog
+tempfiles vlog
 filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find executable $BUILDID2`
 cmp $filename F/prog2
 filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find source $BUILDID2 ${PWD}/prog2.c`

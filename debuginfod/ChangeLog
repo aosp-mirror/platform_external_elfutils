@@ -1,3 +1,18 @@
+2019-11-04  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfo-client.c (debuginfod_set_progressfn): New function
+	for progress/interrupt callback.
+	(debuginfod_clean_cache, debuginfod_query_server): Call it.
+	* debuginfo.h: Declare it.
+	* debuginfod_set_progressfn.3, *_find_debuginfo.3: Document it.
+	* Makefile.am: Install it.
+	* libdebuginfod.map: Export it all under ELFUTILS_0.178 symversion.
+
+	* debuginfod-find.c: Add -v option to activate progress cb.
+	* debuginfod-find.1: Document it.
+	* debuginfod.cxx: Add $DEBUGINFOD_TEST_WEBAPI_SLEEP env var
+	to insert sleep in webapi callbacks, to help manual testing.
+
 2019-10-28  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod.cxx: New file: debuginfod server.

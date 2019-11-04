@@ -121,7 +121,7 @@ static const char DEBUGINFOD_SQLITE_DDL[] =
   "pragma wal_checkpoint = truncate;\n" // clean out any preexisting wal file
   "pragma journal_size_limit = 0;\n" // limit steady state file (between grooming, which also =truncate's)
   "pragma auto_vacuum = incremental;\n" // https://sqlite.org/pragma.html
-  "pragma busy_timeout = 1000;\n" // https://sqlite.org/pragma.html  
+  "pragma busy_timeout = 1000;\n" // https://sqlite.org/pragma.html
   // NB: all these are overridable with -D option
 
   // Normalization table for interning file names
@@ -232,7 +232,7 @@ static const char DEBUGINFOD_SQLITE_DDL[] =
   "union all select 'file s',count(*) from " BUILDIDS "_f_s\n"
   "union all select 'rpm d/e',count(*) from " BUILDIDS "_r_de\n"
   "union all select 'rpm sref',count(*) from " BUILDIDS "_r_sref\n"
-  "union all select 'rpm sdef',count(*) from " BUILDIDS "_r_sdef\n"  
+  "union all select 'rpm sdef',count(*) from " BUILDIDS "_r_sdef\n"
   "union all select 'buildids',count(*) from " BUILDIDS "_buildids\n"
   "union all select 'filenames',count(*) from " BUILDIDS "_files\n"
   "union all select 'files scanned (#)',count(*) from " BUILDIDS "_file_mtime_scanned\n"
@@ -241,9 +241,9 @@ static const char DEBUGINFOD_SQLITE_DDL[] =
   "union all select 'index db size (mb)',page_count*page_size/1024/1024 as size FROM pragma_page_count(), pragma_page_size()\n"
 #endif
   ";\n"
-  
+
 // schema change history & garbage collection
-//  
+//
 // XXX: we could have migration queries here to bring prior-schema
 // data over instead of just dropping it.
 //
@@ -277,14 +277,14 @@ static const char DEBUGINFOD_SQLITE_DDL[] =
   "drop table if exists buildids5_files;\n"
   "drop table if exists buildids5_buildids;\n"
   "drop table if exists buildids5_bolo;\n"
-  "drop table if exists buildids5_rfolo;\n"  
+  "drop table if exists buildids5_rfolo;\n"
   "drop view if exists buildids5;\n"
 // buildids4: introduce rpmfile RFOLO
   "drop table if exists buildids4_norm;\n"
   "drop table if exists buildids4_files;\n"
   "drop table if exists buildids4_buildids;\n"
   "drop table if exists buildids4_bolo;\n"
-  "drop table if exists buildids4_rfolo;\n"  
+  "drop table if exists buildids4_rfolo;\n"
   "drop view if exists buildids4;\n"
 // buildids3*: split out srcfile BOLO
   "drop table if exists buildids3_norm;\n"
@@ -295,7 +295,7 @@ static const char DEBUGINFOD_SQLITE_DDL[] =
 // buildids2: normalized buildid and filenames into interning tables;
   "drop table if exists buildids2_norm;\n"
   "drop table if exists buildids2_files;\n"
-  "drop table if exists buildids2_buildids;\n"  
+  "drop table if exists buildids2_buildids;\n"
   "drop view if exists buildids2;\n"
   // buildids1: made buildid and artifacttype NULLable, to represent cached-negative
 //           lookups from sources, e.g. files or rpms that contain no buildid-indexable content
@@ -324,7 +324,7 @@ static const struct argp_option options[] =
    { "scan-file-dir", 'F', NULL, 0, "Enable ELF/DWARF file scanning threads.", 0 },
    { "scan-rpm-dir", 'R', NULL, 0, "Enable RPM scanning threads.", 0 },
    // "source-oci-imageregistry"  ... 
-  
+
    { NULL, 0, NULL, 0, "Options:", 2 },
    { "rescan-time", 't', "SECONDS", 0, "Number of seconds to wait between rescans, 0=disable.", 0 },
    { "groom-time", 'g', "SECONDS", 0, "Number of seconds to wait between database grooming, 0=disable.", 0 },
@@ -336,7 +336,7 @@ static const struct argp_option options[] =
    { "database", 'd', "FILE", 0, "Path to sqlite database.", 0 },
    { "ddl", 'D', "SQL", 0, "Apply extra sqlite ddl/pragma to connection.", 0 },
    { "verbose", 'v', NULL, 0, "Increase verbosity.", 0 },
-    
+
    { NULL, 0, NULL, 0, NULL, 0 }
   };
 
@@ -373,6 +373,8 @@ static bool scan_rpms = false;
 static vector<string> extra_ddl;
 static regex_t file_include_regex;
 static regex_t file_exclude_regex;
+static int test_webapi_sleep; /* testing only */
+
 
 /* Handle program arguments.  */
 static error_t
@@ -408,13 +410,13 @@ parse_opt (int key, char *arg,
       regfree (&file_include_regex);
       rc = regcomp (&file_include_regex, arg, REG_EXTENDED|REG_NOSUB);
       if (rc != 0)
-        argp_failure(state, 1, EINVAL, "regular expession");        
+        argp_failure(state, 1, EINVAL, "regular expession");
       break;
     case 'X':
       regfree (&file_exclude_regex);
       rc = regcomp (&file_exclude_regex, arg, REG_EXTENDED|REG_NOSUB);
       if (rc != 0)
-        argp_failure(state, 1, EINVAL, "regular expession");        
+        argp_failure(state, 1, EINVAL, "regular expession");
       break;
     case ARGP_KEY_ARG:
       source_paths.insert(string(arg));
@@ -440,9 +442,9 @@ struct reportable_exception
   reportable_exception(int c, const string& m): code(c), message(m) {}
   reportable_exception(const string& m): code(503), message(m) {}
   reportable_exception(): code(503), message() {}
-  
+
   void report(ostream& o) const; // defined under obatched() class below
-  
+
   int mhd_send_response(MHD_Connection* c) const {
     MHD_Response* r = MHD_create_response_from_buffer (message.size(),
                                                        (void*) message.c_str(),
@@ -586,7 +588,7 @@ private:
   const string nickname;
   const string sql;
   sqlite3_stmt *pp;
-  
+
   sqlite_ps(const sqlite_ps&); // make uncopyable
   sqlite_ps& operator=(const sqlite_ps &); // make unassignable
 
@@ -604,7 +606,7 @@ public:
     sqlite3_reset(this->pp);
     return *this;
   }
-  
+
   sqlite_ps& bind(int parameter, const string& str)
   {
     if (verbose > 4)
@@ -635,7 +637,7 @@ public:
     return *this;
   }
 
-  
+
   void step_ok_done() {
     int rc = sqlite3_step (this->pp);
     if (verbose > 4)
@@ -645,7 +647,7 @@ public:
     (void) sqlite3_reset (this->pp);
   }
 
-  
+
   int step() {
     int rc = sqlite3_step (this->pp);
     if (verbose > 4)
@@ -653,7 +655,7 @@ public:
     return rc;
   }
 
-  
+
 
   ~sqlite_ps () { sqlite3_finalize (this->pp); }
   operator sqlite3_stmt* () { return this->pp; }
@@ -669,7 +671,7 @@ struct defer_dtor
 {
 public:
   typedef Ignore (*dtor_fn) (Payload);
-  
+
 private:
   Payload p;
   dtor_fn fn;
@@ -735,7 +737,7 @@ add_mhd_last_modified (struct MHD_Response *resp, time_t mtime)
       if (rc > 0 && rc < sizeof (datebuf))
         (void) MHD_add_response_header (resp, "Last-Modified", datebuf);
     }
-  
+
   (void) MHD_add_response_header (resp, "Cache-Control", "public");
 }
 
@@ -754,11 +756,11 @@ handle_buildid_f_match (int64_t b_mtime,
       // if still missing, a periodic groom pass will delete this buildid record
       return 0;
     }
-  
+
   // NB: use manual close(2) in error case instead of defer_dtor, because
   // in the normal case, we want to hand the fd over to libmicrohttpd for
   // file transfer.
-  
+
   struct stat s;
   int rc = fstat(fd, &s);
   if (rc < 0)
@@ -776,7 +778,7 @@ handle_buildid_f_match (int64_t b_mtime,
       close(fd);
       return 0;
     }
-  
+
   struct MHD_Response* r = MHD_create_response_from_fd ((uint64_t) s.st_size, fd);
   if (r == 0)
     {
@@ -806,7 +808,7 @@ shell_escape(const string& str)
   for (auto&& x : str)
     {
       if (! isalnum(x) && x != '/')
-        y += "\\"; 
+        y += "\\";
       y += x;
     }
   return y;
@@ -830,7 +832,7 @@ handle_buildid_r_match (int64_t b_mtime,
         obatched(clog) << "mtime mismatch for " << b_source0 << endl;
       return 0;
     }
-  
+
   string popen_cmd = string("rpm2cpio " + shell_escape(b_source0));
   FILE* fp = popen (popen_cmd.c_str(), "r"); // "e" O_CLOEXEC?
   if (fp == NULL)
@@ -849,7 +851,7 @@ handle_buildid_r_match (int64_t b_mtime,
   rc = archive_read_support_filter_all(a);
   if (rc != ARCHIVE_OK)
     throw archive_exception(a, "cannot select all filters");
-  
+
   rc = archive_read_open_FILE (a, fp);
   if (rc != ARCHIVE_OK)
     throw archive_exception(a, "cannot open archive from rpm2cpio pipe");
@@ -863,7 +865,7 @@ handle_buildid_r_match (int64_t b_mtime,
 
       if (! S_ISREG(archive_entry_mode (e))) // skip non-files completely
         continue;
-              
+
       string fn = archive_entry_pathname (e);
       if (fn != string(".")+b_source1)
         continue;
@@ -874,7 +876,7 @@ handle_buildid_r_match (int64_t b_mtime,
       if (fd < 0)
         throw libc_exception (errno, "cannot create temporary file");
       unlink (tmppath); // unlink now so OS will release the file as soon as we close the fd
-  
+
       rc = archive_read_data_into_fd (a, fd);
       if (rc != ARCHIVE_OK)
         {
@@ -923,6 +925,15 @@ handle_buildid_match (int64_t b_mtime,
 }
 
 
+static int
+debuginfod_find_progress (long a, long b)
+{
+  if (verbose > 4)
+    obatched(clog) << "federated debuginfod progress=" << a << "/" << b << endl;
+
+  return interrupted;
+}
+
 
 static struct MHD_Response* handle_buildid (const string& buildid /* unsafe */,
                                             const string& artifacttype /* unsafe */,
@@ -939,7 +950,7 @@ static struct MHD_Response* handle_buildid (const string& buildid /* unsafe */,
 
   if (atype_code == "S" && suffix == "")
      throw reportable_exception("invalid source suffix");
-  
+
   // validate buildid
   if ((buildid.size() < 2) || // not empty
       (buildid.size() % 2) || // even number
@@ -978,7 +989,7 @@ static struct MHD_Response* handle_buildid (const string& buildid /* unsafe */,
       pp->bind(2, suffix);
     }
   unique_ptr<sqlite_ps> ps_closer(pp); // release pp if exception or return
-  
+
   // consume all the rows
   while (1)
     {
@@ -986,7 +997,7 @@ static struct MHD_Response* handle_buildid (const string& buildid /* unsafe */,
       if (rc == SQLITE_DONE) break;
       if (rc != SQLITE_ROW)
         throw sqlite_exception(rc, "step");
-      
+
       int64_t b_mtime = sqlite3_column_int64 (*pp, 0);
       string b_stype = string((const char*) sqlite3_column_text (*pp, 1) ?: ""); /* by DDL may not be NULL */
       string b_source0 = string((const char*) sqlite3_column_text (*pp, 2) ?: ""); /* may be NULL */
@@ -1005,6 +1016,7 @@ static struct MHD_Response* handle_buildid (const string& buildid /* unsafe */,
 
   // We couldn't find it in the database.  Last ditch effort
   // is to defer to other debuginfo servers.
+
   int fd = -1;
   if (artifacttype == "debuginfo")
     fd = debuginfod_find_debuginfo ((const unsigned char*) buildid.c_str(), 0,
@@ -1036,7 +1048,7 @@ static struct MHD_Response* handle_buildid (const string& buildid /* unsafe */,
     }
   else if (fd != -ENOSYS) // no DEBUGINFOD_URLS configured
     throw libc_exception(-fd, "upstream debuginfod query failed");
-  
+
   throw reportable_exception(MHD_HTTP_NOT_FOUND, "not found");
 }
 
@@ -1067,9 +1079,12 @@ handler_cb (void * /*cls*/,
 {
   struct MHD_Response *r = NULL;
   string url_copy = url;
-  
+
   if (verbose)
     obatched(clog) << conninfo(connection) << " " << method << " " << url << endl;
+
+  if (test_webapi_sleep)
+    sleep (test_webapi_sleep);
 
   try
     {
@@ -1079,13 +1094,13 @@ handler_cb (void * /*cls*/,
       /* Start decoding the URL. */
       size_t slash1 = url_copy.find('/', 1);
       string url1 = url_copy.substr(0, slash1); // ok even if slash1 not found
-      
+
       if (slash1 != string::npos && url1 == "/buildid")
         {
           size_t slash2 = url_copy.find('/', slash1+1);
           if (slash2 == string::npos)
             throw reportable_exception("/buildid/ webapi error, need buildid");
-          
+
           string buildid = url_copy.substr(slash1+1, slash2-slash1-1);
 
           size_t slash3 = url_copy.find('/', slash2+1);
@@ -1100,17 +1115,17 @@ handler_cb (void * /*cls*/,
               artifacttype = url_copy.substr(slash2+1, slash3-slash2-1);
               suffix = url_copy.substr(slash3); // include the slash in the suffix
             }
-          
+
           r = handle_buildid(buildid, artifacttype, suffix, 0); // NB: don't care about result-fd
         }
       else if (url1 == "/metrics")
         r = handle_metrics();
       else
         throw reportable_exception("webapi error, unrecognized /operation");
-      
+
       if (r == 0)
         throw reportable_exception("internal error, missing response");
-      
+
       int rc = MHD_queue_response (connection, MHD_HTTP_OK, r);
       MHD_destroy_response (r);
       return rc;
@@ -1136,9 +1151,9 @@ dwarf_extract_source_paths (Elf *elf, set<string>& debug_sourcefiles)
 
   Dwarf* altdbg = NULL;
   int    altdbg_fd = -1;
-  
+
   // DWZ handling: if we have an unsatisfied debug-alt-link, add an
-  // empty string into the outgoing sourcefiles set, so the caller 
+  // empty string into the outgoing sourcefiles set, so the caller
   // should know that our data is incomplete.
   const char *alt_name_p;
   const void *alt_build_id; // elfutils-owned memory
@@ -1172,7 +1187,7 @@ dwarf_extract_source_paths (Elf *elf, set<string>& debug_sourcefiles)
             {
               // swallow exceptions
             }
-          
+
           // NB: this is not actually recursive!  This invokes the web-query
           // path, which cannot get back into the scan code paths.
           if (r)
@@ -1191,7 +1206,7 @@ dwarf_extract_source_paths (Elf *elf, set<string>& debug_sourcefiles)
           // NB: dwarf_setalt(alt) inappropriate - already done!
           // NB: altdbg will stay 0 so nothing tries to redundantly dealloc.
         }
-      
+
       if (alt)
         {
           if (verbose > 3)
@@ -1204,7 +1219,7 @@ dwarf_extract_source_paths (Elf *elf, set<string>& debug_sourcefiles)
             obatched(clog) << "Unresolved altdebug buildid=" << buildid << endl;
         }
     }
-  
+
   Dwarf_Off offset = 0;
   Dwarf_Off old_offset;
   size_t hsize;
@@ -1235,7 +1250,7 @@ dwarf_extract_source_paths (Elf *elf, set<string>& debug_sourcefiles)
         comp_dir = dirs[0];
       if (comp_dir == NULL)
         comp_dir = "";
-      
+
       if (verbose > 3)
         obatched(clog) << "searching for sources for cu=" << cuname << " comp_dir=" << comp_dir
                        << " #files=" << nfiles << " #dirs=" << ndirs << endl;
@@ -1257,7 +1272,7 @@ dwarf_extract_source_paths (Elf *elf, set<string>& debug_sourcefiles)
 
           if (string(hat) == "<built-in>") // gcc intrinsics, don't bother record
             continue;
-          
+
           string waldo;
           if (hat[0] == '/') // absolute
             waldo = (string (hat));
@@ -1268,7 +1283,7 @@ dwarf_extract_source_paths (Elf *elf, set<string>& debug_sourcefiles)
              obatched(clog) << "skipping hat=" << hat << " due to empty comp_dir" << endl;
              continue;
            }
-         
+
           // NB: this is the 'waldo' that a dbginfo client will have
           // to supply for us to give them the file The comp_dir
           // prefixing is a definite complication.  Otherwise we'd
@@ -1279,7 +1294,7 @@ dwarf_extract_source_paths (Elf *elf, set<string>& debug_sourcefiles)
           if (verbose > 4)
             obatched(clog) << waldo
                            << (debug_sourcefiles.find(waldo)==debug_sourcefiles.end() ? " new" : " dup") <<  endl;
-          
+
           debug_sourcefiles.insert (waldo);
         }
     }
@@ -1299,7 +1314,7 @@ elf_classify (int fd, bool &executable_p, bool &debuginfo_p, string &buildid, se
   Elf *elf = elf_begin (fd, ELF_C_READ_MMAP_PRIVATE, NULL);
   if (elf == NULL)
     return;
-  
+
   try // catch our types of errors and clean up the Elf* object
     {
       if (elf_kind (elf) != ELF_K_ELF)
@@ -1316,7 +1331,7 @@ elf_classify (int fd, bool &executable_p, bool &debuginfo_p, string &buildid, se
           return;
         }
       auto elf_type = ehdr->e_type;
-  
+
       const void *build_id; // elfutils-owned memory
       ssize_t sz = dwelf_elf_gnu_build_id (elf, & build_id);
       if (sz <= 0)
@@ -1326,7 +1341,7 @@ elf_classify (int fd, bool &executable_p, bool &debuginfo_p, string &buildid, se
           elf_end (elf);
           return;
         }
-  
+
       // build_id is a raw byte array; convert to hexadecimal *lowercase*
       unsigned char* build_id_bytes = (unsigned char*) build_id;
       for (ssize_t idx=0; idx<sz; idx++)
@@ -1373,7 +1388,7 @@ elf_classify (int fd, bool &executable_p, bool &debuginfo_p, string &buildid, se
       int rc = elf_getshdrstrndx (elf, &shstrndx);
       if (rc < 0)
         throw elfutils_exception(rc, "getshdrstrndx");
-    
+
       Elf_Scn *scn = NULL;
       while (true)
         {
@@ -1417,10 +1432,10 @@ static void
 scan_source_file_path (const string& dir)
 {
   obatched(clog) << "fts/file traversing " << dir << endl;
-  
+
   struct timeval tv_start, tv_end;
   gettimeofday (&tv_start, NULL);
-  
+
   sqlite_ps ps_upsert_buildids (db, "file-buildids-intern", "insert or ignore into " BUILDIDS "_buildids VALUES (NULL, ?);");
   sqlite_ps ps_upsert_files (db, "file-files-intern", "insert or ignore into " BUILDIDS "_files VALUES (NULL, ?);");
   sqlite_ps ps_upsert_de (db, "file-de-upsert",
@@ -1442,11 +1457,11 @@ scan_source_file_path (const string& dir)
                           "insert or ignore into " BUILDIDS "_file_mtime_scanned (sourcetype, file, mtime, size)"
                           "values ('F', (select id from " BUILDIDS "_files where name = ?), ?, ?);");
 
-  
+
   char * const dirs[] = { (char*) dir.c_str(), NULL };
 
   unsigned fts_scanned=0, fts_regex=0, fts_cached=0, fts_debuginfo=0, fts_executable=0, fts_sourcefiles=0;
-  
+
   FTS *fts = fts_open (dirs,
                        FTS_PHYSICAL /* don't follow symlinks */
                        | FTS_XDEV /* don't cross devices/mountpoints */
@@ -1462,7 +1477,7 @@ scan_source_file_path (const string& dir)
   while ((f = fts_read (fts)) != NULL)
     {
       semaphore_borrower handle_one_file (scan_concurrency_sem);
-      
+
       fts_scanned ++;
       if (interrupted)
         break;
@@ -1491,7 +1506,7 @@ scan_source_file_path (const string& dir)
               fts_regex ++;
               continue;
             }
-          
+
           switch (f->fts_info)
             {
             case FTS_D:
@@ -1521,7 +1536,7 @@ scan_source_file_path (const string& dir)
                 bool executable_p = false, debuginfo_p = false; // E and/or D
                 string buildid;
                 set<string> sourcefiles;
-                
+
                 int fd = open (rps.c_str(), O_RDONLY);
                 try
                   {
@@ -1530,16 +1545,17 @@ scan_source_file_path (const string& dir)
                     else
                       throw libc_exception(errno, string("open ") + rps);
                   }
-                
+
                 // NB: we catch exceptions here too, so that we can
                 // cache the corrupt-elf case (!executable_p &&
                 // !debuginfo_p) just below, just as if we had an
                 // EPERM error from open(2).
+
                 catch (const reportable_exception& e)
                   {
                     e.report(clog);
                   }
-                    
+
                 if (fd >= 0)
                   close (fd);
 
@@ -1548,7 +1564,7 @@ scan_source_file_path (const string& dir)
                   .reset()
                   .bind(1, rps)
                   .step_ok_done();
-                
+
                 if (buildid == "")
                   {
                     // no point storing an elf file without buildid
@@ -1579,11 +1595,11 @@ scan_source_file_path (const string& dir)
                       .bind(5, f->fts_statp->st_mtime)
                       .step_ok_done();
                   }
-          
+
                 if (sourcefiles.size() && buildid != "")
                   {
                     fts_sourcefiles += sourcefiles.size();
-                    
+
                     for (auto&& dwarfsrc : sourcefiles)
                       {
                         char *srp = realpath(dwarfsrc.c_str(), NULL);
@@ -1597,7 +1613,7 @@ scan_source_file_path (const string& dir)
                         rc = stat(srps.c_str(), &sfs);
                         if (rc != 0)
                           continue;
-                      
+
                         if (verbose > 2)
                           obatched(clog) << "recorded buildid=" << buildid << " file=" << srps
                                          << " mtime=" << sfs.st_mtime
@@ -1630,7 +1646,7 @@ scan_source_file_path (const string& dir)
                   .bind(2, f->fts_statp->st_mtime)
                   .bind(3, f->fts_statp->st_size)
                   .step_ok_done();
-                
+
                 if (verbose > 2)
                   obatched(clog) << "recorded buildid=" << buildid << " file=" << rps
                                  << " mtime=" << f->fts_statp->st_mtime << " atype="
@@ -1664,7 +1680,7 @@ scan_source_file_path (const string& dir)
 
   gettimeofday (&tv_end, NULL);
   double deltas = (tv_end.tv_sec - tv_start.tv_sec) + (tv_end.tv_usec - tv_start.tv_usec)*0.000001;
-  
+
   obatched(clog) << "fts/file traversed " << dir << " in " << deltas << "s, scanned=" << fts_scanned
                  << ", regex-skipped=" << fts_regex
                  << ", cached=" << fts_cached << ", debuginfo=" << fts_debuginfo
@@ -1688,7 +1704,7 @@ thread_main_scan_source_file_path (void* arg)
           else if (sigusr1 != forced_rescan_count)
             {
               forced_rescan_count = sigusr1;
-              scan_source_file_path (dir);              
+              scan_source_file_path (dir);
             }
         }
       catch (const sqlite_exception& e)
@@ -1700,7 +1716,7 @@ thread_main_scan_source_file_path (void* arg)
       if (rescan_s)
         rescan_timer %= rescan_s;
     }
-  
+
   return 0;
 }
 
@@ -1737,14 +1753,14 @@ rpm_classify (const string& rps, sqlite_ps& ps_upsert_buildids, sqlite_ps& ps_up
   rc = archive_read_support_filter_all(a);
   if (rc != ARCHIVE_OK)
     throw archive_exception(a, "cannot select all filters");
-  
+
   rc = archive_read_open_FILE (a, fp);
   if (rc != ARCHIVE_OK)
     throw archive_exception(a, "cannot open archive from rpm2cpio pipe");
 
   if (verbose > 3)
     obatched(clog) << "rpm2cpio|libarchive scanning " << rps << endl;
-  
+
   while(1) // parse cpio archive entries
     {
       try
@@ -1756,11 +1772,11 @@ rpm_classify (const string& rps, sqlite_ps& ps_upsert_buildids, sqlite_ps& ps_up
 
           if (! S_ISREG(archive_entry_mode (e))) // skip non-files completely
             continue;
-              
+
           string fn = archive_entry_pathname (e);
           if (fn.size() > 1 && fn[0] == '.')
             fn = fn.substr(1); // trim off the leading '.'
-          
+
           if (verbose > 3)
             obatched(clog) << "rpm2cpio|libarchive checking " << fn << endl;
 
@@ -1776,7 +1792,7 @@ rpm_classify (const string& rps, sqlite_ps& ps_upsert_buildids, sqlite_ps& ps_up
             throw libc_exception (errno, "cannot create temporary file");
           unlink (tmppath); // unlink now so OS will release the file as soon as we close the fd
           defer_dtor<int,int> minifd_closer (fd, close);
-  
+
           rc = archive_read_data_into_fd (a, fd);
           if (rc != ARCHIVE_OK)
             throw archive_exception(a, "cannot extract file");
@@ -1800,7 +1816,7 @@ rpm_classify (const string& rps, sqlite_ps& ps_upsert_buildids, sqlite_ps& ps_up
             .reset()
             .bind(1, fn)
             .step_ok_done();
-          
+
           if (sourcefiles.size() > 0) // sref records needed
             {
               // NB: we intern each source file once.  Once raw, as it
@@ -1818,7 +1834,7 @@ rpm_classify (const string& rps, sqlite_ps& ps_upsert_buildids, sqlite_ps& ps_up
                       fts_sref_complete_p = false;
                       continue;
                     }
-                  
+
                   ps_upsert_files
                     .reset()
                     .bind(1, s)
@@ -1840,7 +1856,7 @@ rpm_classify (const string& rps, sqlite_ps& ps_upsert_buildids, sqlite_ps& ps_up
             fts_debuginfo ++;
 
           if (executable_p || debuginfo_p)
-            {          
+            {
               ps_upsert_de
                 .reset()
                 .bind(1, buildid)
@@ -1861,14 +1877,14 @@ rpm_classify (const string& rps, sqlite_ps& ps_upsert_buildids, sqlite_ps& ps_up
                 .bind(3, fn)
                 .step_ok_done();
             }
-          
+
           if ((verbose > 2) && (executable_p || debuginfo_p))
             obatched(clog) << "recorded buildid=" << buildid << " rpm=" << rps << " file=" << fn
                            << " mtime=" << mtime << " atype="
                            << (executable_p ? "E" : "")
                            << (debuginfo_p ? "D" : "")
                            << " sourcefiles=" << sourcefiles.size() << endl;
-          
+
         }
       catch (const reportable_exception& e)
         {
@@ -1884,7 +1900,7 @@ static void
 scan_source_rpm_path (const string& dir)
 {
   obatched(clog) << "fts/rpm traversing " << dir << endl;
-    
+
   sqlite_ps ps_upsert_buildids (db, "rpm-buildid-intern", "insert or ignore into " BUILDIDS "_buildids VALUES (NULL, ?);");
   sqlite_ps ps_upsert_files (db, "rpm-file-intern", "insert or ignore into " BUILDIDS "_files VALUES (NULL, ?);");
   sqlite_ps ps_upsert_de (db, "rpm-de-insert",
@@ -1913,7 +1929,7 @@ scan_source_rpm_path (const string& dir)
   gettimeofday (&tv_start, NULL);
   unsigned fts_scanned=0, fts_regex=0, fts_cached=0, fts_debuginfo=0;
   unsigned fts_executable=0, fts_rpm = 0, fts_sref=0, fts_sdef=0;
-  
+
   FTS *fts = fts_open (dirs,
                        FTS_PHYSICAL /* don't follow symlinks */
                        | FTS_XDEV /* don't cross devices/mountpoints */
@@ -1976,18 +1992,18 @@ scan_source_rpm_path (const string& dir)
                     rps.substr(rps.size()-suffix.size()) != suffix)
                   continue;
                 fts_rpm ++;
-                
+
                 /* See if we know of it already. */
                 int rc = ps_query
                   .reset()
                   .bind(1, rps)
                   .bind(2, f->fts_statp->st_mtime)
                   .step();
-                ps_query.reset();                
+                ps_query.reset();
                 if (rc == SQLITE_ROW) // i.e., a result, as opposed to DONE (no results)
                   // no need to recheck a file/version we already know
                   // specifically, no need to parse this rpm again, since we already have
-                  // it as a D or E or S record, 
+                  // it as a D or E or S record,
                   // (so is stored with buildid=NULL)
                   {
                     fts_cached ++;
@@ -1999,7 +2015,7 @@ scan_source_rpm_path (const string& dir)
                   .reset()
                   .bind(1, rps)
                   .step_ok_done();
-                
+
                 // extract the rpm contents via popen("rpm2cpio") | libarchive | loop-of-elf_classify()
                 unsigned my_fts_executable = 0, my_fts_debuginfo = 0, my_fts_sref = 0, my_fts_sdef = 0;
                 bool my_fts_sref_complete_p = true;
@@ -2067,7 +2083,7 @@ scan_source_rpm_path (const string& dir)
 
   gettimeofday (&tv_end, NULL);
   double deltas = (tv_end.tv_sec - tv_start.tv_sec) + (tv_end.tv_usec - tv_start.tv_usec)*0.000001;
-  
+
   obatched(clog) << "fts/rpm traversed " << dir << " in " << deltas << "s, scanned=" << fts_scanned
                  << ", regex-skipped=" << fts_regex
                  << ", rpm=" << fts_rpm << ", cached=" << fts_cached << ", debuginfo=" << fts_debuginfo
@@ -2093,7 +2109,7 @@ thread_main_scan_source_rpm_path (void* arg)
           else if (sigusr1 != forced_rescan_count)
             {
               forced_rescan_count = sigusr1;
-              scan_source_rpm_path (dir);              
+              scan_source_rpm_path (dir);
             }
         }
       catch (const sqlite_exception& e)
@@ -2139,10 +2155,10 @@ database_stats_report()
 void groom()
 {
   obatched(clog) << "grooming database" << endl;
-  
+
   struct timeval tv_start, tv_end;
   gettimeofday (&tv_start, NULL);
-  
+
   // scan for files that have disappeared
   sqlite_ps files (db, "check old files", "select s.mtime, s.file, f.name from "
                        BUILDIDS "_file_mtime_scanned s, " BUILDIDS "_files f "
@@ -2157,7 +2173,7 @@ void groom()
       int rc = files.step();
       if (rc != SQLITE_ROW)
         break;
-      
+
       int64_t mtime = sqlite3_column_int64 (files, 0);
       int64_t fileid = sqlite3_column_int64 (files, 1);
       const char* filename = ((const char*) sqlite3_column_text (files, 2) ?: "");
@@ -2181,7 +2197,7 @@ void groom()
                           "where not exists (select 1 from " BUILDIDS "_f_de d where " BUILDIDS "_buildids.id = d.buildid) "
                           "and not exists (select 1 from " BUILDIDS "_r_de d where " BUILDIDS "_buildids.id = d.buildid)");
   buildids_del.reset().step_ok_done();
-  
+
   // NB: "vacuum" is too heavy for even daily runs: it rewrites the entire db, so is done as maxigroom -G
   sqlite_ps g1 (db, "incremental vacuum", "pragma incremental_vacuum");
   g1.reset().step_ok_done();
@@ -2191,7 +2207,7 @@ void groom()
   g3.reset().step_ok_done();
 
   database_stats_report();
-  
+
   gettimeofday (&tv_end, NULL);
   double deltas = (tv_end.tv_sec - tv_start.tv_sec) + (tv_end.tv_usec - tv_start.tv_usec)*0.000001;
 
@@ -2240,7 +2256,7 @@ signal_handler (int /* sig */)
 
   if (db)
     sqlite3_interrupt (db);
-  
+
   // NB: don't do anything else in here
 }
 
@@ -2298,7 +2314,7 @@ main (int argc, char *argv[])
 
   /* Tell the library which version we are expecting.  */
   elf_version (EV_CURRENT);
-  
+
   /* Set computed default values. */
   db_path = string(getenv("HOME") ?: "/") + string("/.debuginfod.sqlite"); /* XDG? */
   int rc = regcomp (& file_include_regex, ".*", REG_EXTENDED|REG_NOSUB); // match everything
@@ -2307,7 +2323,11 @@ main (int argc, char *argv[])
   rc = regcomp (& file_exclude_regex, "^$", REG_EXTENDED|REG_NOSUB); // match nothing
   if (rc != 0)
     error (EXIT_FAILURE, 0, "regcomp failure: %d", rc);
-  
+
+  const char* test_webapi_sleep_str = getenv("DEBUGINFOD_TEST_WEBAPI_SLEEP");
+  if (test_webapi_sleep_str)
+    test_webapi_sleep = atoi (test_webapi_sleep_str);
+
   /* Parse and process arguments.  */
   int remaining;
   argp_program_version_hook = print_version; // this works
@@ -2325,10 +2345,10 @@ main (int argc, char *argv[])
   (void) signal (SIGTERM, signal_handler); // systemd
   (void) signal (SIGUSR1, sigusr1_handler); // end-user
   (void) signal (SIGUSR2, sigusr2_handler); // end-user
-  
+
   // do this before any threads start
   scan_concurrency_sem = new semaphore(concurrency);
-  
+
   /* Get database ready. */
   rc = sqlite3_open_v2 (db_path.c_str(), &db, (SQLITE_OPEN_READWRITE
                                                |SQLITE_OPEN_CREATE
@@ -2355,7 +2375,7 @@ main (int argc, char *argv[])
   if (rc != SQLITE_OK)
     error (EXIT_FAILURE, 0,
            "cannot create sharedprefix( function: %s", sqlite3_errmsg(db));
-  
+
   if (verbose > 3)
     obatched(clog) << "ddl: " << DEBUGINFOD_SQLITE_DDL << endl;
   rc = sqlite3_exec (db, DEBUGINFOD_SQLITE_DDL, NULL, NULL, NULL);
@@ -2364,6 +2384,8 @@ main (int argc, char *argv[])
       error (EXIT_FAILURE, 0,
              "cannot run database schema ddl: %s", sqlite3_errmsg(db));
     }
+
+  (void) debuginfod_set_progressfn (& debuginfod_find_progress);
 
   // Start httpd server threads.  Separate pool for IPv4 and IPv6, in
   // case the host only has one protocol stack.
@@ -2411,7 +2433,7 @@ main (int argc, char *argv[])
       extra_ddl.push_back("create index if not exists " BUILDIDS "_r_sref_arc on " BUILDIDS "_r_sref(artifactsrc);");
       extra_ddl.push_back("delete from " BUILDIDS "_r_sdef where not exists (select 1 from " BUILDIDS "_r_sref b where " BUILDIDS "_r_sdef.content = b.artifactsrc);");
       extra_ddl.push_back("drop index if exists " BUILDIDS "_r_sref_arc;");
-      
+
       // NB: we don't maxigroom the _files interning table.  It'd require a temp index on all the
       // tables that have file foreign-keys, which is a lot.
 
@@ -2422,7 +2444,7 @@ main (int argc, char *argv[])
       extra_ddl.push_back("vacuum;");
       extra_ddl.push_back("pragma journal_mode=wal;");
     }
-  
+
   // run extra -D sql if given
   for (auto&& i: extra_ddl)
     {
@@ -2433,15 +2455,15 @@ main (int argc, char *argv[])
         error (0, 0,
                "warning: cannot run database extra ddl %s: %s", i.c_str(), sqlite3_errmsg(db));
     }
-  
+
   if (maxigroom)
     obatched(clog) << "maxigroomed database" << endl;
 
-      
+
   obatched(clog) << "search concurrency " << concurrency << endl;
   obatched(clog) << "rescan time " << rescan_s << endl;
   obatched(clog) << "groom time " << groom_s << endl;
-  
+
   vector<pthread_t> source_file_scanner_threads;
   vector<pthread_t> source_rpm_scanner_threads;
   pthread_t groom_thread;
@@ -2470,29 +2492,29 @@ main (int argc, char *argv[])
         source_rpm_scanner_threads.push_back(pt);
     }
 
-  
+
   const char* du = getenv(DEBUGINFOD_URLS_ENV_VAR);
   if (du && du[0] != '\0') // set to non-empty string?
     obatched(clog) << "upstream debuginfod servers: " << du << endl;
-  
+
   /* Trivial main loop! */
   while (! interrupted)
     pause ();
 
   if (verbose)
     obatched(clog) << "stopping" << endl;
-  
+
   /* Stop all the web service threads. */
   if (d4) MHD_stop_daemon (d4);
   if (d6) MHD_stop_daemon (d6);
-  
+
   /* Join any source scanning threads. */
   for (auto&& it : source_file_scanner_threads)
     pthread_join (it, NULL);
   for (auto&& it : source_rpm_scanner_threads)
     pthread_join (it, NULL);
   pthread_join (groom_thread, NULL);
-      
+
   /* With all threads known dead, we can clean up the global resources. */
   delete scan_concurrency_sem;
   rc = sqlite3_exec (db, DEBUGINFOD_SQLITE_CLEANUP_DDL, NULL, NULL, NULL);

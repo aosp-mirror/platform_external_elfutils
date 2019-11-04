@@ -83,7 +83,7 @@ __libdw_getabbrev (Dwarf *dbg, struct Dwarf_CU *cu, Dwarf_Off offset,
   bool foundit = false;
   Dwarf_Abbrev *abb = NULL;
   if (cu == NULL
-      || (abb = Dwarf_Abbrev_Hash_find (&cu->abbrev_hash, code, NULL)) == NULL)
+      || (abb = Dwarf_Abbrev_Hash_find (&cu->abbrev_hash, code)) == NULL)
     {
       if (result == NULL)
 	abb = libdw_typed_alloc (dbg, Dwarf_Abbrev);

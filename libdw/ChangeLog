@@ -1,3 +1,15 @@
+2019-10-28  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_sig8_hash.h: Include libdw.h. Remove COMPARE. Include
+	dynamicsizehash_concurrent.h.
+	* dwarf_sig8_hash.c: Include dynamicsizehash_concurrent.c.
+	* dwarf_formref_die.c (dwarf_formref_die): Drop NULL argument to
+	Dwarf_Sig8_Hash_find.
+
+2019-08-26  Srđan Milaković  <sm108@rice.edu@rice.edu>
+
+	* dwarf_abbrev_hash.{c,h}: Use the *_concurrent hash table.
+
 2019-11-01  Jonathon Anderson  <jma14@rice.edu>
 
 	* dwarf_begin_elf.c (valid_p): Switch calloc for malloc for fake CUs.

@@ -1,3 +1,8 @@
+2019-11-06  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.cxx: Add new -L (symlink-following) mode.
+	* debuginfod.8: Document it.
+
 2019-11-04  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfo-client.c (debuginfod_set_progressfn): New function

@@ -326,6 +326,7 @@ static const struct argp_option options[] =
    // "source-oci-imageregistry"  ... 
 
    { NULL, 0, NULL, 0, "Options:", 2 },
+   { "logical", 'L', NULL, 0, "Follow symlinks, default=ignore.", 0 },
    { "rescan-time", 't', "SECONDS", 0, "Number of seconds to wait between rescans, 0=disable.", 0 },
    { "groom-time", 'g', "SECONDS", 0, "Number of seconds to wait between database grooming, 0=disable.", 0 },
    { "maxigroom", 'G', NULL, 0, "Run a complete database groom/shrink pass at startup.", 0 },
@@ -374,6 +375,7 @@ static vector<string> extra_ddl;
 static regex_t file_include_regex;
 static regex_t file_exclude_regex;
 static int test_webapi_sleep; /* testing only */
+static bool traverse_logical;
 
 
 /* Handle program arguments.  */
@@ -391,6 +393,9 @@ parse_opt (int key, char *arg,
       break;
     case 'F': scan_files = true; break;
     case 'R': scan_rpms = true; break;
+    case 'L':
+      traverse_logical = true;
+      break;
     case 'D': extra_ddl.push_back(string(arg)); break;
     case 't':
       rescan_s = (unsigned) atoi(arg);
@@ -1463,8 +1468,7 @@ scan_source_file_path (const string& dir)
   unsigned fts_scanned=0, fts_regex=0, fts_cached=0, fts_debuginfo=0, fts_executable=0, fts_sourcefiles=0;
 
   FTS *fts = fts_open (dirs,
-                       FTS_PHYSICAL /* don't follow symlinks */
-                       | FTS_XDEV /* don't cross devices/mountpoints */
+                       (traverse_logical ? FTS_LOGICAL : FTS_PHYSICAL|FTS_XDEV)
                        | FTS_NOCHDIR /* multithreaded */,
                        NULL);
   if (fts == NULL)
@@ -1660,7 +1664,7 @@ scan_source_file_path (const string& dir)
               throw libc_exception(f->fts_errno, string("fts/file traversal ") + string(f->fts_path));
 
             default:
-            case FTS_SL: /* NB: don't enter symbolic links into the database */
+            case FTS_SL: /* ignore symlinks; seen in non-L mode only */
               break;
             }
 
@@ -1931,8 +1935,7 @@ scan_source_rpm_path (const string& dir)
   unsigned fts_executable=0, fts_rpm = 0, fts_sref=0, fts_sdef=0;
 
   FTS *fts = fts_open (dirs,
-                       FTS_PHYSICAL /* don't follow symlinks */
-                       | FTS_XDEV /* don't cross devices/mountpoints */
+                       (traverse_logical ? FTS_LOGICAL : FTS_PHYSICAL|FTS_XDEV)
                        | FTS_NOCHDIR /* multithreaded */,
                        NULL);
   if (fts == NULL)
@@ -2062,7 +2065,7 @@ scan_source_rpm_path (const string& dir)
               throw libc_exception(f->fts_errno, string("fts/rpm traversal ") + string(f->fts_path));
 
             default:
-            case FTS_SL: /* NB: don't enter symbolic links into the database */
+            case FTS_SL: /* ignore symlinks; seen in non-L mode only */
               break;
             }
 

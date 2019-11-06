@@ -159,6 +159,15 @@ or an RPM.  The default is the number of processors on the system;
 the minimum is 1.
 
 .TP
+.B "\-L"
+Traverse symbolic links encountered during traversal of the PATHs,
+including across devices - as in \fIfind\ -L\fP.  The default is to
+traverse the physical directory structure only, stay on the same
+device, and ignore symlinks - as in \fIfind\ -P\ -xdev\fP.  Caution: a
+loops in the symbolic directory tree might lead to \fIinfinite
+traversal\fP.
+
+.TP
 .B "\-v"
 Increase verbosity of logging to the standard error file descriptor.
 May be repeated to increase details.  The default verbosity is 0.

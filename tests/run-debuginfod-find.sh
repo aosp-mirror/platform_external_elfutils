@@ -20,10 +20,11 @@ set -x
 . $srcdir/test-subr.sh  # includes set -e
 
 DB=${PWD}/.debuginfod_tmp.sqlite
+tempfiles $DB
 export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
 
 # clean up trash if we were aborted early
-trap 'kill $PID1 $PID2 || true; sleep 5; rm -rf F R ${PWD}/.client_cache*; exit_cleanup' 0 1 2 3 5 9 15
+trap 'kill $PID1 $PID2 || true; sleep 5; rm -rf F R L ${PWD}/.client_cache*; exit_cleanup' 0 1 2 3 5 9 15
 
 # find an unused port number
 while true; do
@@ -40,10 +41,11 @@ done
 # So we gather the LD_LIBRARY_PATH with this cunning trick:
 ldpath=`testrun sh -c 'echo $LD_LIBRARY_PATH'`
 
-mkdir F R
-# not tempfiles F R - they are directories which we clean up manually
-env DEBUGINFOD_TEST_WEBAPI_SLEEP=3 LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod -F -R -vvvv -d $DB \
--p $PORT1 -t0 -g0 R F &
+mkdir F R L
+# not tempfiles F R L - they are directories which we clean up manually
+ln -s ${abs_builddir}/dwfllines L/foo   # any program not used elsewhere in this test
+
+env DEBUGINFOD_TEST_WEBAPI_SLEEP=3 LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod -F -R -vvvv -d $DB -p $PORT1 -t0 -g0 R F L &
 PID1=$!
 sleep 3
 export DEBUGINFOD_URLS=http://localhost:$PORT1/   # or without trailing /
@@ -193,13 +195,27 @@ done
 export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache2
 mkdir -p $DEBUGINFOD_CACHE_PATH
 # NB: inherits the DEBUGINFOD_URLS to the first server
-env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod -F -vvvv -d ${DB}_2 -p $PORT2 &
+# NB: run in -L symlink-following mode for the L subdir
+env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod -F -vvvv -d ${DB}_2 -p $PORT2 -L L &
 PID2=$!
+tempfiles ${DB}_2
 sleep 3
 
 # have clients contact the new server
 export DEBUGINFOD_URLS=http://localhost:$PORT2
 testrun ${abs_builddir}/debuginfod_build_id_find -e F/prog 1
+
+# confirm that first server can't resolve symlinked info in L/ but second can
+BUILDID=`env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../src/readelf \
+         -a L/foo | grep 'Build ID' | cut -d ' ' -f 7`
+file L/foo
+file -L L/foo
+export DEBUGINFOD_URLS=http://localhost:$PORT1
+rm -rf $DEBUGINFOD_CACHE_PATH
+testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID && false || true
+export DEBUGINFOD_URLS=http://localhost:$PORT2
+testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
+
 
 # test parallel queries in client
 export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache3

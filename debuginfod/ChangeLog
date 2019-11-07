@@ -1,3 +1,14 @@
+2019-11-07  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.cxx: Add /metrics endpoint.  Add numerous
+	calls to new functions inc_metric/set_metric to populate
+	threadsafe map containing stats.  Add http content-type
+	response headers throughout.
+	(thread_main_*): Simplify counter/timer flow.
+	(main): Reorder web service shutdown to leave http running
+	as long as possible.
+	* debuginfod.8: Document it, add security caution.
+
 2019-11-06  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod.cxx: Add new -L (symlink-following) mode.

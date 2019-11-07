@@ -203,7 +203,8 @@ sleep 3
 
 # have clients contact the new server
 export DEBUGINFOD_URLS=http://localhost:$PORT2
-testrun ${abs_builddir}/debuginfod_build_id_find -e F/prog 1
+rm -rf $DEBUGINFOD_CACHE_PATH
+testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 
 # confirm that first server can't resolve symlinked info in L/ but second can
 BUILDID=`env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../src/readelf \
@@ -224,6 +225,16 @@ export DEBUGINFOD_URLS="BAD http://localhost:$PORT1 localhost:$PORT1 http://loca
 
 testrun ${abs_builddir}/debuginfod_build_id_find -e F/prog2 1
 
+########################################################################
+
+# Fetch some metrics, if curl program is installed
+if type curl 2>/dev/null; then
+    curl http://localhost:$PORT1/badapi
+    curl http://localhost:$PORT1/metrics
+    curl http://localhost:$PORT2/metrics
+    curl http://localhost:$PORT1/metrics | grep -q 'http_responses_total.*result.*error'
+    curl http://localhost:$PORT2/metrics | grep -q 'http_responses_total.*result.*upstream'
+fi
 
 ########################################################################
 

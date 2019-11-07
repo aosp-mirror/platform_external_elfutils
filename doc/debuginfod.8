@@ -176,7 +176,7 @@ May be repeated to increase details.  The default verbosity is 0.
 
 .\" Much of the following text is duplicated with debuginfod-find.1
 
-The debuginfod's webapi resembles ordinary file service, where a GET
+debuginfod's webapi resembles ordinary file service, where a GET
 request with a path containing a known buildid results in a file.
 Unknown buildid / request combinations result in HTTP error codes.
 This file service resemblance is intentional, so that an installation
@@ -238,6 +238,14 @@ l l.
 /path/to/foo.c	/buildid/BUILDID/source/path/to/foo.c
 \../bar/foo.c AT_comp_dir=/zoo/	/buildid/BUILDID/source/zoo//../bar/foo.c
 .TE
+
+.SS /metrics
+
+This endpoint returns a Prometheus formatted text/plain dump of a
+variety of statistics about the operation of the debuginfod server.
+The exact set of metrics and their meanings may change in future
+versions.  Caution: configuration information (path names, versions)
+may be disclosed.
 
 .SH DATA MANAGEMENT
 
@@ -325,7 +333,8 @@ a denial-of-service in terms of RAM, CPU, disk I/O, or network I/O.
 If this is a problem, users are advised to install debuginfod with a
 HTTPS reverse-proxy front-end that enforces site policies for
 firewalling, authentication, integrity, authorization, and load
-control.
+control.  The \fI/metrics\fP webapi endpoint is probably not
+appropriate for disclosure to the public.
 
 When relaying queries to upstream debuginfods, debuginfod \fBdoes not\fP
 include any particular security features.  It trusts that the binaries

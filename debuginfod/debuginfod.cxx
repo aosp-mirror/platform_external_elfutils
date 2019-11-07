@@ -72,6 +72,7 @@ extern "C" {
 #include <cstring>
 #include <vector>
 #include <set>
+#include <map>
 #include <string>
 #include <iostream>
 #include <iomanip>
@@ -377,6 +378,13 @@ static regex_t file_exclude_regex;
 static int test_webapi_sleep; /* testing only */
 static bool traverse_logical;
 
+static void set_metric(const string& key, int64_t value);
+// static void inc_metric(const string& key);
+static void set_metric(const string& metric,
+                       const string& lname, const string& lvalue,
+                       int64_t value);
+static void inc_metric(const string& metric,
+                       const string& lname, const string& lvalue);
 
 /* Handle program arguments.  */
 static error_t
@@ -454,6 +462,7 @@ struct reportable_exception
     MHD_Response* r = MHD_create_response_from_buffer (message.size(),
                                                        (void*) message.c_str(),
                                                        MHD_RESPMEM_MUST_COPY);
+    MHD_add_response_header (r, "Content-Type", "text/plain");
     int rc = MHD_queue_response (c, code, r);
     MHD_destroy_response (r);
     return rc;
@@ -543,8 +552,8 @@ timestamp (ostream &o)
       now2 = datebuf;
     }
 
-   return o << "[" << (now2 ? now2 : "") << "] "
-            << "(" << getpid () << "/" << tid() << "): ";
+  return o << "[" << (now2 ? now2 : "") << "] "
+           << "(" << getpid () << "/" << tid() << "): ";
 }
 
 
@@ -784,6 +793,7 @@ handle_buildid_f_match (int64_t b_mtime,
       return 0;
     }
 
+  inc_metric ("http_responses_total","result","file");
   struct MHD_Response* r = MHD_create_response_from_fd ((uint64_t) s.st_size, fd);
   if (r == 0)
     {
@@ -793,6 +803,7 @@ handle_buildid_f_match (int64_t b_mtime,
     }
   else
     {
+      MHD_add_response_header (r, "Content-Type", "application/octet-stream");
       add_mhd_last_modified (r, s.st_mtime);
       if (verbose > 1)
         obatched(clog) << "serving file " << b_source0 << endl;
@@ -889,6 +900,7 @@ handle_buildid_r_match (int64_t b_mtime,
           throw archive_exception(a, "cannot extract file");
         }
 
+      inc_metric ("http_responses_total","result","rpm");
       struct MHD_Response* r = MHD_create_response_from_fd (archive_entry_size(e), fd);
       if (r == 0)
         {
@@ -899,6 +911,7 @@ handle_buildid_r_match (int64_t b_mtime,
         }
       else
         {
+          MHD_add_response_header (r, "Content-Type", "application/octet-stream");
           add_mhd_last_modified (r, archive_entry_mtime(e));
           if (verbose > 1)
             obatched(clog) << "serving rpm " << b_source0 << " file " << b_source1 << endl;
@@ -1034,6 +1047,7 @@ static struct MHD_Response* handle_buildid (const string& buildid /* unsafe */,
                                 suffix.c_str(), NULL);
   if (fd >= 0)
     {
+      inc_metric ("http_responses_total","result","upstream");
       struct stat s;
       int rc = fstat (fd, &s);
       if (rc == 0)
@@ -1041,6 +1055,7 @@ static struct MHD_Response* handle_buildid (const string& buildid /* unsafe */,
           auto r = MHD_create_response_from_fd ((uint64_t) s.st_size, fd);
           if (r)
             {
+              MHD_add_response_header (r, "Content-Type", "application/octet-stream");
               add_mhd_last_modified (r, s.st_mtime);
               if (verbose > 1)
                 obatched(clog) << "serving file from upstream debuginfod/cache" << endl;
@@ -1060,11 +1075,84 @@ static struct MHD_Response* handle_buildid (const string& buildid /* unsafe */,
 
 ////////////////////////////////////////////////////////////////////////
 
+static map<string,int64_t> metrics; // arbitrary data for /metrics query
+// NB: store int64_t since all our metrics are integers; prometheus accepts double
+static mutex metrics_lock;
+
+// utility function for assembling prometheus-compatible
+// name="escaped-value" strings
+// https://prometheus.io/docs/instrumenting/exposition_formats/
+static string
+metric_label(const string& name, const string& value)
+{
+  string x = name + "=\"";
+  for (auto&& c : value)
+    switch(c)
+      {
+      case '\\': x += "\\\\"; break;
+      case '\"': x += "\\\""; break;
+      case '\n': x += "\\n"; break;
+      default: x += c; break;
+      }
+  x += "\"";
+  return x;
+}
+
+
+// add prometheus-format metric name + label tuple (if any) + value
+
+static void
+set_metric(const string& metric, int64_t value)
+{
+  unique_lock<mutex> lock(metrics_lock);
+  metrics[metric] = value;
+}
+#if 0 /* unused */
+static void
+inc_metric(const string& metric)
+{
+  unique_lock<mutex> lock(metrics_lock);
+  metrics[metric] ++;
+}
+#endif
+static void
+set_metric(const string& metric,
+           const string& lname, const string& lvalue,
+           int64_t value)
+{
+  string key = (metric + "{" + metric_label(lname, lvalue) + "}");
+  unique_lock<mutex> lock(metrics_lock);
+  metrics[key] = value;
+}
+
+static void
+inc_metric(const string& metric,
+           const string& lname, const string& lvalue)
+{
+  string key = (metric + "{" + metric_label(lname, lvalue) + "}");
+  unique_lock<mutex> lock(metrics_lock);
+  metrics[key] ++;
+}
+
+
+// and more for higher arity labels if needed
+
 
 static struct MHD_Response*
 handle_metrics ()
 {
-  throw reportable_exception("not yet implemented 2");
+  stringstream o;
+  {
+    unique_lock<mutex> lock(metrics_lock);
+    for (auto&& i : metrics)
+      o << i.first << " " << i.second << endl;
+  }
+  const string& os = o.str();
+  MHD_Response* r = MHD_create_response_from_buffer (os.size(),
+                                                     (void*) os.c_str(),
+                                                     MHD_RESPMEM_MUST_COPY);
+  MHD_add_response_header (r, "Content-Type", "text/plain");
+  return r;
 }
 
 
@@ -1121,10 +1209,14 @@ handler_cb (void * /*cls*/,
               suffix = url_copy.substr(slash3); // include the slash in the suffix
             }
 
+          inc_metric("http_requests_total", "type", artifacttype);
           r = handle_buildid(buildid, artifacttype, suffix, 0); // NB: don't care about result-fd
         }
       else if (url1 == "/metrics")
-        r = handle_metrics();
+        {
+          inc_metric("http_requests_total", "type", "metrics");
+          r = handle_metrics();
+        }
       else
         throw reportable_exception("webapi error, unrecognized /operation");
 
@@ -1137,6 +1229,7 @@ handler_cb (void * /*cls*/,
     }
   catch (const reportable_exception& e)
     {
+      inc_metric("http_responses_total","result","error");
       e.report(clog);
       return e.mhd_send_response (connection);
     }
@@ -1548,6 +1641,7 @@ scan_source_file_path (const string& dir)
                       elf_classify (fd, executable_p, debuginfo_p, buildid, sourcefiles);
                     else
                       throw libc_exception(errno, string("open ") + rps);
+                    inc_metric ("scanned_total","source","file");
                   }
 
                 // NB: we catch exceptions here too, so that we can
@@ -1699,26 +1793,33 @@ thread_main_scan_source_file_path (void* arg)
 
   unsigned rescan_timer = 0;
   sig_atomic_t forced_rescan_count = 0;
+  set_metric("thread_timer_max", "file", dir, rescan_s);
+  set_metric("thread_tid", "file", dir, tid());
   while (! interrupted)
     {
-      try
+      set_metric("thread_timer", "file", dir, rescan_timer);
+      set_metric("thread_forced_total", "file", dir, forced_rescan_count);
+      if (rescan_s && rescan_timer > rescan_s)
+        rescan_timer = 0;
+      if (sigusr1 != forced_rescan_count)
         {
-          if (rescan_timer == 0)
+          forced_rescan_count = sigusr1;
+          rescan_timer = 0;
+        }
+      if (rescan_timer == 0)
+        try
+          {
+            set_metric("thread_working", "file", dir, time(NULL));
+            inc_metric("thread_work_total", "file", dir);
             scan_source_file_path (dir);
-          else if (sigusr1 != forced_rescan_count)
-            {
-              forced_rescan_count = sigusr1;
-              scan_source_file_path (dir);
-            }
-        }
-      catch (const sqlite_exception& e)
-        {
-          obatched(cerr) << e.message << endl;
-        }
+            set_metric("thread_working", "file", dir, 0);
+          }
+        catch (const sqlite_exception& e)
+          {
+            obatched(cerr) << e.message << endl;
+          }
       sleep (1);
       rescan_timer ++;
-      if (rescan_s)
-        rescan_timer %= rescan_s;
     }
 
   return 0;
@@ -2030,6 +2131,7 @@ scan_source_rpm_path (const string& dir)
                                   f->fts_statp->st_mtime,
                                   my_fts_executable, my_fts_debuginfo, my_fts_sref, my_fts_sdef,
                                   my_fts_sref_complete_p);
+                    inc_metric ("scanned_total","source","rpm");
                   }
                 catch (const reportable_exception& e)
                   {
@@ -2103,26 +2205,33 @@ thread_main_scan_source_rpm_path (void* arg)
 
   unsigned rescan_timer = 0;
   sig_atomic_t forced_rescan_count = 0;
+  set_metric("thread_timer_max", "rpm", dir, rescan_s);
+  set_metric("thread_tid", "rpm", dir, tid());
   while (! interrupted)
     {
-      try
+      set_metric("thread_timer", "rpm", dir, rescan_timer);
+      set_metric("thread_forced_total", "rpm", dir, forced_rescan_count);
+      if (rescan_s && rescan_timer > rescan_s)
+        rescan_timer = 0;
+      if (sigusr1 != forced_rescan_count)
         {
-          if (rescan_timer == 0)
+          forced_rescan_count = sigusr1;
+          rescan_timer = 0;
+        }
+      if (rescan_timer == 0)
+        try
+          {
+            set_metric("thread_working", "rpm", dir, time(NULL));
+            inc_metric("thread_work_total", "rpm", dir);
             scan_source_rpm_path (dir);
-          else if (sigusr1 != forced_rescan_count)
-            {
-              forced_rescan_count = sigusr1;
-              scan_source_rpm_path (dir);
-            }
-        }
-      catch (const sqlite_exception& e)
-        {
-          obatched(cerr) << e.message << endl;
-        }
+            set_metric("thread_working", "rpm", dir, 0);
+          }
+        catch (const sqlite_exception& e)
+          {
+            obatched(cerr) << e.message << endl;
+          }
       sleep (1);
       rescan_timer ++;
-      if (rescan_s)
-        rescan_timer %= rescan_s;
     }
 
   return 0;
@@ -2150,6 +2259,10 @@ database_stats_report()
         << " "
         << (sqlite3_column_text(ps_query, 1) ?: (const unsigned char*) "NULL")
         << endl;
+
+      set_metric("groom", "statistic",
+                 ((const char*) sqlite3_column_text(ps_query, 0) ?: (const char*) "NULL"),
+                 (sqlite3_column_double(ps_query, 1)));
     }
 }
 
@@ -2223,26 +2336,33 @@ thread_main_groom (void* /*arg*/)
 {
   unsigned groom_timer = 0;
   sig_atomic_t forced_groom_count = 0;
+  set_metric("thread_timer_max", "role", "groom", groom_s);
+  set_metric("thread_tid", "role", "groom", tid());
   while (! interrupted)
     {
-      try
+      set_metric("thread_timer", "role", "groom", groom_timer);
+      set_metric("thread_forced_total", "role", "groom", forced_groom_count);      
+      if (groom_s && groom_timer > groom_s)
+        groom_timer = 0;
+      if (sigusr2 != forced_groom_count)
         {
-          if (groom_timer == 0)
+          forced_groom_count = sigusr2;
+          groom_timer = 0;
+        }
+      if (groom_timer == 0)
+        try
+          {
+            set_metric("thread_working", "role", "groom", time(NULL));
+            inc_metric("thread_work_total", "role", "groom");
             groom ();
-          else if (sigusr2 != forced_groom_count)
-            {
-              forced_groom_count = sigusr2;
-              groom ();
-            }
-        }
-      catch (const sqlite_exception& e)
-        {
-          obatched(cerr) << e.message << endl;
-        }
+            set_metric("thread_working", "role", "groom", 0);
+          }
+        catch (const sqlite_exception& e)
+          {
+            obatched(cerr) << e.message << endl;
+          }
       sleep (1);
       groom_timer ++;
-      if (groom_s)
-        groom_timer %= groom_s;
     }
 
   return 0;
@@ -2466,6 +2586,9 @@ main (int argc, char *argv[])
   obatched(clog) << "search concurrency " << concurrency << endl;
   obatched(clog) << "rescan time " << rescan_s << endl;
   obatched(clog) << "groom time " << groom_s << endl;
+  const char* du = getenv(DEBUGINFOD_URLS_ENV_VAR);
+  if (du && du[0] != '\0') // set to non-empty string?
+    obatched(clog) << "upstream debuginfod servers: " << du << endl;
 
   vector<pthread_t> source_file_scanner_threads;
   vector<pthread_t> source_rpm_scanner_threads;
@@ -2495,21 +2618,14 @@ main (int argc, char *argv[])
         source_rpm_scanner_threads.push_back(pt);
     }
 
-
-  const char* du = getenv(DEBUGINFOD_URLS_ENV_VAR);
-  if (du && du[0] != '\0') // set to non-empty string?
-    obatched(clog) << "upstream debuginfod servers: " << du << endl;
-
   /* Trivial main loop! */
+  set_metric("ready", 1);
   while (! interrupted)
     pause ();
+  set_metric("ready", 0);
 
   if (verbose)
     obatched(clog) << "stopping" << endl;
-
-  /* Stop all the web service threads. */
-  if (d4) MHD_stop_daemon (d4);
-  if (d6) MHD_stop_daemon (d6);
 
   /* Join any source scanning threads. */
   for (auto&& it : source_file_scanner_threads)
@@ -2517,6 +2633,10 @@ main (int argc, char *argv[])
   for (auto&& it : source_rpm_scanner_threads)
     pthread_join (it, NULL);
   pthread_join (groom_thread, NULL);
+  
+  /* Stop all the web service threads. */
+  if (d4) MHD_stop_daemon (d4);
+  if (d6) MHD_stop_daemon (d6);
 
   /* With all threads known dead, we can clean up the global resources. */
   delete scan_concurrency_sem;

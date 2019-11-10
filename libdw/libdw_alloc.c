@@ -97,6 +97,18 @@ __libdw_alloc_tail (Dwarf *dbg)
   return result;
 }
 
+/* Can only be called after a allocation for this thread has already
+   been done, to possibly undo it.  */
+struct libdw_memblock *
+__libdw_thread_tail (Dwarf *dbg)
+{
+  struct libdw_memblock *result;
+  pthread_rwlock_rdlock (&dbg->mem_rwl);
+  result = dbg->mem_tails[thread_id];
+  pthread_rwlock_unlock (&dbg->mem_rwl);
+  return result;
+}
+
 void *
 __libdw_allocate (Dwarf *dbg, size_t minsize, size_t align)
 {

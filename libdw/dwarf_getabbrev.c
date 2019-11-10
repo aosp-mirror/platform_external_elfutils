@@ -99,6 +99,8 @@ __libdw_getabbrev (Dwarf *dbg, struct Dwarf_CU *cu, Dwarf_Off offset,
 	  /* A duplicate abbrev code at a different offset,
 	     that should never happen.  */
 	invalid:
+	  if (! foundit)
+	    libdw_typed_unalloc (dbg, Dwarf_Abbrev);
 	  __libdw_seterrno (DWARF_E_INVALID_DWARF);
 	  return NULL;
 	}
@@ -148,7 +150,13 @@ __libdw_getabbrev (Dwarf *dbg, struct Dwarf_CU *cu, Dwarf_Off offset,
 
   /* Add the entry to the hash table.  */
   if (cu != NULL && ! foundit)
-    (void) Dwarf_Abbrev_Hash_insert (&cu->abbrev_hash, abb->code, abb);
+    if (Dwarf_Abbrev_Hash_insert (&cu->abbrev_hash, abb->code, abb) == -1)
+      {
+	/* The entry was already in the table, remove the one we just
+	   created and get the one already inserted.  */
+	libdw_typed_unalloc (dbg, Dwarf_Abbrev);
+	abb = Dwarf_Abbrev_Hash_find (&cu->abbrev_hash, code);
+      }
 
  out:
   return abb;

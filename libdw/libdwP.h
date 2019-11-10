@@ -599,8 +599,21 @@ extern void __libdw_seterrno (int value) internal_function;
 #define libdw_typed_alloc(dbg, type) \
   libdw_alloc (dbg, type, sizeof (type), 1)
 
+/* Can only be used to undo the last libdw_alloc.  */
+#define libdw_unalloc(dbg, type, tsize, cnt) \
+  ({ struct libdw_memblock *_tail = __libdw_thread_tail (dbg);		      \
+     size_t _required = (tsize) * (cnt);				      \
+     /* We cannot know the padding, it is lost.  */			      \
+     _tail->remaining += _required; })					      \
+
+#define libdw_typed_unalloc(dbg, type) \
+  libdw_unalloc (dbg, type, sizeof (type), 1)
+
 /* Callback to choose a thread-local memory allocation stack.  */
 extern struct libdw_memblock *__libdw_alloc_tail (Dwarf* dbg)
+     __nonnull_attribute__ (1);
+
+extern struct libdw_memblock *__libdw_thread_tail (Dwarf* dbg)
      __nonnull_attribute__ (1);
 
 /* Callback to allocate more.  */

@@ -1,3 +1,12 @@
+2019-11-10  Mark Wielaard  <mark@klomp.org>
+
+	* libdwP.h (libdw_unalloc): New define.
+	(libdw_typed_unalloc): Likewise.
+	(__libdw_thread_tail): New function declaration.
+	* libdw_alloc.c (__libdw_thread_tail): New function.
+	* dwarf_getabbrev.c (__libdw_getabbrev): Call libdw_typed_unalloc
+	when reading invalid data or when hash collission detected.
+
 2019-10-28  Jonathon Anderson  <jma14@rice.edu>
 
 	* libdw_alloc.c: Added __libdw_alloc_tail.

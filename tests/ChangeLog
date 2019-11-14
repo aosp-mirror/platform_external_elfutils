@@ -1,5 +1,10 @@
 2019-11-14  Andreas Schwab  <schwab@suse.de>
 
+	* run-large-elf-file.sh: Skip if available memory cannot be
+	determined.
+
+2019-11-14  Andreas Schwab  <schwab@suse.de>
+
 	* dwelf_elf_e_machine_string.c (main): Clear errno before calling
 	strtol.
 

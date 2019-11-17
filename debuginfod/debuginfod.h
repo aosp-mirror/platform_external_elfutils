@@ -34,9 +34,15 @@
 #define DEBUGINFOD_CACHE_PATH_ENV_VAR "DEBUGINFOD_CACHE_PATH"
 #define DEBUGINFOD_TIMEOUT_ENV_VAR "DEBUGINFOD_TIMEOUT"
 
+/* Handle for debuginfod-client connection.  */
+typedef struct debuginfod_client debuginfod_client;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* Create a handle for a new debuginfod-client session.  */
+debuginfod_client *debuginfod_begin (void);
 
 /* Query the urls contained in $DEBUGINFOD_URLS for a file with
    the specified type and build id.  If build_id_len == 0, the
@@ -48,21 +54,28 @@ extern "C" {
    strdup'd copy of the name of the same file in the cache.
    Caller must free() it later. */
   
-int debuginfod_find_debuginfo (const unsigned char *build_id,
+int debuginfod_find_debuginfo (debuginfod_client *client,
+			       const unsigned char *build_id,
                                int build_id_len,
                                char **path);
 
-int debuginfod_find_executable (const unsigned char *build_id,
+int debuginfod_find_executable (debuginfod_client *client,
+				const unsigned char *build_id,
                                 int build_id_len,
                                 char **path);
 
-int debuginfod_find_source (const unsigned char *build_id,
+int debuginfod_find_source (debuginfod_client *client,
+			    const unsigned char *build_id,
                             int build_id_len,
                             const char *filename,
                             char **path);
 
-typedef int (*debuginfod_progressfn_t)(long a, long b);
-debuginfod_progressfn_t debuginfod_set_progressfn(debuginfod_progressfn_t fn);
+typedef int (*debuginfod_progressfn_t)(debuginfod_client *c, long a, long b);
+void debuginfod_set_progressfn(debuginfod_client *c,
+			       debuginfod_progressfn_t fn);
+
+/* Release debuginfod client connection context handle.  */
+void debuginfod_end (debuginfod_client *client);
 
 #ifdef __cplusplus
 }

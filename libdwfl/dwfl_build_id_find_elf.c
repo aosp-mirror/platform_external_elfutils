@@ -34,9 +34,7 @@
 #include <inttypes.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <dlfcn.h>
 #include "system.h"
-#include "debuginfod.h"
 
 
 int
@@ -189,31 +187,15 @@ dwfl_build_id_find_elf (Dwfl_Module *mod,
       free (*file_name);
       *file_name = NULL;
     }
-  else {
-    /* NB: this is slightly thread-unsafe */
-    static __typeof__ (debuginfod_find_executable) *fp_debuginfod_find_executable;
-
-    if (fp_debuginfod_find_executable == NULL)
-      {
-        void *debuginfod_so = dlopen("libdebuginfod-" VERSION ".so", RTLD_LAZY);
-        if (debuginfod_so == NULL)
-          debuginfod_so = dlopen("libdebuginfod.so", RTLD_LAZY);
-        if (debuginfod_so != NULL)
-          fp_debuginfod_find_executable = dlsym (debuginfod_so, "debuginfod_find_executable");
-        if (fp_debuginfod_find_executable == NULL)
-          fp_debuginfod_find_executable = (void *) -1; /* never try again */
-      }
-
-    if (fp_debuginfod_find_executable != NULL && fp_debuginfod_find_executable != (void *) -1)
-      {
-        /* If all else fails and a build-id is available, query the
-           debuginfo-server if enabled.  */
-        if (fd < 0 && mod->build_id_len > 0)
-          fd = (*fp_debuginfod_find_executable) (mod->build_id_bits,
-                                                mod->build_id_len,
-                                                NULL);
-      }
-  }
+  else
+    {
+      /* If all else fails and a build-id is available, query the
+	 debuginfo-server if enabled.  */
+      if (fd < 0 && mod->build_id_len > 0)
+	fd = __libdwfl_debuginfod_find_executable (mod->dwfl,
+						   mod->build_id_bits,
+						   mod->build_id_len);
+    }
 
   if (fd < 0 && errno == 0 && mod->build_id_len > 0)
     /* Setting this with no file yet loaded is a marker that

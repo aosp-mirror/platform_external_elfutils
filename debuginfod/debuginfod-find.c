@@ -49,9 +49,11 @@ static const struct argp_option options[] =
    { NULL, 0, NULL, 0, NULL, 0 }
   };
 
+/* debuginfod connection handle.  */
+static debuginfod_client *client;
 
-
-int progressfn(long a, long b)
+int progressfn(debuginfod_client *c __attribute__((__unused__)),
+	       long a, long b)
 {
   fprintf (stderr, "Progress %ld / %ld\n", a, b);
   return 0;
@@ -64,7 +66,7 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
   (void) state;
   switch (key)
     {
-    case 'v': debuginfod_set_progressfn (& progressfn); break;
+    case 'v': debuginfod_set_progressfn (client, & progressfn); break;
     default: return ARGP_ERR_UNKNOWN;
     }
   return 0;
@@ -82,6 +84,13 @@ static struct argp argp =
 int
 main(int argc, char** argv)
 {
+  client = debuginfod_begin ();
+  if (client == NULL)
+    {
+      fprintf(stderr, "Couldn't create debuginfod client context\n");
+      return 1;
+    }
+
   int remaining;
   (void) argp_parse (&argp, argc, argv, ARGP_IN_ORDER|ARGP_NO_ARGS, &remaining, NULL);
 
@@ -98,9 +107,13 @@ main(int argc, char** argv)
      debuginfod_find_* function. If FILETYPE is "source"
      then ensure a FILENAME was also supplied as an argument.  */
   if (strcmp(argv[remaining], "debuginfo") == 0)
-    rc = debuginfod_find_debuginfo((unsigned char *)argv[remaining+1], 0, &cache_name);
+    rc = debuginfod_find_debuginfo(client,
+				   (unsigned char *)argv[remaining+1], 0,
+				   &cache_name);
   else if (strcmp(argv[remaining], "executable") == 0)
-    rc = debuginfod_find_executable((unsigned char *)argv[remaining+1], 0, &cache_name);
+    rc = debuginfod_find_executable(client,
+				    (unsigned char *)argv[remaining+1], 0,
+				    &cache_name);
   else if (strcmp(argv[remaining], "source") == 0)
     {
       if (remaining+2 == argc || argv[3][0] != '/')
@@ -108,8 +121,8 @@ main(int argc, char** argv)
           fprintf(stderr, "If FILETYPE is \"source\" then absolute /FILENAME must be given\n");
           return 1;
         }
-      rc = debuginfod_find_source((unsigned char *)argv[remaining+1], 0,
-                                 argv[remaining+2], &cache_name);
+      rc = debuginfod_find_source(client, (unsigned char *)argv[remaining+1],
+				  0, argv[remaining+2], &cache_name);
     }
   else
     {
@@ -126,5 +139,7 @@ main(int argc, char** argv)
   printf("%s\n", cache_name);
 
   free (cache_name);
+  debuginfod_end (client);
+
   return 0;
 }

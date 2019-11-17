@@ -71,6 +71,16 @@
   #include <fts.h>
 #endif
 
+struct debuginfod_client
+{
+  /* Progress/interrupt callback function. */
+  debuginfod_progressfn_t progressfn;
+
+  /* Can contain all other context, like cache_path, server_urls,
+     timeout or other info gotten from environment variables, the
+     handle data, etc. So those don't have to be reparsed and
+     recreated on each request.  */
+};
 
 /* The cache_clean_interval_s file within the debuginfod cache specifies
    how frequently the cache should be cleaned. The file's st_mtime represents
@@ -98,9 +108,6 @@ static const char url_delim_char = ' ';
    This env var must be set for debuginfod-client to run.  */
 static const char *server_timeout_envvar = DEBUGINFOD_TIMEOUT_ENV_VAR;
 static int server_timeout = 5;
-
-/* Progress/interrupt callback function. */
-static debuginfod_progressfn_t progressfn;
 
 /* Data associated with a particular CURL easy handle. Passed to
    the write callback.  */
@@ -181,7 +188,9 @@ debuginfod_init_cache (char *cache_path, char *interval_path, char *maxage_path)
 /* Delete any files that have been unmodied for a period
    longer than $DEBUGINFOD_CACHE_CLEAN_INTERVAL_S.  */
 static int
-debuginfod_clean_cache(char *cache_path, char *interval_path, char *max_unused_path)
+debuginfod_clean_cache(debuginfod_client *c,
+		       char *cache_path, char *interval_path,
+		       char *max_unused_path)
 {
   struct stat st;
   FILE *interval_file;
@@ -236,8 +245,8 @@ debuginfod_clean_cache(char *cache_path, char *interval_path, char *max_unused_p
   while ((f = fts_read(fts)) != NULL)
     {
       files++;
-      if (progressfn) /* inform/check progress callback */
-        if ((*progressfn) (files, 0))
+      if (c->progressfn) /* inform/check progress callback */
+        if ((c->progressfn) (c, files, 0))
           break;
 
       switch (f->fts_info)
@@ -275,7 +284,8 @@ debuginfod_clean_cache(char *cache_path, char *interval_path, char *max_unused_p
    descriptor for the target, otherwise return an error code.
 */
 static int
-debuginfod_query_server (const unsigned char *build_id,
+debuginfod_query_server (debuginfod_client *c,
+			 const unsigned char *build_id,
                          int build_id_len,
                          const char *type,
                          const char *filename,
@@ -366,7 +376,7 @@ debuginfod_query_server (const unsigned char *build_id,
   int rc = debuginfod_init_cache(cache_path, interval_path, maxage_path);
   if (rc != 0)
     goto out;
-  rc = debuginfod_clean_cache(cache_path, interval_path, maxage_path);
+  rc = debuginfod_clean_cache(c, cache_path, interval_path, maxage_path);
   if (rc != 0)
     goto out;
 
@@ -501,7 +511,7 @@ debuginfod_query_server (const unsigned char *build_id,
     {
       CURLMcode curl_res;
 
-      if (progressfn) /* inform/check progress callback */
+      if (c->progressfn) /* inform/check progress callback */
         {
           loops ++;
           long pa = loops; /* default params for progress callback */
@@ -541,7 +551,7 @@ debuginfod_query_server (const unsigned char *build_id,
 #endif
             }
 
-          if ((*progressfn) (pa, pb))
+          if ((*c->progressfn) (c, pa, pb))
             break;
         }
 
@@ -674,41 +684,59 @@ debuginfod_query_server (const unsigned char *build_id,
   return rc;
 }
 
-
 /* See debuginfod.h  */
+debuginfod_client  *
+debuginfod_begin (void)
+{
+  debuginfod_client *client;
+  size_t size = sizeof (struct debuginfod_client);
+  client = (debuginfod_client *) malloc (size);
+  if (client != NULL)
+    client->progressfn = NULL;
+  return client;
+}
+
+void
+debuginfod_end (debuginfod_client *client)
+{
+  free (client);
+}
+
 int
-debuginfod_find_debuginfo (const unsigned char *build_id, int build_id_len,
+debuginfod_find_debuginfo (debuginfod_client *client,
+			   const unsigned char *build_id, int build_id_len,
                            char **path)
 {
-  return debuginfod_query_server(build_id, build_id_len,
+  return debuginfod_query_server(client, build_id, build_id_len,
                                  "debuginfo", NULL, path);
 }
 
 
 /* See debuginfod.h  */
 int
-debuginfod_find_executable(const unsigned char *build_id, int build_id_len,
+debuginfod_find_executable(debuginfod_client *client,
+			   const unsigned char *build_id, int build_id_len,
                            char **path)
 {
-  return debuginfod_query_server(build_id, build_id_len,
+  return debuginfod_query_server(client, build_id, build_id_len,
                                  "executable", NULL, path);
 }
 
 /* See debuginfod.h  */
-int debuginfod_find_source(const unsigned char *build_id, int build_id_len,
+int debuginfod_find_source(debuginfod_client *client,
+			   const unsigned char *build_id, int build_id_len,
                            const char *filename, char **path)
 {
-  return debuginfod_query_server(build_id, build_id_len,
+  return debuginfod_query_server(client, build_id, build_id_len,
                                  "source", filename, path);
 }
 
 
-debuginfod_progressfn_t
-debuginfod_set_progressfn(debuginfod_progressfn_t fn)
+void
+debuginfod_set_progressfn(debuginfod_client *client,
+			  debuginfod_progressfn_t fn)
 {
-  debuginfod_progressfn_t it = progressfn;
-  progressfn = fn;
-  return it;
+  client->progressfn = fn;
 }
 
 

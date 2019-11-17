@@ -31,11 +31,9 @@
 #endif
 
 #include "libdwflP.h"
-#include "debuginfod.h"
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <dlfcn.h>
 #include <sys/stat.h>
 #include "system.h"
 
@@ -400,29 +398,8 @@ dwfl_standard_find_debuginfo (Dwfl_Module *mod,
       free (canon);
     }
 
-  {
-    /* NB: this is slightly thread-unsafe */
-    static __typeof__ (debuginfod_find_debuginfo) *fp_debuginfod_find_debuginfo;
-
-    if (fp_debuginfod_find_debuginfo == NULL)
-      {
-        void *debuginfod_so = dlopen("libdebuginfod-" VERSION ".so", RTLD_LAZY);
-        if (debuginfod_so == NULL)
-          debuginfod_so = dlopen("libdebuginfod.so", RTLD_LAZY);
-        if (debuginfod_so != NULL)
-          fp_debuginfod_find_debuginfo = dlsym (debuginfod_so, "debuginfod_find_debuginfo");
-        if (fp_debuginfod_find_debuginfo == NULL)
-          fp_debuginfod_find_debuginfo = (void *) -1; /* never try again */
-      }
-
-    if (fp_debuginfod_find_debuginfo != NULL && fp_debuginfod_find_debuginfo != (void *) -1)
-      {
-        /* If all else fails and a build-id is available, query the
-           debuginfo-server if enabled.  */
-        if (fd < 0 && bits_len > 0)
-          fd = (*fp_debuginfod_find_debuginfo) (bits, bits_len, NULL);
-      }
-  }
+  if (fd < 0 && bits_len > 0)
+    fd = __libdwfl_debuginfod_find_debuginfo (mod->dwfl, bits, bits_len);
 
   return fd;
 }

@@ -21,15 +21,39 @@ debuginfod_find_debuginfo \- request debuginfo from debuginfod
 .nf
 .B #include <elfutils/debuginfod.h>
 .PP
-.BI "int debuginfod_find_debuginfo(const unsigned char *" build_id ", int " build_id_len ", char ** " path ");"
-.BI "int debuginfod_find_executable(const unsigned char *" build_id ", int " build_id_len ", char ** " path ");"
-.BI "int debuginfod_find_source(const unsigned char *" build_id ", int " build_id_len ", const char *" filename ", char ** " path ");"
-.BI "typedef int (*debuginfo_progressfn_t)(long a, long b);"
-.BI "debuginfo_progressfn_t debuginfod_set_progressfn(debuginfo_progressfn_t " progressfn ");"
+.BI "debuginfod_client *debuginfod_begin(void);"
+.BI "void debuginfod_end(debuginfod_client *" client ");"
+
+.BI "int debuginfod_find_debuginfo(debuginfod_client *" client ","
+.BI "                              const unsigned char *" build_id ","
+.BI "                              int " build_id_len ","
+.BI "                              char ** " path ");"
+.BI "int debuginfod_find_executable(debuginfod_client *" client ","
+.BI "                               const unsigned char *" build_id ","
+.BI "                               int " build_id_len ","
+.BI "                               char ** " path ");"
+.BI "int debuginfod_find_source(debuginfod_client *" client ","
+.BI "                           const unsigned char *" build_id ","
+.BI "                           int " build_id_len ","
+.BI "                           const char *" filename ","
+.BI "                           char ** " path ");"
+
+.BI "typedef int (*debuginfo_progressfn_t)(debuginfod_client *" client ","
+.BI "                                      long a, long b);"
+.BI "void debuginfod_set_progressfn(debuginfod_client *" client ","
+.BI "                               debuginfo_progressfn_t " progressfn ");"
 
 Link with \fB-ldebuginfod\fP.
 
 .SH DESCRIPTION
+
+.BR debuginfod_begin ()
+creates a \fBdebuginfod_client\fP connection handle that should be used
+with all other calls.
+.BR debuginfod_end ()
+should be called on the \fBclient\fP handle to release all state and
+storage when done.
+
 .BR debuginfod_find_debuginfo (),
 .BR debuginfod_find_executable (),
 and
@@ -65,9 +89,14 @@ The URLs in \fB$DEBUGINFOD_URLS\fP may be queried in parallel. As soon
 as a debuginfod server begins transferring the target file all of the
 connections to the other servers are closed.
 
-These functions are MT-safe.
+A \fBclient\fP handle should be used from only one thread at a time.
 
 .SH "RETURN VALUE"
+
+\fBdebuginfod_begin\fP returns the \fBdebuginfod_client\fP handle to
+use with all other calls.  On error \fBNULL\fP will be returned and
+\fBerrno\fP will be set.
+
 If a find family function is successful, the resulting file is saved
 to the client cache and a file descriptor to that file is returned.
 The caller needs to \fBclose\fP() this descriptor.  Otherwise, a
@@ -75,12 +104,12 @@ negative error code is returned.
 
 .SH "PROGRESS CALLBACK"
 
-As the \fBdebuginfod_find_*\fP() functions may block for seconds or longer, a progress
-callback function is called periodically, if configured with
+As the \fBdebuginfod_find_*\fP() functions may block for seconds or
+longer, a progress callback function is called periodically, if
+configured with
 .BR debuginfod_set_progressfn ().
-This function sets a new progress callback function (or NULL) and
-returns the previously set function (or NULL).  This function may be
-MT-unsafe.
+This function sets a new progress callback function (or NULL) for the
+client handle.
 
 The given callback function is called from the context of each thread
 that is invoking any of the other lookup functions.  It is given two

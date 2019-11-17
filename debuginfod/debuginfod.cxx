@@ -944,7 +944,7 @@ handle_buildid_match (int64_t b_mtime,
 
 
 static int
-debuginfod_find_progress (long a, long b)
+debuginfod_find_progress (debuginfod_client *, long a, long b)
 {
   if (verbose > 4)
     obatched(clog) << "federated debuginfod progress=" << a << "/" << b << endl;
@@ -1036,15 +1036,28 @@ static struct MHD_Response* handle_buildid (const string& buildid /* unsafe */,
   // is to defer to other debuginfo servers.
 
   int fd = -1;
-  if (artifacttype == "debuginfo")
-    fd = debuginfod_find_debuginfo ((const unsigned char*) buildid.c_str(), 0,
-                                   NULL);
-  else if (artifacttype == "executable")
-    fd = debuginfod_find_executable ((const unsigned char*) buildid.c_str(), 0,
-                                    NULL);
-  else if (artifacttype == "source")
-    fd = debuginfod_find_source ((const unsigned char*) buildid.c_str(), 0,
-                                suffix.c_str(), NULL);
+  debuginfod_client *client = debuginfod_begin ();
+  if (client != NULL)
+    {
+      debuginfod_set_progressfn (client, & debuginfod_find_progress);
+
+      if (artifacttype == "debuginfo")
+	fd = debuginfod_find_debuginfo (client,
+					(const unsigned char*) buildid.c_str(),
+					0, NULL);
+      else if (artifacttype == "executable")
+	fd = debuginfod_find_executable (client,
+					 (const unsigned char*) buildid.c_str(),
+					 0, NULL);
+      else if (artifacttype == "source")
+	fd = debuginfod_find_source (client,
+				     (const unsigned char*) buildid.c_str(),
+				     0, suffix.c_str(), NULL);
+    }
+  else
+    fd = -errno; /* Set by debuginfod_begin.  */
+  debuginfod_end (client);
+
   if (fd >= 0)
     {
       inc_metric ("http_responses_total","result","upstream");
@@ -2507,8 +2520,6 @@ main (int argc, char *argv[])
       error (EXIT_FAILURE, 0,
              "cannot run database schema ddl: %s", sqlite3_errmsg(db));
     }
-
-  (void) debuginfod_set_progressfn (& debuginfod_find_progress);
 
   // Start httpd server threads.  Separate pool for IPv4 and IPv6, in
   // case the host only has one protocol stack.

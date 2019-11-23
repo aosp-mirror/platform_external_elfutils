@@ -48,7 +48,7 @@ ln -s ${abs_builddir}/dwfllines L/foo   # any program not used elsewhere in this
 env DEBUGINFOD_TEST_WEBAPI_SLEEP=3 LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod -F -R -vvvv -d $DB -p $PORT1 -t0 -g0 R F L &
 PID1=$!
 sleep 3
-export DEBUGINFOD_URLS=http://localhost:$PORT1/   # or without trailing /
+export DEBUGINFOD_URLS=http://127.0.0.1:$PORT1/   # or without trailing /
 
 # Be patient when run on a busy machine things might take a bit.
 # And under valgrind debuginfod-find is really, really slow.
@@ -202,7 +202,7 @@ tempfiles ${DB}_2
 sleep 3
 
 # have clients contact the new server
-export DEBUGINFOD_URLS=http://localhost:$PORT2
+export DEBUGINFOD_URLS=http://127.0.0.1:$PORT2
 rm -rf $DEBUGINFOD_CACHE_PATH
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 
@@ -211,17 +211,17 @@ BUILDID=`env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../src/readelf \
          -a L/foo | grep 'Build ID' | cut -d ' ' -f 7`
 file L/foo
 file -L L/foo
-export DEBUGINFOD_URLS=http://localhost:$PORT1
+export DEBUGINFOD_URLS=http://127.0.0.1:$PORT1
 rm -rf $DEBUGINFOD_CACHE_PATH
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID && false || true
-export DEBUGINFOD_URLS=http://localhost:$PORT2
+export DEBUGINFOD_URLS=http://127.0.0.1:$PORT2
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 
 
 # test parallel queries in client
 export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache3
 mkdir -p $DEBUGINFOD_CACHE_PATH
-export DEBUGINFOD_URLS="BAD http://localhost:$PORT1 localhost:$PORT1 http://localhost:$PORT2 DNE"
+export DEBUGINFOD_URLS="BAD http://127.0.0.1:$PORT1 127.0.0.1:$PORT1 http://127.0.0.1:$PORT2 DNE"
 
 testrun ${abs_builddir}/debuginfod_build_id_find -e F/prog2 1
 
@@ -229,11 +229,11 @@ testrun ${abs_builddir}/debuginfod_build_id_find -e F/prog2 1
 
 # Fetch some metrics, if curl program is installed
 if type curl 2>/dev/null; then
-    curl http://localhost:$PORT1/badapi
-    curl http://localhost:$PORT1/metrics
-    curl http://localhost:$PORT2/metrics
-    curl http://localhost:$PORT1/metrics | grep -q 'http_responses_total.*result.*error'
-    curl http://localhost:$PORT2/metrics | grep -q 'http_responses_total.*result.*upstream'
+    curl http://127.0.0.1:$PORT1/badapi
+    curl http://127.0.0.1:$PORT1/metrics
+    curl http://127.0.0.1:$PORT2/metrics
+    curl http://127.0.0.1:$PORT1/metrics | grep -q 'http_responses_total.*result.*error'
+    curl http://127.0.0.1:$PORT2/metrics | grep -q 'http_responses_total.*result.*upstream'
 fi
 
 ########################################################################

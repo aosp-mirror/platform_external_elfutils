@@ -1,3 +1,7 @@
+2019-11-23  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfod-find.sh: Replace all localhost with 127.0.0.1.
+
 2019-11-07  Frank Ch. Eigler  <fche@redhat.com>
 
 	* run-debuginfod-find.sh: Test debuginfod metrics via curl.

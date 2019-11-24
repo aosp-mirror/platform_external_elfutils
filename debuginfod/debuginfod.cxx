@@ -375,7 +375,6 @@ static bool scan_rpms = false;
 static vector<string> extra_ddl;
 static regex_t file_include_regex;
 static regex_t file_exclude_regex;
-static int test_webapi_sleep; /* testing only */
 static bool traverse_logical;
 
 static void set_metric(const string& key, int64_t value);
@@ -1200,9 +1199,6 @@ handler_cb (void * /*cls*/,
 
   if (verbose)
     obatched(clog) << conninfo(connection) << " " << method << " " << url << endl;
-
-  if (test_webapi_sleep)
-    sleep (test_webapi_sleep);
 
   try
     {
@@ -2483,10 +2479,6 @@ main (int argc, char *argv[])
   rc = regcomp (& file_exclude_regex, "^$", REG_EXTENDED|REG_NOSUB); // match nothing
   if (rc != 0)
     error (EXIT_FAILURE, 0, "regcomp failure: %d", rc);
-
-  const char* test_webapi_sleep_str = getenv("DEBUGINFOD_TEST_WEBAPI_SLEEP");
-  if (test_webapi_sleep_str)
-    test_webapi_sleep = atoi (test_webapi_sleep_str);
 
   /* Parse and process arguments.  */
   int remaining;

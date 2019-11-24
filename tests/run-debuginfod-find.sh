@@ -16,15 +16,26 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-set -x
 . $srcdir/test-subr.sh  # includes set -e
 
 DB=${PWD}/.debuginfod_tmp.sqlite
 tempfiles $DB
 export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
 
+PID1=0
+PID2=0
+
+cleanup()
+{
+  if [ $PID1 -ne 0 ]; then kill $PID1; wait $PID1; fi
+  if [ $PID2 -ne 0 ]; then kill $PID2; wait $PID2; fi
+
+  rm -rf F R L ${PWD}/.client_cache*
+  exit_cleanup
+}
+
 # clean up trash if we were aborted early
-trap 'kill $PID1 $PID2 || true; sleep 5; rm -rf F R L ${PWD}/.client_cache*; exit_cleanup' 0 1 2 3 5 9 15
+trap cleanup 0 1 2 3 5 9 15
 
 # find an unused port number
 while true; do
@@ -45,18 +56,40 @@ mkdir F R L
 # not tempfiles F R L - they are directories which we clean up manually
 ln -s ${abs_builddir}/dwfllines L/foo   # any program not used elsewhere in this test
 
-env DEBUGINFOD_TEST_WEBAPI_SLEEP=3 LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod -F -R -vvvv -d $DB -p $PORT1 -t0 -g0 R F L &
+wait_ready()
+{
+  port=$1;
+  what=$2;
+  value=$3;
+  timeout=20;
+
+  echo "Wait $timeout seconds on $port for metric $what to change to $value"
+  while [ $timeout -gt 0 ]; do
+    mvalue="$(curl -s http://127.0.0.1:$port/metrics \
+              | grep "$what" | awk '{print $NF}')"
+    if [ -z "$mvalue" ]; then mvalue=0; fi
+      echo "metric $what: $mvalue"
+      if [ "$mvalue" -eq "$value" ]; then
+        break;
+    fi
+    sleep 0.5;
+    ((timeout--));
+  done;
+
+  if [ $timeout -eq 0 ]; then
+    echo "metric $what never changed to $value on port $port"
+    exit 1;
+  fi
+}
+
+env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod -F -R -d $DB -p $PORT1 -t0 -g0 R F L &
 PID1=$!
-sleep 3
+# Server must become ready
+wait_ready $PORT1 'ready' 1
 export DEBUGINFOD_URLS=http://127.0.0.1:$PORT1/   # or without trailing /
 
 # Be patient when run on a busy machine things might take a bit.
-# And under valgrind debuginfod-find is really, really slow.
-if [ "x$VALGRIND_CMD" = "x" ]; then
-  export DEBUGINFOD_TIMEOUT=60
-else
-  export DEBUGINFOD_TIMEOUT=300
-fi
+export DEBUGINFOD_TIMEOUT=10
 
 # We use -t0 and -g0 here to turn off time-based scanning & grooming.
 # For testing purposes, we just sic SIGUSR1 / SIGUSR2 at the process.
@@ -76,7 +109,8 @@ BUILDID=`env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../src/readelf \
 mv prog F
 mv prog.debug F
 kill -USR1 $PID1
-sleep 3 # give enough time for scanning pass 
+# Wait till both files are in the index.
+wait_ready $PORT1 'thread_work_total{file="F"}' 2
 
 ########################################################################
 
@@ -110,7 +144,8 @@ BUILDID2=`env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../src/readelf \
 
 mv prog2 F
 kill -USR1 $PID1
-sleep 3
+# Now there should be 3 files in the index
+wait_ready $PORT1 'thread_work_total{file="F"}' 3
 
 # Rerun same tests for the prog2 binary
 filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find -v debuginfo $BUILDID2 2>vlog`
@@ -125,10 +160,34 @@ cmp $filename ${PWD}/prog2.c
 
 cp -rp ${abs_srcdir}/debuginfod-rpms R
 kill -USR1 $PID1
-sleep 10
-kill -USR1 $PID1  # two hits of SIGUSR1 may be needed to resolve .debug->dwz->srefs
-sleep 10
+# All rpms need to be in the index
+rpms=$(find R -name \*rpm | wc -l)
+wait_ready $PORT1 'scanned_total{source="rpm"}' $rpms
 
+kill -USR1 $PID1  # two hits of SIGUSR1 may be needed to resolve .debug->dwz->srefs
+# Expect all source files found in the rpms (they are all called hello.c :)
+# We will need to extract all rpms (in their own directory) and could all
+# sources referenced in the .debug files.
+mkdir extracted
+cd extracted
+subdir=0;
+newrpms=$(find ../R -name \*\.rpm)
+for i in $newrpms; do
+    subdir=$[$subdir+1];
+    mkdir $subdir;
+    cd $subdir;
+    ls -lah ../$i
+    rpm2cpio ../$i | cpio -id;
+    cd ..;
+done
+sourcefiles=$(find -name \*\\.debug \
+	      | env LD_LIBRARY_PATH=$ldpath xargs \
+		${abs_top_builddir}/src/readelf --debug-dump=decodedline \
+	      | grep mtime: | wc --lines)
+cd ..
+rm -rf extracted
+
+wait_ready $PORT1 'found_sourcerefs_total{source="rpm"}' $sourcefiles
 
 # Run a bank of queries against the debuginfod-rpms test cases
 
@@ -175,7 +234,9 @@ RPM_BUILDID=d44d42cbd7d915bc938c81333a21e355a6022fb7 # in rhel6/ subdir, for a l
 
 rm -r R/debuginfod-rpms/rhel6/*
 kill -USR2 $PID1  # groom cycle
-sleep 3
+# Expect 3 rpms to be deleted by the groom
+wait_ready $PORT1 'groom{statistic="file d/e"}' 3
+
 rm -rf $DEBUGINFOD_CACHE_PATH # clean it from previous tests
 
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find executable $RPM_BUILDID && false || true
@@ -196,10 +257,10 @@ export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache2
 mkdir -p $DEBUGINFOD_CACHE_PATH
 # NB: inherits the DEBUGINFOD_URLS to the first server
 # NB: run in -L symlink-following mode for the L subdir
-env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod -F -vvvv -d ${DB}_2 -p $PORT2 -L L &
+env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod -F -d ${DB}_2 -p $PORT2 -L L &
 PID2=$!
 tempfiles ${DB}_2
-sleep 3
+wait_ready $PORT2 'ready' 1
 
 # have clients contact the new server
 export DEBUGINFOD_URLS=http://127.0.0.1:$PORT2
@@ -242,7 +303,9 @@ fi
 # be found in the cache.
 
 kill -INT $PID1 $PID2
-sleep 5
+wait $PID1 $PID2
+PID1=0
+PID2=0
 tempfiles .debuginfod_*
 
 testrun ${abs_builddir}/debuginfod_build_id_find -e F/prog2 1

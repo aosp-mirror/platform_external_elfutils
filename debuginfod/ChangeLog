@@ -1,3 +1,11 @@
+2019-11-24  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod.cxx (add_metric): New function.
+	(scan_source_file_path): Record metrics for
+	found_executable_total, found_debuginfo_total and
+	found_sourcerefs_total.
+	(scan_source_rpm_path): Likewise.
+
 2019-11-07  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod.cxx: Add /metrics endpoint.  Add numerous

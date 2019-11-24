@@ -385,6 +385,9 @@ static void set_metric(const string& metric,
                        int64_t value);
 static void inc_metric(const string& metric,
                        const string& lname, const string& lvalue);
+static void add_metric(const string& metric,
+                       const string& lname, const string& lvalue,
+                       int64_t value);
 
 /* Handle program arguments.  */
 static error_t
@@ -1146,6 +1149,15 @@ inc_metric(const string& metric,
   unique_lock<mutex> lock(metrics_lock);
   metrics[key] ++;
 }
+static void
+add_metric(const string& metric,
+           const string& lname, const string& lvalue,
+           int64_t value)
+{
+  string key = (metric + "{" + metric_label(lname, lvalue) + "}");
+  unique_lock<mutex> lock(metrics_lock);
+  metrics[key] += value;
+}
 
 
 // and more for higher arity labels if needed
@@ -1706,6 +1718,10 @@ scan_source_file_path (const string& dir)
                       .bind(5, f->fts_statp->st_mtime)
                       .step_ok_done();
                   }
+                if (executable_p)
+                  inc_metric("found_executable_total","source","files");
+                if (debuginfo_p)
+                  inc_metric("found_debuginfo_total","source","files");
 
                 if (sourcefiles.size() && buildid != "")
                   {
@@ -1748,6 +1764,8 @@ scan_source_file_path (const string& dir)
                           .bind(3, srps)
                           .bind(4, sfs.st_mtime)
                           .step_ok_done();
+
+			inc_metric("found_sourcerefs_total","source","files");
                       }
                   }
 
@@ -2145,6 +2163,12 @@ scan_source_rpm_path (const string& dir)
                                   my_fts_executable, my_fts_debuginfo, my_fts_sref, my_fts_sdef,
                                   my_fts_sref_complete_p);
                     inc_metric ("scanned_total","source","rpm");
+                    add_metric("found_debuginfo_total","source","rpm",
+                               my_fts_debuginfo);
+                    add_metric("found_executable_total","source","rpm",
+                               my_fts_executable);
+                    add_metric("found_sourcerefs_total","source","rpm",
+                               my_fts_sref);
                   }
                 catch (const reportable_exception& e)
                   {

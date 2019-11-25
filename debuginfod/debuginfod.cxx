@@ -2357,6 +2357,8 @@ void groom()
 
   database_stats_report();
 
+  sqlite3_db_release_memory(db); // shrink the process if possible
+
   gettimeofday (&tv_end, NULL);
   double deltas = (tv_end.tv_sec - tv_start.tv_sec) + (tv_end.tv_usec - tv_start.tv_usec)*0.000001;
 

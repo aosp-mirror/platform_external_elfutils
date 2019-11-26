@@ -1,3 +1,12 @@
+2019-11-26  Mark Wielaard  <mark@klomp.org>
+
+	* elfutils.spec.in: Remove Group tags, remove fedora and rhel
+	specifics, introduce elfutils-libs subpackage, move Requires
+	and BuildRequires around for new subpackage, remove dot at end
+	of Summary tags, add post/postun ldconfig for libs and
+	debuginfod-client, remove default defattr(-,root,root) for file
+	lists, order binaries by name.
+
 2019-11-25  Mark Wielaard  <mark@klomp.org>
 
 	* elfutils.spec.in: Add BuildRequires curl.

@@ -5,42 +5,35 @@ Version: @PACKAGE_VERSION@
 Release: 1
 URL: http://elfutils.org/
 License: GPLv3+ and (GPLv2+ or LGPLv3+) and GFDL
-Group: Development/Tools
 Source: ftp://sourceware.org/pub/elfutils/%{version}/elfutils-%{version}.tar.bz2
-Obsoletes: libelf libelf-devel
+
 Requires: elfutils-libelf = %{version}-%{release}
-Requires: glibc >= 2.7
-Requires: libstdc++
-Requires: default-yama-scope
-%if 0%{?rhel} >= 8 || 0%{?fedora} >= 20
-Recommends: elfutils-debuginfod-client
-%else
+Requires: elfutils-libs = %{version}-%{release}
+# Can be a Recommends if rpm supports that
 Requires: elfutils-debuginfod-client
-%endif
 
-# ExcludeArch: xxx
-
-BuildRoot: %{_tmppath}/%{name}-root
-BuildRequires: gcc >= 4.1.2-33
-BuildRequires: glibc >= 2.7
-BuildRequires: bison >= 1.875
-BuildRequires: flex >= 2.5.4a
-BuildRequires: bzip2
-BuildRequires: m4
-BuildRequires: gettext
-BuildRequires: pkgconfig(zlib)
-%if 0%{?rhel} == 7
-BuildRequires: bzip2-devel
-%else
-BuildRequires: pkgconfig(bzip2)
-%endif
-BuildRequires: pkgconfig(liblzma)
+BuildRequires: gcc
+# For libstdc++ demangle support
 BuildRequires: gcc-c++
+
+BuildRequires: gettext
+BuildRequires: bison
+BuildRequires: flex
+
+# Compression support
+BuildRequires: zlib-devel
+BuildRequires: bzip2-devel
+BuildRequires: xz-devel
+
+# For debuginfod
 BuildRequires: pkgconfig(libmicrohttpd) >= 0.9.33
 BuildRequires: pkgconfig(libcurl) >= 7.29.0
 BuildRequires: pkgconfig(sqlite3) >= 3.7.17
 BuildRequires: pkgconfig(libarchive) >= 3.1.2
-# for the run-debuginfod-find.sh test case in %check for /usr/sbin/ss
+
+# For tests need to bunzip2 test files.
+BuildRequires: bzip2
+# For the run-debuginfod-find.sh test case in %check for /usr/sbin/ss
 BuildRequires: iproute
 BuildRequires: curl
 
@@ -48,22 +41,38 @@ BuildRequires: curl
 %define _programprefix eu-
 
 %description
-
 Elfutils is a collection of utilities, including stack (to show
 backtraces), nm (for listing symbols from object files), size
 (for listing the section sizes of an object or archive file),
 strip (for discarding symbols), readelf (to see the raw ELF file
 structures), elflint (to check for well-formed ELF files) and
 elfcompress (to compress or decompress ELF sections).
-Also included are helper libraries which implement DWARF, ELF,
-and machine-specific ELF handling and process introspection.
+
+%package libs
+Summary: Libraries to handle compiled objects
+License: GPLv2+ or LGPLv3+
+Requires: elfutils-libelf = %{version}-%{release}
+Requires: default-yama-scope
+# Can be a Recommends if rpm supports that
+Requires: elfutils-debuginfod-client
+
+%description libs
+The elfutils-libs package contains libraries which implement DWARF, ELF,
+and machine-specific ELF handling and process introspection.  These
+libraries are used by the programs in the elfutils package.  The
+elfutils-devel package enables building other programs using these
+libraries.
 
 %package devel
-Summary: Development libraries to handle compiled objects.
-Group: Development/Tools
-License: (GPLv2+ or LGPLv3+) and GFDL
-Requires: elfutils = %{version}-%{release}
+Summary: Development libraries to handle compiled objects
+License: GPLv2+ or LGPLv3+
+Requires: elfutils-libs = %{version}-%{release}
 Requires: elfutils-libelf-devel = %{version}-%{release}
+%if 0%{?rhel} >= 8 || 0%{?fedora} >= 20
+Recommends: elfutils-debuginfod-client-devel
+%else
+Requires: elfutils-debuginfod-client-devel
+%endif
 
 %description devel
 The elfutils-devel package contains the libraries to create
@@ -72,18 +81,17 @@ to the DWARF debugging information.  libasm provides a programmable
 assembler interface.
 
 %package devel-static
-Summary: Static archives to handle compiled objects.
-Group: Development/Tools
+Summary: Static archives to handle compiled objects
 License: GPLv2+ or LGPLv3+
 Requires: elfutils-devel = %{version}-%{release}
+Requires: elfutils-libelf-devel-static = %{version}-%{release}
 
 %description devel-static
 The elfutils-devel-static archive contains the static archives
 with the code the handle compiled objects.
 
 %package libelf
-Summary: Library to read and write ELF files.
-Group: Development/Tools
+Summary: Library to read and write ELF files
 License: GPLv2+ or LGPLv3+
 
 %description libelf
@@ -94,7 +102,6 @@ elfutils package use it also to generate new ELF files.
 
 %package libelf-devel
 Summary: Development support for libelf
-Group: Development/Tools
 License: GPLv2+ or LGPLv3+
 Requires: elfutils-libelf = %{version}-%{release}
 Conflicts: libelf-devel
@@ -107,7 +114,6 @@ different sections of an ELF file.
 
 %package libelf-devel-static
 Summary: Static archive of libelf
-Group: Development/Tools
 License: GPLv2+ or LGPLv3+
 Requires: elfutils-libelf-devel = %{version}-%{release}
 Conflicts: libelf-devel
@@ -118,7 +124,6 @@ for libelf.
 
 %package default-yama-scope
 Summary: Default yama attach scope sysctl setting
-Group: Development/Tools
 License: GPLv2+ or LGPLv3+
 Provides: default-yama-scope
 BuildArch: noarch
@@ -133,22 +138,23 @@ interprocess services, communication and introspection
 profiling) of processes.
 
 %package debuginfod-client
-Summary: Libraries and command-line frontend for HTTP ELF/DWARF file server addressed by build-id.
+Summary: Library and command line client for build-id HTTP ELF/DWARF server
 License: GPLv3+ and (GPLv2+ or LGPLv3+)
 
 %package debuginfod-client-devel
-Summary: Libraries and headers to build debuginfod client applications.
+Summary: Libraries and headers to build debuginfod client applications
 License: GPLv2+ or LGPLv3+
 
 %package debuginfod
-Summary: HTTP ELF/DWARF file server addressed by build-id.
+Summary: HTTP ELF/DWARF file server addressed by build-id
 License: GPLv3+
 BuildRequires: systemd
 Requires(post):   systemd
 Requires(preun):  systemd
 Requires(postun): systemd
-Requires: shadow-utils
-Requires: /usr/bin/rpm2cpio
+Requires(pre): shadow-utils
+# For /usr/bin/cpio2rpm
+Requires: rpm
 
 %description debuginfod-client
 The elfutils-debuginfod-client package contains shared libraries
@@ -172,7 +178,7 @@ such servers to download those files on demand.
 
 %build
 %configure --program-prefix=%{_programprefix} --enable-debuginfod
-make
+make -s %{?_smp_mflags}
 
 %install
 rm -rf ${RPM_BUILD_ROOT}
@@ -197,51 +203,52 @@ mkdir -p ${RPM_BUILD_ROOT}%{_localstatedir}/cache/debuginfod
 touch ${RPM_BUILD_ROOT}%{_localstatedir}/cache/debuginfod/debuginfod.sqlite
 
 %check
-make check
+make -s %{?_smp_mflags} check
 
-%clean
-rm -rf ${RPM_BUILD_ROOT}
-
-%post -p /sbin/ldconfig
-
-%postun -p /sbin/ldconfig
-
+%post libs -p /sbin/ldconfig
+%postun libs -p /sbin/ldconfig
 %post libelf -p /sbin/ldconfig
-
 %postun libelf -p /sbin/ldconfig
+%post debuginfod-client -p /sbin/ldconfig
+%postun debuginfod-client -p /sbin/ldconfig
 
 %post default-yama-scope
+# Due to circular dependencies might not be installed yet, so double check.
+# (systemd -> elfutils-libs -> default-yama-scope -> systemd)
+if [ -x /usr/lib/systemd/systemd-sysctl ] ; then
 %sysctl_apply 10-default-yama-scope.conf
+fi
 
 %files
-%defattr(-,root,root)
 %license COPYING COPYING-GPLV2 COPYING-LGPLV3 doc/COPYING-GFDL
 %doc README TODO CONTRIBUTING
+%{_bindir}/eu-addr2line
+%{_bindir}/eu-ar
+%{_bindir}/eu-elfclassify
+%{_bindir}/eu-elfcmp
+%{_bindir}/eu-elfcompress
 %{_bindir}/eu-elflint
+%{_bindir}/eu-findtextrel
+%{_bindir}/eu-make-debug-archive
 %{_bindir}/eu-nm
+%{_bindir}/eu-objdump
+%{_bindir}/eu-ranlib
 %{_bindir}/eu-readelf
 %{_bindir}/eu-size
 %{_bindir}/eu-stack
-%{_bindir}/eu-strip
-%{_bindir}/eu-findtextrel
-%{_bindir}/eu-addr2line
-%{_bindir}/eu-elfclassify
-%{_bindir}/eu-elfcmp
-%{_bindir}/eu-ranlib
 %{_bindir}/eu-strings
-%{_bindir}/eu-objdump
-%{_bindir}/eu-ar
+%{_bindir}/eu-strip
 %{_bindir}/eu-unstrip
-%{_bindir}/eu-make-debug-archive
-%{_bindir}/eu-elfcompress
+%{_mandir}/man1/eu-*.1*
+
+%files libs
+%license COPYING-GPLV2 COPYING-LGPLV3
 %{_libdir}/libasm-%{version}.so
 %{_libdir}/libdw-%{version}.so
 %{_libdir}/libasm.so.*
 %{_libdir}/libdw.so.*
-%{_mandir}/man1/eu-*.1*
 
 %files devel
-%defattr(-,root,root)
 %{_includedir}/dwarf.h
 %dir %{_includedir}/elfutils
 %{_includedir}/elfutils/elf-knowledge.h
@@ -260,17 +267,15 @@ rm -rf ${RPM_BUILD_ROOT}
 #%{_libdir}/libasm.a
 
 %files libelf
-%defattr(-,root,root)
+%license COPYING-GPLV2 COPYING-LGPLV3
 %{_libdir}/libelf-%{version}.so
 %{_libdir}/libelf.so.*
 %{_datadir}/locale/*/LC_MESSAGES/elfutils.mo
 
 %files libelf-devel
-%defattr(-,root,root)
 %{_includedir}/libelf.h
 %{_includedir}/gelf.h
 %{_includedir}/nlist.h
-%{_includedir}/elfutils/version.h
 %{_libdir}/libelf.so
 %{_libdir}/pkgconfig/libelf.pc
 %{_mandir}/man3/elf_*.3*

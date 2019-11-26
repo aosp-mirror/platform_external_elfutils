@@ -319,6 +319,21 @@ exit 0
 %systemd_postun_with_restart debuginfod.service
 
 %changelog
+* Tue Nov 26 2019 Mark Wielaard <mark@klomp.org> 0.178-1
+- debuginfod: New server, client tool and library to index and fetch
+              ELF/DWARF files addressed by build-id through HTTP.
+- doc: There are now some manual pages for functions and tools.
+- backends: The libebl libraries are no longer dynamically loaded
+            through dlopen, but are now compiled into libdw.so directly.
+- readelf: -n, --notes now takes an optional "SECTION" argument.
+           -p and -x now also handle section numbers.
+           New option --dyn-sym to show just the dynamic symbol table.
+- libcpu: Add RISC-V disassembler.
+- libdw: Abbrevs and DIEs can now be read concurrently by multiple
+         threads through the same Dwarf handle.
+- libdwfl: Will try to use debuginfod when installed as fallback to
+           retrieve ELF and DWARF debug data files by build-id.
+
 * Tue Aug 13 2019 Mark Wielaard <mark@klomp.org> 0.177-1
 - elfclassify: New tool to analyze ELF objects.
 - readelf: Print DW_AT_data_member_location as decimal offset.

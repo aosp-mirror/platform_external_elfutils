@@ -1,3 +1,9 @@
+2019-11-26  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (BUILD_STATIC): Add libraries needed for libdw.
+	* coverage.sh: Add debuginfod directory, check whether source
+	is .c or cxx.
+
 2019-11-24  Mark Wielaard  <mark@klomp.org>
 
 	* run-debuginfod-find.sh: Reduce verbosity. Add new cleanup

@@ -1,3 +1,8 @@
+2019-11-26  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (BUILD_STATIC): Add needed libraries for libdw and
+	libdebuginfod.
+
 2019-11-25  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod.cxx (groom): Add a sqlite3_db_release_memory()

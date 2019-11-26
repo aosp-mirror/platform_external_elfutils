@@ -43,9 +43,9 @@ program_transform_name = s,x,x,
 
 if BUILD_STATIC
 libasm = ../libasm/libasm.a
-libdw = ../libdw/libdw.a -lz $(zip_LIBS) $(libelf) $(libebl) -ldl
+libdw = ../libdw/libdw.a -lz $(zip_LIBS) $(libelf) $(libebl) -ldl -lpthread
 libelf = ../libelf/libelf.a -lz
-libdebuginfod = ./libdebuginfod.a
+libdebuginfod = ./libdebuginfod.a $(libcurl_LIBS)
 else
 libasm = ../libasm/libasm.so
 libdw = ../libdw/libdw.so

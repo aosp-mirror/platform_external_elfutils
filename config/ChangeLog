@@ -1,3 +1,8 @@
+2019-11-27  Mark Wielaard  <mark@klomp.org>
+
+	* elfutils.spec.in: Move all versioned libdebuginfod libraries
+	from debuginfod-client-devel to debuginfod-client.
+
 2019-11-26  Mark Wielaard  <mark@klomp.org>
 
 	* elfutils.spec.in: Remove Group tags, remove fedora and rhel

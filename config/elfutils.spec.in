@@ -148,6 +148,7 @@ License: GPLv2+ or LGPLv3+
 %package debuginfod
 Summary: HTTP ELF/DWARF file server addressed by build-id
 License: GPLv3+
+Requires: elfutils-debuginfod-client = %{version}-%{release}
 BuildRequires: systemd
 Requires(post):   systemd
 Requires(preun):  systemd

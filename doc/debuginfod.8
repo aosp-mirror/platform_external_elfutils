@@ -24,7 +24,7 @@ debuginfod \- debuginfo-related http file-server daemon
 .SH DESCRIPTION
 \fBdebuginfod\fP serves debuginfo-related artifacts over HTTP.  It
 periodically scans a set of directories for ELF/DWARF files and their
-associated source code, as well as RPM files containing the above, to
+associated source code, as well as archive files containing the above, to
 build an index by their buildid.  This index is used when remote
 clients use the HTTP webapi, to fetch these files by the same buildid.
 
@@ -55,17 +55,22 @@ or even use debuginfod itself:
 ^C
 .ESAMPLE
 
-If the \fB\-R\fP option is given each listed PATH creates a thread to
-scan for ELF/DWARF/source files contained in matching RPMs under the
-given physical directory.  Duplicate directories are ignored.  You may
-use a file name for a PATH, but source code indexing may be
-incomplete; prefer using a directory that contains normal RPMs
-alongside debuginfo/debugsource RPMs.  Because of complications such
-as DWZ-compressed debuginfo, may require \fItwo\fP scan passes to
-identify all source code.  Source files for RPMs are only served
-from other RPMs, so the caution for \-F does not apply.
+If the \fB\-R\fP and/or \fB-U\fP option is given, each listed PATH
+creates a thread to scan for ELF/DWARF/source files contained in
+archive files.  If \-R is given, the will scan RPMs; and/or if \-U is
+given, they will scan DEB / DDEB files.  (The terms RPM and DEB and
+DDEB are used synonymously as "archives" in diagnostic messages.)
+Duplicate directories are ignored.  You may use a file name for a
+PATH, but source code indexing may be incomplete.  Instead, use a
+directory that contains normal RPMs alongside debuginfo/debugsource
+RPMs.  Because of complications such as DWZ-compressed debuginfo, may
+require \fItwo\fP scan passes to identify all source code.  Source
+files for RPMs are only served from other RPMs, so the caution for \-F
+does not apply.  Note that due to Debian/Ubuntu packaging policies &
+mechanisms, debuginfod cannot resolve source files for DEB/DDEB at
+all.
 
-If no PATH is listed, or neither \-F nor \-R option is given, then
+If no PATH is listed, or neither \-F nor \-R nor \-U option is given, then
 \fBdebuginfod\fP will simply serve content that it scanned into its
 index in previous runs: the data is cumulative.
 
@@ -81,7 +86,11 @@ Activate ELF/DWARF file scanning threads.  The default is off.
 
 .TP
 .B "\-R"
-Activate RPM file scanning threads.  The default is off.
+Activate RPM patterns in archive scanning threads.  The default is off.
+
+.TP
+.B "\-U"
+Activate DEB/DDEB patterns in archive scanning threads.  The default is off.
 
 .TP
 .B "\-d FILE" "\-\-database=FILE"
@@ -114,12 +123,12 @@ extended REs, thus may include alternation.  They are evaluated
 against the full path of each file, based on its \fBrealpath(3)\fP
 canonicalization.  By default, all files are included and none are
 excluded.  A file that matches both include and exclude REGEX is
-excluded.  (The \fIcontents\fP of RPM files are not subject to
+excluded.  (The \fIcontents\fP of archive files are not subject to
 inclusion or exclusion filtering: they are all processed.)
 
 .TP
 .B "\-t SECONDS"  "\-\-rescan\-time=SECONDS"
-Set the rescan time for the file and RPM directories.  This is the
+Set the rescan time for the file and archive directories.  This is the
 amount of time the scanning threads will wait after finishing a scan,
 before doing it again.  A rescan for unchanged files is fast (because
 the index also stores the file mtimes).  A time of zero is acceptable,
@@ -143,8 +152,8 @@ independent of the groom time (including if it was zero).
 .B "\-G"
 Run an extraordinary maximal-grooming pass at debuginfod startup.
 This pass can take considerable time, because it tries to remove any
-debuginfo-unrelated content from the RPM-related parts of the index.
-It should not be run if any recent RPM-related indexing operations
+debuginfo-unrelated content from the archive-related parts of the index.
+It should not be run if any recent archive-related indexing operations
 were aborted early.  It can take considerable space, because it
 finishes up with an sqlite "vacuum" operation, which repacks the
 database file by triplicating it temporarily.  The default is not to
@@ -155,7 +164,7 @@ do maximal-grooming.  See also the \fIDATA MANAGEMENT\fP section.
 Set the concurrency limit for all the scanning threads.  While many
 threads may be spawned to cover all the given PATHs, only NUM may
 concurrently do CPU-intensive operations like parsing an ELF file
-or an RPM.  The default is the number of processors on the system;
+or an archive.  The default is the number of processors on the system;
 the minimum is 1.
 
 .TP
@@ -257,10 +266,10 @@ many files.  This section offers some advice about the implications.
 
 As a general explanation for size, consider that debuginfod indexes
 ELF/DWARF files, it stores their names and referenced source file
-names, and buildids will be stored.  When indexing RPMs, it stores
-every file name \fIof or in\fP an RPM, every buildid, plus every
-source file name referenced from a DWARF file.  (Indexing RPMs takes
-more space because the source files often reside in separate
+names, and buildids will be stored.  When indexing archives, it stores
+every file name \fIof or in\fP an archive, every buildid, plus every
+source file name referenced from a DWARF file.  (Indexing archives
+takes more space because the source files often reside in separate
 subpackages that may not be indexed at the same pass, so extra
 metadata has to be kept.)
 
@@ -283,14 +292,14 @@ This means that the sqlite files grow fast during initial indexing,
 slowly during index rescans, and periodically shrink during grooming.
 There is also an optional one-shot \fImaximal grooming\fP pass is
 available.  It removes information debuginfo-unrelated data from the
-RPM content index such as file names found in RPMs ("rpm sdef"
-records) that are not referred to as source files from any binaries
-find in RPMs ("rpm sref" records).  This can save considerable disk
-space.  However, it is slow and temporarily requires up to twice the
-database size as free space.  Worse: it may result in missing
-source-code info if the RPM traversals were interrupted, so the not
-all source file references were known.  Use it rarely to polish a
-complete index.
+archive content index such as file names found in archives ("archive
+sdef" records) that are not referred to as source files from any
+binaries find in archives ("archive sref" records).  This can save
+considerable disk space.  However, it is slow and temporarily requires
+up to twice the database size as free space.  Worse: it may result in
+missing source-code info if the archive traversals were interrupted,
+so that not all source file references were known.  Use it rarely to
+polish a complete index.
 
 You should ensure that ample disk space remains available.  (The flood
 of error messages on -ENOSPC is ugly and nagging.  But, like for most
@@ -317,7 +326,7 @@ happens, new versions of debuginfod will issue SQL statements to
 \fIdrop\fP all prior schema & data, and start over.  So, disk space
 will not be wasted for retaining a no-longer-useable dataset.
 
-In summary, if your system can bear a 0.5%-3% index-to-RPM-dataset
+In summary, if your system can bear a 0.5%-3% index-to-archive-dataset
 size ratio, and slow growth afterwards, you should not need to
 worry about disk space.  If a system crash corrupts the database,
 or you want to force debuginfod to reset and start over, simply

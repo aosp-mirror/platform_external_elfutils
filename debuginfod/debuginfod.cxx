@@ -106,6 +106,15 @@ using namespace std;
 #endif
 
 
+inline bool
+string_endswith(const string& haystack, const string& needle)
+{
+  return (haystack.size() >= needle.size() &&
+	  equal(haystack.end()-needle.size(), haystack.end(),
+                needle.begin()));
+}
+
+
 // Roll this identifier for every sqlite schema incompatiblity.
 #define BUILDIDS "buildids9"
 
@@ -231,9 +240,9 @@ static const char DEBUGINFOD_SQLITE_DDL[] =
   "create view if not exists " BUILDIDS "_stats as\n"
   "          select 'file d/e' as label,count(*) as quantity from " BUILDIDS "_f_de\n"
   "union all select 'file s',count(*) from " BUILDIDS "_f_s\n"
-  "union all select 'rpm d/e',count(*) from " BUILDIDS "_r_de\n"
-  "union all select 'rpm sref',count(*) from " BUILDIDS "_r_sref\n"
-  "union all select 'rpm sdef',count(*) from " BUILDIDS "_r_sdef\n"
+  "union all select 'archive d/e',count(*) from " BUILDIDS "_r_de\n"
+  "union all select 'archive sref',count(*) from " BUILDIDS "_r_sref\n"
+  "union all select 'archive sdef',count(*) from " BUILDIDS "_r_sdef\n"
   "union all select 'buildids',count(*) from " BUILDIDS "_buildids\n"
   "union all select 'filenames',count(*) from " BUILDIDS "_files\n"
   "union all select 'files scanned (#)',count(*) from " BUILDIDS "_file_mtime_scanned\n"
@@ -324,6 +333,7 @@ static const struct argp_option options[] =
    { NULL, 0, NULL, 0, "Scanners:", 1 },
    { "scan-file-dir", 'F', NULL, 0, "Enable ELF/DWARF file scanning threads.", 0 },
    { "scan-rpm-dir", 'R', NULL, 0, "Enable RPM scanning threads.", 0 },
+   { "scan-deb-dir", 'U', NULL, 0, "Enable DEB scanning threads.", 0 },   
    // "source-oci-imageregistry"  ... 
 
    { NULL, 0, NULL, 0, "Options:", 2 },
@@ -371,7 +381,7 @@ static unsigned maxigroom = false;
 static unsigned concurrency = std::thread::hardware_concurrency() ?: 1;
 static set<string> source_paths;
 static bool scan_files = false;
-static bool scan_rpms = false;
+static map<string,string> scan_archives;
 static vector<string> extra_ddl;
 static regex_t file_include_regex;
 static regex_t file_exclude_regex;
@@ -402,7 +412,13 @@ parse_opt (int key, char *arg,
       if (http_port > 65535) argp_failure(state, 1, EINVAL, "port number");
       break;
     case 'F': scan_files = true; break;
-    case 'R': scan_rpms = true; break;
+    case 'R':
+      scan_archives[".rpm"]="rpm2cpio";
+      break;
+    case 'U':
+      scan_archives[".deb"]="dpkg-deb --fsys-tarfile";
+      scan_archives[".ddeb"]="dpkg-deb --fsys-tarfile";
+      break;
     case 'L':
       traverse_logical = true;
       break;
@@ -851,7 +867,15 @@ handle_buildid_r_match (int64_t b_mtime,
       return 0;
     }
 
-  string popen_cmd = string("rpm2cpio " + shell_escape(b_source0));
+  string archive_decoder = "/dev/null";
+  string archive_extension = "";
+  for (auto&& arch : scan_archives)
+    if (string_endswith(b_source0, arch.first))
+      {
+        archive_extension = arch.first;
+        archive_decoder = arch.second;
+      }
+  string popen_cmd = archive_decoder + " " + shell_escape(b_source0);
   FILE* fp = popen (popen_cmd.c_str(), "r"); // "e" O_CLOEXEC?
   if (fp == NULL)
     throw libc_exception (errno, string("popen ") + popen_cmd);
@@ -863,16 +887,16 @@ handle_buildid_r_match (int64_t b_mtime,
     throw archive_exception("cannot create archive reader");
   defer_dtor<struct archive*,int> archive_closer (a, archive_read_free);
 
-  rc = archive_read_support_format_cpio(a);
+  rc = archive_read_support_format_all(a);
   if (rc != ARCHIVE_OK)
-    throw archive_exception(a, "cannot select cpio format");
+    throw archive_exception(a, "cannot select all format");
   rc = archive_read_support_filter_all(a);
   if (rc != ARCHIVE_OK)
     throw archive_exception(a, "cannot select all filters");
 
   rc = archive_read_open_FILE (a, fp);
   if (rc != ARCHIVE_OK)
-    throw archive_exception(a, "cannot open archive from rpm2cpio pipe");
+    throw archive_exception(a, "cannot open archive from pipe");
 
   while(1) // parse cpio archive entries
     {
@@ -902,7 +926,7 @@ handle_buildid_r_match (int64_t b_mtime,
           throw archive_exception(a, "cannot extract file");
         }
 
-      inc_metric ("http_responses_total","result","rpm");
+      inc_metric ("http_responses_total","result",archive_extension + " archive");
       struct MHD_Response* r = MHD_create_response_from_fd (archive_entry_size(e), fd);
       if (r == 0)
         {
@@ -916,7 +940,7 @@ handle_buildid_r_match (int64_t b_mtime,
           MHD_add_response_header (r, "Content-Type", "application/octet-stream");
           add_mhd_last_modified (r, archive_entry_mtime(e));
           if (verbose > 1)
-            obatched(clog) << "serving rpm " << b_source0 << " file " << b_source1 << endl;
+            obatched(clog) << "serving archive " << b_source0 << " file " << b_source1 << endl;
           /* libmicrohttpd will close it. */
           if (result_fd)
             *result_fd = fd;
@@ -1858,16 +1882,24 @@ thread_main_scan_source_file_path (void* arg)
 
 
 
-// Analyze given *.rpm file of given age; record buildids / exec/debuginfo-ness of its
+// Analyze given archive file of given age; record buildids / exec/debuginfo-ness of its
 // constituent files with given upsert statements.
 static void
-rpm_classify (const string& rps, sqlite_ps& ps_upsert_buildids, sqlite_ps& ps_upsert_files,
-              sqlite_ps& ps_upsert_de, sqlite_ps& ps_upsert_sref, sqlite_ps& ps_upsert_sdef,
-              time_t mtime,
-              unsigned& fts_executable, unsigned& fts_debuginfo, unsigned& fts_sref, unsigned& fts_sdef,
-              bool& fts_sref_complete_p)
+archive_classify (const string& rps, string& archive_extension,
+                  sqlite_ps& ps_upsert_buildids, sqlite_ps& ps_upsert_files,
+                  sqlite_ps& ps_upsert_de, sqlite_ps& ps_upsert_sref, sqlite_ps& ps_upsert_sdef,
+                  time_t mtime,
+                  unsigned& fts_executable, unsigned& fts_debuginfo, unsigned& fts_sref, unsigned& fts_sdef,
+                  bool& fts_sref_complete_p)
 {
-  string popen_cmd = string("rpm2cpio " + shell_escape(rps));
+  string archive_decoder = "/dev/null";
+  for (auto&& arch : scan_archives)
+    if (string_endswith(rps, arch.first))
+      {
+        archive_extension = arch.first;
+        archive_decoder = arch.second;
+      }
+  string popen_cmd = archive_decoder + " " + shell_escape(rps);
   FILE* fp = popen (popen_cmd.c_str(), "r"); // "e" O_CLOEXEC?
   if (fp == NULL)
     throw libc_exception (errno, string("popen ") + popen_cmd);
@@ -1879,19 +1911,19 @@ rpm_classify (const string& rps, sqlite_ps& ps_upsert_buildids, sqlite_ps& ps_up
     throw archive_exception("cannot create archive reader");
   defer_dtor<struct archive*,int> archive_closer (a, archive_read_free);
 
-  int rc = archive_read_support_format_cpio(a);
+  int rc = archive_read_support_format_all(a);
   if (rc != ARCHIVE_OK)
-    throw archive_exception(a, "cannot select cpio format");
+    throw archive_exception(a, "cannot select all formats");
   rc = archive_read_support_filter_all(a);
   if (rc != ARCHIVE_OK)
     throw archive_exception(a, "cannot select all filters");
 
   rc = archive_read_open_FILE (a, fp);
   if (rc != ARCHIVE_OK)
-    throw archive_exception(a, "cannot open archive from rpm2cpio pipe");
+    throw archive_exception(a, "cannot open archive from pipe");
 
   if (verbose > 3)
-    obatched(clog) << "rpm2cpio|libarchive scanning " << rps << endl;
+    obatched(clog) << "libarchive scanning " << rps << endl;
 
   while(1) // parse cpio archive entries
     {
@@ -1910,7 +1942,7 @@ rpm_classify (const string& rps, sqlite_ps& ps_upsert_buildids, sqlite_ps& ps_up
             fn = fn.substr(1); // trim off the leading '.'
 
           if (verbose > 3)
-            obatched(clog) << "rpm2cpio|libarchive checking " << fn << endl;
+            obatched(clog) << "libarchive checking " << fn << endl;
 
           // extract this file to a temporary file
           const char *tmpdir_env = getenv ("TMPDIR") ?: "/tmp";
@@ -2027,11 +2059,11 @@ rpm_classify (const string& rps, sqlite_ps& ps_upsert_buildids, sqlite_ps& ps_up
 
 
 
-// scan for *.rpm files
+// scan for archive files such as .rpm
 static void
-scan_source_rpm_path (const string& dir)
+scan_source_archive_path (const string& dir)
 {
-  obatched(clog) << "fts/rpm traversing " << dir << endl;
+  obatched(clog) << "fts/archive traversing " << dir << endl;
 
   sqlite_ps ps_upsert_buildids (db, "rpm-buildid-intern", "insert or ignore into " BUILDIDS "_buildids VALUES (NULL, ?);");
   sqlite_ps ps_upsert_files (db, "rpm-file-intern", "insert or ignore into " BUILDIDS "_files VALUES (NULL, ?);");
@@ -2060,7 +2092,7 @@ scan_source_rpm_path (const string& dir)
   struct timeval tv_start, tv_end;
   gettimeofday (&tv_start, NULL);
   unsigned fts_scanned=0, fts_regex=0, fts_cached=0, fts_debuginfo=0;
-  unsigned fts_executable=0, fts_rpm = 0, fts_sref=0, fts_sdef=0;
+  unsigned fts_executable=0, fts_archive = 0, fts_sref=0, fts_sdef=0;
 
   FTS *fts = fts_open (dirs,
                        (traverse_logical ? FTS_LOGICAL : FTS_PHYSICAL|FTS_XDEV)
@@ -2082,7 +2114,7 @@ scan_source_rpm_path (const string& dir)
         break;
 
       if (verbose > 2)
-        obatched(clog) << "fts/rpm traversing " << f->fts_path << endl;
+        obatched(clog) << "fts/archive traversing " << f->fts_path << endl;
 
       try
         {
@@ -2101,7 +2133,7 @@ scan_source_rpm_path (const string& dir)
           if (!ri || rx)
             {
               if (verbose > 3)
-                obatched(clog) << "fts/rpm skipped by regex " << (!ri ? "I" : "") << (rx ? "X" : "") << endl;
+                obatched(clog) << "fts/archive skipped by regex " << (!ri ? "I" : "") << (rx ? "X" : "") << endl;
               fts_regex ++;
               continue;
             }
@@ -2116,13 +2148,13 @@ scan_source_rpm_path (const string& dir)
 
             case FTS_F:
               {
-                // heuristic: reject if file name does not end with ".rpm"
-                // (alternative: try opening with librpm etc., caching)
-                string suffix = ".rpm";
-                if (rps.size() < suffix.size() ||
-                    rps.substr(rps.size()-suffix.size()) != suffix)
+		bool any = false;
+                for (auto&& arch : scan_archives)
+                  if (string_endswith(rps, arch.first))
+		    any = true;
+		if (! any)
                   continue;
-                fts_rpm ++;
+                fts_archive ++;
 
                 /* See if we know of it already. */
                 int rc = ps_query
@@ -2133,7 +2165,7 @@ scan_source_rpm_path (const string& dir)
                 ps_query.reset();
                 if (rc == SQLITE_ROW) // i.e., a result, as opposed to DONE (no results)
                   // no need to recheck a file/version we already know
-                  // specifically, no need to parse this rpm again, since we already have
+                  // specifically, no need to parse this archive again, since we already have
                   // it as a D or E or S record,
                   // (so is stored with buildid=NULL)
                   {
@@ -2141,29 +2173,30 @@ scan_source_rpm_path (const string& dir)
                     continue;
                   }
 
-                // intern the rpm file name
+                // intern the archive file name
                 ps_upsert_files
                   .reset()
                   .bind(1, rps)
                   .step_ok_done();
 
-                // extract the rpm contents via popen("rpm2cpio") | libarchive | loop-of-elf_classify()
+                // extract the archive contents
                 unsigned my_fts_executable = 0, my_fts_debuginfo = 0, my_fts_sref = 0, my_fts_sdef = 0;
                 bool my_fts_sref_complete_p = true;
                 try
                   {
-                    rpm_classify (rps,
+                    string archive_extension;
+                    archive_classify (rps, archive_extension,
                                   ps_upsert_buildids, ps_upsert_files,
                                   ps_upsert_de, ps_upsert_sref, ps_upsert_sdef, // dalt
                                   f->fts_statp->st_mtime,
                                   my_fts_executable, my_fts_debuginfo, my_fts_sref, my_fts_sdef,
                                   my_fts_sref_complete_p);
-                    inc_metric ("scanned_total","source","rpm");
-                    add_metric("found_debuginfo_total","source","rpm",
+                    inc_metric ("scanned_total","source",archive_extension + " archive");
+                    add_metric("found_debuginfo_total","source",archive_extension + " archive",
                                my_fts_debuginfo);
-                    add_metric("found_executable_total","source","rpm",
+                    add_metric("found_executable_total","source",archive_extension + " archive",
                                my_fts_executable);
-                    add_metric("found_sourcerefs_total","source","rpm",
+                    add_metric("found_sourcerefs_total","source",archive_extension + " archive",
                                my_fts_sref);
                   }
                 catch (const reportable_exception& e)
@@ -2172,7 +2205,7 @@ scan_source_rpm_path (const string& dir)
                   }
 
                 if (verbose > 2)
-                  obatched(clog) << "scanned rpm=" << rps
+                  obatched(clog) << "scanned archive=" << rps
                                  << " mtime=" << f->fts_statp->st_mtime
                                  << " executables=" << my_fts_executable
                                  << " debuginfos=" << my_fts_debuginfo
@@ -2197,7 +2230,7 @@ scan_source_rpm_path (const string& dir)
 
             case FTS_ERR:
             case FTS_NS:
-              throw libc_exception(f->fts_errno, string("fts/rpm traversal ") + string(f->fts_path));
+              throw libc_exception(f->fts_errno, string("fts/archive traversal ") + string(f->fts_path));
 
             default:
             case FTS_SL: /* ignore symlinks; seen in non-L mode only */
@@ -2206,9 +2239,9 @@ scan_source_rpm_path (const string& dir)
 
           if ((verbose && f->fts_info == FTS_DP) ||
               (verbose > 1 && f->fts_info == FTS_F))
-            obatched(clog) << "fts/rpm traversing " << rps << ", scanned=" << fts_scanned
+            obatched(clog) << "fts/archive traversing " << rps << ", scanned=" << fts_scanned
                            << ", regex-skipped=" << fts_regex
-                           << ", rpm=" << fts_rpm << ", cached=" << fts_cached << ", debuginfo=" << fts_debuginfo
+                           << ", archive=" << fts_archive << ", cached=" << fts_cached << ", debuginfo=" << fts_debuginfo
                            << ", executable=" << fts_executable
                            << ", sourcerefs=" << fts_sref << ", sourcedefs=" << fts_sdef << endl;
         }
@@ -2222,9 +2255,9 @@ scan_source_rpm_path (const string& dir)
   gettimeofday (&tv_end, NULL);
   double deltas = (tv_end.tv_sec - tv_start.tv_sec) + (tv_end.tv_usec - tv_start.tv_usec)*0.000001;
 
-  obatched(clog) << "fts/rpm traversed " << dir << " in " << deltas << "s, scanned=" << fts_scanned
+  obatched(clog) << "fts/archive traversed " << dir << " in " << deltas << "s, scanned=" << fts_scanned
                  << ", regex-skipped=" << fts_regex
-                 << ", rpm=" << fts_rpm << ", cached=" << fts_cached << ", debuginfo=" << fts_debuginfo
+                 << ", archive=" << fts_archive << ", cached=" << fts_cached << ", debuginfo=" << fts_debuginfo
                  << ", executable=" << fts_executable
                  << ", sourcerefs=" << fts_sref << ", sourcedefs=" << fts_sdef << endl;
 }
@@ -2232,18 +2265,18 @@ scan_source_rpm_path (const string& dir)
 
 
 static void*
-thread_main_scan_source_rpm_path (void* arg)
+thread_main_scan_source_archive_path (void* arg)
 {
   string dir = string((const char*) arg);
 
   unsigned rescan_timer = 0;
   sig_atomic_t forced_rescan_count = 0;
-  set_metric("thread_timer_max", "rpm", dir, rescan_s);
-  set_metric("thread_tid", "rpm", dir, tid());
+  set_metric("thread_timer_max", "archive", dir, rescan_s);
+  set_metric("thread_tid", "archive", dir, tid());
   while (! interrupted)
     {
-      set_metric("thread_timer", "rpm", dir, rescan_timer);
-      set_metric("thread_forced_total", "rpm", dir, forced_rescan_count);
+      set_metric("thread_timer", "archive", dir, rescan_timer);
+      set_metric("thread_forced_total", "archive", dir, forced_rescan_count);
       if (rescan_s && rescan_timer > rescan_s)
         rescan_timer = 0;
       if (sigusr1 != forced_rescan_count)
@@ -2254,10 +2287,10 @@ thread_main_scan_source_rpm_path (void* arg)
       if (rescan_timer == 0)
         try
           {
-            set_metric("thread_working", "rpm", dir, time(NULL));
-            inc_metric("thread_work_total", "rpm", dir);
-            scan_source_rpm_path (dir);
-            set_metric("thread_working", "rpm", dir, 0);
+            set_metric("thread_working", "archive", dir, time(NULL));
+            inc_metric("thread_work_total", "archive", dir);
+            scan_source_archive_path (dir);
+            set_metric("thread_working", "archive", dir, 0);
           }
         catch (const sqlite_exception& e)
           {
@@ -2490,8 +2523,8 @@ main (int argc, char *argv[])
       error (EXIT_FAILURE, 0,
              "unexpected argument: %s", argv[remaining]);
 
-  if (!scan_rpms && !scan_files && source_paths.size()>0)
-    obatched(clog) << "warning: without -F and/or -R, ignoring PATHs" << endl;
+  if (scan_archives.size()==0 && !scan_files && source_paths.size()>0)
+    obatched(clog) << "warning: without -F -R -U, ignoring PATHs" << endl;
 
   (void) signal (SIGPIPE, SIG_IGN); // microhttpd can generate it incidentally, ignore
   (void) signal (SIGINT, signal_handler); // ^C
@@ -2611,16 +2644,22 @@ main (int argc, char *argv[])
   if (maxigroom)
     obatched(clog) << "maxigroomed database" << endl;
 
-
   obatched(clog) << "search concurrency " << concurrency << endl;
   obatched(clog) << "rescan time " << rescan_s << endl;
   obatched(clog) << "groom time " << groom_s << endl;
+  if (scan_archives.size()>0)
+    {
+      obatched ob(clog);
+      auto& o = ob << "scanning archive types ";
+      for (auto&& arch : scan_archives)
+	o << arch.first << " ";
+      o << endl;
+    }
   const char* du = getenv(DEBUGINFOD_URLS_ENV_VAR);
   if (du && du[0] != '\0') // set to non-empty string?
     obatched(clog) << "upstream debuginfod servers: " << du << endl;
 
-  vector<pthread_t> source_file_scanner_threads;
-  vector<pthread_t> source_rpm_scanner_threads;
+  vector<pthread_t> scanner_threads;
   pthread_t groom_thread;
 
   rc = pthread_create (& groom_thread, NULL, thread_main_groom, NULL);
@@ -2632,20 +2671,21 @@ main (int argc, char *argv[])
       pthread_t pt;
       rc = pthread_create (& pt, NULL, thread_main_scan_source_file_path, (void*) it.c_str());
       if (rc < 0)
-        error (0, 0, "warning: cannot spawn thread (%d) to scan source files %s\n", rc, it.c_str());
+        error (0, 0, "warning: cannot spawn thread (%d) to scan files %s\n", rc, it.c_str());
       else
-        source_file_scanner_threads.push_back(pt);
+        scanner_threads.push_back(pt);
     }
 
-  if (scan_rpms) for (auto&& it : source_paths)
-    {
-      pthread_t pt;
-      rc = pthread_create (& pt, NULL, thread_main_scan_source_rpm_path, (void*) it.c_str());
-      if (rc < 0)
-        error (0, 0, "warning: cannot spawn thread (%d) to scan source rpms %s\n", rc, it.c_str());
-      else
-        source_rpm_scanner_threads.push_back(pt);
-    }
+  if (scan_archives.size() > 0)
+    for (auto&& it : source_paths)
+      {
+        pthread_t pt;
+        rc = pthread_create (& pt, NULL, thread_main_scan_source_archive_path, (void*) it.c_str());
+        if (rc < 0)
+          error (0, 0, "warning: cannot spawn thread (%d) to scan archives %s\n", rc, it.c_str());
+        else
+          scanner_threads.push_back(pt);
+      }
 
   /* Trivial main loop! */
   set_metric("ready", 1);
@@ -2656,10 +2696,8 @@ main (int argc, char *argv[])
   if (verbose)
     obatched(clog) << "stopping" << endl;
 
-  /* Join any source scanning threads. */
-  for (auto&& it : source_file_scanner_threads)
-    pthread_join (it, NULL);
-  for (auto&& it : source_rpm_scanner_threads)
+  /* Join all our threads. */
+  for (auto&& it : scanner_threads)
     pthread_join (it, NULL);
   pthread_join (groom_thread, NULL);
   

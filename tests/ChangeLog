@@ -1,3 +1,10 @@
+2019-12-22  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod-debs/*: New test files, based on
+	https://wiki.debian.org/Packaging/Intro.
+	* run-debuginfod-find.sh: Test deb file processing (if dpkg
+	installed).
+
 2019-12-04  Frank Ch. Eigler  <fche@redhat.com>
 
 	* run-debuinfod-find.sh: Test $DEBUGINFOD_PROGRESS.

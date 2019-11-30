@@ -1,3 +1,10 @@
+2019-12-22  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.cxx (*_rpm_*): Rename to *_archive_* throughout.
+	(scan_archives): New read-mostly global to identify archive
+	file extensions and corresponding extractor commands.
+	(parse_opt): Handle new -U flag.
+
 2019-12-19  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod-client.c (default_progressfn): New function.

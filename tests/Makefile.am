@@ -462,7 +462,13 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     debuginfod-rpms/rhel7/hello2-1.0-2.src.rpm \
 	     debuginfod-rpms/rhel7/hello2-1.0-2.x86_64.rpm \
 	     debuginfod-rpms/rhel7/hello2-debuginfo-1.0-2.x86_64.rpm \
-	     debuginfod-rpms/rhel7/hello2-two-1.0-2.x86_64.rpm
+	     debuginfod-rpms/rhel7/hello2-two-1.0-2.x86_64.rpm \
+	     debuginfod-rpms/rhel7/hello2-two-1.0-2.x86_64.rpm \
+	     debuginfod-debs/hithere-dbgsym_1.0-1_amd64.ddeb \
+	     debuginfod-debs/hithere_1.0-1.debian.tar.xz \
+	     debuginfod-debs/hithere_1.0-1.dsc \
+	     debuginfod-debs/hithere_1.0-1_amd64.deb \
+	     debuginfod-debs/hithere_1.0.orig.tar.gz
 
 
 

@@ -35,6 +35,9 @@ BuildRequires: pkgconfig(libarchive) >= 3.1.2
 BuildRequires: bzip2
 # For the run-debuginfod-find.sh test case in %check for /usr/sbin/ss
 BuildRequires: iproute
+%if 0%{?fedora} >= 20
+BuildRequires: dpkg
+%endif
 BuildRequires: curl
 
 %define _gnu %{nil}

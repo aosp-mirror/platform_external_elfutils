@@ -509,8 +509,6 @@ debuginfod_query_server (debuginfod_client *c,
   long loops = 0;
   do
     {
-      CURLMcode curl_res;
-
       if (c->progressfn) /* inform/check progress callback */
         {
           loops ++;
@@ -518,6 +516,7 @@ debuginfod_query_server (debuginfod_client *c,
           long pb = 0;
           if (target_handle) /* we've committed to a server; report its download progress */
             {
+              CURLcode curl_res;
 #ifdef CURLINFO_SIZE_DOWNLOAD_T
               curl_off_t dl;
               curl_res = curl_easy_getinfo(target_handle,
@@ -564,10 +563,10 @@ debuginfod_query_server (debuginfod_client *c,
           if (data[i].handle != target_handle)
             curl_multi_remove_handle(curlm, data[i].handle);
 
-      curl_res = curl_multi_perform(curlm, &still_running);
-      if (curl_res != CURLM_OK)
+      CURLMcode curlm_res = curl_multi_perform(curlm, &still_running);
+      if (curlm_res != CURLM_OK)
         {
-          switch (curl_res)
+          switch (curlm_res)
             {
             case CURLM_CALL_MULTI_PERFORM: continue;
             case CURLM_OUT_OF_MEMORY: rc = -ENOMEM; break;

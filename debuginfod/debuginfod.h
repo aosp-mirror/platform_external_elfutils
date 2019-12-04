@@ -33,6 +33,7 @@
 #define DEBUGINFOD_URLS_ENV_VAR "DEBUGINFOD_URLS"
 #define DEBUGINFOD_CACHE_PATH_ENV_VAR "DEBUGINFOD_CACHE_PATH"
 #define DEBUGINFOD_TIMEOUT_ENV_VAR "DEBUGINFOD_TIMEOUT"
+#define DEBUGINFOD_PROGRESS_ENV_VAR "DEBUGINFOD_PROGRESS"
 
 /* Handle for debuginfod-client connection.  */
 typedef struct debuginfod_client debuginfod_client;

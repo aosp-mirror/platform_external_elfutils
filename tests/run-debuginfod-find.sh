@@ -89,7 +89,7 @@ wait_ready $PORT1 'ready' 1
 export DEBUGINFOD_URLS=http://127.0.0.1:$PORT1/   # or without trailing /
 
 # Be patient when run on a busy machine things might take a bit.
-export DEBUGINFOD_TIMEOUT=10
+export DEBUGINFOD_TIMEOUT=1,10
 
 # We use -t0 and -g0 here to turn off time-based scanning & grooming.
 # For testing purposes, we just sic SIGUSR1 / SIGUSR2 at the process.
@@ -153,8 +153,11 @@ cmp $filename F/prog2
 cat vlog
 grep -q Progress vlog
 tempfiles vlog
-filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find executable $BUILDID2`
+filename=`testrun env DEBUGINFOD_PROGRESS=1 ${abs_top_builddir}/debuginfod/debuginfod-find executable $BUILDID2 2>vlog2`
 cmp $filename F/prog2
+cat vlog2
+grep -q Downloading vlog2
+tempfiles vlog2
 filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find source $BUILDID2 ${PWD}/prog2.c`
 cmp $filename ${PWD}/prog2.c
 

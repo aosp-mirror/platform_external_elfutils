@@ -1,3 +1,13 @@
+2019-12-19  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod-client.c (default_progressfn): New function.
+	(debuginfod_begin): Use it if $DEBUGINFOD_PROGRESS set.
+	(server_timeout): Bump to 30 seconds.
+	(debuginfod_query_server): Call progressfn -after- rather than
+	before curl ops, to make it likely that a successful transfer
+	results in final a=b call.  Tweak cleanup sequence.
+	* debuginfod.h: Document $DEBUGINFOD_PROGRESS name.
+
 2019-12-09  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod-client.c (debuginfod_query_server): Check

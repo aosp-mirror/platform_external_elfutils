@@ -119,9 +119,13 @@ debuginfod instances.  Alternate URL prefixes are separated by space.
 
 .TP 21
 .B DEBUGINFOD_TIMEOUT
-This environment variable governs the timeout for each debuginfod HTTP
-connection.  A server that fails to respond within this many seconds
-is skipped.  The default is 5.
+This environment variable governs the timeouts for each debuginfod
+HTTP connection.  One or two comma-separated numbers may be given.
+The first is the number of seconds for the connection establishment
+(CURLOPT_CONNECTTIMEOUT), and the default is 5.  The second is the
+number of seconds for the transfer completion (CURLOPT_TIMEOUT), and
+the default is no timeout.  (Zero or negative also means "no
+timeout".)
 
 .TP 21
 .B DEBUGINFOD_CACHE_PATH

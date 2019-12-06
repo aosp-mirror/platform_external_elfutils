@@ -1,3 +1,7 @@
+2019-12-06  Mark Wielaard  <mark@klomp.org>
+
+	* backtrace-data.c (main): Add break after assert.
+
 2019-12-05  Mark Wielaard  <mark@klomp.org>
 
 	* run-elfclassify.sh: Run elfcompress under testrun.

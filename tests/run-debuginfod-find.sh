@@ -102,7 +102,7 @@ export DEBUGINFOD_TIMEOUT=10
 echo "int main() { return 0; }" > ${PWD}/prog.c
 tempfiles prog.c
 gcc -g -o prog ${PWD}/prog.c
- ${abs_top_builddir}/src/strip -g -f prog.debug ${PWD}/prog
+testrun ${abs_top_builddir}/src/strip -g -f prog.debug ${PWD}/prog
 BUILDID=`env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../src/readelf \
           -a prog | grep 'Build ID' | cut -d ' ' -f 7`
 

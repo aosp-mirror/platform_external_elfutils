@@ -301,6 +301,16 @@ debuginfod_query_server (debuginfod_client *c,
   char target_cache_tmppath[PATH_MAX*5];
   char suffix[PATH_MAX*2];
   char build_id_bytes[MAX_BUILD_ID_BYTES * 2 + 1];
+  int rc;
+
+  /* Is there any server we can query?  If not, don't do any work,
+     just return with ENOSYS.  Don't even access the cache.  */
+  urls_envvar = getenv(server_urls_envvar);
+  if (urls_envvar == NULL || urls_envvar[0] == '\0')
+    {
+      rc = -ENOSYS;
+      goto out;
+    }
 
   /* Copy lowercase hex representation of build_id into buf.  */
   if ((build_id_len >= MAX_BUILD_ID_BYTES) ||
@@ -373,7 +383,7 @@ debuginfod_query_server (debuginfod_client *c,
   /* XXX combine these */
   snprintf(interval_path, sizeof(interval_path), "%s/%s", cache_path, cache_clean_interval_filename);
   snprintf(maxage_path, sizeof(maxage_path), "%s/%s", cache_path, cache_max_unused_age_filename);
-  int rc = debuginfod_init_cache(cache_path, interval_path, maxage_path);
+  rc = debuginfod_init_cache(cache_path, interval_path, maxage_path);
   if (rc != 0)
     goto out;
   rc = debuginfod_clean_cache(c, cache_path, interval_path, maxage_path);
@@ -388,14 +398,6 @@ debuginfod_query_server (debuginfod_client *c,
       if (path != NULL)
         *path = strdup(target_cache_path);
       return fd;
-    }
-
-
-  urls_envvar = getenv(server_urls_envvar);
-  if (urls_envvar == NULL || urls_envvar[0] == '\0')
-    {
-      rc = -ENOSYS;
-      goto out;
     }
 
   if (getenv(server_timeout_envvar))

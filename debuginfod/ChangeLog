@@ -1,3 +1,8 @@
+2019-12-09  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (debuginfod_query_server): Check
+	server_urls_envvar early.
+
 2019-12-03  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod-client.c (debuginfod_query_server): Use separate

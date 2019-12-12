@@ -1,3 +1,8 @@
+2019-12-11  Omar Sandoval  <osandov@fb.com>
+
+	* dwfl-report-segment-coalesce.c: New test.
+	* Makefile.am: Add dwfl-report-segment-coalesce
+
 2019-12-06  Mark Wielaard  <mark@klomp.org>
 
 	* run-debuginfod-find.sh: Force -Wl,--build-id.

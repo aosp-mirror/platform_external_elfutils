@@ -273,7 +273,7 @@ case "$CFLAGS" in
     ;;
   *)
     save_CFLAGS="$CFLAGS"
-    CFLAGS="-D_FORTIFY_SOURCE=2 -Werror $CFLAGS"
+    CFLAGS="-D_FORTIFY_SOURCE=2 $CFLAGS -Werror"
     AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
       #include <string.h>
       int main() { return 0; }

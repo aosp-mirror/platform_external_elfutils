@@ -1,5 +1,17 @@
 2020-01-11  Frank Ch. Eigler  <fche@redhat.com>
 
+	* debuginfod.cxx (libarchive_fdcache): New class/facility to own a
+	cache of temporary files that were previously extracted from an
+	archive.  If only it could store just unlinked fd's instead of
+	filenames.
+	(handle_buildid_r_match): Use it to answer dwz/altdebug and webapi
+	requests.
+	(groom): Clean it.
+	(main): Initialize the cache control parameters from heuristics.
+	Use a consistent tmpdir for these and tmp files elsewhere.
+
+2020-01-11  Frank Ch. Eigler  <fche@redhat.com>
+
 	* debuginfod.cxx (conninfo): Print User-Agent and X-Forwarded-For
 	request headers, after mild safety-censorship (for easier machine
 	processing).

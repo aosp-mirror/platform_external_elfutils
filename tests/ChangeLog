@@ -1,5 +1,9 @@
 2020-01-11  Frank Ch. Eigler  <fche@redhat.com>
 
+	* run-debuginfod-find.sh: Test --fdcache* options.
+
+2020-01-11  Frank Ch. Eigler  <fche@redhat.com>
+
 	* run-debuginfod-find.sh: Adjust to new work-queue metrics.
 
 2020-01-02  Mark Wielaard  <mark@klomp.org>

@@ -52,6 +52,7 @@ extern "C" {
 #include <signal.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/vfs.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <netdb.h>
@@ -349,7 +350,10 @@ static const struct argp_option options[] =
    { "database", 'd', "FILE", 0, "Path to sqlite database.", 0 },
    { "ddl", 'D', "SQL", 0, "Apply extra sqlite ddl/pragma to connection.", 0 },
    { "verbose", 'v', NULL, 0, "Increase verbosity.", 0 },
-
+#define ARGP_KEY_FDCACHE_FDS 0x1001
+   { "fdcache-fds", ARGP_KEY_FDCACHE_FDS, "NUM", 0, "Maximum number of archive files to keep in fdcache.", 0 },
+#define ARGP_KEY_FDCACHE_MBS 0x1002
+   { "fdcache-mbs", ARGP_KEY_FDCACHE_MBS, "MB", 0, "Maximum total size of archive file fdcache.", 0 },
    { NULL, 0, NULL, 0, NULL, 0 }
   };
 
@@ -378,7 +382,7 @@ static volatile sig_atomic_t sigusr2 = 0;
 static unsigned http_port = 8002;
 static unsigned rescan_s = 300;
 static unsigned groom_s = 86400;
-static unsigned maxigroom = false;
+static bool maxigroom = false;
 static unsigned concurrency = std::thread::hardware_concurrency() ?: 1;
 static set<string> source_paths;
 static bool scan_files = false;
@@ -387,6 +391,9 @@ static vector<string> extra_ddl;
 static regex_t file_include_regex;
 static regex_t file_exclude_regex;
 static bool traverse_logical;
+static long fdcache_fds;
+static long fdcache_mbs;
+static string tmpdir;
 
 static void set_metric(const string& key, int64_t value);
 // static void inc_metric(const string& key);
@@ -450,6 +457,12 @@ parse_opt (int key, char *arg,
       rc = regcomp (&file_exclude_regex, arg, REG_EXTENDED|REG_NOSUB);
       if (rc != 0)
         argp_failure(state, 1, EINVAL, "regular expession");
+      break;
+    case ARGP_KEY_FDCACHE_FDS:
+      fdcache_fds = atol (arg);
+      break;
+    case ARGP_KEY_FDCACHE_MBS:
+      fdcache_mbs = atol (arg);
       break;
     case ARGP_KEY_ARG:
       source_paths.insert(string(arg));
@@ -886,6 +899,148 @@ shell_escape(const string& str)
 }
 
 
+// A map-like class that owns a cache of file descriptors (indexed by
+// file / content names).
+//
+// If only it could use fd's instead of file names ... but we can't
+// dup(2) to create independent descriptors for the same unlinked
+// files, so would have to use some goofy linux /proc/self/fd/%d
+// hack such as the following
+
+#if 0
+int superdup(int fd)
+{
+#ifdef __linux__
+  char *fdpath = NULL;
+  int rc = asprintf(& fdpath, "/proc/self/fd/%d", fd);
+  int newfd;
+  if (rc >= 0)
+    newfd = open(fdpath, O_RDONLY);
+  else
+    newfd = -1;
+  free (fdpath);
+  return newfd;
+#else
+  return -1;
+#endif
+}
+#endif
+
+class libarchive_fdcache
+{
+private:
+  mutex fdcache_lock;
+
+  struct fdcache_entry
+  {
+    string archive;
+    string entry;
+    string fd;
+    long fd_size_mb; // rounded up megabytes
+  };
+  deque<fdcache_entry> lru; // @head: most recently used
+  long max_fds;
+  long max_mbs;
+
+public:
+  void intern(const string& a, const string& b, string fd, off_t sz)
+  {
+    {
+      unique_lock<mutex> lock(fdcache_lock);
+      for (auto i = lru.begin(); i < lru.end(); i++) // nuke preexisting copy
+        {
+          if (i->archive == a && i->entry == b)
+            {
+              unlink (i->fd.c_str());
+              lru.erase(i);
+              break; // must not continue iterating
+            }
+        }
+      long mb = ((sz+1023)/1024+1023)/1024;
+      fdcache_entry n = { a, b, fd, mb };
+      lru.push_front(n);
+    if (verbose > 3)
+      obatched(clog) << "fdcache interned a=" << a << " b=" << b << " fd=" << fd << " mb=" << mb << endl;
+    }
+
+    this->limit(max_fds, max_mbs); // age cache if required
+  }
+
+  int lookup(const string& a, const string& b)
+  {
+    unique_lock<mutex> lock(fdcache_lock);
+    for (auto i = lru.begin(); i < lru.end(); i++)
+      {
+        if (i->archive == a && i->entry == b)
+          { // found it; move it to head of lru
+            fdcache_entry n = *i;
+            lru.erase(i); // invalidates i, so no more iteration!
+            lru.push_front(n);
+
+            return open(n.fd.c_str(), O_RDONLY); // NB: no problem if dup() fails; looks like cache miss
+          }
+      }
+    return -1;
+  }
+
+  void clear(const string& a, const string& b)
+  {
+    unique_lock<mutex> lock(fdcache_lock);
+    for (auto i = lru.begin(); i < lru.end(); i++)
+      {
+        if (i->archive == a && i->entry == b)
+          { // found it; move it to head of lru
+            fdcache_entry n = *i;
+            lru.erase(i); // invalidates i, so no more iteration!
+            unlink (n.fd.c_str());
+            return;
+          }
+      }
+  }
+
+  void limit(long maxfds, long maxmbs)
+  {
+    if (verbose > 3 && (this->max_fds != maxfds || this->max_mbs != maxmbs))
+      obatched(clog) << "fdcache limited to maxfds=" << maxfds << " maxmbs=" << maxmbs << endl;
+
+    unique_lock<mutex> lock(fdcache_lock);
+    this->max_fds = maxfds;
+    this->max_mbs = maxmbs;
+
+    long total_fd = 0;
+    long total_mb = 0;
+    for (auto i = lru.begin(); i < lru.end(); i++)
+      {
+        // accumulate totals from most recently used one going backward
+        total_fd ++;
+        total_mb += i->fd_size_mb;
+        if (total_fd > max_fds || total_mb > max_mbs)
+          {
+            // found the cut here point!
+
+            for (auto j = i; j < lru.end(); j++) // close all the fds from here on in
+              {
+                if (verbose > 3)
+                  obatched(clog) << "fdcache evicted a=" << j->archive << " b=" << j->entry
+                                 << " fd=" << j->fd << " mb=" << j->fd_size_mb << endl;
+                unlink (j->fd.c_str());
+              }
+
+            lru.erase(i, lru.end()); // erase the nodes generally
+            break;
+          }
+
+      }
+  }
+
+  ~libarchive_fdcache()
+  {
+    limit(0, 0);
+  }
+};
+static libarchive_fdcache fdcache;
+
+
 static struct MHD_Response*
 handle_buildid_r_match (int64_t b_mtime,
                         const string& b_source0,
@@ -902,6 +1057,41 @@ handle_buildid_r_match (int64_t b_mtime,
       if (verbose)
         obatched(clog) << "mtime mismatch for " << b_source0 << endl;
       return 0;
+    }
+
+  int fd = fdcache.lookup(b_source0, b_source1);
+  while (fd >= 0) // got one!; NB: this is really an if() with a possible branch out to the end
+    {
+      rc = fstat(fd, &fs);
+      if (rc < 0) // disappeared?
+        {
+          if (verbose)
+            obatched(clog) << "cannot fstat fdcache " << b_source0 << endl;
+          close(fd);
+          fdcache.clear(b_source0, b_source1);
+          break; // branch out of if "loop", to try new libarchive fetch attempt
+        }
+
+      struct MHD_Response* r = MHD_create_response_from_fd (fs.st_size, fd);
+      if (r == 0)
+        {
+          if (verbose)
+            obatched(clog) << "cannot create fd-response for " << b_source0 << endl;
+          close(fd);
+          break; // branch out of if "loop", to try new libarchive fetch attempt
+        }
+
+      inc_metric ("http_responses_total","result","archive fdcache");
+
+      MHD_add_response_header (r, "Content-Type", "application/octet-stream");
+      add_mhd_last_modified (r, fs.st_mtime);
+      if (verbose > 1)
+        obatched(clog) << "serving fdcache archive " << b_source0 << " file " << b_source1 << endl;
+      /* libmicrohttpd will close it. */
+      if (result_fd)
+        *result_fd = fd;
+      return r;
+      // NB: see, we never go around the 'loop' more than once
     }
 
   string archive_decoder = "/dev/null";
@@ -950,18 +1140,27 @@ handle_buildid_r_match (int64_t b_mtime,
         continue;
 
       // extract this file to a temporary file
-      char tmppath[PATH_MAX] = "/tmp/debuginfod.XXXXXX"; // XXX: $TMP_DIR etc.
-      int fd = mkstemp (tmppath);
+      char* tmppath = NULL;
+      rc = asprintf (&tmppath, "%s/debuginfod.XXXXXX", tmpdir.c_str());
+      if (rc < 0)
+        throw libc_exception (ENOMEM, "cannot allocate tmppath");
+      defer_dtor<void*,void> tmmpath_freer (tmppath, free);
+      fd = mkstemp (tmppath);
       if (fd < 0)
         throw libc_exception (errno, "cannot create temporary file");
-      unlink (tmppath); // unlink now so OS will release the file as soon as we close the fd
+      // NB: don't unlink (tmppath), as fdcache will take charge of it.
 
       rc = archive_read_data_into_fd (a, fd);
-      if (rc != ARCHIVE_OK)
+      if (rc != ARCHIVE_OK) // e.g. ENOSPC!
         {
           close (fd);
+          unlink (tmppath);
           throw archive_exception(a, "cannot extract file");
         }
+
+      // NB: now we know we have a complete reusable file; make fdcache
+      // responsible for unlinking it later.
+      fdcache.intern(b_source0, b_source1, tmppath, archive_entry_size(e));
 
       inc_metric ("http_responses_total","result",archive_extension + " archive");
       struct MHD_Response* r = MHD_create_response_from_fd (archive_entry_size(e), fd);
@@ -1836,9 +2035,8 @@ archive_classify (const string& rps, string& archive_extension,
             obatched(clog) << "libarchive checking " << fn << endl;
 
           // extract this file to a temporary file
-          const char *tmpdir_env = getenv ("TMPDIR") ?: "/tmp";
           char* tmppath = NULL;
-          rc = asprintf (&tmppath, "%s/debuginfod.XXXXXX", tmpdir_env);
+          rc = asprintf (&tmppath, "%s/debuginfod.XXXXXX", tmpdir.c_str());
           if (rc < 0)
             throw libc_exception (ENOMEM, "cannot allocate tmppath");
           defer_dtor<void*,void> tmmpath_freer (tmppath, free);
@@ -2373,6 +2571,9 @@ void groom()
 
   sqlite3_db_release_memory(db); // shrink the process if possible
 
+  fdcache.limit(0,0); // release the fdcache contents
+  fdcache.limit(fdcache_fds,fdcache_mbs); // restore status quo parameters
+
   gettimeofday (&tv_end, NULL);
   double deltas = (tv_end.tv_sec - tv_start.tv_sec) + (tv_end.tv_usec - tv_start.tv_usec)*0.000001;
 
@@ -2488,6 +2689,8 @@ main (int argc, char *argv[])
   /* Tell the library which version we are expecting.  */
   elf_version (EV_CURRENT);
 
+  tmpdir = string(getenv("TMPDIR") ?: "/tmp");
+
   /* Set computed default values. */
   db_path = string(getenv("HOME") ?: "/") + string("/.debuginfod.sqlite"); /* XDG? */
   int rc = regcomp (& file_include_regex, ".*", REG_EXTENDED|REG_NOSUB); // match everything
@@ -2496,6 +2699,15 @@ main (int argc, char *argv[])
   rc = regcomp (& file_exclude_regex, "^$", REG_EXTENDED|REG_NOSUB); // match nothing
   if (rc != 0)
     error (EXIT_FAILURE, 0, "regcomp failure: %d", rc);
+
+  // default parameters for fdcache are computed from system stats
+  struct statfs sfs;
+  rc = statfs(tmpdir.c_str(), &sfs);
+  if (rc < 0)
+    fdcache_mbs = 1024; // 1 gigabyte
+  else
+    fdcache_mbs = sfs.f_bavail * sfs.f_bsize / 1024 / 1024 / 4; // 25% of free space
+  fdcache_fds = concurrency * 2;
 
   /* Parse and process arguments.  */
   int remaining;
@@ -2507,6 +2719,8 @@ main (int argc, char *argv[])
 
   if (scan_archives.size()==0 && !scan_files && source_paths.size()>0)
     obatched(clog) << "warning: without -F -R -U, ignoring PATHs" << endl;
+
+  fdcache.limit(fdcache_fds, fdcache_mbs);
 
   (void) signal (SIGPIPE, SIG_IGN); // microhttpd can generate it incidentally, ignore
   (void) signal (SIGINT, signal_handler); // ^C
@@ -2625,6 +2839,9 @@ main (int argc, char *argv[])
 
   obatched(clog) << "search concurrency " << concurrency << endl;
   obatched(clog) << "rescan time " << rescan_s << endl;
+  obatched(clog) << "fdcache fds " << fdcache_fds << endl;
+  obatched(clog) << "fdcache mbs " << fdcache_mbs << endl;
+  obatched(clog) << "fdcache tmpdir " << tmpdir << endl;
   obatched(clog) << "groom time " << groom_s << endl;
   if (scan_archives.size()>0)
     {

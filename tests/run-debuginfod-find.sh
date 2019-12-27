@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (C) 2019 Red Hat, Inc.
+# Copyright (C) 2019-2020 Red Hat, Inc.
 # This file is part of elfutils.
 #
 # This file is free software; you can redistribute it and/or modify
@@ -87,7 +87,7 @@ wait_ready()
   fi
 }
 
-env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -R -d $DB -p $PORT1 -t0 -g0 R F L &
+env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -R -d $DB -p $PORT1 -t0 -g0 --fdcache-fds 1 --fdcache-mbs 2 R F L &
 PID1=$!
 # Server must become ready
 wait_ready $PORT1 'ready' 1
@@ -213,6 +213,12 @@ archive_test() {
              -a $filename | grep 'Build ID' | cut -d ' ' -f 7`
     test $__BUILDID = $buildid
 
+    # run again to assure that fdcache is being enjoyed
+    filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find executable $__BUILDID`
+    buildid=`env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../src/readelf \
+             -a $filename | grep 'Build ID' | cut -d ' ' -f 7`
+    test $__BUILDID = $buildid
+
     filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $__BUILDID`
     buildid=`env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../src/readelf \
              -a $filename | grep 'Build ID' | cut -d ' ' -f 7`
@@ -275,6 +281,9 @@ env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F
 PID2=$!
 tempfiles ${DB}_2
 wait_ready $PORT2 'ready' 1
+wait_ready $PORT2 'thread_work_total{role="traverse"}' 1
+wait_ready $PORT2 'thread_work_pending{role="scan"}' 0
+wait_ready $PORT2 'thread_busy{role="scan"}' 0
 
 # have clients contact the new server
 export DEBUGINFOD_URLS=http://127.0.0.1:$PORT2
@@ -319,11 +328,12 @@ testrun ${abs_builddir}/debuginfod_build_id_find -e F/prog2 1
 
 # Fetch some metrics, if curl program is installed
 if type curl 2>/dev/null; then
-    curl http://127.0.0.1:$PORT1/badapi
-    curl http://127.0.0.1:$PORT1/metrics
-    curl http://127.0.0.1:$PORT2/metrics
-    curl http://127.0.0.1:$PORT1/metrics | grep -q 'http_responses_total.*result.*error'
-    curl http://127.0.0.1:$PORT2/metrics | grep -q 'http_responses_total.*result.*upstream'
+    curl -s http://127.0.0.1:$PORT1/badapi
+    curl -s http://127.0.0.1:$PORT1/metrics
+    curl -s http://127.0.0.1:$PORT2/metrics
+    curl -s http://127.0.0.1:$PORT1/metrics | grep -q 'http_responses_total.*result.*error'
+    curl -s http://127.0.0.1:$PORT1/metrics | grep -q 'http_responses_total.*result.*fdcache'
+    curl -s http://127.0.0.1:$PORT2/metrics | grep -q 'http_responses_total.*result.*upstream'
 fi
 
 ########################################################################

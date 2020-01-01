@@ -1,3 +1,19 @@
+2020-01-11  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.cxx: Rework threading model.
+	(workq): New class for concurrent work-queue.
+	(semaphore): Removed class, now unused.
+	(scan_source_file_path): Rework into ...
+	(scan_source_file): New function.
+	(thread_main_scan_source_file_path): Nuke.
+	(scan_source_archive_path): Rework into ...
+	(scan_archive_file): New function.
+	(thread_main_scanner): New function for scanner threads.
+	(thread_main_fts_source_paths): New function for traversal thread.
+	(scan_source_paths): ... doing this.
+	(thread_groom): Tweak metrics for consistency.
+	(main): Start 1 traversal and N scanner threads if needed.
+
 2019-01-02  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod.cxx (default_connect_timeout): Removed.

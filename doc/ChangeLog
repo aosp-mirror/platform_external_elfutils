@@ -1,3 +1,8 @@
+2020-01-11  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.8: Rework sections dealing with traversal/scanning,
+	explaining new threading model.
+
 2020-01-02  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod.8 (DEBUGINFOD_TIMEOUT): Document as seconds to

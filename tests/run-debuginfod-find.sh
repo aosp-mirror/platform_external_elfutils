@@ -115,7 +115,9 @@ mv prog F
 mv prog.debug F
 kill -USR1 $PID1
 # Wait till both files are in the index.
-wait_ready $PORT1 'thread_work_total{file="F"}' 2
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 2
+wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
+wait_ready $PORT1 'thread_busy{role="scan"}' 0
 
 ########################################################################
 
@@ -150,7 +152,9 @@ BUILDID2=`env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../src/readelf \
 mv prog2 F
 kill -USR1 $PID1
 # Now there should be 3 files in the index
-wait_ready $PORT1 'thread_work_total{file="F"}' 3
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 3
+wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
+wait_ready $PORT1 'thread_busy{role="scan"}' 0
 
 # Rerun same tests for the prog2 binary
 filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find -v debuginfo $BUILDID2 2>vlog`

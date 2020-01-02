@@ -1,3 +1,7 @@
+2020-01-02  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfod-find.sh: Set DEBUGINFOD_TIMEOUT to 10.
+
 2019-12-22  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod-debs/*: New test files, based on

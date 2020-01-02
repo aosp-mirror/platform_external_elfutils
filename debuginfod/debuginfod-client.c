@@ -105,10 +105,9 @@ static const char *server_urls_envvar = DEBUGINFOD_URLS_ENV_VAR;
 static const char *url_delim =  " ";
 static const char url_delim_char = ' ';
 
-/* Timeout for debuginfods, in seconds. */
+/* Timeout for debuginfods, in seconds (to get at least 100K). */
 static const char *server_timeout_envvar = DEBUGINFOD_TIMEOUT_ENV_VAR;
-static const long default_connect_timeout = 5;
-static const long default_transfer_timeout = -1; /* unlimited */
+static const long default_timeout = 90;
 
 
 /* Data associated with a particular CURL easy handle. Passed to
@@ -483,18 +482,10 @@ debuginfod_query_server (debuginfod_client *c,
       return fd;
     }
 
-  long connect_timeout = default_connect_timeout;
-  long transfer_timeout = default_transfer_timeout;
+  long timeout = default_timeout;
   const char* timeout_envvar = getenv(server_timeout_envvar);
   if (timeout_envvar != NULL)
-    {
-      long ct, tt;
-      rc = sscanf(timeout_envvar, "%ld,%ld", &ct, &tt);
-      if (rc >= 1)
-        connect_timeout = ct;
-      if (rc >= 2)
-        transfer_timeout = tt;
-    }
+    timeout = atoi (timeout_envvar);
 
   /* make a copy of the envvar so it can be safely modified.  */
   server_urls = strdup(urls_envvar);
@@ -586,10 +577,15 @@ debuginfod_query_server (debuginfod_client *c,
                        CURLOPT_WRITEFUNCTION,
                        debuginfod_write_callback);
       curl_easy_setopt(data[i].handle, CURLOPT_WRITEDATA, (void*)&data[i]);
-      if (connect_timeout >= 0)
-        curl_easy_setopt(data[i].handle, CURLOPT_CONNECTTIMEOUT, connect_timeout);
-      if (transfer_timeout >= 0)
-        curl_easy_setopt(data[i].handle, CURLOPT_TIMEOUT, transfer_timeout);
+      if (timeout > 0)
+	{
+	  /* Make sure there is at least some progress,
+	     try to get at least 100K per timeout seconds.  */
+	  curl_easy_setopt (data[i].handle, CURLOPT_LOW_SPEED_TIME,
+			    timeout);
+	  curl_easy_setopt (data[i].handle, CURLOPT_LOW_SPEED_LIMIT,
+			    100 * 1024L);
+	}
       curl_easy_setopt(data[i].handle, CURLOPT_FILETIME, (long) 1);
       curl_easy_setopt(data[i].handle, CURLOPT_FOLLOWLOCATION, (long) 1);
       curl_easy_setopt(data[i].handle, CURLOPT_FAILONERROR, (long) 1);

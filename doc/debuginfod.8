@@ -366,8 +366,10 @@ or indirectly - the results would be hilarious.
 .TP 21
 .B DEBUGINFOD_TIMEOUT
 This environment variable governs the timeout for each debuginfod HTTP
-connection.  A server that fails to respond within this many seconds
-is skipped.  The default is 5.
+connection.  A server that fails to provide at least 100K of data
+within this many seconds is skipped. The default is 90 seconds.  (Zero
+or negative means "no timeout".)
+
 
 .TP 21
 .B DEBUGINFOD_CACHE_PATH

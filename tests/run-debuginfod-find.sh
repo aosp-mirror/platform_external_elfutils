@@ -94,7 +94,7 @@ wait_ready $PORT1 'ready' 1
 export DEBUGINFOD_URLS=http://127.0.0.1:$PORT1/   # or without trailing /
 
 # Be patient when run on a busy machine things might take a bit.
-export DEBUGINFOD_TIMEOUT=1,10
+export DEBUGINFOD_TIMEOUT=10
 
 # We use -t0 and -g0 here to turn off time-based scanning & grooming.
 # For testing purposes, we just sic SIGUSR1 / SIGUSR2 at the process.

@@ -1,3 +1,11 @@
+2019-01-02  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod.cxx (default_connect_timeout): Removed.
+	(default_transfer_timeout): Removed.
+	(default_timeout): New. Default to 90 seconds.
+	(debuginfod_query_server): Parse server_timeout_envvar as one number.
+	Set as CURLOPT_LOW_SPEED_TIME, with CURL_OPT_LOW_SPEED_LIMITE as 100K.
+
 2020-01-09  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod-client.c (add_extra_headers): New function,

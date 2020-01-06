@@ -1,5 +1,5 @@
 /* Retrieve ELF / DWARF / source files from the debuginfod.
-   Copyright (C) 2019 Red Hat, Inc.
+   Copyright (C) 2019-2020 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -58,6 +58,7 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/utsname.h>
 #include <curl/curl.h>
 
 /* If fts.h is included before config.h, its indirect inclusions may not
@@ -277,6 +278,87 @@ debuginfod_clean_cache(debuginfod_client *c,
 
 
 #define MAX_BUILD_ID_BYTES 64
+
+
+static void
+add_extra_headers(CURL *handle)
+{
+  /* Compute a User-Agent: string to send.  The more accurately this
+     describes this host, the likelier that the debuginfod servers
+     might be able to locate debuginfo for us. */
+
+  char* utspart = NULL;
+  struct utsname uts;
+  int rc = 0;
+  rc = uname (&uts);
+  if (rc == 0)
+    rc = asprintf(& utspart, "%s/%s", uts.sysname, uts.machine);
+  if (rc < 0)
+    utspart = NULL;
+
+  FILE *f = fopen ("/etc/os-release", "r");
+  if (f == NULL)
+    f = fopen ("/usr/lib/os-release", "r");
+  char *id = NULL;
+  char *version = NULL;
+  if (f != NULL)
+    {
+      while (id == NULL || version == NULL)
+        {
+          char buf[128];
+          char *s = &buf[0];
+          if (fgets (s, sizeof(buf), f) == NULL)
+            break;
+
+          int len = strlen (s);
+          if (len < 3)
+            continue;
+          if (s[len - 1] == '\n')
+            {
+              s[len - 1] = '\0';
+              len--;
+            }
+
+          char *v = strchr (s, '=');
+          if (v == NULL || strlen (v) < 2)
+            continue;
+
+          /* Split var and value. */
+          *v = '\0';
+          v++;
+
+          /* Remove optional quotes around value string. */
+          if (*v == '"' || *v == '\'')
+            {
+              v++;
+              s[len - 1] = '\0';
+            }
+          if (strcmp (s, "ID") == 0)
+            id = strdup (v);
+          if (strcmp (s, "VERSION_ID") == 0)
+            version = strdup (v);
+        }
+      fclose (f);
+    }
+
+  char *ua = NULL;
+  rc = asprintf(& ua, "%s/%s,%s,%s/%s",
+                PACKAGE_NAME, PACKAGE_VERSION,
+                utspart ?: "",
+                id ?: "",
+                version ?: "");
+  if (rc < 0)
+    ua = NULL;
+
+  if (ua)
+    curl_easy_setopt(handle, CURLOPT_USERAGENT, (void*) ua); /* implicit strdup */
+
+  free (ua);
+  free (id);
+  free (version);
+  free (utspart);
+}
+
 
 
 /* Query each of the server URLs found in $DEBUGINFOD_URLS for the file
@@ -514,7 +596,7 @@ debuginfod_query_server (debuginfod_client *c,
       curl_easy_setopt(data[i].handle, CURLOPT_NOSIGNAL, (long) 1);
       curl_easy_setopt(data[i].handle, CURLOPT_AUTOREFERER, (long) 1);
       curl_easy_setopt(data[i].handle, CURLOPT_ACCEPT_ENCODING, "");
-      curl_easy_setopt(data[i].handle, CURLOPT_USERAGENT, (void*) PACKAGE_STRING);
+      add_extra_headers(data[i].handle);
 
       curl_multi_add_handle(curlm, data[i].handle);
       server_url = strtok_r(NULL, url_delim, &strtok_saveptr);

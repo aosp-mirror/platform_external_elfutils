@@ -173,8 +173,8 @@ or negative means "no timeout".)
 This environment variable governs the default progress function.  If
 set, and if a progressfn is not explicitly set, then the library will
 configure a default progressfn.  This function will append a simple
-progress message periodically to the given file.  Consider using
-"/dev/stderr" on platforms that support it.  The default is nothing.
+progress message periodically to stderr.  The default is no progress
+function output.
 
 .TP 21
 .B DEBUGINFOD_CACHE_PATH

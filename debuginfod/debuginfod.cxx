@@ -1,5 +1,5 @@
 /* Debuginfo-over-http server.
-   Copyright (C) 2019 Red Hat, Inc.
+   Copyright (C) 2019-2020 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -742,7 +742,17 @@ private:
 ////////////////////////////////////////////////////////////////////////
 
 
-
+static string
+header_censor(const string& str)
+{
+  string y;
+  for (auto&& x : str)
+    {
+      if (isalnum(x) || x == '/' || x == '.' || x == ',' || x == '_' || x == ':')
+        y += x;
+    }
+  return y;
+}
 
 
 static string
@@ -771,7 +781,14 @@ conninfo (struct MHD_Connection * conn)
     hostname[0] = servname[0] = '\0';
   }
 
-  return string(hostname) + string(":") + string(servname);
+  // extract headers relevant to administration
+  const char* user_agent = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "User-Agent") ?: "";
+  const char* x_forwarded_for = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "X-Forwarded-For") ?: "";
+  // NB: these are untrustworthy, beware if machine-processing log files
+
+  return string(hostname) + string(":") + string(servname) +
+    string(" UA:") + header_censor(string(user_agent)) +
+    string(" XFF:") + header_censor(string(x_forwarded_for));
 }
 
 

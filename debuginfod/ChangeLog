@@ -1,5 +1,11 @@
 2020-01-11  Frank Ch. Eigler  <fche@redhat.com>
 
+	* debuginfod.cxx (conninfo): Print User-Agent and X-Forwarded-For
+	request headers, after mild safety-censorship (for easier machine
+	processing).
+
+2020-01-11  Frank Ch. Eigler  <fche@redhat.com>
+
 	* debuginfod.cxx: Rework threading model.
 	(workq): New class for concurrent work-queue.
 	(semaphore): Removed class, now unused.

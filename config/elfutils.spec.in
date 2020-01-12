@@ -73,7 +73,6 @@ Requires: elfutils-libs = %{version}-%{release}
 Requires: elfutils-libelf-devel = %{version}-%{release}
 # Can be a Recommends if rpm supports that
 Requires: elfutils-debuginfod-client-devel = %{version}-%{release}
-%endif
 
 %description devel
 The elfutils-devel package contains the libraries to create

@@ -145,7 +145,7 @@ License: GPLv3+ and (GPLv2+ or LGPLv3+)
 %package debuginfod-client-devel
 Summary: Libraries and headers to build debuginfod client applications
 License: GPLv2+ or LGPLv3+
-Requires: debuginfod-client = %{version}-%{release}
+Requires: elfutils-debuginfod-client = %{version}-%{release}
 
 %package debuginfod
 Summary: HTTP ELF/DWARF file server addressed by build-id

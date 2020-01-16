@@ -1,3 +1,8 @@
+2020-01-16  Mark Wielaard  <mark@klomp.org>
+
+	* nm.c (show_symbols_sysv): Iterate over all symbols starting
+	at index zero.
+
 2019-11-26  Mark Wielaard  <mark@klomp.org>
 
 	* Makefile.am (BUILD_STATIC): Add libraries needed for libdw.

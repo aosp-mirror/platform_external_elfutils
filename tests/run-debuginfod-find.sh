@@ -28,11 +28,13 @@ export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
 
 PID1=0
 PID2=0
+PID3=0
 
 cleanup()
 {
   if [ $PID1 -ne 0 ]; then kill $PID1; wait $PID1; fi
   if [ $PID2 -ne 0 ]; then kill $PID2; wait $PID2; fi
+  if [ $PID3 -ne 0 ]; then kill $PID3; wait $PID3; fi
 
   rm -rf F R D L ${PWD}/.client_cache*
   exit_cleanup
@@ -359,5 +361,15 @@ echo 0 > $DEBUGINFOD_CACHE_PATH/max_unused_age_s
 testrun ${abs_builddir}/debuginfod_build_id_find -e F/prog 1
 
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID2 && false || true
+
+# Test debuginfod without a path list; reuse $PORT1
+env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -U -d :memory: -p $PORT1 -L -F &
+PID3=$!
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
+wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
+wait_ready $PORT1 'thread_busy{role="scan"}' 0
+kill -int $PID3
+wait $PID3
+PID3=0
 
 exit 0

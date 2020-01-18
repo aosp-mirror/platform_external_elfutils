@@ -2360,6 +2360,11 @@ thread_main_scanner (void* arg)
 static void
 scan_source_paths()
 {
+  // NB: fedora 31 glibc/fts(3) crashes inside fts_read() on empty
+  // path list.
+  if (source_paths.empty())
+    return;
+
   // Turn the source_paths into an fts(3)-compatible char**.  Since
   // source_paths[] does not change after argv processing, the
   // c_str()'s are safe to keep around awile.

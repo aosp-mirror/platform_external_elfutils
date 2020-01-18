@@ -1,3 +1,7 @@
+2020-01-18  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Test empty source_paths[].
+
 2020-01-08  Mark Wielaard  <mark@klomp.org>
 
 	* asm-test?.c: include libebl.h.

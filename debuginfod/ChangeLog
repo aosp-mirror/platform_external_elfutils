@@ -1,3 +1,14 @@
+2020-01-19  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.cxx (scanq): Rework to let groomer/fts threads
+	synchronize with an empty workqueue, and lock out workqueue
+	consumers.
+	(thread_groom): Adopt new scanq idle APIs to lock out scanners.
+	(thread_main_fts_source_paths): Adopt new scanq idler API to
+	avoid being restarted while scanners haven't even finished yet.
+	(thread_main_*): Increment thread_work_total metric only after
+	a work cycle is completed, not when it begins.
+
 2020-01-18  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod.cxx (thread_main_scanner): Handle empty source_paths[].

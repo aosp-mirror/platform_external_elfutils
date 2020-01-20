@@ -257,6 +257,7 @@ RPM_BUILDID=d44d42cbd7d915bc938c81333a21e355a6022fb7 # in rhel6/ subdir, for a l
 rm -r R/debuginfod-rpms/rhel6/*
 kill -USR2 $PID1  # groom cycle
 # Expect 3 rpms to be deleted by the groom
+wait_ready $PORT1 'thread_work_total{role="groom"}' 1
 wait_ready $PORT1 'groom{statistic="file d/e"}' 3
 
 rm -rf $DEBUGINFOD_CACHE_PATH # clean it from previous tests

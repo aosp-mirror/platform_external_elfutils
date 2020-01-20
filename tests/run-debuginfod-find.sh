@@ -113,6 +113,7 @@ testrun ${abs_top_builddir}/src/strip -g -f prog.debug ${PWD}/prog
 BUILDID=`env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../src/readelf \
           -a prog | grep 'Build ID' | cut -d ' ' -f 7`
 
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
 mv prog F
 mv prog.debug F
 kill -USR1 $PID1

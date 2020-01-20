@@ -2505,6 +2505,7 @@ thread_main_fts_source_paths (void* arg)
           {
             set_metric("thread_busy", "role","traverse", 1);
             scan_source_paths();
+            last_rescan = time(NULL); // NB: now was before scanning
             inc_metric("thread_work_total", "role","traverse");
             set_metric("thread_busy", "role","traverse", 0);
           }

@@ -2493,7 +2493,7 @@ thread_main_fts_source_paths (void* arg)
       bool rescan_now = false;
       if (last_rescan == 0) // at least one initial rescan is documented even for -t0
         rescan_now = true;
-      if (rescan_s > 0 && (long)now > (long)last_rescan + rescan_s)
+      if (rescan_s > 0 && (long)now > (long)(last_rescan + rescan_s))
         rescan_now = true;
       if (sigusr1 != forced_rescan_count)
         {
@@ -2636,7 +2636,7 @@ thread_main_groom (void* /*arg*/)
       bool groom_now = false;
       if (last_groom == 0) // at least one initial groom is documented even for -g0
         groom_now = true;
-      if (groom_s > 0 && (long)now > (long)last_groom + groom_s)
+      if (groom_s > 0 && (long)now > (long)(last_groom + groom_s))
         groom_now = true;
       if (sigusr2 != forced_groom_count)
         {

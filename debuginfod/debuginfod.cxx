@@ -1695,7 +1695,8 @@ dwarf_extract_source_paths (Elf *elf, set<string>& debug_sourcefiles)
             waldo = (string (comp_dir) + string("/") + string (hat));
           else
            {
-             obatched(clog) << "skipping hat=" << hat << " due to empty comp_dir" << endl;
+             if (verbose > 3)
+               obatched(clog) << "skipping hat=" << hat << " due to empty comp_dir" << endl;
              continue;
            }
 

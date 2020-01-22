@@ -1,3 +1,8 @@
+2020-01-22  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.cxx (dwarf_extract_source_paths): Don't print
+	"skipping hat" messages at verbosity <=3, too noisy.
+
 2020-01-19  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod.cxx (scanq): Rework to let groomer/fts threads

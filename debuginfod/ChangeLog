@@ -1,3 +1,16 @@
+2020-02-25  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.cxx (fdcache_prefetch): New parameter.
+	(parse_opt): Parse it.
+	(main): Default it.
+	(fdcache::fd_size_mb): Change to double for accuracy.
+	(fdcache::probe): New function.
+	(fdcache::intern): New option to intern at end of LRU.
+	(fdcache::lookup): Clean fdcache.
+	(handle_buildid_r_match): Implement multi-stage archive
+	parsing, with optional prefetching of extracted contents
+	into the fdcache.
+
 2020-02-19  Aaron Merey  <amerey@redhat.com>
 
 	* debuginfod-client.c (debuginfod_clean_cache): Restrict

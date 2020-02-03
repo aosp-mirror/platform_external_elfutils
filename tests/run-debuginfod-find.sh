@@ -18,6 +18,9 @@
 
 . $srcdir/test-subr.sh  # includes set -e
 
+type curl 2>/dev/null || (echo "need curl"; exit 77)
+type rpm2cpio 2>/dev/null || (echo "need rpm2cpio"; exit 77)
+
 # for test case debugging, uncomment:
 # set -x
 # VERBOSE=-vvvv
@@ -330,15 +333,13 @@ testrun ${abs_builddir}/debuginfod_build_id_find -e F/prog2 1
 
 ########################################################################
 
-# Fetch some metrics, if curl program is installed
-if type curl 2>/dev/null; then
-    curl -s http://127.0.0.1:$PORT1/badapi
-    curl -s http://127.0.0.1:$PORT1/metrics
-    curl -s http://127.0.0.1:$PORT2/metrics
-    curl -s http://127.0.0.1:$PORT1/metrics | grep -q 'http_responses_total.*result.*error'
-    curl -s http://127.0.0.1:$PORT1/metrics | grep -q 'http_responses_total.*result.*fdcache'
-    curl -s http://127.0.0.1:$PORT2/metrics | grep -q 'http_responses_total.*result.*upstream'
-fi
+# Fetch some metrics
+curl -s http://127.0.0.1:$PORT1/badapi
+curl -s http://127.0.0.1:$PORT1/metrics
+curl -s http://127.0.0.1:$PORT2/metrics
+curl -s http://127.0.0.1:$PORT1/metrics | grep -q 'http_responses_total.*result.*error'
+curl -s http://127.0.0.1:$PORT1/metrics | grep -q 'http_responses_total.*result.*fdcache'
+curl -s http://127.0.0.1:$PORT2/metrics | grep -q 'http_responses_total.*result.*upstream'
 
 ########################################################################
 

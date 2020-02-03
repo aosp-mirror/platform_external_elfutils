@@ -1,3 +1,7 @@
+2020-02-03  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod.find.sh: Protect against missing curl & rpm2cpio.
+
 2020-01-19  Frank Ch. Eigler  <fche@redhat.com>
 
 	* run-debuginfod-find.sh: Check for proper groom completion count.

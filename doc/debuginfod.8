@@ -61,20 +61,22 @@ or even use debuginfod itself:
 ^C
 .ESAMPLE
 
-If the \fB\-R\fP and/or \fB-U\fP option is given, each file is scanned
-as an archive file that may contain ELF/DWARF/source files.  If \-R is
-given, the will scan RPMs; and/or if \-U is given, they will scan DEB
-/ DDEB files.  (The terms RPM and DEB and DDEB are used synonymously
-as "archives" in diagnostic messages.)  Because of complications such
-as DWZ-compressed debuginfo, may require \fItwo\fP traversal passes to
-identify all source code.  Source files for RPMs are only served from
-other RPMs, so the caution for \-F does not apply.  Note that due to
-Debian/Ubuntu packaging policies & mechanisms, debuginfod cannot
-resolve source files for DEB/DDEB at all.
+If any of the \fB\-R\fP, \fB-U\fP, or \fB-Z\fP options is given, each
+file is scanned as an archive file that may contain ELF/DWARF/source
+files.  Archive files are recognized by extension.  If \-R is given,
+".rpm" files are scanned; if \-D is given, ".deb" and ".ddeb" files
+are scanned; if \-Z is given, the listed extensions are scanned.
+Because of complications such as DWZ-compressed debuginfo, may require
+\fItwo\fP traversal passes to identify all source code.  Source files
+for RPMs are only served from other RPMs, so the caution for \-F does
+not apply.  Note that due to Debian/Ubuntu packaging policies &
+mechanisms, debuginfod cannot resolve source files for DEB/DDEB at
+all.
 
-If no PATH is listed, or neither \fB\-F\fP nor \fB\-R\fP nor \fB\-U\fP
-option is given, then \fBdebuginfod\fP will simply serve content that
-it accumulated into its index in all previous runs.
+If no PATH is listed, or none of the scanning options is given, then
+\fBdebuginfod\fP will simply serve content that it accumulated into
+its index in all previous runs, and federate to any upstream
+debuginfod servers.
 
 
 .SH OPTIONS
@@ -84,12 +86,26 @@ it accumulated into its index in all previous runs.
 Activate ELF/DWARF file scanning.  The default is off.
 
 .TP
+.B "\-Z EXT" "\-Z EXT=CMD"
+Activate an additional pattern in archive scanning.  Files with name
+extension EXT (include the dot) will be processed.  If CMD is given,
+it is invoked with the file name added to its argument list, and
+should produce a common archive on its standard output.  Otherwise,
+the file is read as if CMD were "cat".  Since debuginfod internally
+uses \fBlibarchive\fP to read archive files, it can accept a wide
+range of archive formats and compression modes.  The default is no
+additional patterns.  This option may be repeated.
+
+.TP
 .B "\-R"
 Activate RPM patterns in archive scanning.  The default is off.
+Equivalent to \fB\%\-Z\~.rpm=rpm2cpio\fP.
 
 .TP
 .B "\-U"
 Activate DEB/DDEB patterns in archive scanning.  The default is off.
+Equivalent to \fB\%\-Z\ .deb='dpkg-deb\ \-\-fsys\-tarfile\fP'
+\fB\%\-Z\ .ddeb='dpkg-deb\ \-\-fsys\-tarfile'\fP.
 
 .TP
 .B "\-d FILE" "\-\-database=FILE"
@@ -123,7 +139,8 @@ against the full path of each file, based on its \fBrealpath(3)\fP
 canonicalization.  By default, all files are included and none are
 excluded.  A file that matches both include and exclude REGEX is
 excluded.  (The \fIcontents\fP of archive files are not subject to
-inclusion or exclusion filtering: they are all processed.)
+inclusion or exclusion filtering: they are all processed.)  Only the
+last of each type of regular expression given is used.
 
 .TP
 .B "\-t SECONDS"  "\-\-rescan\-time=SECONDS"

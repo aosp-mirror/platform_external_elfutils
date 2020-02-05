@@ -333,9 +333,10 @@ ARGP_PROGRAM_BUG_ADDRESS_DEF = PACKAGE_BUGREPORT;
 static const struct argp_option options[] =
   {
    { NULL, 0, NULL, 0, "Scanners:", 1 },
-   { "scan-file-dir", 'F', NULL, 0, "Enable ELF/DWARF file scanning threads.", 0 },
-   { "scan-rpm-dir", 'R', NULL, 0, "Enable RPM scanning threads.", 0 },
-   { "scan-deb-dir", 'U', NULL, 0, "Enable DEB scanning threads.", 0 },
+   { "scan-file-dir", 'F', NULL, 0, "Enable ELF/DWARF file scanning.", 0 },
+   { "scan-rpm-dir", 'R', NULL, 0, "Enable RPM scanning.", 0 },
+   { "scan-deb-dir", 'U', NULL, 0, "Enable DEB scanning.", 0 },
+   { "scan-archive", 'Z', "EXT=CMD", 0, "Enable arbitrary archive scanning.", 0 },
    // "source-oci-imageregistry"  ...
 
    { NULL, 0, NULL, 0, "Options:", 2 },
@@ -427,6 +428,17 @@ parse_opt (int key, char *arg,
     case 'U':
       scan_archives[".deb"]="dpkg-deb --fsys-tarfile";
       scan_archives[".ddeb"]="dpkg-deb --fsys-tarfile";
+      break;
+    case 'Z':
+      {
+        char* extension = strchr(arg, '=');
+        if (arg[0] == '\0')
+          argp_failure(state, 1, EINVAL, "missing EXT");
+        else if (extension)
+          scan_archives[string(arg, (extension-arg))]=string(extension+1);
+        else
+          scan_archives[string(arg)]=string("cat");
+      }
       break;
     case 'L':
       traverse_logical = true;
@@ -1068,6 +1080,25 @@ public:
 static libarchive_fdcache fdcache;
 
 
+// For security/portability reasons, many distro-package archives have
+// a "./" in front of path names; others have nothing, others have
+// "/".  Canonicalize them all to a single leading "/", with the
+// assumption that this matches the dwarf-derived file names too.
+string canonicalized_archive_entry_pathname(struct archive_entry *e)
+{
+  string fn = archive_entry_pathname(e);
+  if (fn.size() == 0)
+    return fn;
+  if (fn[0] == '/')
+    return fn;
+  if (fn[0] == '.')
+    return fn.substr(1);
+  else
+    return string("/")+fn;
+}
+
+
+
 static struct MHD_Response*
 handle_buildid_r_match (int64_t b_mtime,
                         const string& b_source0,
@@ -1162,8 +1193,8 @@ handle_buildid_r_match (int64_t b_mtime,
       if (! S_ISREG(archive_entry_mode (e))) // skip non-files completely
         continue;
 
-      string fn = archive_entry_pathname (e);
-      if (fn != string(".")+b_source1)
+      string fn = canonicalized_archive_entry_pathname (e);
+      if (fn != b_source1)
         continue;
 
       // extract this file to a temporary file
@@ -2055,9 +2086,7 @@ archive_classify (const string& rps, string& archive_extension,
           if (! S_ISREG(archive_entry_mode (e))) // skip non-files completely
             continue;
 
-          string fn = archive_entry_pathname (e);
-          if (fn.size() > 1 && fn[0] == '.')
-            fn = fn.substr(1); // trim off the leading '.'
+          string fn = canonicalized_archive_entry_pathname (e);
 
           if (verbose > 3)
             obatched(clog) << "libarchive checking " << fn << endl;
@@ -2764,7 +2793,7 @@ main (int argc, char *argv[])
              "unexpected argument: %s", argv[remaining]);
 
   if (scan_archives.size()==0 && !scan_files && source_paths.size()>0)
-    obatched(clog) << "warning: without -F -R -U, ignoring PATHs" << endl;
+    obatched(clog) << "warning: without -F -R -U -Z, ignoring PATHs" << endl;
 
   fdcache.limit(fdcache_fds, fdcache_mbs);
 
@@ -2894,7 +2923,7 @@ main (int argc, char *argv[])
       obatched ob(clog);
       auto& o = ob << "scanning archive types ";
       for (auto&& arch : scan_archives)
-	o << arch.first << " ";
+	o << arch.first << "(" << arch.second << ") ";
       o << endl;
     }
   const char* du = getenv(DEBUGINFOD_URLS_ENV_VAR);

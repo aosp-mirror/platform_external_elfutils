@@ -468,7 +468,12 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     debuginfod-debs/hithere_1.0-1.debian.tar.xz \
 	     debuginfod-debs/hithere_1.0-1.dsc \
 	     debuginfod-debs/hithere_1.0-1_amd64.deb \
-	     debuginfod-debs/hithere_1.0.orig.tar.gz
+	     debuginfod-debs/hithere_1.0.orig.tar.gz \
+	     debuginfod-tars/hello-1-1-x86_64.pkg.tar.xz \
+	     debuginfod-tars/hello-debug-1-1-x86_64.pkg.tar.bz2 \
+	     debuginfod-tars/pacman-sources/PKGBUILD \
+	     debuginfod-tars/pacman-sources/README.md \
+	     debuginfod-tars/pacman-sources/hello.c
 
 
 

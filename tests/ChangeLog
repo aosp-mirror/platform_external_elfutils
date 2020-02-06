@@ -1,6 +1,12 @@
+2020-02-05  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfo-tars/*: New test files from Eli Schwartz of ArchLinux.
+	* Makefile.am (EXTRA_DIST): Package them.
+	* run-debuginfod-find.sh: Run basic archive extraction tests.
+
 2020-02-03  Frank Ch. Eigler  <fche@redhat.com>
 
-	* run-debuginfod.find.sh: Protect against missing curl & rpm2cpio.
+	* run-debuginfod-find.sh: Protect against missing curl & rpm2cpio.
 
 2020-01-19  Frank Ch. Eigler  <fche@redhat.com>
 

@@ -20,6 +20,7 @@
 
 type curl 2>/dev/null || (echo "need curl"; exit 77)
 type rpm2cpio 2>/dev/null || (echo "need rpm2cpio"; exit 77)
+type bzcat 2>/dev/null || (echo "need bzcat"; exit 77)
 
 # for test case debugging, uncomment:
 # set -x
@@ -39,7 +40,7 @@ cleanup()
   if [ $PID2 -ne 0 ]; then kill $PID2; wait $PID2; fi
   if [ $PID3 -ne 0 ]; then kill $PID3; wait $PID3; fi
 
-  rm -rf F R D L ${PWD}/.client_cache*
+  rm -rf F R D L Z ${PWD}/.client_cache*
   exit_cleanup
 }
 
@@ -61,8 +62,8 @@ done
 # So we gather the LD_LIBRARY_PATH with this cunning trick:
 ldpath=`testrun sh -c 'echo $LD_LIBRARY_PATH'`
 
-mkdir F R L D
-# not tempfiles F R L D - they are directories which we clean up manually
+mkdir F R L D Z
+# not tempfiles F R L D Z - they are directories which we clean up manually
 ln -s ${abs_builddir}/dwfllines L/foo   # any program not used elsewhere in this test
 
 wait_ready()
@@ -92,7 +93,7 @@ wait_ready()
   fi
 }
 
-env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -R -d $DB -p $PORT1 -t0 -g0 --fdcache-fds 1 --fdcache-mbs 2 R F L &
+env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -R -d $DB -p $PORT1 -t0 -g0 --fdcache-fds 1 --fdcache-mbs 2 -Z .tar.xz -Z .tar.bz2=bzcat R F Z L &
 PID1=$!
 # Server must become ready
 wait_ready $PORT1 'ready' 1
@@ -177,10 +178,15 @@ filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find source $BUILDID
 cmp $filename ${PWD}/prog2.c
 
 cp -rvp ${abs_srcdir}/debuginfod-rpms R
+cp -rvp ${abs_srcdir}/debuginfod-tars Z
 kill -USR1 $PID1
 # All rpms need to be in the index
 rpms=$(find R -name \*rpm | wc -l)
 wait_ready $PORT1 'scanned_total{source=".rpm archive"}' $rpms
+txz=$(find Z -name \*tar.xz | wc -l)
+wait_ready $PORT1 'scanned_total{source=".tar.xz archive"}' $txz
+tb2=$(find Z -name \*tar.bz2 | wc -l)
+wait_ready $PORT1 'scanned_total{source=".tar.bz2 archive"}' $tb2
 
 kill -USR1 $PID1  # two hits of SIGUSR1 may be needed to resolve .debug->dwz->srefs
 # Expect all source files found in the rpms (they are all called hello.c :)
@@ -249,6 +255,8 @@ archive_test f0aa15b8aba4f3c28cac3c2a73801fefa644a9f2 /usr/src/debug/hello-1.0/h
 # rhel6
 archive_test bbbf92ebee5228310e398609c23c2d7d53f6e2f9 /usr/src/debug/hello-1.0/hello.c $SHA
 archive_test d44d42cbd7d915bc938c81333a21e355a6022fb7 /usr/src/debug/hello-1.0/hello.c $SHA
+# arch
+archive_test cee13b2ea505a7f37bd20d271c6bc7e5f8d2dfcb /usr/src/debug/hello.c 7a1334e086b97e5f124003a6cfb3ed792d10cdf4
 
 RPM_BUILDID=d44d42cbd7d915bc938c81333a21e355a6022fb7 # in rhel6/ subdir, for a later test
 

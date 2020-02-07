@@ -658,6 +658,10 @@ section [%2d] '%s': symbol table cannot have more than one extended index sectio
     ERROR (gettext ("\
 section [%2u] '%s': entry size is does not match ElfXX_Sym\n"),
 	   idx, section_name (ebl, idx));
+  else if (shdr->sh_info > shdr->sh_size / sh_entsize)
+    ERROR (gettext ("\
+section [%2u] '%s': number of local entries in 'st_info' larger than table size\n"),
+	   idx, section_name (ebl, idx));
 
   /* Test the zeroth entry.  */
   GElf_Sym sym_mem;

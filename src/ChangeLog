@@ -1,3 +1,7 @@
+2020-02-07  Mark Wielaard  <mark@klomp.org>
+
+	* elflint.c (check_symtab): Check st_info isn't too big.
+
 2020-01-16  Mark Wielaard  <mark@klomp.org>
 
 	* nm.c (show_symbols_sysv): Iterate over all symbols starting

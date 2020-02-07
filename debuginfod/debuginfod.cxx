@@ -1160,11 +1160,24 @@ handle_buildid_r_match (int64_t b_mtime,
         archive_extension = arch.first;
         archive_decoder = arch.second;
       }
-  string popen_cmd = archive_decoder + " " + shell_escape(b_source0);
-  FILE* fp = popen (popen_cmd.c_str(), "r"); // "e" O_CLOEXEC?
-  if (fp == NULL)
-    throw libc_exception (errno, string("popen ") + popen_cmd);
-  defer_dtor<FILE*,int> fp_closer (fp, pclose);
+  FILE* fp;
+  defer_dtor<FILE*,int>::dtor_fn dfn;
+  if (archive_decoder != "cat")
+    {
+      string popen_cmd = archive_decoder + " " + shell_escape(b_source0);
+      fp = popen (popen_cmd.c_str(), "r"); // "e" O_CLOEXEC?
+      dfn = pclose;
+      if (fp == NULL)
+        throw libc_exception (errno, string("popen ") + popen_cmd);
+    }
+  else
+    {
+      fp = fopen (b_source0.c_str(), "r");
+      dfn = fclose;
+      if (fp == NULL)
+        throw libc_exception (errno, string("fopen ") + b_source0);
+    }
+  defer_dtor<FILE*,int> fp_closer (fp, dfn);
 
   struct archive *a;
   a = archive_read_new();
@@ -2048,11 +2061,25 @@ archive_classify (const string& rps, string& archive_extension,
         archive_extension = arch.first;
         archive_decoder = arch.second;
       }
-  string popen_cmd = archive_decoder + " " + shell_escape(rps);
-  FILE* fp = popen (popen_cmd.c_str(), "r"); // "e" O_CLOEXEC?
-  if (fp == NULL)
-    throw libc_exception (errno, string("popen ") + popen_cmd);
-  defer_dtor<FILE*,int> fp_closer (fp, pclose);
+
+  FILE* fp;
+  defer_dtor<FILE*,int>::dtor_fn dfn;
+  if (archive_decoder != "cat")
+    {
+      string popen_cmd = archive_decoder + " " + shell_escape(rps);
+      fp = popen (popen_cmd.c_str(), "r"); // "e" O_CLOEXEC?
+      dfn = pclose;
+      if (fp == NULL)
+        throw libc_exception (errno, string("popen ") + popen_cmd);
+    }
+  else
+    {
+      fp = fopen (rps.c_str(), "r");
+      dfn = fclose;
+      if (fp == NULL)
+        throw libc_exception (errno, string("fopen ") + rps);
+    }
+  defer_dtor<FILE*,int> fp_closer (fp, dfn);
 
   struct archive *a;
   a = archive_read_new();

@@ -1,3 +1,12 @@
+2020-02-08  Mark Wielaard  <mark@klomp.org>
+
+	* run-pt_gnu_prop-tests.sh: New test.
+	* testfile_pt_gnu_prop.bz2: New test file.
+	* testfile_pt_gnu_prop32.bz2: Likewise.
+	* Makefile.am (TESTS): Add run-pt_gnu_prop-tests.sh
+	(EXTRA_DISTS): Likewise. Add testfile_pt_gnu_prop.bz2 and
+	testfile_pt_gnu_prop32.bz2.
+
 2020-02-05  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfo-tars/*: New test files from Eli Schwartz of ArchLinux.

@@ -167,7 +167,8 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-readelf-discr.sh \
 	run-dwelf_elf_e_machine_string.sh \
 	run-elfclassify.sh run-elfclassify-self.sh \
-	run-disasm-riscv64.sh
+	run-disasm-riscv64.sh \
+	run-pt_gnu_prop-tests.sh
 
 if !BIARCH
 export ELFUTILS_DISABLE_BIARCH = 1
@@ -473,8 +474,9 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     debuginfod-tars/hello-debug-1-1-x86_64.pkg.tar.bz2 \
 	     debuginfod-tars/pacman-sources/PKGBUILD \
 	     debuginfod-tars/pacman-sources/README.md \
-	     debuginfod-tars/pacman-sources/hello.c
-
+	     debuginfod-tars/pacman-sources/hello.c \
+	     run-pt_gnu_prop-tests.sh \
+	     testfile_pt_gnu_prop.bz2 testfile_pt_gnu_prop32.bz2
 
 
 if USE_VALGRIND

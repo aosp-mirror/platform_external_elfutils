@@ -50,6 +50,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <fts.h>
+#include <regex.h>
 #include <string.h>
 #include <stdbool.h>
 #include <linux/limits.h>
@@ -241,10 +242,19 @@ debuginfod_clean_cache(debuginfod_client *c,
   if (fts == NULL)
     return -errno;
 
+  regex_t re;
+  const char * pattern = ".*/[a-f0-9]+/(debuginfo|executable|source.*)$";
+  if (regcomp (&re, pattern, REG_EXTENDED | REG_NOSUB) != 0)
+    return -ENOMEM;
+
   FTSENT *f;
   long files = 0;
   while ((f = fts_read(fts)) != NULL)
     {
+      /* ignore any files that do not match the pattern.  */
+      if (regexec (&re, f->fts_path, 0, NULL, 0) != 0)
+        continue;
+
       files++;
       if (c->progressfn) /* inform/check progress callback */
         if ((c->progressfn) (c, files, 0))
@@ -268,7 +278,8 @@ debuginfod_clean_cache(debuginfod_client *c,
           ;
         }
     }
-  fts_close(fts);
+  fts_close (fts);
+  regfree (&re);
 
   /* Update timestamp representing when the cache was last cleaned.  */
   utime (interval_path, NULL);

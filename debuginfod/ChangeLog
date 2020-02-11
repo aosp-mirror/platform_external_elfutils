@@ -1,3 +1,8 @@
+2020-02-19  Aaron Merey  <amerey@redhat.com>
+
+	* debuginfod-client.c (debuginfod_clean_cache): Restrict
+	cleanup to client-pattern files.
+
 2020-02-05  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod.cxx (argp options): Add -Z option.

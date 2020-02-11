@@ -365,6 +365,12 @@ testrun ${abs_builddir}/debuginfod_build_id_find -e F/prog2 1
 
 ########################################################################
 
+# Add some files to the cache that do not fit its naming format.
+# They should survive cache cleaning.
+mkdir $DEBUGINFOD_CACHE_PATH/malformed
+touch $DEBUGINFOD_CACHE_PATH/malformed0
+touch $DEBUGINFOD_CACHE_PATH/malformed/malformed1
+
 # Trigger a cache clean and run the tests again. The clients should be unable to
 # find the target.
 echo 0 > $DEBUGINFOD_CACHE_PATH/cache_clean_interval_s
@@ -373,6 +379,12 @@ echo 0 > $DEBUGINFOD_CACHE_PATH/max_unused_age_s
 testrun ${abs_builddir}/debuginfod_build_id_find -e F/prog 1
 
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID2 && false || true
+
+if [ ! -f $DEBUGINFOD_CACHE_PATH/malformed0 ] \
+    || [ ! -f $DEBUGINFOD_CACHE_PATH/malformed/malformed1 ]; then
+  echo "unrelated files did not survive cache cleaning"
+  exit 1
+fi
 
 # Test debuginfod without a path list; reuse $PORT1
 env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -U -d :memory: -p $PORT1 -L -F &

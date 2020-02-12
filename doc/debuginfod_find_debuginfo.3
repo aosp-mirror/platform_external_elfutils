@@ -38,10 +38,10 @@ debuginfod_find_debuginfo \- request debuginfo from debuginfod
 .BI "                           const char *" filename ","
 .BI "                           char ** " path ");"
 
-.BI "typedef int (*debuginfo_progressfn_t)(debuginfod_client *" client ","
-.BI "                                      long a, long b);"
+.BI "typedef int (*debuginfod_progressfn_t)(debuginfod_client *" client ","
+.BI "                                       long a, long b);"
 .BI "void debuginfod_set_progressfn(debuginfod_client *" client ","
-.BI "                               debuginfo_progressfn_t " progressfn ");"
+.BI "                               debuginfod_progressfn_t " progressfn ");"
 
 Link with \fB-ldebuginfod\fP.
 

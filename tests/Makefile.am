@@ -495,6 +495,7 @@ installed_TESTS_ENVIRONMENT = libdir=$(DESTDIR)$(libdir); \
 			      export abs_top_builddir; \
 			      export libdir; export bindir; \
 			      export LC_ALL; export LANG; export VALGRIND_CMD; \
+			      unset DEBUGINFOD_URLS; \
 			      NM=$(NM); export NM;
 installed_LOG_COMPILER = $(abs_srcdir)/test-wrapper.sh \
 			 installed $(tests_rpath) \
@@ -509,6 +510,7 @@ TESTS_ENVIRONMENT = LC_ALL=C; LANG=C; VALGRIND_CMD=$(valgrind_cmd); \
 		    export abs_srcdir; export abs_builddir; \
 		    export abs_top_builddir; \
 		    export LC_ALL; export LANG; export VALGRIND_CMD; \
+		    unset DEBUGINFOD_URLS; \
 		    NM=$(NM); export NM;
 LOG_COMPILER = $(abs_srcdir)/test-wrapper.sh \
 	       $(abs_top_builddir)/libdw:$(abs_top_builddir)/backends:$(abs_top_builddir)/libelf:$(abs_top_builddir)/libasm:$(abs_top_builddir)/debuginfod

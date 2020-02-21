@@ -1,3 +1,8 @@
+2020-02-21  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (TESTS_ENVIRONMENT): Explicitly unset DEBUGINFOD_URLS.
+	(installed_TESTS_ENVIRONMENT): Likewise.
+
 2020-02-19  Aaron Merey  <amerey@redhat.com>
 
 	* run-debuginfod-find.sh: Test that files unrelated to debuginfod

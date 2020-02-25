@@ -426,7 +426,7 @@ parse_opt (int key, char *arg,
       break;
     case 'F': scan_files = true; break;
     case 'R':
-      scan_archives[".rpm"]="rpm2cpio";
+      scan_archives[".rpm"]="cat"; // libarchive groks rpm natively
       break;
     case 'U':
       scan_archives[".deb"]="dpkg-deb --fsys-tarfile";

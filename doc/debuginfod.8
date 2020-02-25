@@ -99,7 +99,8 @@ additional patterns.  This option may be repeated.
 .TP
 .B "\-R"
 Activate RPM patterns in archive scanning.  The default is off.
-Equivalent to \fB\%\-Z\~.rpm=rpm2cpio\fP.
+Equivalent to \fB\%\-Z\~.rpm=cat\fP, since libarchive can natively
+process RPM archives.
 
 .TP
 .B "\-U"

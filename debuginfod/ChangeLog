@@ -1,5 +1,9 @@
 2020-02-25  Frank Ch. Eigler  <fche@redhat.com>
 
+	* debuginfod.cxx (parse_opt): Treat -R as if -Z.rpm .
+
+2020-02-25  Frank Ch. Eigler  <fche@redhat.com>
+
 	* debuginfod.cxx (fdcache_prefetch): New parameter.
 	(parse_opt): Parse it.
 	(main): Default it.

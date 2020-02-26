@@ -40,7 +40,7 @@ cleanup()
   if [ $PID2 -ne 0 ]; then kill $PID2; wait $PID2; fi
   if [ $PID3 -ne 0 ]; then kill $PID3; wait $PID3; fi
 
-  rm -rf F R D L Z ${PWD}/.client_cache*
+  rm -rf F R D L Z ${PWD}/mocktree ${PWD}/.client_cache*
   exit_cleanup
 }
 
@@ -395,5 +395,21 @@ wait_ready $PORT1 'thread_busy{role="scan"}' 0
 kill -int $PID3
 wait $PID3
 PID3=0
+
+########################################################################
+# Test fetching a file using file:// . No debuginfod server needs to be run for
+# this test.
+local_dir=${PWD}/mocktree/buildid/aaaaaaaaaabbbbbbbbbbccccccccccdddddddddd/source/my/path
+mkdir -p ${local_dir}
+echo "int main() { return 0; }" > ${local_dir}/main.c
+
+# first test that is doesn't work, when no DEBUGINFOD_URLS is set
+DEBUGINFOD_URLS=""
+testrun ${abs_top_builddir}/debuginfod/debuginfod-find source aaaaaaaaaabbbbbbbbbbccccccccccdddddddddd /my/path/main.c && false || true
+
+# Now test is with proper DEBUGINFOD_URLS
+DEBUGINFOD_URLS="file://${PWD}/mocktree/"
+filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find source aaaaaaaaaabbbbbbbbbbccccccccccdddddddddd /my/path/main.c`
+cmp $filename ${local_dir}/main.c
 
 exit 0

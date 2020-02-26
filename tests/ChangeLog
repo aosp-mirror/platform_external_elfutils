@@ -1,3 +1,8 @@
+2020-02-26  Konrad Kleine <kkleine@redhat.com>
+
+	* run-debuginfod-find.sh: added tests for DEBUGINFOD_URLS beginning
+	with "file://"
+
 2020-02-21  Mark Wielaard  <mark@klomp.org>
 
 	* Makefile.am (TESTS_ENVIRONMENT): Explicitly unset DEBUGINFOD_URLS.

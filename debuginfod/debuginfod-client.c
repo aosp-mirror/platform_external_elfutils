@@ -716,20 +716,34 @@ debuginfod_query_server (debuginfod_client *c,
           else
             {
               /* Query completed without an error. Confirm that the
-                 response code is 200 and set verified_handle.  */
-              long resp_code = 500;
-              CURLcode curl_res;
+                 response code is 200 when using HTTP/HTTPS and 0 when
+                 using file:// and set verified_handle.  */
 
-              curl_res = curl_easy_getinfo(target_handle,
-                                           CURLINFO_RESPONSE_CODE,
-                                           &resp_code);
-
-              if (curl_res == CURLE_OK
-                  && resp_code == 200
-                  && msg->easy_handle != NULL)
+              if (msg->easy_handle != NULL)
                 {
-                  verified_handle = msg->easy_handle;
-                  break;
+                  char *effective_url = NULL;
+                  long resp_code = 500;
+                  CURLcode ok1 = curl_easy_getinfo (target_handle,
+						    CURLINFO_EFFECTIVE_URL,
+						    &effective_url);
+                  CURLcode ok2 = curl_easy_getinfo (target_handle,
+						    CURLINFO_RESPONSE_CODE,
+						    &resp_code);
+                  if(ok1 == CURLE_OK && ok2 == CURLE_OK && effective_url)
+                    {
+                      if (strncmp (effective_url, "http", 4) == 0)
+                        if (resp_code == 200)
+                          {
+                            verified_handle = msg->easy_handle;
+                            break;
+                          }
+                      if (strncmp (effective_url, "file", 4) == 0)
+                        if (resp_code == 0)
+                          {
+                            verified_handle = msg->easy_handle;
+                            break;
+                          }
+                    }
                 }
             }
         }

@@ -1,3 +1,10 @@
+2020-02-27  Aaron Merey  <amerey@redhat.com>
+
+	* debuginfod-client.c (xalloc_str): New macro. Call
+	asprintf with error checking.
+	(debuginfod_query_server): Use XDG_CACHE_HOME as a default
+	cache location if it is set. Replace snprintf with xalloc_str.
+
 2020-02-26  Konrad Kleine <kkleine@redhat.com>
 
 	* debuginfod-client.c (debuginfod_query_server): Handle curl's

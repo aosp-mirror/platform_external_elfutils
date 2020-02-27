@@ -99,6 +99,7 @@ static const time_t cache_default_max_unused_age_s = 604800; /* 1 week */
 /* Location of the cache of files downloaded from debuginfods.
    The default parent directory is $HOME, or '/' if $HOME doesn't exist.  */
 static const char *cache_default_name = ".debuginfod_client_cache";
+static const char *cache_xdg_name = "debuginfod_client";
 static const char *cache_path_envvar = DEBUGINFOD_CACHE_PATH_ENV_VAR;
 
 /* URLs of debuginfods, separated by url_delim. */
@@ -370,6 +371,16 @@ add_extra_headers(CURL *handle)
 }
 
 
+#define xalloc_str(p, fmt, args...)        \
+  do                                       \
+    {                                      \
+      if (asprintf (&p, fmt, args) < 0)    \
+        {                                  \
+          p = NULL;                        \
+          rc = -ENOMEM;                    \
+          goto out;                        \
+        }                                  \
+    } while (0)
 
 /* Query each of the server URLs found in $DEBUGINFOD_URLS for the file
    with the specified build-id, type (debuginfo, executable or source)
@@ -384,15 +395,15 @@ debuginfod_query_server (debuginfod_client *c,
                          const char *filename,
                          char **path)
 {
-  char *urls_envvar;
   char *server_urls;
-  char cache_path[PATH_MAX];
-  char maxage_path[PATH_MAX*3]; /* These *3 multipliers are to shut up gcc -Wformat-truncation */
-  char interval_path[PATH_MAX*4];
-  char target_cache_dir[PATH_MAX*2];
-  char target_cache_path[PATH_MAX*4];
-  char target_cache_tmppath[PATH_MAX*5];
-  char suffix[PATH_MAX*2];
+  char *urls_envvar;
+  char *cache_path = NULL;
+  char *maxage_path = NULL;
+  char *interval_path = NULL;
+  char *target_cache_dir = NULL;
+  char *target_cache_path = NULL;
+  char *target_cache_tmppath = NULL;
+  char suffix[PATH_MAX];
   char build_id_bytes[MAX_BUILD_ID_BYTES * 2 + 1];
   int rc;
 
@@ -452,30 +463,76 @@ debuginfod_query_server (debuginfod_client *c,
   /* set paths needed to perform the query
 
      example format
-     cache_path:        $HOME/.debuginfod_cache
-     target_cache_dir:  $HOME/.debuginfod_cache/0123abcd
-     target_cache_path: $HOME/.debuginfod_cache/0123abcd/debuginfo
-     target_cache_path: $HOME/.debuginfod_cache/0123abcd/source#PATH#TO#SOURCE ?
+     cache_path:        $HOME/.cache
+     target_cache_dir:  $HOME/.cache/0123abcd
+     target_cache_path: $HOME/.cache/0123abcd/debuginfo
+     target_cache_path: $HOME/.cache/0123abcd/source#PATH#TO#SOURCE ?
+
+     $XDG_CACHE_HOME takes priority over $HOME/.cache.
+     $DEBUGINFOD_CACHE_PATH takes priority over $HOME/.cache and $XDG_CACHE_HOME.
   */
 
-  if (getenv(cache_path_envvar))
-    strcpy(cache_path, getenv(cache_path_envvar));
+  /* Determine location of the cache. The path specified by the debuginfod
+     cache environment variable takes priority.  */
+  char *cache_var = getenv(cache_path_envvar);
+  if (cache_var != NULL && strlen (cache_var) > 0)
+    xalloc_str (cache_path, "%s", cache_var);
   else
     {
-      if (getenv("HOME"))
-        sprintf(cache_path, "%s/%s", getenv("HOME"), cache_default_name);
-      else
-        sprintf(cache_path, "/%s", cache_default_name);
+      /* If a cache already exists in $HOME ('/' if $HOME isn't set), then use
+         that. Otherwise use the XDG cache directory naming format.  */
+      xalloc_str (cache_path, "%s/%s", getenv ("HOME") ?: "/", cache_default_name);
+
+      struct stat st;
+      if (stat (cache_path, &st) < 0)
+        {
+          char cachedir[PATH_MAX];
+          char *xdg = getenv ("XDG_CACHE_HOME");
+
+          if (xdg != NULL && strlen (xdg) > 0)
+            snprintf (cachedir, PATH_MAX, "%s", xdg);
+          else
+            snprintf (cachedir, PATH_MAX, "%s/.cache", getenv ("HOME") ?: "/");
+
+          /* Create XDG cache directory if it doesn't exist.  */
+          if (stat (cachedir, &st) == 0)
+            {
+              if (! S_ISDIR (st.st_mode))
+                {
+                  rc = -EEXIST;
+                  goto out;
+                }
+            }
+          else
+            {
+              rc = mkdir (cachedir, 0700);
+
+              /* Also check for EEXIST and S_ISDIR in case another client just
+                 happened to create the cache.  */
+              if (rc == 0
+                  || (errno == EEXIST
+                      && stat (cachedir, &st) != 0
+                      && S_ISDIR (st.st_mode)))
+                {
+                  free (cache_path);
+                  xalloc_str (cache_path, "%s/%s", cachedir, cache_xdg_name);
+                }
+              else
+                {
+                  rc = -errno;
+                  goto out;
+                }
+            }
+        }
     }
 
-  /* avoid using snprintf here due to compiler warning.  */
-  snprintf(target_cache_dir, sizeof(target_cache_dir), "%s/%s", cache_path, build_id_bytes);
-  snprintf(target_cache_path, sizeof(target_cache_path), "%s/%s%s", target_cache_dir, type, suffix);
-  snprintf(target_cache_tmppath, sizeof(target_cache_tmppath), "%s.XXXXXX", target_cache_path);
+  xalloc_str (target_cache_dir, "%s/%s", cache_path, build_id_bytes);
+  xalloc_str (target_cache_path, "%s/%s%s", target_cache_dir, type, suffix);
+  xalloc_str (target_cache_tmppath, "%s.XXXXXX", target_cache_path);
 
   /* XXX combine these */
-  snprintf(interval_path, sizeof(interval_path), "%s/%s", cache_path, cache_clean_interval_filename);
-  snprintf(maxage_path, sizeof(maxage_path), "%s/%s", cache_path, cache_max_unused_age_filename);
+  xalloc_str (interval_path, "%s/%s", cache_path, cache_clean_interval_filename);
+  xalloc_str (maxage_path, "%s/%s", cache_path, cache_max_unused_age_filename);
   rc = debuginfod_init_cache(cache_path, interval_path, maxage_path);
   if (rc != 0)
     goto out;
@@ -490,7 +547,8 @@ debuginfod_query_server (debuginfod_client *c,
       /* Success!!!! */
       if (path != NULL)
         *path = strdup(target_cache_path);
-      return fd;
+      rc = fd;
+      goto out;
     }
 
   long timeout = default_timeout;
@@ -779,12 +837,14 @@ debuginfod_query_server (debuginfod_client *c,
   curl_multi_cleanup (curlm);
   free (data);
   free (server_urls);
+
   /* don't close fd - we're returning it */
   /* don't unlink the tmppath; it's already been renamed. */
   if (path != NULL)
    *path = strdup(target_cache_path);
 
-  return fd;
+  rc = fd;
+  goto out;
 
 /* error exits */
  out1:
@@ -800,7 +860,14 @@ debuginfod_query_server (debuginfod_client *c,
  out0:
   free (server_urls);
 
+/* general purpose exit */
  out:
+  free (cache_path);
+  free (maxage_path);
+  free (interval_path);
+  free (target_cache_dir);
+  free (target_cache_path);
+  free (target_cache_tmppath);
   return rc;
 }
 

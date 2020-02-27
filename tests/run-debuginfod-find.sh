@@ -40,7 +40,7 @@ cleanup()
   if [ $PID2 -ne 0 ]; then kill $PID2; wait $PID2; fi
   if [ $PID3 -ne 0 ]; then kill $PID3; wait $PID3; fi
 
-  rm -rf F R D L Z ${PWD}/mocktree ${PWD}/.client_cache*
+  rm -rf F R D L Z ${PWD}/mocktree ${PWD}/.client_cache* ${PWD}/tmp*
   exit_cleanup
 }
 
@@ -144,6 +144,43 @@ cmp $filename F/prog
 
 filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find source $BUILDID ${PWD}/prog.c`
 cmp $filename  ${PWD}/prog.c
+
+########################################################################
+
+# Test whether the cache default locations are correct
+
+mkdir tmphome
+
+# $HOME/.cache should be created.
+testrun env HOME=$PWD/tmphome XDG_CACHE_HOME= DEBUGINFOD_CACHE_PATH= ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
+if [ ! -f $PWD/tmphome/.cache/debuginfod_client/$BUILDID/debuginfo ]; then
+  echo "could not find cache in $PWD/tmphome/.cache"
+  exit 1
+fi
+
+# $XDG_CACHE_HOME should take priority over $HOME.cache.
+testrun env HOME=$PWD/tmphome XDG_CACHE_HOME=$PWD/tmpxdg DEBUGINFOD_CACHE_PATH= ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
+if [ ! -f $PWD/tmpxdg/debuginfod_client/$BUILDID/debuginfo ]; then
+  echo "could not find cache in $PWD/tmpxdg/"
+  exit 1
+fi
+
+# A cache at the old default location ($HOME/.debuginfod_client_cache) should take
+# priority over $HOME/.cache, $XDG_CACHE_HOME.
+cp -r $DEBUGINFOD_CACHE_PATH tmphome/.debuginfod_client_cache
+
+# Add a file that doesn't exist in $HOME/.cache, $XDG_CACHE_HOME.
+mkdir tmphome/.debuginfod_client_cache/deadbeef
+echo ELF... > tmphome/.debuginfod_client_cache/deadbeef/debuginfo
+filename=`testrun env HOME=$PWD/tmphome XDG_CACHE_HOME=$PWD/tmpxdg DEBUGINFOD_CACHE_PATH= ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo deadbeef`
+cmp $filename tmphome/.debuginfod_client_cache/deadbeef/debuginfo
+
+# $DEBUGINFO_CACHE_PATH should take priority over all else.
+testrun env HOME=$PWD/tmphome XDG_CACHE_HOME=$PWD/tmpxdg DEBUGINFOD_CACHE_PATH=$PWD/tmpcache ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
+if [ ! -f $PWD/tmpcache/$BUILDID/debuginfo ]; then
+  echo "could not find cache in $PWD/tmpcache/"
+  exit 1
+fi
 
 ########################################################################
 

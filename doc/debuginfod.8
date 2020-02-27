@@ -410,8 +410,10 @@ or negative means "no timeout".)
 .B DEBUGINFOD_CACHE_PATH
 This environment variable governs the location of the cache where
 downloaded files are kept.  It is cleaned periodically as this
-program is reexecuted.  The default is \%$HOME/.debuginfod_client_cache.
-.\" XXX describe cache eviction policy
+program is reexecuted. If XDG_CACHE_HOME is set then
+$XDG_CACHE_HOME/debuginfod_client is the default location, otherwise
+$HOME/.cache/debuginfod_client is used. For more information regarding
+the client cache see \fIdebuginfod_find_debuginfo(3)\fP.
 
 .SH FILES
 .LP
@@ -422,8 +424,10 @@ Default database file.
 .PD
 
 .TP 20
-.B $HOME/.debuginfod_client_cache
+.B $XDG_CACHE_HOME/debuginfod_client
 Default cache directory for content from upstream debuginfods.
+If XDG_CACHE_HOME is not set then \fB$HOME/.cache/debuginfod_client\fP
+is used.
 .PD
 
 

@@ -509,20 +509,18 @@ debuginfod_query_server (debuginfod_client *c,
 
               /* Also check for EEXIST and S_ISDIR in case another client just
                  happened to create the cache.  */
-              if (rc == 0
-                  || (errno == EEXIST
-                      && stat (cachedir, &st) != 0
-                      && S_ISDIR (st.st_mode)))
-                {
-                  free (cache_path);
-                  xalloc_str (cache_path, "%s/%s", cachedir, cache_xdg_name);
-                }
-              else
+              if (rc < 0
+                  && (errno != EEXIST
+                      || stat (cachedir, &st) != 0
+                      || ! S_ISDIR (st.st_mode)))
                 {
                   rc = -errno;
                   goto out;
                 }
             }
+
+          free (cache_path);
+          xalloc_str (cache_path, "%s/%s", cachedir, cache_xdg_name);
         }
     }
 

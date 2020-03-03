@@ -1,3 +1,8 @@
+2020-03-03  Aaron Merey  <amerey@redhat.com>
+
+	* debuginfod-client.c (debuginfod_query_server): Update
+	cache_path even when new default path already exists.
+
 2020-02-27  Aaron Merey  <amerey@redhat.com>
 
 	* debuginfod-client.c (xalloc_str): New macro. Call

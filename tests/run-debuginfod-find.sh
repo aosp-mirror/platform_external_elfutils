@@ -158,6 +158,13 @@ if [ ! -f $PWD/tmphome/.cache/debuginfod_client/$BUILDID/debuginfo ]; then
   exit 1
 fi
 
+# $HOME/.cache should be found.
+testrun env HOME=$PWD/tmphome XDG_CACHE_HOME= DEBUGINFOD_CACHE_PATH= ${abs_top_builddir}/debuginfod/debuginfod-find executable $BUILDID
+if [ ! -f $PWD/tmphome/.cache/debuginfod_client/$BUILDID/executable ]; then
+  echo "could not find cache in $PWD/tmphome/.cache"
+  exit 1
+fi
+
 # $XDG_CACHE_HOME should take priority over $HOME.cache.
 testrun env HOME=$PWD/tmphome XDG_CACHE_HOME=$PWD/tmpxdg DEBUGINFOD_CACHE_PATH= ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 if [ ! -f $PWD/tmpxdg/debuginfod_client/$BUILDID/debuginfo ]; then

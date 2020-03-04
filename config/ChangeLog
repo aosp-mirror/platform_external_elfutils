@@ -1,3 +1,8 @@
+2020-03-04  Mark Wielaard  <mark@klomp.org>
+
+	* elfutils.spec.in (package debuginfod): Remove Requires: rpm.
+	Add Requires: dpkg.
+
 2020-01-12  Frank Ch. Eigler  <fche@redhat.com>
 
 	* elfutils.spec.in: Typo fix for "Requires: debuginfod-client".

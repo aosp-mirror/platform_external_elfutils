@@ -157,8 +157,9 @@ Requires(post):   systemd
 Requires(preun):  systemd
 Requires(postun): systemd
 Requires(pre): shadow-utils
-# For /usr/bin/cpio2rpm
-Requires: rpm
+# To extract .deb files with dpkg-deb --fsys-tarfile
+# Can be Recommends if rpm supports that
+Requires: dpkg
 
 %description debuginfod-client
 The elfutils-debuginfod-client package contains shared libraries

@@ -1,3 +1,8 @@
+2020-03-18  Omar Sandoval  <osandov@fb.com>
+
+	* elf_getphdrnum.c (__elf_getphdrnum_rdlock): Call
+	__elf{32,64}_getshdr_rdlock if the shdr is not cached.
+
 2019-03-20  Matthias Maennich  <maennich@google.com>
 
 	* elf_compress.c (__libelf_compress): Always call deflate_cleanup

@@ -1,3 +1,9 @@
+2019-03-20  Matthias Maennich  <maennich@google.com>
+
+	* elf_compress.c (__libelf_compress): Always call deflate_cleanup
+	in failure path. Call deflateEnd only once.
+	(__libelf_decompress): Call inflateEnd only once.
+
 2019-06-18  Mark Wielaard  <mark@klomp.org>
 
 	* common.h (allocate_elf): Use int64_t instead of off_t for offset.

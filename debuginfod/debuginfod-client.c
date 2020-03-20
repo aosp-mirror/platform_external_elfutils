@@ -79,6 +79,9 @@ struct debuginfod_client
   /* Progress/interrupt callback function. */
   debuginfod_progressfn_t progressfn;
 
+  /* Stores user data. */
+  void* user_data;
+
   /* Can contain all other context, like cache_path, server_urls,
      timeout or other info gotten from environment variables, the
      handle data, etc. So those don't have to be reparsed and
@@ -900,6 +903,19 @@ debuginfod_begin (void)
 	client->progressfn = NULL;
     }
   return client;
+}
+
+void
+debuginfod_set_user_data(debuginfod_client *client,
+                         void *data)
+{
+  client->user_data = data;
+}
+
+void *
+debuginfod_get_user_data(debuginfod_client *client)
+{
+  return client->user_data;
 }
 
 void

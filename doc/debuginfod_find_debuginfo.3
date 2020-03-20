@@ -21,8 +21,14 @@ debuginfod_find_debuginfo \- request debuginfo from debuginfod
 .nf
 .B #include <elfutils/debuginfod.h>
 .PP
+Link with \fB-ldebuginfod\fP.
+
+CONNECTION HANDLE
+
 .BI "debuginfod_client *debuginfod_begin(void);"
 .BI "void debuginfod_end(debuginfod_client *" client ");"
+
+LOOKUP FUNCTIONS
 
 .BI "int debuginfod_find_debuginfo(debuginfod_client *" client ","
 .BI "                              const unsigned char *" build_id ","
@@ -38,12 +44,15 @@ debuginfod_find_debuginfo \- request debuginfo from debuginfod
 .BI "                           const char *" filename ","
 .BI "                           char ** " path ");"
 
+OPTIONAL FUNCTIONS
+
 .BI "typedef int (*debuginfod_progressfn_t)(debuginfod_client *" client ","
 .BI "                                       long a, long b);"
 .BI "void debuginfod_set_progressfn(debuginfod_client *" client ","
 .BI "                               debuginfod_progressfn_t " progressfn ");"
-
-Link with \fB-ldebuginfod\fP.
+.BI "void debuginfod_set_user_data(debuginfod_client *" client ","
+.BI "                              void *" data ");"
+.BI "void* debuginfod_get_user_data(debuginfod_client *" client ");"
 
 .SH DESCRIPTION
 
@@ -102,7 +111,12 @@ to the client cache and a file descriptor to that file is returned.
 The caller needs to \fBclose\fP() this descriptor.  Otherwise, a
 negative error code is returned.
 
-.SH "PROGRESS CALLBACK"
+.SH "OPTIONAL FUNCTIONS"
+
+A small number of optional functions are available to tune or query
+the operation of the debuginfod client.
+
+.SS "PROGRESS CALLBACK"
 
 As the \fBdebuginfod_find_*\fP() functions may block for seconds or
 longer, a progress callback function is called periodically, if
@@ -125,6 +139,14 @@ continue the work, or any other value to stop work as soon as
 possible.  Consequently, the \fBdebuginfod_find_*\fP() function will
 likely return with an error, but might still succeed.
 
+.SS "USER DATA POINTER"
+
+A single \fIvoid *\fP pointer associated with the connection handle
+may be set any time via
+.BR \%debuginfod_set_user_data () ,
+and retrieved via
+.BR \%debuginfod_get_user_data () .
+The value is undefined if unset.
 
 .SH "CACHE"
 If the query is successful, the \fBdebuginfod_find_*\fP() functions save

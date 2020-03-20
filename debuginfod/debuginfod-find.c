@@ -91,6 +91,9 @@ main(int argc, char** argv)
       return 1;
     }
 
+  /* Exercise user data pointer, to support testing only. */
+  debuginfod_set_user_data (client, (void *)"Progress");
+
   int remaining;
   (void) argp_parse (&argp, argc, argv, ARGP_IN_ORDER|ARGP_NO_ARGS, &remaining, NULL);
 
@@ -130,6 +133,8 @@ main(int argc, char** argv)
       return 1;
     }
 
+  debuginfod_end (client);
+
   if (rc < 0)
     {
       fprintf(stderr, "Server query failed: %s\n", strerror(-rc));
@@ -137,9 +142,7 @@ main(int argc, char** argv)
     }
 
   printf("%s\n", cache_name);
-
   free (cache_name);
-  debuginfod_end (client);
 
   return 0;
 }

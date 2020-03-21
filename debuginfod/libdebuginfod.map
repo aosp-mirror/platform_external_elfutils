@@ -12,4 +12,5 @@ ELFUTILS_0.179 {
   global:
   debuginfod_set_user_data;
   debuginfod_get_user_data;
+  debuginfod_get_url;
 };

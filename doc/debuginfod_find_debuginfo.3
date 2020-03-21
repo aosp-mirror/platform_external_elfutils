@@ -53,6 +53,7 @@ OPTIONAL FUNCTIONS
 .BI "void debuginfod_set_user_data(debuginfod_client *" client ","
 .BI "                              void *" data ");"
 .BI "void* debuginfod_get_user_data(debuginfod_client *" client ");"
+.BI "const char* debuginfod_get_url(debuginfod_client *" client ");"
 
 .SH DESCRIPTION
 
@@ -147,6 +148,16 @@ may be set any time via
 and retrieved via
 .BR \%debuginfod_get_user_data () .
 The value is undefined if unset.
+
+.SS "URL"
+
+The URL of the current or most recent outgoing download, if known,
+may be retrieved via
+.BR \%debuginfod_get_url ()
+from the progressfn callback, or afterwards.  It may be NULL.
+The resulting string is owned by the library, and must not be modified
+or freed.  The caller should copy it if it is needed beyond the release
+of the client object.
 
 .SH "CACHE"
 If the query is successful, the \fBdebuginfod_find_*\fP() functions save

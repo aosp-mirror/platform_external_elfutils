@@ -1,3 +1,8 @@
+2020-03-22  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Look for URL in default progressfn
+	and from debuginfod-find -v.
+
 2020-02-19  Aaron Merey  <amerey@redhat.com>
 
 	* run-debuginfod-find.sh: Run tests for	verifying default

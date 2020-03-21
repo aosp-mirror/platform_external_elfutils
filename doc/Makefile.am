@@ -30,6 +30,7 @@ notrans_dist_man3_MANS += debuginfod_find_debuginfo.3
 notrans_dist_man3_MANS += debuginfod_find_executable.3
 notrans_dist_man3_MANS += debuginfod_find_source.3
 notrans_dist_man3_MANS += debuginfod_get_user_data.3
+notrans_dist_man3_MANS += debuginfod_get_url.3
 notrans_dist_man3_MANS += debuginfod_set_progressfn.3
 notrans_dist_man3_MANS += debuginfod_set_user_data.3
 notrans_dist_man1_MANS += debuginfod-find.1

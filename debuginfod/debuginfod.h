@@ -81,6 +81,9 @@ void debuginfod_set_user_data (debuginfod_client *client, void *value);
 /* Get the user parameter.  */
 void* debuginfod_get_user_data (debuginfod_client *client);
 
+/* Get the current or last active URL, if known.  */
+const char* debuginfod_get_url (debuginfod_client *client);
+
 /* Release debuginfod client connection context handle.  */
 void debuginfod_end (debuginfod_client *client);
 

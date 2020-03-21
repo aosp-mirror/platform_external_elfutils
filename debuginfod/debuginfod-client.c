@@ -82,6 +82,9 @@ struct debuginfod_client
   /* Stores user data. */
   void* user_data;
 
+  /* Stores current/last url, if any. */
+  char* url;
+
   /* Can contain all other context, like cache_path, server_urls,
      timeout or other info gotten from environment variables, the
      handle data, etc. So those don't have to be reparsed and
@@ -128,6 +131,9 @@ struct handle_data
   /* This handle.  */
   CURL *handle;
 
+  /* The client object whom we're serving. */
+  debuginfod_client *client;
+
   /* Pointer to handle that should write to fd. Initially points to NULL,
      then points to the first handle that begins writing the target file
      to the cache. Used to ensure that a file is not downloaded from
@@ -144,7 +150,17 @@ debuginfod_write_callback (char *ptr, size_t size, size_t nmemb, void *data)
 
   /* Indicate to other handles that they can abort their transfer.  */
   if (*d->target_handle == NULL)
-    *d->target_handle = d->handle;
+    {
+      *d->target_handle = d->handle;
+      /* update the client object */
+      const char *url = NULL;
+      (void) curl_easy_getinfo (d->handle, CURLINFO_EFFECTIVE_URL, &url);
+      if (url)
+        {
+          free (d->client->url);
+          d->client->url = strdup(url); /* ok if fails */
+        }
+    }
 
   /* If this handle isn't the target handle, abort transfer.  */
   if (*d->target_handle != d->handle)
@@ -410,6 +426,10 @@ debuginfod_query_server (debuginfod_client *c,
   char build_id_bytes[MAX_BUILD_ID_BYTES * 2 + 1];
   int rc;
 
+  /* Clear the obsolete URL from a previous _find operation. */
+  free (c->url);
+  c->url = NULL;
+
   /* Is there any server we can query?  If not, don't do any work,
      just return with ENOSYS.  Don't even access the cache.  */
   urls_envvar = getenv(server_urls_envvar);
@@ -620,6 +640,7 @@ debuginfod_query_server (debuginfod_client *c,
       data[i].fd = fd;
       data[i].target_handle = &target_handle;
       data[i].handle = curl_easy_init();
+      data[i].client = c;
 
       if (data[i].handle == NULL)
         {
@@ -863,6 +884,10 @@ debuginfod_query_server (debuginfod_client *c,
 
 /* general purpose exit */
  out:
+  /* Conclude the last \r status line */
+  if (getenv(DEBUGINFOD_PROGRESS_ENV_VAR))
+    dprintf(STDERR_FILENO, "\n");
+
   free (cache_path);
   free (maxage_path);
   free (interval_path);
@@ -877,12 +902,31 @@ debuginfod_query_server (debuginfod_client *c,
 static int
 default_progressfn (debuginfod_client *c, long a, long b)
 {
-  (void) c;
+  const char* url = debuginfod_get_url (c);
+  int len = 0;
 
-  dprintf(STDERR_FILENO,
-          "Downloading from debuginfod %ld/%ld%s", a, b,
-          ((a == b) ? "\n" : "\r"));
-  /* XXX: include URL - stateful */
+  /* We prefer to print the host part of the URL to keep the
+     message short. */
+  if (url != NULL)
+    {
+      const char* buildid = strstr(url, "buildid/");
+      if (buildid != NULL)
+        len = (buildid - url);
+      else
+        len = strlen(url);
+    }
+
+  if (b == 0 || url==NULL) /* early stage */
+    dprintf(STDERR_FILENO,
+            "\rDownloading %c", "-/|\\"[a % 4]);
+  else if (b < 0) /* download in progress but unknown total length */
+    dprintf(STDERR_FILENO,
+            "\rDownloading from %.*s %ld",
+            len, url, a);
+  else /* download in progress, and known total length */
+    dprintf(STDERR_FILENO,
+            "\rDownloading from %.*s %ld/%ld",
+            len, url, a, b);
 
   return 0;
 }
@@ -894,13 +938,11 @@ debuginfod_begin (void)
 {
   debuginfod_client *client;
   size_t size = sizeof (struct debuginfod_client);
-  client = (debuginfod_client *) malloc (size);
+  client = (debuginfod_client *) calloc (1, size);
   if (client != NULL)
     {
       if (getenv(DEBUGINFOD_PROGRESS_ENV_VAR))
 	client->progressfn = default_progressfn;
-      else
-	client->progressfn = NULL;
     }
   return client;
 }
@@ -918,9 +960,16 @@ debuginfod_get_user_data(debuginfod_client *client)
   return client->user_data;
 }
 
+const char *
+debuginfod_get_url(debuginfod_client *client)
+{
+  return client->url;
+}
+
 void
 debuginfod_end (debuginfod_client *client)
 {
+  free (client->url);
   free (client);
 }
 

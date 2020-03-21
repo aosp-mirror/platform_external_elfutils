@@ -1,5 +1,14 @@
 2020-03-22  Frank Ch. Eigler  <fche@redhat.com>
 
+	* debuginfod-client.c (struct debuginfod_client): Add url field.
+	(struct handle_data): Add client field as backpointer.
+	(debuginfod_write_callback): Compute & save URL.
+	(default_progressfn): Print front pieces of the URL.
+	(debuginfod_query_server): Clear URL and cleanup after progressfn.
+	* debuginfod-find.c (main): Print URL at transfer conclusion.
+
+2020-03-22  Frank Ch. Eigler  <fche@redhat.com>
+
 	* debuginfod.h, libdebuginfod.map: New functions for _get/set_user().
 	* debuginfod-client.c: Implement them.
 	* debuginfod-find.c: Include a token call just for testing them.

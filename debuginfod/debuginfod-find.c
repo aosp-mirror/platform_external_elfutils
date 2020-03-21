@@ -51,6 +51,7 @@ static const struct argp_option options[] =
 
 /* debuginfod connection handle.  */
 static debuginfod_client *client;
+static int verbose;
 
 int progressfn(debuginfod_client *c __attribute__((__unused__)),
 	       long a, long b)
@@ -66,7 +67,8 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
   (void) state;
   switch (key)
     {
-    case 'v': debuginfod_set_progressfn (client, & progressfn); break;
+    case 'v': verbose++;
+      debuginfod_set_progressfn (client, & progressfn); break;
     default: return ARGP_ERR_UNKNOWN;
     }
   return 0;
@@ -131,6 +133,13 @@ main(int argc, char** argv)
     {
       argp_help (&argp, stderr, ARGP_HELP_USAGE, argv[0]);
       return 1;
+    }
+
+  if (verbose)
+    {
+      const char* url = debuginfod_get_url (client);
+      if (url != NULL)
+        fprintf(stderr, "Downloaded from %s\n", url);
     }
 
   debuginfod_end (client);

@@ -1,3 +1,14 @@
+2020-03-22  Omar Sandoval  <osandov@fb.com>
+	    Mark Wielaard  <mark@klomp.org>
+
+	* getphdrnum.c: New file.
+	* run-getphdrnum.sh: New test.
+	* testfile-phdrs.elf.bz2: New test file.
+	* Makefile.am (check_PROGRAMS): Add getphdrnum.
+	(TESTS): Add run-getphdrnum.sh.
+	(EXTRA_DIST): Add run-getphdrnum.sh and testfile-phdrs.elf.bz2.
+	(getphdrnum_LDADD): New variable.
+
 2020-03-22  Frank Ch. Eigler  <fche@redhat.com>
 
 	* run-debuginfod-find.sh: Look for URL in default progressfn

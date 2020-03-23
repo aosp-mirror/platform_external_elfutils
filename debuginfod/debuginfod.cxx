@@ -945,6 +945,82 @@ shell_escape(const string& str)
 }
 
 
+// PR25548: Perform POSIX / RFC3986 style path canonicalization on the input string.
+//
+// Namely:
+//    //         ->   /
+//    /foo/../   ->   /
+//    /./        ->   /
+//
+// This mapping is done on dwarf-side source path names, which may
+// include these constructs, so we can deal with debuginfod clients
+// that accidentally canonicalize the paths.
+//
+// realpath(3) is close but not quite right, because it also resolves
+// symbolic links.  Symlinks at the debuginfod server have nothing to
+// do with the build-time symlinks, thus they must not be considered.
+//
+// see also curl Curl_dedotdotify() aka RFC3986, which we mostly follow here
+// see also libc __realpath()
+// see also llvm llvm::sys::path::remove_dots()
+static string
+canon_pathname (const string& input)
+{
+  string i = input; // 5.2.4 (1)
+  string o;
+
+  while (i.size() != 0)
+    {
+      // 5.2.4 (2) A
+      if (i.substr(0,3) == "../")
+        i = i.substr(3);
+      else if(i.substr(0,2) == "./")
+        i = i.substr(2);
+
+      // 5.2.4 (2) B
+      else if (i.substr(0,3) == "/./")
+        i = i.substr(2);
+      else if (i == "/.")
+        i = ""; // no need to handle "/." complete-path-segment case; we're dealing with file names
+
+      // 5.2.4 (2) C
+      else if (i.substr(0,4) == "/../") {
+        i = i.substr(3);
+        string::size_type sl = o.rfind("/");
+        if (sl != string::npos)
+          o = o.substr(0, sl);
+        else
+          o = "";
+      } else if (i == "/..")
+        i = ""; // no need to handle "/.." complete-path-segment case; we're dealing with file names
+
+      // 5.2.4 (2) D
+      // no need to handle these cases; we're dealing with file names
+      else if (i == ".")
+        i = "";
+      else if (i == "..")
+        i = "";
+
+      // POSIX special: map // to /
+      else if (i.substr(0,2) == "//")
+        i = i.substr(1);
+
+      // 5.2.4 (2) E
+      else {
+        string::size_type next_slash = i.find("/", (i[0]=='/' ? 1 : 0)); // skip first slash
+        o += i.substr(0, next_slash);
+        if (next_slash == string::npos)
+          i = "";
+        else
+          i = i.substr(next_slash);
+      }
+    }
+
+  return o;
+}
+
+
+
 // A map-like class that owns a cache of file descriptors (indexed by
 // file / content names).
 //
@@ -1394,12 +1470,17 @@ static struct MHD_Response* handle_buildid (const string& buildid /* unsafe */,
     }
   else if (atype_code == "S")
     {
+      // PR25548
+      // Incoming source queries may come in with either dwarf-level OR canonicalized paths.
+      // We let the query pass with either one.
+
       pp = new sqlite_ps (db, "mhd-query-s",
-                          "select mtime, sourcetype, source0, source1 from " BUILDIDS "_query_s where buildid = ? and artifactsrc = ? "
+                          "select mtime, sourcetype, source0, source1 from " BUILDIDS "_query_s where buildid = ? and artifactsrc in (?,?) "
                           "order by sharedprefix(source0,source0ref) desc, mtime desc");
       pp->reset();
       pp->bind(1, buildid);
       pp->bind(2, suffix);
+      pp->bind(3, canon_pathname(suffix));
     }
   unique_ptr<sqlite_ps> ps_closer(pp); // release pp if exception or return
 
@@ -2117,6 +2198,27 @@ scan_source_file (const string& rps, const stat_t& st,
             .bind(4, sfs.st_mtime)
             .step_ok_done();
 
+          // PR25548: also store canonicalized source path
+          string dwarfsrc_canon = canon_pathname (dwarfsrc);
+          if (dwarfsrc_canon != dwarfsrc)
+            {
+              if (verbose > 3)
+                obatched(clog) << "canonicalized src=" << dwarfsrc << " alias=" << dwarfsrc_canon << endl;
+
+              ps_upsert_files
+                .reset()
+                .bind(1, dwarfsrc_canon)
+                .step_ok_done();
+
+              ps_upsert_s
+                .reset()
+                .bind(1, buildid)
+                .bind(2, dwarfsrc_canon)
+                .bind(3, srps)
+                .bind(4, sfs.st_mtime)
+                .step_ok_done();
+            }
+
           inc_metric("found_sourcerefs_total","source","files");
         }
     }
@@ -2277,6 +2379,26 @@ archive_classify (const string& rps, string& archive_extension,
                     .bind(1, buildid)
                     .bind(2, s)
                     .step_ok_done();
+
+                  // PR25548: also store canonicalized source path
+                  const string& dwarfsrc = s;
+                  string dwarfsrc_canon = canon_pathname (dwarfsrc);
+                  if (dwarfsrc_canon != dwarfsrc)
+                    {
+                      if (verbose > 3)
+                        obatched(clog) << "canonicalized src=" << dwarfsrc << " alias=" << dwarfsrc_canon << endl;
+
+                      ps_upsert_files
+                        .reset()
+                        .bind(1, dwarfsrc_canon)
+                        .step_ok_done();
+
+                      ps_upsert_sref
+                        .reset()
+                        .bind(1, buildid)
+                        .bind(2, dwarfsrc_canon)
+                        .step_ok_done();
+                    }
 
                   fts_sref ++;
                 }

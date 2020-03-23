@@ -716,6 +716,7 @@ debuginfod_query_server (debuginfod_client *c,
       curl_easy_setopt(data[i].handle, CURLOPT_FOLLOWLOCATION, (long) 1);
       curl_easy_setopt(data[i].handle, CURLOPT_FAILONERROR, (long) 1);
       curl_easy_setopt(data[i].handle, CURLOPT_NOSIGNAL, (long) 1);
+      curl_easy_setopt(data[i].handle, CURLOPT_PATH_AS_IS, (long) 1);
       curl_easy_setopt(data[i].handle, CURLOPT_AUTOREFERER, (long) 1);
       curl_easy_setopt(data[i].handle, CURLOPT_ACCEPT_ENCODING, "");
       add_extra_headers(data[i].handle);

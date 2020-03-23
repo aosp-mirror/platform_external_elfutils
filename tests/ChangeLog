@@ -1,5 +1,11 @@
 2020-03-24  Frank Ch. Eigler  <fche@redhat.com>
 
+	* debuginfod-rpms/hello3.spec., /fedora31/*: New files with
+	uncanonicalized source paths.
+	* run-debuginfod-find.sh: Test them.
+
+2020-03-24  Frank Ch. Eigler  <fche@redhat.com>
+
 	* run-debuginfod-find.sh: Test the more detailed debuginfod
 	webapi log format.
 

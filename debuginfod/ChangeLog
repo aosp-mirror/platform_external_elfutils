@@ -1,5 +1,16 @@
 2020-03-24  Frank Ch. Eigler  <fche@redhat.com>
 
+	* debuginfod-client.c (debuginfod_query_server): Set
+	CURLOPT_PATH_AS_IS, to propagate file names verbatim.
+	* debuginfod.cxx (canon_pathname): Implement RFC3986
+	style pathname canonicalization.
+	(handle_buildid): Canonicalize incoming webapi source
+	paths, accept either one.
+	(scan_source_file, archive_classify): Store both
+	original and canonicalized dwarf-source file names.
+
+2020-03-24  Frank Ch. Eigler  <fche@redhat.com>
+
 	* debuginfod.cxx (handle_buildid): In case of federated fallback
 	queries, handle errors analogously to local ENOENT/404.
 	(handle_metrics): Return a size-of-response value.

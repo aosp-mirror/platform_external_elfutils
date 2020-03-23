@@ -78,10 +78,11 @@ is made up of multiple CUs.  Therefore, to disambiguate, debuginfod
 expects source queries to prefix relative path names with the CU
 compilation-directory, followed by a mandatory "/".
 
-Note: the user should not elide \fB../\fP or \fB/./\fP or extraneous
-\fB///\fP sorts of path components in the directory names, because if
-this is how those names appear in the DWARF files, that is what
-debuginfod needs to see too.
+Note: the caller may or may not elide \fB../\fP or \fB/./\fP or extraneous
+\fB///\fP sorts of path components in the directory names.  debuginfod
+accepts both forms.  Specifically, debuginfod canonicalizes path names
+according to RFC3986 section 5.2.4 (Remove Dot Segments), plus reducing
+any \fB//\fP to \fB/\fP in the path.
 
 For example:
 .TS

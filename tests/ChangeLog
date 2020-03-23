@@ -1,3 +1,9 @@
+2020-03-23  Mark Wielaard  <mark@klomp.org>
+
+	* getphdrnum.c: Include config.h.
+	* run-lfs-symbols.sh: Also check that file exists. Add more logs.
+	Remove ebl modules check.
+
 2020-03-22  Omar Sandoval  <osandov@fb.com>
 	    Mark Wielaard  <mark@klomp.org>
 

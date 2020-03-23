@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <fcntl.h>
 #include <libelf.h>
 #include <stdio.h>

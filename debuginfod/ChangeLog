@@ -1,3 +1,8 @@
+2020-03-24  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod-find.c (main): Correct /source full-pathness check for
+	"debuginfod-find -v source deadbeef /pathname" case.
+
 2020-03-22  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod-client.c (struct debuginfod_client): Add url field.

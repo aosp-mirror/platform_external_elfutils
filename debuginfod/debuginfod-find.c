@@ -1,6 +1,6 @@
 /* Command-line frontend for retrieving ELF / DWARF / source files
    from the debuginfod.
-   Copyright (C) 2019 Red Hat, Inc.
+   Copyright (C) 2019-2020 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -121,7 +121,7 @@ main(int argc, char** argv)
 				    &cache_name);
   else if (strcmp(argv[remaining], "source") == 0)
     {
-      if (remaining+2 == argc || argv[3][0] != '/')
+      if (remaining+2 == argc || argv[remaining+2][0] != '/')
         {
           fprintf(stderr, "If FILETYPE is \"source\" then absolute /FILENAME must be given\n");
           return 1;

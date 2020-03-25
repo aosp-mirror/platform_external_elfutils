@@ -429,8 +429,9 @@ parse_opt (int key, char *arg,
       scan_archives[".rpm"]="cat"; // libarchive groks rpm natively
       break;
     case 'U':
-      scan_archives[".deb"]="dpkg-deb --fsys-tarfile";
-      scan_archives[".ddeb"]="dpkg-deb --fsys-tarfile";
+      scan_archives[".deb"]="(bsdtar -O -x -f - data.tar.xz)<";
+      scan_archives[".ddeb"]="(bsdtar -O -x -f - data.tar.xz)<";
+      // .udeb too?
       break;
     case 'Z':
       {

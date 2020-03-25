@@ -1,3 +1,8 @@
+2020-03-25  Frank Ch. Eigler <fche@redhat.com>
+
+	* debuginfod.cxx (parse_opt): Associate a bsdtar subshell with
+	the .deb & .ddeb extensions, instead of dpkg-deb.
+
 2020-03-26  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod-client.c (debuginfod_query_server): Don't

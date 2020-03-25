@@ -371,7 +371,7 @@ wait_ready $PORT2 'thread_busy{role="scan"}' 0
 # have clients contact the new server
 export DEBUGINFOD_URLS=http://127.0.0.1:$PORT2
 
-if type dpkg-deb 2>/dev/null; then
+if type bsdtar 2>/dev/null; then
     # copy in the deb files
     cp -rvp ${abs_srcdir}/debuginfod-debs/*deb D
     kill -USR1 $PID2

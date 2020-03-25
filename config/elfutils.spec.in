@@ -35,9 +35,7 @@ BuildRequires: pkgconfig(libarchive) >= 3.1.2
 BuildRequires: bzip2
 # For the run-debuginfod-find.sh test case in %check for /usr/sbin/ss
 BuildRequires: iproute
-%if 0%{?fedora} >= 20
-BuildRequires: dpkg
-%endif
+BuildRequires: bsdtar
 BuildRequires: curl
 
 %define _gnu %{nil}
@@ -157,9 +155,8 @@ Requires(post):   systemd
 Requires(preun):  systemd
 Requires(postun): systemd
 Requires(pre): shadow-utils
-# To extract .deb files with dpkg-deb --fsys-tarfile
-# Can be Recommends if rpm supports that
-Requires: dpkg
+# To extract .deb files with a bsdtar (= libarchive) subshell
+Requires: bsdtar
 
 %description debuginfod-client
 The elfutils-debuginfod-client package contains shared libraries

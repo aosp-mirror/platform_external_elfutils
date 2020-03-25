@@ -338,8 +338,9 @@ export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache2
 mkdir -p $DEBUGINFOD_CACHE_PATH
 # NB: inherits the DEBUGINFOD_URLS to the first server
 # NB: run in -L symlink-following mode for the L subdir
-env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -U -d ${DB}_2 -p $PORT2 -L L D &
+env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -U -d ${DB}_2 -p $PORT2 -L L D > vlog3 2>&1 &
 PID2=$!
+tempfiles vlog3
 tempfiles ${DB}_2
 wait_ready $PORT2 'ready' 1
 wait_ready $PORT2 'thread_work_total{role="traverse"}' 1
@@ -395,6 +396,11 @@ curl -s http://127.0.0.1:$PORT1/metrics | grep -q 'http_responses_total.*result.
 curl -s http://127.0.0.1:$PORT1/metrics | grep -q 'http_responses_total.*result.*fdcache'
 curl -s http://127.0.0.1:$PORT2/metrics | grep -q 'http_responses_total.*result.*upstream'
 
+# And generate a few errors into the second debuginfod's logs, for analysis just below
+curl -s http://127.0.0.1:$PORT2/badapi > /dev/null || true
+curl -s http://127.0.0.1:$PORT2/buildid/deadbeef/debuginfo > /dev/null || true
+
+
 ########################################################################
 
 # Run the tests again without the servers running. The target file should
@@ -407,6 +413,13 @@ PID2=0
 tempfiles .debuginfod_*
 
 testrun ${abs_builddir}/debuginfod_build_id_find -e F/prog2 1
+
+# check out the debuginfod logs for the new style status lines
+# cat vlog3
+grep -q 'UA:.*XFF:.*GET /buildid/.* 200 ' vlog3
+grep -q 'UA:.*XFF:.*GET /metrics 200 ' vlog3
+grep -q 'UA:.*XFF:.*GET /badapi 503 ' vlog3
+grep -q 'UA:.*XFF:.*GET /buildid/deadbeef.* 404 ' vlog3
 
 ########################################################################
 

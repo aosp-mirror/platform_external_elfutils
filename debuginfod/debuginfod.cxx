@@ -853,6 +853,7 @@ conninfo (struct MHD_Connection * conn)
 
 ////////////////////////////////////////////////////////////////////////
 
+
 static void
 add_mhd_last_modified (struct MHD_Response *resp, time_t mtime)
 {
@@ -1473,8 +1474,16 @@ static struct MHD_Response* handle_buildid (const string& buildid /* unsafe */,
         }
       close (fd);
     }
-  else if (fd != -ENOSYS) // no DEBUGINFOD_URLS configured
-    throw libc_exception(-fd, "upstream debuginfod query failed");
+  else
+    switch(fd)
+      {
+      case -ENOSYS:
+        break;
+      case -ENOENT:
+        break;
+      default: // some more tricky error
+        throw libc_exception(-fd, "upstream debuginfod query failed");
+      }
 
   throw reportable_exception(MHD_HTTP_NOT_FOUND, "not found");
 }
@@ -1564,7 +1573,7 @@ add_metric(const string& metric,
 
 
 static struct MHD_Response*
-handle_metrics ()
+handle_metrics (off_t* size)
 {
   stringstream o;
   {
@@ -1576,6 +1585,7 @@ handle_metrics ()
   MHD_Response* r = MHD_create_response_from_buffer (os.size(),
                                                      (void*) os.c_str(),
                                                      MHD_RESPMEM_MUST_COPY);
+  *size = os.size();
   MHD_add_response_header (r, "Content-Type", "text/plain");
   return r;
 }
@@ -1598,8 +1608,11 @@ handler_cb (void * /*cls*/,
   struct MHD_Response *r = NULL;
   string url_copy = url;
 
-  if (verbose)
-    obatched(clog) << conninfo(connection) << " " << method << " " << url << endl;
+  int rc = MHD_NO; // mhd
+  int http_code = 500;
+  off_t http_size = -1;
+  struct timeval tv_start, tv_end;
+  gettimeofday (&tv_start, NULL);
 
   try
     {
@@ -1632,12 +1645,22 @@ handler_cb (void * /*cls*/,
             }
 
           inc_metric("http_requests_total", "type", artifacttype);
-          r = handle_buildid(buildid, artifacttype, suffix, 0); // NB: don't care about result-fd
+
+          // get the resulting fd so we can report its size
+          int fd;
+          r = handle_buildid(buildid, artifacttype, suffix, &fd);
+          if (r)
+            {
+              struct stat fs;
+              if (fstat(fd, &fs) == 0)
+                http_size = fs.st_size;
+              // libmicrohttpd will close (fd);
+            }
         }
       else if (url1 == "/metrics")
         {
           inc_metric("http_requests_total", "type", "metrics");
-          r = handle_metrics();
+          r = handle_metrics(& http_size);
         }
       else
         throw reportable_exception("webapi error, unrecognized /operation");
@@ -1645,16 +1668,27 @@ handler_cb (void * /*cls*/,
       if (r == 0)
         throw reportable_exception("internal error, missing response");
 
-      int rc = MHD_queue_response (connection, MHD_HTTP_OK, r);
+      rc = MHD_queue_response (connection, MHD_HTTP_OK, r);
+      http_code = MHD_HTTP_OK;
       MHD_destroy_response (r);
-      return rc;
     }
   catch (const reportable_exception& e)
     {
       inc_metric("http_responses_total","result","error");
       e.report(clog);
-      return e.mhd_send_response (connection);
+      http_code = e.code;
+      rc = e.mhd_send_response (connection);
     }
+
+  gettimeofday (&tv_end, NULL);
+  double deltas = (tv_end.tv_sec - tv_start.tv_sec) + (tv_end.tv_usec - tv_start.tv_usec)*0.000001;
+  obatched(clog) << conninfo(connection)
+                 << ' ' << method << ' ' << url
+                 << ' ' << http_code << ' ' << http_size
+                 << ' ' << (int)(deltas*1000) << "ms"
+                 << endl;
+
+  return rc;
 }
 
 

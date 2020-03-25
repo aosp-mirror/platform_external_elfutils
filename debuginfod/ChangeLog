@@ -1,5 +1,14 @@
 2020-03-24  Frank Ch. Eigler  <fche@redhat.com>
 
+	* debuginfod.cxx (handle_buildid): In case of federated fallback
+	queries, handle errors analogously to local ENOENT/404.
+	(handle_metrics): Return a size-of-response value.
+	(handler_cb): Add code to time entire application-side processing
+	stage + response sizes + http codes, so as to emit a complete
+	httpd-flavoured log line for each webapi request.
+
+2020-03-24  Frank Ch. Eigler  <fche@redhat.com>
+
 	* debuginfod-client.c (debuginfod_query_server): Print the
 	default_progressfn terminating \n message only if that progressfn
 	is actually set.

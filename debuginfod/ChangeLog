@@ -1,3 +1,15 @@
+2020-03-24  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.h, libdebuginfod.map: New functions for _add_url_header.
+	* debuginfod-client.c (struct debuginfod_client): Add headers fields.
+	(debuginfod_add_http_header): New client api to add outgoing headers.
+	(add_default_headers): Renamed from add_extra_headers, skip if flag.
+	(debuginfod_query_server): Pass accumulated headers to libcurl.
+	(debuginfod_end): Clean accumulated headers.
+	(debuginfod_find_*): Add default headers at this point.
+	* debuginfod.cxx (handle_buildid): Add conn pointer.  Use it to relay
+	incoming UA and XFF headers to federated upstream debuginfods.
+
 2020-03-26  Frank Ch. Eigler <fche@redhat.com>
 
 	* debuginfod.cxx (handler_cb): Export two families of metrics for

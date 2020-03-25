@@ -85,6 +85,10 @@ struct debuginfod_client
   /* Stores current/last url, if any. */
   char* url;
 
+  /* Accumulates outgoing http header names/values. */
+  int user_agent_set_p; /* affects add_default_headers */
+  struct curl_slist *headers;
+
   /* Can contain all other context, like cache_path, server_urls,
      timeout or other info gotten from environment variables, the
      handle data, etc. So those don't have to be reparsed and
@@ -311,8 +315,11 @@ debuginfod_clean_cache(debuginfod_client *c,
 
 
 static void
-add_extra_headers(CURL *handle)
+add_default_headers(debuginfod_client *client)
 {
+  if (client->user_agent_set_p)
+    return;
+
   /* Compute a User-Agent: string to send.  The more accurately this
      describes this host, the likelier that the debuginfod servers
      might be able to locate debuginfo for us. */
@@ -372,7 +379,7 @@ add_extra_headers(CURL *handle)
     }
 
   char *ua = NULL;
-  rc = asprintf(& ua, "%s/%s,%s,%s/%s",
+  rc = asprintf(& ua, "User-Agent: %s/%s,%s,%s/%s",
                 PACKAGE_NAME, PACKAGE_VERSION,
                 utspart ?: "",
                 id ?: "",
@@ -381,7 +388,7 @@ add_extra_headers(CURL *handle)
     ua = NULL;
 
   if (ua)
-    curl_easy_setopt(handle, CURLOPT_USERAGENT, (void*) ua); /* implicit strdup */
+    (void) debuginfod_add_http_header (client, ua);
 
   free (ua);
   free (id);
@@ -464,6 +471,8 @@ debuginfod_query_server (debuginfod_client *c,
   /* Clear the obsolete URL from a previous _find operation. */
   free (c->url);
   c->url = NULL;
+
+  add_default_headers(c);
 
   /* Is there any server we can query?  If not, don't do any work,
      just return with ENOSYS.  Don't even access the cache.  */
@@ -724,7 +733,7 @@ debuginfod_query_server (debuginfod_client *c,
 #endif
       curl_easy_setopt(data[i].handle, CURLOPT_AUTOREFERER, (long) 1);
       curl_easy_setopt(data[i].handle, CURLOPT_ACCEPT_ENCODING, "");
-      add_extra_headers(data[i].handle);
+      curl_easy_setopt(data[i].handle, CURLOPT_HTTPHEADER, c->headers);
 
       curl_multi_add_handle(curlm, data[i].handle);
       server_url = strtok_r(NULL, url_delim, &strtok_saveptr);
@@ -977,6 +986,10 @@ debuginfod_get_url(debuginfod_client *client)
 void
 debuginfod_end (debuginfod_client *client)
 {
+  if (client == NULL)
+    return;
+
+  curl_slist_free_all (client->headers);
   free (client->url);
   free (client);
 }
@@ -1008,6 +1021,23 @@ int debuginfod_find_source(debuginfod_client *client,
 {
   return debuginfod_query_server(client, build_id, build_id_len,
                                  "source", filename, path);
+}
+
+
+/* Add an outgoing HTTP header.  */
+int debuginfod_add_http_header (debuginfod_client *client, const char* header)
+{
+  struct curl_slist *temp = curl_slist_append (client->headers, header);
+  if (temp == NULL)
+    return -ENOMEM;
+
+  /* Track if User-Agent: is being set.  If so, signal not to add the
+     default one. */
+  if (strncmp (header, "User-Agent:", 11) == 0)
+    client->user_agent_set_p = 1;
+
+  client->headers = temp;
+  return 0;
 }
 
 

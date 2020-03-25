@@ -1433,11 +1433,12 @@ debuginfod_find_progress (debuginfod_client *, long a, long b)
 }
 
 
-static struct MHD_Response* handle_buildid (const string& buildid /* unsafe */,
-                                            const string& artifacttype /* unsafe */,
-                                            const string& suffix /* unsafe */,
-                                            int *result_fd
-                                            )
+static struct MHD_Response*
+handle_buildid (MHD_Connection* conn,
+                const string& buildid /* unsafe */,
+                const string& artifacttype /* unsafe */,
+                const string& suffix /* unsafe */,
+                int *result_fd)
 {
   // validate artifacttype
   string atype_code;
@@ -1525,6 +1526,35 @@ static struct MHD_Response* handle_buildid (const string& buildid /* unsafe */,
   if (client != NULL)
     {
       debuginfod_set_progressfn (client, & debuginfod_find_progress);
+
+      if (conn)
+        {
+          // Transcribe incoming User-Agent:
+          string ua = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "User-Agent") ?: "";
+          string ua_complete = string("User-Agent: ") + ua;
+          debuginfod_add_http_header (client, ua_complete.c_str());
+
+          // Compute larger XFF:, for avoiding info loss during
+          // federation, and for future cyclicity detection.
+          string xff = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "X-Forwarded-For") ?: "";
+          if (xff != "")
+            xff += string(", "); // comma separated list
+
+          // Compute the client's numeric IP address only - so can't merge with conninfo()
+          const union MHD_ConnectionInfo *u = MHD_get_connection_info (conn,
+                                                                       MHD_CONNECTION_INFO_CLIENT_ADDRESS);
+          struct sockaddr *so = u ? u->client_addr : 0;
+          char hostname[256] = ""; // RFC1035
+          if (so && so->sa_family == AF_INET)
+            (void) getnameinfo (so, sizeof (struct sockaddr_in), hostname, sizeof (hostname), NULL, 0,
+                                NI_NUMERICHOST);
+          else if (so && so->sa_family == AF_INET6)
+            (void) getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname), NULL, 0,
+                                NI_NUMERICHOST);
+
+          string xff_complete = string("X-Forwarded-For: ")+xff+string(hostname);
+          debuginfod_add_http_header (client, xff_complete.c_str());
+        }
 
       if (artifacttype == "debuginfo")
 	fd = debuginfod_find_debuginfo (client,
@@ -1735,10 +1765,9 @@ handler_cb (void * /*cls*/,
             }
 
           inc_metric("http_requests_total", "type", artifacttype);
-
           // get the resulting fd so we can report its size
           int fd;
-          r = handle_buildid(buildid, artifacttype, suffix, &fd);
+          r = handle_buildid(connection, buildid, artifacttype, suffix, &fd);
           if (r)
             {
               struct stat fs;
@@ -1837,7 +1866,7 @@ dwarf_extract_source_paths (Elf *elf, set<string>& debug_sourcefiles)
           struct MHD_Response *r = 0;
           try
             {
-              r = handle_buildid (buildid, "debuginfo", "", &alt_fd);
+              r = handle_buildid (0, buildid, "debuginfo", "", &alt_fd);
             }
           catch (const reportable_exception& e)
             {

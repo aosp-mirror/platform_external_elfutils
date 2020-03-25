@@ -95,8 +95,9 @@ wait_ready()
   fi
 }
 
-env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -R -d $DB -p $PORT1 -t0 -g0 --fdcache-fds 1 --fdcache-mbs 2 -Z .tar.xz -Z .tar.bz2=bzcat R F Z L &
+env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -R -d $DB -p $PORT1 -t0 -g0 --fdcache-fds 1 --fdcache-mbs 2 -Z .tar.xz -Z .tar.bz2=bzcat -v R F Z L > vlog4 2>&1 &
 PID1=$!
+tempfiles vlog4
 # Server must become ready
 wait_ready $PORT1 'ready' 1
 export DEBUGINFOD_URLS=http://127.0.0.1:$PORT1/   # or without trailing /
@@ -387,6 +388,14 @@ fi
 
 rm -rf $DEBUGINFOD_CACHE_PATH
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
+
+# send a request to stress XFF and User-Agent federation relay;
+# we'll grep for the two patterns in vlog4
+curl -s -H 'User-Agent: TESTCURL' -H 'X-Forwarded-For: TESTXFF' $DEBUGINFOD_URLS/buildid/deaddeadbeef00000000/debuginfo -o /dev/null || true
+
+grep UA:TESTCURL vlog4
+grep XFF:TESTXFF vlog4
+
 
 # confirm that first server can't resolve symlinked info in L/ but second can
 BUILDID=`env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../src/readelf \

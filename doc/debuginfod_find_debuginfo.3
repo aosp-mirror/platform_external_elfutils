@@ -54,6 +54,8 @@ OPTIONAL FUNCTIONS
 .BI "                              void *" data ");"
 .BI "void* debuginfod_get_user_data(debuginfod_client *" client ");"
 .BI "const char* debuginfod_get_url(debuginfod_client *" client ");"
+.BI "int debuginfod_add_http_header(debuginfod_client *" client ","
+.BI "                               const char* " header ");"
 
 .SH DESCRIPTION
 
@@ -159,6 +161,21 @@ from the progressfn callback, or afterwards.  It may be NULL.
 The resulting string is owned by the library, and must not be modified
 or freed.  The caller should copy it if it is needed beyond the release
 of the client object.
+
+.SS "HTTP HEADER"
+
+Before a lookup function is initiated, a client application may
+add HTTP request headers to future downloads.
+.BR \%debuginfod_add_http_header ()
+may be called with strings of the form
+.BR \%"Header:\~value" .
+These strings are copied by the library.  A zero return value
+indicates success, but out-of-memory conditions may result in
+a non-zero \fI-ENOMEM\fP.
+
+By default, the library adds a descriptive \fIUser-Agent:\fP
+header to outgoing requests.  If the client application adds
+a header with the same name, this default is suppressed.
 
 .SH "CACHE"
 If the query is successful, the \fBdebuginfod_find_*\fP() functions save

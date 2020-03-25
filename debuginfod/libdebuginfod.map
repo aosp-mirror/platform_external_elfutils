@@ -13,4 +13,5 @@ ELFUTILS_0.179 {
   debuginfod_set_user_data;
   debuginfod_get_user_data;
   debuginfod_get_url;
+  debuginfod_add_http_header;
 };

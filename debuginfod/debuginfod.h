@@ -84,6 +84,9 @@ void* debuginfod_get_user_data (debuginfod_client *client);
 /* Get the current or last active URL, if known.  */
 const char* debuginfod_get_url (debuginfod_client *client);
 
+/* Add an outgoing HTTP request  "Header: Value".  Copies string.  */
+int debuginfod_add_http_header (debuginfod_client *client, const char* header);
+
 /* Release debuginfod client connection context handle.  */
 void debuginfod_end (debuginfod_client *client);
 

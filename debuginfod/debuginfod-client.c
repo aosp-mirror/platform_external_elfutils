@@ -401,6 +401,41 @@ add_extra_headers(CURL *handle)
         }                                  \
     } while (0)
 
+
+/* Offer a basic form of progress tracing */
+static int
+default_progressfn (debuginfod_client *c, long a, long b)
+{
+  const char* url = debuginfod_get_url (c);
+  int len = 0;
+
+  /* We prefer to print the host part of the URL to keep the
+     message short. */
+  if (url != NULL)
+    {
+      const char* buildid = strstr(url, "buildid/");
+      if (buildid != NULL)
+        len = (buildid - url);
+      else
+        len = strlen(url);
+    }
+
+  if (b == 0 || url==NULL) /* early stage */
+    dprintf(STDERR_FILENO,
+            "\rDownloading %c", "-/|\\"[a % 4]);
+  else if (b < 0) /* download in progress but unknown total length */
+    dprintf(STDERR_FILENO,
+            "\rDownloading from %.*s %ld",
+            len, url, a);
+  else /* download in progress, and known total length */
+    dprintf(STDERR_FILENO,
+            "\rDownloading from %.*s %ld/%ld",
+            len, url, a, b);
+
+  return 0;
+}
+
+
 /* Query each of the server URLs found in $DEBUGINFOD_URLS for the file
    with the specified build-id, type (debuginfo, executable or source)
    and filename. filename may be NULL. If found, return a file
@@ -885,7 +920,7 @@ debuginfod_query_server (debuginfod_client *c,
 /* general purpose exit */
  out:
   /* Conclude the last \r status line */
-  if (getenv(DEBUGINFOD_PROGRESS_ENV_VAR))
+  if (c->progressfn == & default_progressfn)
     dprintf(STDERR_FILENO, "\n");
 
   free (cache_path);
@@ -897,39 +932,6 @@ debuginfod_query_server (debuginfod_client *c,
   return rc;
 }
 
-
-/* Activate a basic form of progress tracing */
-static int
-default_progressfn (debuginfod_client *c, long a, long b)
-{
-  const char* url = debuginfod_get_url (c);
-  int len = 0;
-
-  /* We prefer to print the host part of the URL to keep the
-     message short. */
-  if (url != NULL)
-    {
-      const char* buildid = strstr(url, "buildid/");
-      if (buildid != NULL)
-        len = (buildid - url);
-      else
-        len = strlen(url);
-    }
-
-  if (b == 0 || url==NULL) /* early stage */
-    dprintf(STDERR_FILENO,
-            "\rDownloading %c", "-/|\\"[a % 4]);
-  else if (b < 0) /* download in progress but unknown total length */
-    dprintf(STDERR_FILENO,
-            "\rDownloading from %.*s %ld",
-            len, url, a);
-  else /* download in progress, and known total length */
-    dprintf(STDERR_FILENO,
-            "\rDownloading from %.*s %ld/%ld",
-            len, url, a, b);
-
-  return 0;
-}
 
 
 /* See debuginfod.h  */

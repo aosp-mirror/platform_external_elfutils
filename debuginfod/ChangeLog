@@ -1,5 +1,11 @@
 2020-03-24  Frank Ch. Eigler  <fche@redhat.com>
 
+	* debuginfod-client.c (debuginfod_query_server): Print the
+	default_progressfn terminating \n message only if that progressfn
+	is actually set.
+
+2020-03-24  Frank Ch. Eigler  <fche@redhat.com>
+
 	* debuginfod-find.c (main): Correct /source full-pathness check for
 	"debuginfod-find -v source deadbeef /pathname" case.
 

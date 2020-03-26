@@ -1,3 +1,8 @@
+2020-03-26  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.8 (-R): Note zstd compression complications
+	and workaround.
+
 2020-03-24  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod-find.1, debuginfod_find_debuginfo.3: Document

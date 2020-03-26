@@ -21,6 +21,8 @@
 type curl 2>/dev/null || (echo "need curl"; exit 77)
 type rpm2cpio 2>/dev/null || (echo "need rpm2cpio"; exit 77)
 type bzcat 2>/dev/null || (echo "need bzcat"; exit 77)
+bsdtar --version | grep -q zstd && zstd=true || zstd=false
+echo "zstd=$zstd bsdtar=`bsdtar --version`"
 
 # for test case debugging, uncomment:
 #set -x
@@ -231,6 +233,10 @@ filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find source $BUILDID
 cmp $filename ${PWD}/prog2.c
 
 cp -rvp ${abs_srcdir}/debuginfod-rpms R
+if [ "$zstd" = "false" ]; then  # nuke the zstd fedora 31 ones
+    rm -vrf R/debuginfod-rpms/fedora31
+fi
+
 cp -rvp ${abs_srcdir}/debuginfod-tars Z
 kill -USR1 $PID1
 # All rpms need to be in the index
@@ -300,8 +306,12 @@ archive_test() {
 # common source file sha1
 SHA=f4a1a8062be998ae93b8f1cd744a398c6de6dbb1
 # fedora31
-archive_test 420e9e3308971f4b817cc5bf83928b41a6909d88 /usr/src/debug/hello3-1.0-2.x86_64/foobar////./../hello.c $SHA
-archive_test 87c08d12c78174f1082b7c888b3238219b0eb265 /usr/src/debug/hello3-1.0-2.x86_64///foobar/./..//hello.c $SHA
+if [ $zstd = true ]; then
+    # fedora31 uses zstd compression on rpms, older rpm2cpio/libarchive can't handle it
+    # and we're not using the fancy -Z '.rpm=(rpm2cpio|zstdcat)<' workaround in this testsuite
+    archive_test 420e9e3308971f4b817cc5bf83928b41a6909d88 /usr/src/debug/hello3-1.0-2.x86_64/foobar////./../hello.c $SHA
+    archive_test 87c08d12c78174f1082b7c888b3238219b0eb265 /usr/src/debug/hello3-1.0-2.x86_64///foobar/./..//hello.c $SHA
+fi
 # fedora30
 archive_test c36708a78618d597dee15d0dc989f093ca5f9120 /usr/src/debug/hello2-1.0-2.x86_64/hello.c $SHA
 archive_test 41a236eb667c362a1c4196018cc4581e09722b1b /usr/src/debug/hello2-1.0-2.x86_64/hello.c $SHA

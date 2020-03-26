@@ -100,7 +100,10 @@ additional patterns.  This option may be repeated.
 .B "\-R"
 Activate RPM patterns in archive scanning.  The default is off.
 Equivalent to \fB\%\-Z\~.rpm=cat\fP, since libarchive can natively
-process RPM archives.
+process RPM archives.  If your version of libarchive is much older
+than 2020, be aware that some distributions have switched to an
+incompatible zstd compression for their payload.  You may experiment
+with \fB\%\-Z\ .rpm='(rpm2cpio|zstdcat)<'\fP instead of \fB\-R\fP.
 
 .TP
 .B "\-U"

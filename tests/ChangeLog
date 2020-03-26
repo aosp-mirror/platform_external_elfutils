@@ -1,5 +1,10 @@
 2020-03-26  Frank Ch. Eigler <fche@redhat.com>
 
+	* run-debuginfod-find.sh: Look for debuginfod's new
+	http_responses_* metrics.
+
+2020-03-26  Frank Ch. Eigler <fche@redhat.com>
+
 	* run-debuginfod-find.sh: Look for bsdtar instead of dpkg.
 
 2020-03-26  Frank Ch. Eigler  <fche@redhat.com>

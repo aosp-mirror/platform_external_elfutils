@@ -416,6 +416,10 @@ curl -s http://127.0.0.1:$PORT2/metrics
 curl -s http://127.0.0.1:$PORT1/metrics | grep -q 'http_responses_total.*result.*error'
 curl -s http://127.0.0.1:$PORT1/metrics | grep -q 'http_responses_total.*result.*fdcache'
 curl -s http://127.0.0.1:$PORT2/metrics | grep -q 'http_responses_total.*result.*upstream'
+curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_duration_milliseconds_count'
+curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_duration_milliseconds_sum'
+curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_transfer_bytes_count'
+curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_transfer_bytes_sum'
 
 # And generate a few errors into the second debuginfod's logs, for analysis just below
 curl -s http://127.0.0.1:$PORT2/badapi > /dev/null || true

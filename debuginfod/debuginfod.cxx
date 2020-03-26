@@ -1767,6 +1767,7 @@ handler_cb (void * /*cls*/,
       inc_metric("http_responses_total","result","error");
       e.report(clog);
       http_code = e.code;
+      http_size = e.message.size();
       rc = e.mhd_send_response (connection);
     }
 
@@ -1777,6 +1778,17 @@ handler_cb (void * /*cls*/,
                  << ' ' << http_code << ' ' << http_size
                  << ' ' << (int)(deltas*1000) << "ms"
                  << endl;
+
+  // related prometheus metrics
+  string http_code_str = to_string(http_code);
+  if (http_size >= 0)
+    add_metric("http_responses_transfer_bytes_sum","code",http_code_str,
+               http_size);
+  inc_metric("http_responses_transfer_bytes_count","code",http_code_str);
+
+  add_metric("http_responses_duration_milliseconds_sum","code",http_code_str,
+             deltas*1000); // prometheus prefers _seconds and floating point
+  inc_metric("http_responses_duration_milliseconds_count","code",http_code_str);
 
   return rc;
 }

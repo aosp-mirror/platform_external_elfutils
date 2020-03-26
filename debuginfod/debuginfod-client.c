@@ -716,7 +716,7 @@ debuginfod_query_server (debuginfod_client *c,
       curl_easy_setopt(data[i].handle, CURLOPT_FOLLOWLOCATION, (long) 1);
       curl_easy_setopt(data[i].handle, CURLOPT_FAILONERROR, (long) 1);
       curl_easy_setopt(data[i].handle, CURLOPT_NOSIGNAL, (long) 1);
-#if CURL_AT_LEAST_VERSION(7,42,0)
+#if LIBCURL_VERSION_NUM >= 0x072a00 /* 7.42.0 */
       curl_easy_setopt(data[i].handle, CURLOPT_PATH_AS_IS, (long) 1);
 #else
       /* On old curl; no big deal, canonicalization here is almost the

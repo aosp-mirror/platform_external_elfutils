@@ -1,3 +1,8 @@
+2020-03-26  Frank Ch. Eigler <fche@redhat.com>
+
+	* debuginfod.cxx (parse_opt): For -U, prefer dpkg-deb
+	after all if access(3)-able, fallback to bsdtar.
+
 2020-03-25  Frank Ch. Eigler <fche@redhat.com>
 
 	* debuginfod.cxx (parse_opt): Associate a bsdtar subshell with

@@ -130,9 +130,10 @@ repeated.  The default is nothing extra.
 
 .TP
 .B "\-p NUM" "\-\-port=NUM"
-Set the TCP port number on which debuginfod should listen, to service
-HTTP requests.  Both IPv4 and IPV6 sockets are opened, if possible.
-The webapi is documented below.  The default port number is 8002.
+Set the TCP port number (0 < NUM < 65536) on which debuginfod should
+listen, to service HTTP requests.  Both IPv4 and IPV6 sockets are
+opened, if possible.  The webapi is documented below.  The default
+port number is 8002.
 
 .TP
 .B "\-I REGEX"  "\-\-include=REGEX"  "\-X REGEX"  "\-\-exclude=REGEX"

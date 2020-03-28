@@ -422,7 +422,8 @@ parse_opt (int key, char *arg,
     case 'v': verbose ++; break;
     case 'd': db_path = string(arg); break;
     case 'p': http_port = (unsigned) atoi(arg);
-      if (http_port > 65535) argp_failure(state, 1, EINVAL, "port number");
+      if (http_port == 0 || http_port > 65535)
+        argp_failure(state, 1, EINVAL, "port number");
       break;
     case 'F': scan_files = true; break;
     case 'R':

@@ -1,3 +1,9 @@
+2020-03-28  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.cxx (handle_buildid_r_match): During archive
+	extraction / fdcache prefetching, set the mtime of each
+	file in the cache.
+
 2020-03-27  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod-find.c (main): Extract buildid from /binary/ if

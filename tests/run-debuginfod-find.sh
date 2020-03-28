@@ -284,22 +284,27 @@ archive_test() {
     buildid=`env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../src/readelf \
              -a $filename | grep 'Build ID' | cut -d ' ' -f 7`
     test $__BUILDID = $buildid
+    # check that timestamps are plausible - older than the near-present (tmpdir mtime)
+    test $filename -ot `pwd`
 
     # run again to assure that fdcache is being enjoyed
     filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find executable $__BUILDID`
     buildid=`env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../src/readelf \
              -a $filename | grep 'Build ID' | cut -d ' ' -f 7`
     test $__BUILDID = $buildid
+    test $filename -ot `pwd`
 
     filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $__BUILDID`
     buildid=`env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../src/readelf \
              -a $filename | grep 'Build ID' | cut -d ' ' -f 7`
     test $__BUILDID = $buildid
+    test $filename -ot `pwd`
 
     if test "x$__SOURCEPATH" != "x"; then
         filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find source $__BUILDID $__SOURCEPATH`
         hash=`cat $filename | sha1sum | awk '{print $1}'`
         test $__SOURCESHA1 = $hash
+        test $filename -ot `pwd`
     fi
 }
 

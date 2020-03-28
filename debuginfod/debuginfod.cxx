@@ -1362,6 +1362,13 @@ handle_buildid_r_match (int64_t b_mtime,
           throw archive_exception(a, "cannot extract file");
         }
 
+      // Set the mtime so the fdcache file mtimes, even prefetched ones,
+      // propagate to future webapi clients.
+      struct timeval tvs[2];
+      tvs[0].tv_sec = tvs[1].tv_sec = archive_entry_mtime(e);
+      tvs[0].tv_usec = tvs[1].tv_usec = 0;
+      (void) futimes (fd, tvs);  /* best effort */
+
       if (r != 0) // stage 3
         {
           // NB: now we know we have a complete reusable file; make fdcache

@@ -1,3 +1,7 @@
+2020-03-28  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Test timestamps of archive-origin files.
+
 2020-03-27  Frank Ch. Eigler  <fche@redhat.com>
 
 	* run-debuginfod-find.sh: Test /path/-based debuginfod-find.

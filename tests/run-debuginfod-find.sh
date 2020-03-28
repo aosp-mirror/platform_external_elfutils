@@ -144,7 +144,7 @@ rm -rf $DEBUGINFOD_CACHE_PATH # clean it from previous tests
 filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID`
 cmp $filename F/prog.debug
 
-filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find executable $BUILDID`
+filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find executable F/prog`
 cmp $filename F/prog
 
 # raw source filename

@@ -25,6 +25,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <argp.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <gelf.h>
+#include <libdwelf.h>
 
 
 /* Name and version of program.  */
@@ -39,8 +43,12 @@ static const char doc[] = N_("Request debuginfo-related content "
 
 /* Strings for arguments in help texts.  */
 static const char args_doc[] = N_("debuginfo BUILDID\n"
+                                  "debuginfo PATH\n"
                                   "executable BUILDID\n"
-                                  "source BUILDID /FILENAME");
+                                  "executable PATH\n"
+                                  "source BUILDID /FILENAME\n"
+                                  "source PATH /FILENAME\n");
+
 
 /* Definitions of arguments for argp functions.  */
 static const struct argp_option options[] =
@@ -86,6 +94,8 @@ static struct argp argp =
 int
 main(int argc, char** argv)
 {
+  elf_version (EV_CURRENT);
+
   client = debuginfod_begin ();
   if (client == NULL)
     {
@@ -105,19 +115,61 @@ main(int argc, char** argv)
       return 1;
     }
 
-  int rc;
+  /* If we were passed an ELF file name in the BUILDID slot, look in there. */
+  unsigned char* build_id = (unsigned char*) argv[remaining+1];
+  int build_id_len = 0; /* assume text */
+
+  int any_non_hex = 0;
+  int i;
+  for (i = 0; build_id[i] != '\0'; i++)
+    if ((build_id[i] >= '0' && build_id[i] <= '9') ||
+        (build_id[i] >= 'a' && build_id[i] <= 'f'))
+      ;
+    else
+      any_non_hex = 1;
+
+  int fd = -1;
+  Elf* elf = NULL;
+  if (any_non_hex) /* raw build-id */
+    {
+      fd = open ((char*) build_id, O_RDONLY);
+      if (fd < 0)
+        fprintf (stderr, "Cannot open %s: %s\n", build_id, strerror(errno));
+    }
+  if (fd >= 0)
+    {
+      elf = elf_begin (fd, ELF_C_READ_MMAP_PRIVATE, NULL);
+      if (elf == NULL)
+        fprintf (stderr, "Cannot elf_begin %s: %s\n", build_id, elf_errmsg(-1));
+    }
+  if (elf != NULL)
+    {
+      const void *extracted_build_id;
+      ssize_t s = dwelf_elf_gnu_build_id(elf, &extracted_build_id);
+      if (s > 0)
+        {
+          /* Success: replace the build_id pointer/len with the binary blob
+             that elfutils is keeping for us.  It'll remain valid until elf_end(). */
+          build_id = (unsigned char*) extracted_build_id;
+          build_id_len = s;
+        }
+      else
+        fprintf (stderr, "Cannot extract build-id from %s: %s\n", build_id, elf_errmsg(-1));
+    }
+
   char *cache_name;
+  int rc = 0;
 
   /* Check whether FILETYPE is valid and call the appropriate
      debuginfod_find_* function. If FILETYPE is "source"
      then ensure a FILENAME was also supplied as an argument.  */
   if (strcmp(argv[remaining], "debuginfo") == 0)
     rc = debuginfod_find_debuginfo(client,
-				   (unsigned char *)argv[remaining+1], 0,
+				   build_id, build_id_len,
 				   &cache_name);
   else if (strcmp(argv[remaining], "executable") == 0)
     rc = debuginfod_find_executable(client,
-				    (unsigned char *)argv[remaining+1], 0,
+                                    build_id, build_id_len,
 				    &cache_name);
   else if (strcmp(argv[remaining], "source") == 0)
     {
@@ -126,8 +178,9 @@ main(int argc, char** argv)
           fprintf(stderr, "If FILETYPE is \"source\" then absolute /FILENAME must be given\n");
           return 1;
         }
-      rc = debuginfod_find_source(client, (unsigned char *)argv[remaining+1],
-				  0, argv[remaining+2], &cache_name);
+      rc = debuginfod_find_source(client,
+                                  build_id, build_id_len,
+				  argv[remaining+2], &cache_name);
     }
   else
     {
@@ -143,6 +196,10 @@ main(int argc, char** argv)
     }
 
   debuginfod_end (client);
+  if (elf)
+    elf_end(elf);
+  if (fd >= 0)
+    close (fd);
 
   if (rc < 0)
     {

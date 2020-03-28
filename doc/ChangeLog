@@ -1,3 +1,7 @@
+2020-03-27  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod-find.1: Document /path/-based buildid passing.
+
 2020-03-24  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod_add_http_header.3: New function, documented ...

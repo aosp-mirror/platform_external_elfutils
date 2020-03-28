@@ -1,3 +1,9 @@
+2020-03-27  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod-find.c (main): Extract buildid from /binary/ if
+	given instead of hex string.
+	* Makefile.am: Add elfutils library prereqs for debuginfod-find.
+
 2020-03-24  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod.h, libdebuginfod.map: New functions for _add_url_header.

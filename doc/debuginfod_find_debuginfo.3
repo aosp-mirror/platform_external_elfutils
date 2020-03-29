@@ -171,7 +171,15 @@ may be called with strings of the form
 .BR \%"Header:\~value" .
 These strings are copied by the library.  A zero return value
 indicates success, but out-of-memory conditions may result in
-a non-zero \fI-ENOMEM\fP.
+a non-zero \fI-ENOMEM\fP. If the string is in the wrong form
+\fI-EINVAL\fP will be returned.
+
+Note that the current debuginfod-client library implementation uses
+libcurl, but you shouldn't rely on that fact. Don't use this function
+for replacing any standard headers, except for the User-Agent mentioned
+below. The only supported usage of this function is for adding an
+optional header which might or might not be passed through to the
+server for logging purposes only.
 
 By default, the library adds a descriptive \fIUser-Agent:\fP
 header to outgoing requests.  If the client application adds

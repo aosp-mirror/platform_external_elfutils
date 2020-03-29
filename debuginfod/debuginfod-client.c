@@ -1035,6 +1035,16 @@ int debuginfod_find_source(debuginfod_client *client,
 /* Add an outgoing HTTP header.  */
 int debuginfod_add_http_header (debuginfod_client *client, const char* header)
 {
+  /* Sanity check header value is of the form Header: Value.
+     It should contain exactly one colon that isn't the first or
+     last character.  */
+  char *colon = strchr (header, ':');
+  if (colon == NULL
+      || colon == header
+      || *(colon + 1) == '\0'
+      || strchr (colon + 1, ':') != NULL)
+    return -EINVAL;
+
   struct curl_slist *temp = curl_slist_append (client->headers, header);
   if (temp == NULL)
     return -ENOMEM;

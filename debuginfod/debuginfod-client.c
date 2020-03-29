@@ -89,6 +89,10 @@ struct debuginfod_client
   int user_agent_set_p; /* affects add_default_headers */
   struct curl_slist *headers;
 
+  /* Flags the default_progressfn having printed something that
+     debuginfod_end needs to terminate. */
+  int default_progressfn_printed_p;
+
   /* Can contain all other context, like cache_path, server_urls,
      timeout or other info gotten from environment variables, the
      handle data, etc. So those don't have to be reparsed and
@@ -438,6 +442,7 @@ default_progressfn (debuginfod_client *c, long a, long b)
     dprintf(STDERR_FILENO,
             "\rDownloading from %.*s %ld/%ld",
             len, url, a, b);
+  c->default_progressfn_printed_p = 1;
 
   return 0;
 }
@@ -935,7 +940,10 @@ debuginfod_query_server (debuginfod_client *c,
 /* general purpose exit */
  out:
   /* Conclude the last \r status line */
-  if (c->progressfn == & default_progressfn)
+  /* Another possibility is to use the ANSI CSI n K EL "Erase in Line"
+     code.  That way, the previously printed messages would be erased,
+     and without a newline. */
+  if (c->default_progressfn_printed_p)
     dprintf(STDERR_FILENO, "\n");
 
   free (cache_path);

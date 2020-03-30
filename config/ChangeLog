@@ -1,5 +1,10 @@
 2020-03-30  Mark Wielaard  <mark@klomp.org>
 
+	* upload-release.sh: chmod uploaded dir and files to make them
+	readable.
+
+2020-03-30  Mark Wielaard  <mark@klomp.org>
+
 	* elfutils.spec.in: Update for 0.179.
 
 2020-03-25  Frank Ch. Eigler <fche@redhat.com>

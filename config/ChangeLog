@@ -1,3 +1,7 @@
+2020-03-30  Mark Wielaard  <mark@klomp.org>
+
+	* elfutils.spec.in: Update for 0.179.
+
 2020-03-25  Frank Ch. Eigler <fche@redhat.com>
 
 	* elfutils.spec.in: *Require: bsdtar instead of dpkg.

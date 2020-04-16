@@ -357,7 +357,7 @@ dwfl_standard_find_debuginfo (Dwfl_Module *mod,
 {
   /* First try by build ID if we have one.  If that succeeds or fails
      other than just by finding nothing, that's all we do.  */
-  const unsigned char *bits;
+  const unsigned char *bits = NULL;
   GElf_Addr vaddr;
   int bits_len;
   if ((bits_len = INTUSE(dwfl_module_build_id) (mod, &bits, &vaddr)) > 0)

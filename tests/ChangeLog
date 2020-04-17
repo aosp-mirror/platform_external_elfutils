@@ -1,5 +1,12 @@
 2020-04-17  Mark Wielaard  <mark@klomp.org>
 
+	* test-subr.sh (testrun_on_self_obj): New function.
+	* run-varlocs-self.sh: Run testrun_on_self_exe and
+	testrun_on_self_lib with -e, run testrun_on_self_obj with
+	--exprlocs -e.
+
+2020-04-17  Mark Wielaard  <mark@klomp.org>
+
 	* Makefile.am (test-nlist$): New goal with minimal CFLAGS.
 	(test_nlist_CFLAGS): New variable.
 

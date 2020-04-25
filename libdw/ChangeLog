@@ -1,3 +1,8 @@
+2020-04-25  Mark Wielaard  <mark@klomp.org>
+
+	* libdw_alloc.c (__libdw_alloc_tail): Call Dwarf oom_handler()
+	when malloc fails.
+
 2020-04-17  Mark Wielaard  <mark@klomp.org>
 
 	* dwarf_begin_elf.c (check_section): Handle .gnu.debuglto_ prefix.

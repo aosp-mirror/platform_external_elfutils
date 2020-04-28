@@ -84,9 +84,6 @@ ARGP_PROGRAM_BUG_ADDRESS_DEF = PACKAGE_BUGREPORT;
 /* argp key value for --dwarf-skeleton, non-ascii.  */
 #define DWARF_SKELETON 257
 
-/* argp key value for --dyn-syms, non-ascii.  */
-#define PRINT_DYNSYM_TABLE 258
-
 /* Terrible hack for hooking unrelated skeleton/split compile units,
    see __libdw_link_skel_split in print_debug.  */
 static bool do_not_close_dwfl = false;
@@ -116,10 +113,8 @@ static const struct argp_option options[] =
   { "sections", 'S', NULL, OPTION_ALIAS | OPTION_HIDDEN, NULL, 0 },
   { "symbols", 's', "SECTION", OPTION_ARG_OPTIONAL,
     N_("Display the symbol table sections"), 0 },
-  { "dyn-syms", PRINT_DYNSYM_TABLE, NULL, 0,
-    N_("Display (only) the dynamic symbol table"), 0 },
   { "version-info", 'V', NULL, 0, N_("Display versioning information"), 0 },
-  { "notes", 'n', "SECTION", OPTION_ARG_OPTIONAL, N_("Display the ELF notes"), 0 },
+  { "notes", 'n', NULL, 0, N_("Display the ELF notes"), 0 },
   { "arch-specific", 'A', NULL, 0,
     N_("Display architecture specific information, if any"), 0 },
   { "exception", 'e', NULL, 0,
@@ -192,14 +187,8 @@ static bool print_section_header;
 /* True if the symbol table should be printed.  */
 static bool print_symbol_table;
 
-/* True if (only) the dynsym table should be printed.  */
-static bool print_dynsym_table;
-
 /* A specific section name, or NULL to print all symbol tables.  */
 static char *symbol_table_section;
-
-/* A specific section name, or NULL to print all ELF notes.  */
-static char *notes_section;
 
 /* True if the version information should be printed.  */
 static bool print_version_info;
@@ -323,17 +312,6 @@ static void dump_archive_index (Elf *, const char *);
 static char *yes_str;
 static char *no_str;
 
-static void
-cleanup_list (struct section_argument *list)
-{
-  while (list != NULL)
-    {
-      struct section_argument *a = list;
-      list = a->next;
-      free (a);
-    }
-}
-
 int
 main (int argc, char *argv[])
 {
@@ -365,7 +343,7 @@ main (int argc, char *argv[])
       int fd = open (argv[remaining], O_RDONLY);
       if (fd == -1)
 	{
-	  error (0, errno, _("cannot open input file '%s'"), argv[remaining]);
+	  error (0, errno, gettext ("cannot open input file"));
 	  continue;
 	}
 
@@ -374,9 +352,6 @@ main (int argc, char *argv[])
       close (fd);
     }
   while (++remaining < argc);
-
-  cleanup_list (dump_data_sections);
-  cleanup_list (string_sections);
 
   return error_message_count != 0;
 }
@@ -450,7 +425,6 @@ parse_opt (int key, char *arg,
     case 'n':
       print_notes = true;
       any_control_option = true;
-      notes_section = arg;
       break;
     case 'r':
       print_relocations = true;
@@ -464,10 +438,6 @@ parse_opt (int key, char *arg,
       print_symbol_table = true;
       any_control_option = true;
       symbol_table_section = arg;
-      break;
-    case PRINT_DYNSYM_TABLE:
-      print_dynsym_table = true;
-      any_control_option = true;
       break;
     case 'V':
       print_version_info = true;
@@ -1010,7 +980,7 @@ process_elf_file (Dwfl_Module *dwflmod, int fd)
     print_relocs (pure_ebl, ehdr);
   if (print_histogram)
     handle_hash (ebl);
-  if (print_symbol_table || print_dynsym_table)
+  if (print_symbol_table)
     print_symtab (ebl, SHT_DYNSYM);
   if (print_version_info)
     print_verinfo (ebl);
@@ -1100,12 +1070,7 @@ print_ehdr (Ebl *ebl, GElf_Ehdr *ehdr)
   fputs_unlocked (gettext ("  Type:                              "), stdout);
   print_file_type (ehdr->e_type);
 
-  const char *machine = dwelf_elf_e_machine_string (ehdr->e_machine);
-  if (machine != NULL)
-    printf (gettext ("  Machine:                           %s\n"), machine);
-  else
-    printf (gettext ("  Machine:                           <unknown>: 0x%x\n"),
-	    ehdr->e_machine);
+  printf (gettext ("  Machine:                           %s\n"), ebl->name);
 
   printf (gettext ("  Version:                           %d %s\n"),
 	  ehdr->e_version,
@@ -3587,9 +3552,7 @@ print_attributes (Ebl *ebl, const GElf_Ehdr *ehdr)
 
       if (shdr == NULL || (shdr->sh_type != SHT_GNU_ATTRIBUTES
 			   && (shdr->sh_type != SHT_ARM_ATTRIBUTES
-			       || ehdr->e_machine != EM_ARM)
-			   && (shdr->sh_type != SHT_CSKY_ATTRIBUTES
-			       || ehdr->e_machine != EM_CSKY)))
+			       || ehdr->e_machine != EM_ARM)))
 	continue;
 
       printf (gettext ("\
@@ -6967,7 +6930,7 @@ struct attrcb_args
 {
   Dwfl_Module *dwflmod;
   Dwarf *dbg;
-  Dwarf_Die *dies;
+  Dwarf_Die *die;
   int level;
   bool silent;
   bool is_split;
@@ -6983,7 +6946,7 @@ attr_callback (Dwarf_Attribute *attrp, void *arg)
 {
   struct attrcb_args *cbargs = (struct attrcb_args *) arg;
   const int level = cbargs->level;
-  Dwarf_Die *die = &cbargs->dies[level];
+  Dwarf_Die *die = cbargs->die;
   bool is_split = cbargs->is_split;
 
   unsigned int attr = dwarf_whatattr (attrp);
@@ -7129,7 +7092,7 @@ attr_callback (Dwarf_Attribute *attrp, void *arg)
 		  || (form != DW_FORM_data4 && form != DW_FORM_data8)))
 	    {
 	      if (!cbargs->silent)
-		printf ("           %*s%-20s (%s) %" PRIuMAX "\n",
+		printf ("           %*s%-20s (%s) %" PRIxMAX "\n",
 			(int) (level * 2), "", dwarf_attr_name (attr),
 			dwarf_form_name (form), (uintmax_t) num);
 	      return DWARF_CB_OK;
@@ -7327,6 +7290,9 @@ attr_callback (Dwarf_Attribute *attrp, void *arg)
 	case DW_AT_ordering:
 	  valuestr = dwarf_ordering_name (num);
 	  break;
+	case DW_AT_discr_list:
+	  valuestr = dwarf_discr_list_name (num);
+	  break;
 	case DW_AT_decl_file:
 	case DW_AT_call_file:
 	  {
@@ -7381,7 +7347,7 @@ attr_callback (Dwarf_Attribute *attrp, void *arg)
       /* When highpc is in constant form it is relative to lowpc.
 	 In that case also show the address.  */
       Dwarf_Addr highpc;
-      if (attr == DW_AT_high_pc && dwarf_highpc (die, &highpc) == 0)
+      if (attr == DW_AT_high_pc && dwarf_highpc (cbargs->die, &highpc) == 0)
 	{
 	  printf ("           %*s%-20s (%s) %" PRIuMAX " (",
 		  (int) (level * 2), "", dwarf_attr_name (attr),
@@ -7403,7 +7369,7 @@ attr_callback (Dwarf_Attribute *attrp, void *arg)
 	      bool is_signed;
 	      int bytes = 0;
 	      if (attr == DW_AT_const_value)
-		die_type_sign_bytes (die, &is_signed, &bytes);
+		die_type_sign_bytes (cbargs->die, &is_signed, &bytes);
 	      else
 		is_signed = (form == DW_FORM_sdata
 			     || form == DW_FORM_implicit_const);
@@ -7554,96 +7520,6 @@ attr_callback (Dwarf_Attribute *attrp, void *arg)
 			 12 + level * 2, 12 + level * 2,
 			 cbargs->version, cbargs->addrsize, cbargs->offset_size,
 			 attrp->cu, block.length, block.data);
-	    }
-	  else
-	    print_block (block.length, block.data);
-	  break;
-
-	case DW_AT_discr_list:
-	  if (block.length == 0)
-	    puts ("<default>");
-	  else if (form != DW_FORM_data16)
-	    {
-	      const unsigned char *readp = block.data;
-	      const unsigned char *readendp = readp + block.length;
-
-	      /* See if we are dealing with a signed or unsigned
-		 values.  If the parent of this variant DIE is a
-		 variant_part then it will either have a discriminant
-		 which points to the member which type is the
-		 discriminant type.  Or the variant_part itself has a
-		 type representing the discriminant.  */
-	      bool is_signed = false;
-	      if (level > 0)
-		{
-		  Dwarf_Die *parent = &cbargs->dies[level - 1];
-		  if (dwarf_tag (die) == DW_TAG_variant
-		      && dwarf_tag (parent) == DW_TAG_variant_part)
-		    {
-		      Dwarf_Die member;
-		      Dwarf_Attribute discr_attr;
-		      int bytes;
-		      if (dwarf_formref_die (dwarf_attr (parent,
-							 DW_AT_discr,
-							 &discr_attr),
-					     &member) != NULL)
-			die_type_sign_bytes (&member, &is_signed, &bytes);
-		      else
-			die_type_sign_bytes (parent, &is_signed, &bytes);
-		    }
-		}
-	      while (readp < readendp)
-		{
-		  int d = (int) *readp++;
-		  printf ("%s ", dwarf_discr_list_name (d));
-		  if (readp >= readendp)
-		    goto attrval_out;
-
-		  Dwarf_Word val;
-		  Dwarf_Sword sval;
-		  if (d == DW_DSC_label)
-		    {
-		      if (is_signed)
-			{
-			  get_sleb128 (sval, readp, readendp);
-			  printf ("%" PRId64 "", sval);
-			}
-		      else
-			{
-			  get_uleb128 (val, readp, readendp);
-			  printf ("%" PRIu64 "", val);
-			}
-		    }
-		  else if (d == DW_DSC_range)
-		    {
-		      if (is_signed)
-			{
-			  get_sleb128 (sval, readp, readendp);
-			  printf ("%" PRId64 "..", sval);
-			  if (readp >= readendp)
-			    goto attrval_out;
-			  get_sleb128 (sval, readp, readendp);
-			  printf ("%" PRId64 "", sval);
-			}
-		      else
-			{
-			  get_uleb128 (val, readp, readendp);
-			  printf ("%" PRIu64 "..", val);
-			  if (readp >= readendp)
-			    goto attrval_out;
-			  get_uleb128 (val, readp, readendp);
-			  printf ("%" PRIu64 "", val);
-			}
-		    }
-		  else
-		    {
-		      print_block (readendp - readp, readp);
-		      break;
-		    }
-		  if (readp < readendp)
-		    printf (", ");
-		}
-	      putchar ('\n');
 	    }
 	  else
 	    print_block (block.length, block.data);
@@ -7848,7 +7724,7 @@ print_debug_units (Dwfl_Module *dwflmod,
 
       /* Print the attribute values.  */
       args.level = level;
-      args.dies = dies;
+      args.die = &dies[level];
       (void) dwarf_getattrs (&dies[level], attr_callback, &args, 0);
 
       /* Make room for the next level's DIE.  */
@@ -9812,13 +9688,13 @@ print_debug_macinfo_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
 	  /* Find the CU DIE for this file.  */
 	  size_t macoff = readp - (const unsigned char *) data->d_buf;
 	  const char *fname = "???";
-	  if (macoff >= cus[0].offset && cus[0].offset != data->d_size)
+	  if (macoff >= cus[0].offset)
 	    {
 	      while (macoff >= cus[1].offset && cus[1].offset != data->d_size)
 		++cus;
 
 	      if (cus[0].files == NULL
-		  && dwarf_getsrcfiles (&cus[0].die, &cus[0].files, NULL) != 0)
+		&& dwarf_getsrcfiles (&cus[0].die, &cus[0].files, NULL) != 0)
 		cus[0].files = (Dwarf_Files *) -1l;
 
 	      if (cus[0].files != (Dwarf_Files *) -1l)
@@ -12424,13 +12300,6 @@ handle_notes (Ebl *ebl, GElf_Ehdr *ehdr)
 	    /* Not what we are looking for.  */
 	    continue;
 
-	  if (notes_section != NULL)
-	    {
-	      char *sname = elf_strptr (ebl->elf, shstrndx, shdr->sh_name);
-	      if (sname == NULL || strcmp (sname, notes_section) != 0)
-		continue;
-	    }
-
 	  printf (gettext ("\
 \nNote section [%2zu] '%s' of %" PRIu64 " bytes at offset %#0" PRIx64 ":\n"),
 		  elf_ndxscn (scn),
@@ -12646,7 +12515,6 @@ for_each_section_argument (Elf *elf, const struct section_argument *list,
 	    error (EXIT_FAILURE, 0, gettext ("cannot get section header: %s"),
 		   elf_errmsg (-1));
 	  name = elf_strptr (elf, shstrndx, shdr_mem.sh_name);
-	  (*dump) (scn, &shdr_mem, name);
 	}
       else
 	{

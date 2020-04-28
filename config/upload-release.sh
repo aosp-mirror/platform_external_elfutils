@@ -29,7 +29,6 @@ pushd "${tempdir}"
 # Checkout
 git clone git://sourceware.org/git/elfutils.git
 cd elfutils
-git tag --verify "elfutils-${VERSION}"
 git checkout -b "$VERSION" "elfutils-${VERSION}"
 
 # Create dist

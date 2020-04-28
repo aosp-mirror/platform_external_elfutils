@@ -83,11 +83,8 @@ addrarange (Dwfl_Module *mod, Dwarf_Addr addr, struct dwfl_arange **arange)
 
       /* Store the final array, which is probably much smaller than before.  */
       mod->naranges = naranges;
-      if (naranges > 0)
-        mod->aranges = (realloc (aranges, naranges * sizeof aranges[0])
-			?: aranges);
-      else if (aranges != NULL)
-	free (aranges);
+      mod->aranges = (realloc (aranges, naranges * sizeof aranges[0])
+		      ?: aranges);
       mod->lazycu += naranges;
     }
 

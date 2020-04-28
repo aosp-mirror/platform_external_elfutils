@@ -54,11 +54,11 @@ riscv_init (Elf *elf,
     return NULL;
 
   /* We handle it.  */
+  eh->name = "RISC-V";
   riscv_init_reloc (eh);
   HOOK (eh, reloc_simple_type);
   HOOK (eh, register_info);
   HOOK (eh, abi_cfi);
-  HOOK (eh, disasm);
   /* gcc/config/ #define DWARF_FRAME_REGISTERS.  */
   eh->frame_nregs = 66;
   HOOK (eh, check_special_symbol);

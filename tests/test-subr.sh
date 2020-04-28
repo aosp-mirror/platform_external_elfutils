@@ -116,12 +116,14 @@ program_transform()
 }
 
 self_test_files_exe=`echo ${abs_top_builddir}/src/addr2line \
-${abs_top_builddir}/src/elfclassify \
-${abs_top_builddir}/src/stack \
-${abs_top_builddir}/src/unstrip`
+${abs_top_builddir}/src/elfcmp \
+${abs_top_builddir}/src/objdump \
+${abs_top_builddir}/src/readelf`
 
 self_test_files_lib=`echo ${abs_top_builddir}/libelf/libelf.so \
-${abs_top_builddir}/libasm/libasm.so`
+${abs_top_builddir}/libdw/libdw.so \
+${abs_top_builddir}/backends/libebl_i386.so \
+${abs_top_builddir}/backends/libebl_x86_64.so`
 
 self_test_files_obj=`echo ${abs_top_builddir}/src/size.o \
 ${abs_top_builddir}/src/strip.o`

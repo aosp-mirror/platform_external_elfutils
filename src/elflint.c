@@ -151,15 +151,15 @@ main (int argc, char *argv[])
       int fd = open (argv[remaining], O_RDONLY);
       if (fd == -1)
 	{
-	  error (0, errno, _("cannot open input file '%s'"), argv[remaining]);
+	  error (0, errno, gettext ("cannot open input file"));
 	  continue;
 	}
 
       /* Create an `Elf' descriptor.  */
       Elf *elf = elf_begin (fd, ELF_C_READ_MMAP, NULL);
       if (elf == NULL)
-	ERROR (_("cannot generate Elf descriptor for '%s': %s\n"),
-	       argv[remaining], elf_errmsg (-1));
+	ERROR (gettext ("cannot generate Elf descriptor: %s\n"),
+	       elf_errmsg (-1));
       else
 	{
 	  unsigned int prev_error_count = error_count;
@@ -330,7 +330,7 @@ static const int valid_e_machine[] =
     EM_CRIS, EM_JAVELIN, EM_FIREPATH, EM_ZSP, EM_MMIX, EM_HUANY, EM_PRISM,
     EM_AVR, EM_FR30, EM_D10V, EM_D30V, EM_V850, EM_M32R, EM_MN10300,
     EM_MN10200, EM_PJ, EM_OPENRISC, EM_ARC_A5, EM_XTENSA, EM_ALPHA,
-    EM_TILEGX, EM_TILEPRO, EM_AARCH64, EM_BPF, EM_RISCV, EM_CSKY
+    EM_TILEGX, EM_TILEPRO, EM_AARCH64, EM_BPF, EM_RISCV
   };
 #define nvalid_e_machine \
   (sizeof (valid_e_machine) / sizeof (valid_e_machine[0]))

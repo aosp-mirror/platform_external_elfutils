@@ -751,17 +751,19 @@ show_symbols_sysv (Ebl *ebl, GElf_Word strndx, const char *fullname,
   while ((scn = elf_nextscn (ebl->elf, scn)) != NULL)
     {
       GElf_Shdr shdr_mem;
-      GElf_Shdr *shdr;
 
       assert (elf_ndxscn (scn) == cnt);
       cnt++;
 
-      char *name = NULL;
-      shdr = gelf_getshdr (scn, &shdr_mem);
-      if (shdr != NULL)
-	name = elf_strptr (ebl->elf, shstrndx, shdr->sh_name);
+      char *name = elf_strptr (ebl->elf, shstrndx,
+			       gelf_getshdr (scn, &shdr_mem)->sh_name);
       if (unlikely (name == NULL))
-	name = "[invalid section name]";
+	{
+	  const size_t bufsz = sizeof "[invalid sh_name 0x12345678]";
+	  name = alloca (bufsz);
+	  snprintf (name, bufsz, "[invalid sh_name %#" PRIx32 "]",
+		    gelf_getshdr (scn, &shdr_mem)->sh_name);
+	}
       scnnames[elf_ndxscn (scn)] = name;
     }
 
@@ -1438,7 +1440,6 @@ show_symbols (int fd, Ebl *ebl, GElf_Ehdr *ehdr,
   free (demangle_buffer);
 #endif
   /* Now we know the exact number.  */
-  size_t nentries_orig = nentries;
   nentries = nentries_used;
 
   /* Sort the entries according to the users wishes.  */
@@ -1473,7 +1474,7 @@ show_symbols (int fd, Ebl *ebl, GElf_Ehdr *ehdr,
     }
 
   /* Free all memory.  */
-  if (nentries_orig * sizeof (sym_mem[0]) >= MAX_STACK_ALLOC)
+  if (nentries * sizeof (sym_mem[0]) >= MAX_STACK_ALLOC)
     free (sym_mem);
 
   obstack_free (&whereob, NULL);

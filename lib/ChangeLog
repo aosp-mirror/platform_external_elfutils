@@ -1,13 +1,3 @@
-2019-08-25  Jonathon Anderson  <jma14@rice.edu>
-
-	* stdatomic-fbsd.h: New file, taken from FreeBSD.
-	* atomics.h: New file.
-	* Makefile.am (noinst_HEADERS): Added *.h above.
-
-2019-05-03  Rosen Penev  <rosenp@gmail.com>
-
-	* color.c (parse_opt): Cast program_invocation_short_name to char *.
-
 2018-11-04  Mark Wielaard  <mark@klomp.org>
 
 	* bpf.h: Add BPF_JLT, BPF_JLE, BPF_JSLT and BPF_JSLE.

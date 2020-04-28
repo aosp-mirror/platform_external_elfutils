@@ -139,14 +139,14 @@ open_stream (int fd, off_t start_offset, struct unzip_state *state)
 {
     int d = dup (fd);
     if (unlikely (d < 0))
-      return DWFL_E_ERRNO;
+      return DWFL_E_BADELF;
     if (start_offset != 0)
       {
 	off_t off = lseek (d, start_offset, SEEK_SET);
 	if (off != start_offset)
 	  {
 	    close (d);
-	    return DWFL_E_ERRNO;
+	    return DWFL_E_BADELF;
 	  }
       }
     state->zf = gzdopen (d, "r");
@@ -288,7 +288,6 @@ unzip (int fd, off_t start_offset,
   if (result == DWFL_E_NOERROR && gzdirect (state.zf))
     {
       gzclose (state.zf);
-      /* Not a compressed stream after all.  */
       return fail (&state, DWFL_E_BADELF);
     }
 

@@ -610,9 +610,7 @@ i386_disasm (Ebl *ebl __attribute__((unused)),
 
 		  /* Account for displacement.  */
 		  if ((modrm & 0xc7) == 5 || (modrm & 0xc0) == 0x80
-		      || ((modrm & 0xc7) == 0x4
-			  && param_start < end
-			  && (codep[0] & 0x7) == 0x5))
+		      || ((modrm & 0xc7) == 0x4 && (codep[0] & 0x7) == 0x5))
 		    param_start += 4;
 		  else if ((modrm & 0xc0) == 0x40)
 		    param_start += 1;
@@ -823,8 +821,7 @@ i386_disasm (Ebl *ebl __attribute__((unused)),
 			    }
 			  FALLTHROUGH;
 			default:
-			  str = "INVALID not handled";
-			  break;
+			  assert (! "INVALID not handled");
 			}
 		    }
 		  else
@@ -1033,7 +1030,7 @@ i386_disasm (Ebl *ebl __attribute__((unused)),
 		      string_end_idx = bufcnt;
 		    }
 		  else
-		    start_idx = bufcnt = string_end_idx;
+		    bufcnt = string_end_idx;
 		  break;
 
 		case 'e':
@@ -1127,9 +1124,8 @@ i386_disasm (Ebl *ebl __attribute__((unused)),
       /* Invalid (or at least unhandled) opcode.  */
       if (prefixes != 0)
 	goto print_prefix;
-      /* Make sure we get past the unrecognized opcode if we haven't yet.  */
-      if (*startp == data)
-	++data;
+      assert (*startp == data);
+      ++data;
       ADD_STRING ("(bad)");
       addr += data - begin;
 

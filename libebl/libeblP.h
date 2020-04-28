@@ -38,6 +38,9 @@
 /* Backend handle.  */
 struct ebl
 {
+  /* Machine name.  */
+  const char *name;
+
   /* Emulation name.  */
   const char *emulation;
 
@@ -77,6 +80,9 @@ struct ebl
      ebl_resolve_sym_value if available for this arch.  */
   GElf_Addr fd_addr;
   Elf_Data *fd_data;
+
+  /* Internal data.  */
+  void *dlhandle;
 };
 
 

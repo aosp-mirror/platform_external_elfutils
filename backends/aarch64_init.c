@@ -49,6 +49,7 @@ aarch64_init (Elf *elf __attribute__ ((unused)),
     return NULL;
 
   /* We handle it.  */
+  eh->name = "AARCH64";
   aarch64_init_reloc (eh);
   HOOK (eh, register_info);
   HOOK (eh, core_note);

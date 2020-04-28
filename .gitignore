@@ -56,7 +56,6 @@ Makefile.in
 /po/stamp-po
 /src/addr2line
 /src/ar
-/src/elfclassify
 /src/elfcmp
 /src/elfcompress
 /src/elflint

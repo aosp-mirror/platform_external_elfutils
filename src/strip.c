@@ -1097,7 +1097,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
   if (debug_fname != NULL)
     {
       /* Also create an ELF descriptor for the debug file */
-      debugelf = elf_begin (debug_fd, ELF_C_WRITE, NULL);
+      debugelf = elf_begin (debug_fd, ELF_C_WRITE_MMAP, NULL);
       if (unlikely (gelf_newehdr (debugelf, gelf_getclass (elf)) == 0))
 	{
 	  error (0, 0, gettext ("cannot create new ehdr for file '%s': %s"),
@@ -1975,7 +1975,6 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 				  && shndxdata->d_buf != NULL);
 		    size_t sidx = (sym->st_shndx != SHN_XINDEX
 				   ? sym->st_shndx : xshndx);
-		    elf_assert (sidx < shnum);
 		    sec = shdr_info[sidx].idx;
 
 		    if (sec != 0)

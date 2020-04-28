@@ -37,8 +37,8 @@
 #include "libelfP.h"
 
 
-int64_t
+off_t
 elf_getbase (Elf *elf)
 {
-  return elf == NULL ? (int64_t) -1 : elf->start_offset;
+  return elf == NULL ? (off_t) -1 : elf->start_offset;
 }

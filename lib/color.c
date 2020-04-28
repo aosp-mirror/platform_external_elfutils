@@ -72,8 +72,6 @@ char *color_operand = NULL;
 char *color_operand1 = "";
 char *color_operand2 = "";
 char *color_operand3 = "";
-char *color_operand4 = "";
-char *color_operand5 = "";
 char *color_label = "";
 char *color_undef = "";
 char *color_undef_tls = "";
@@ -134,7 +132,7 @@ valid arguments are:\n\
   - 'auto', 'tty', 'if-tty'\n"),
 		     program_invocation_short_name, arg);
 	      argp_help (&color_argp, stderr, ARGP_HELP_SEE,
-			 (char *) program_invocation_short_name);
+			 program_invocation_short_name);
 	      exit (EXIT_FAILURE);
 	    }
 	}
@@ -169,10 +167,8 @@ valid arguments are:\n\
 				E (m, mnemonic),
 				E (o, operand),
 				E (o1, operand1),
-				E (o2, operand2),
-				E (o3, operand3),
-				E (o4, operand4),
-				E (o5, operand5),
+				E (o1, operand2),
+				E (o1, operand3),
 				E (l, label),
 				E (u, undef),
 				E (ut, undef_tls),
@@ -209,10 +205,6 @@ valid arguments are:\n\
 		    color_operand2 = color_operand;
 		  if (color_operand3[0] == '\0')
 		    color_operand3 = color_operand;
-		  if (color_operand4[0] == '\0')
-		    color_operand4 = color_operand;
-		  if (color_operand5[0] == '\0')
-		    color_operand5 = color_operand;
 		}
 	    }
 #if 0
@@ -224,7 +216,7 @@ valid arguments are:\n\
 	      color_mnemonic = xstrdup ("\e[38;5;202;1m");
 	      color_operand1 = xstrdup ("\e[38;5;220m");
 	      color_operand2 = xstrdup ("\e[38;5;48m");
-	      color_operand = xstrdup ("\e[38;5;112m");
+	      color_operand3 = xstrdup ("\e[38;5;112m");
 	      color_label = xstrdup ("\e[38;5;21m");
 	    }
 #endif

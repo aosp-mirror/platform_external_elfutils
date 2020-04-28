@@ -49,6 +49,7 @@ bpf_init (Elf *elf __attribute__ ((unused)),
     return NULL;
 
   /* We handle it.  */
+  eh->name = "BPF";
   bpf_init_reloc (eh);
   HOOK (eh, register_info);
   HOOK (eh, disasm);

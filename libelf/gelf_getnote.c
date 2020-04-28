@@ -80,12 +80,11 @@ gelf_getnote (Elf_Data *data, size_t offset, GElf_Nhdr *result,
 	     the offset, after adding the namesz, and include padding
 	     in descsz to get to the end.  */
 	  *name_offset = offset;
-	  if (n->n_namesz > data->d_size
-	      || offset > data->d_size - n->n_namesz)
+	  offset += n->n_namesz;
+	  if (offset > data->d_size)
 	    offset = 0;
 	  else
 	    {
-	      offset += n->n_namesz;
 	      /* Include padding.  Check below for overflow.  */
 	      GElf_Word descsz = (data->d_type == ELF_T_NHDR8
 				  ? NOTE_ALIGN8 (n->n_descsz)

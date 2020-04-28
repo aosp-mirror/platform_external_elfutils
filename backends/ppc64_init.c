@@ -52,6 +52,7 @@ ppc64_init (Elf *elf __attribute__ ((unused)),
     return NULL;
 
   /* We handle it.  */
+  eh->name = "PowerPC 64-bit";
   ppc64_init_reloc (eh);
   HOOK (eh, reloc_simple_type);
   HOOK (eh, dynamic_tag_name);

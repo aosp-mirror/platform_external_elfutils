@@ -38,7 +38,7 @@
 #include "libelfP.h"
 
 
-int64_t
+off_t
 elf_getaroff (Elf *elf)
 {
   /* Be gratious, the specs demand it.  */

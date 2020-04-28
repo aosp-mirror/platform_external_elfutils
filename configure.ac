@@ -17,7 +17,7 @@ dnl  GNU General Public License for more details.
 dnl
 dnl  You should have received a copy of the GNU General Public License
 dnl  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-AC_INIT([elfutils],[0.177],[https://sourceware.org/bugzilla],[elfutils],[http://elfutils.org/])
+AC_INIT([elfutils],[0.176],[https://sourceware.org/bugzilla],[elfutils],[http://elfutils.org/])
 
 dnl Workaround for older autoconf < 2.64
 m4_ifndef([AC_PACKAGE_URL],
@@ -226,18 +226,6 @@ LDFLAGS="$save_LDFLAGS"])
 AS_IF([test "x$ac_cv_tls" != xyes],
       AC_MSG_ERROR([__thread support required]))
 
-dnl Before 4.9 gcc doesn't ship stdatomic.h, but the nessesary atomics are
-dnl available by (at least) 4.7. So if the system doesn't have a stdatomic.h we
-dnl fall back on one copied from FreeBSD that handles the difference.
-AC_CACHE_CHECK([whether gcc provides stdatomic.h], ac_cv_has_stdatomic,
-  [AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdatomic.h>]])],
-		     ac_cv_has_stdatomic=yes, ac_cv_has_stdatomic=no)])
-AM_CONDITIONAL(HAVE_STDATOMIC_H, test "x$ac_cv_has_stdatomic" = xyes)
-AS_IF([test "x$ac_cv_has_stdatomic" = xyes], [AC_DEFINE(HAVE_STDATOMIC_H)])
-
-AH_TEMPLATE([HAVE_STDATOMIC_H], [Define to 1 if `stdatomic.h` is provided by the
-                                 system, 0 otherwise.])
-
 dnl This test must come as early as possible after the compiler configuration
 dnl tests, because the choice of the file model can (in principle) affect
 dnl whether functions and headers are available, whether they work, etc.
@@ -347,6 +335,15 @@ AC_ARG_ENABLE([tests-rpath],
 AS_HELP_STRING([--enable-tests-rpath],[build $ORIGIN-using rpath into tests]),
 	       [tests_use_rpath=$enableval], [tests_use_rpath=no])
 AM_CONDITIONAL(TESTS_RPATH, test "$tests_use_rpath" = yes)
+
+LIBEBL_SUBDIR="$PACKAGE"
+AC_ARG_ENABLE([libebl-subdir],
+AS_HELP_STRING([--enable-libebl-subdir=DIR],
+[install libebl_CPU modules in $(libdir)/DIR]), [dnl
+LIBEBL_SUBDIR="$enable_libebl_subdir"])
+AC_SUBST([LIBEBL_SUBDIR])
+AC_DEFINE_UNQUOTED(LIBEBL_SUBDIR, "$LIBEBL_SUBDIR")
+AH_TEMPLATE([LIBEBL_SUBDIR], [$libdir subdirectory containing libebl modules.])
 
 dnl zlib is mandatory.
 save_LIBS="$LIBS"
@@ -500,7 +497,8 @@ AC_SUBST([argp_LDADD])
 dnl The directories with content.
 
 dnl Documentation.
-AC_CONFIG_FILES([doc/Makefile])
+dnl Commented out for now.
+dnl AC_CONFIG_FILES([doc/Makefile])
 
 dnl Support library.
 AC_CONFIG_FILES([lib/Makefile])
@@ -587,7 +585,7 @@ esac
 eu_version=$(( (eu_version + 999) / 1000 ))
 
 dnl Unique ID for this build.
-MODVERSION="Build for ${eu_version} ${ac_cv_build}"
+MODVERSION="Build for ${LIBEBL_SUBDIR} ${eu_version} ${ac_cv_build}"
 AC_SUBST([MODVERSION])
 AC_DEFINE_UNQUOTED(MODVERSION, "$MODVERSION")
 AH_TEMPLATE([MODVERSION], [Identifier for modules in the build.])
@@ -652,6 +650,7 @@ AC_MSG_NOTICE([
     Program prefix ("eu-" recommended) : ${program_prefix}
     Source code location               : ${srcdir}
     Maintainer mode                    : ${enable_maintainer_mode}
+    libebl modules subdirectory        : ${LIBEBL_SUBDIR}
     build arch                         : ${ac_cv_build}
 
   RECOMMENDED FEATURES (should all be yes)

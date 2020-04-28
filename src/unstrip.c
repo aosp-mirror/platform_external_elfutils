@@ -433,7 +433,7 @@ update_sh_size (Elf_Scn *outscn, const Elf_Data *data)
 /* Update relocation sections using the symbol table.  */
 static void
 adjust_relocs (Elf_Scn *outscn, Elf_Scn *inscn, const GElf_Shdr *shdr,
-	       size_t map[], size_t map_size, const GElf_Shdr *symshdr)
+	       size_t map[], const GElf_Shdr *symshdr)
 {
   Elf_Data *data = elf_getdata (outscn, NULL);
 
@@ -441,11 +441,7 @@ adjust_relocs (Elf_Scn *outscn, Elf_Scn *inscn, const GElf_Shdr *shdr,
     {
       size_t ndx = GELF_R_SYM (*info);
       if (ndx != STN_UNDEF)
-	{
-	  if (ndx > map_size)
-	    error (EXIT_FAILURE, 0, "bad symbol ndx section");
-	  *info = GELF_R_INFO (map[ndx - 1], GELF_R_TYPE (*info));
-	}
+	*info = GELF_R_INFO (map[ndx - 1], GELF_R_TYPE (*info));
     }
 
   switch (shdr->sh_type)
@@ -576,7 +572,7 @@ adjust_relocs (Elf_Scn *outscn, Elf_Scn *inscn, const GElf_Shdr *shdr,
 
 	record_new_data (versym);
 	data->d_buf = versym;
-	data->d_size = nent * sizeof versym[0];
+	data->d_size = nent * shdr->sh_entsize;
 	elf_flagdata (data, ELF_C_SET, ELF_F_DIRTY);
 	update_sh_size (outscn, data);
       }
@@ -592,7 +588,7 @@ adjust_relocs (Elf_Scn *outscn, Elf_Scn *inscn, const GElf_Shdr *shdr,
 /* Adjust all the relocation sections in the file.  */
 static void
 adjust_all_relocs (Elf *elf, Elf_Scn *symtab, const GElf_Shdr *symshdr,
-		   size_t map[], size_t map_size)
+		   size_t map[])
 {
   size_t new_sh_link = elf_ndxscn (symtab);
   Elf_Scn *scn = NULL;
@@ -607,7 +603,7 @@ adjust_all_relocs (Elf *elf, Elf_Scn *symtab, const GElf_Shdr *symshdr,
 	   stripped_symtab.  */
 	if (shdr->sh_type != SHT_NOBITS && shdr->sh_type != SHT_GROUP
 	    && shdr->sh_link == new_sh_link)
-	  adjust_relocs (scn, scn, shdr, map, map_size, symshdr);
+	  adjust_relocs (scn, scn, shdr, map, symshdr);
       }
 }
 
@@ -648,7 +644,6 @@ add_new_section_symbols (Elf_Scn *old_symscn, size_t old_shnum,
       GElf_Word shndx = SHN_UNDEF;
       GElf_Sym *sym = gelf_getsymshndx (old_symdata, shndxdata,
 					i, &sym_mem, &shndx);
-      ELF_CHECK (sym != NULL, _("cannot get symbol table entry: %s"));
       ELF_CHECK (gelf_update_symshndx (symdata, shndxdata, i,
 				       sym, shndx),
 		 _("cannot update symbol table: %s"));
@@ -682,7 +677,6 @@ add_new_section_symbols (Elf_Scn *old_symscn, size_t old_shnum,
       GElf_Word shndx = SHN_UNDEF;
       GElf_Sym *sym = gelf_getsymshndx (old_symdata, shndxdata,
 					i, &sym_mem, &shndx);
-      ELF_CHECK (sym != NULL, _("cannot get symbol table entry: %s"));
       ELF_CHECK (gelf_update_symshndx (symdata, shndxdata,
 				       i + added, sym, shndx),
 		 _("cannot update symbol table: %s"));
@@ -691,7 +685,7 @@ add_new_section_symbols (Elf_Scn *old_symscn, size_t old_shnum,
     }
 
   /* Adjust any relocations referring to the old symbol table.  */
-  adjust_all_relocs (elf, symscn, shdr, symndx_map, nsym - 1);
+  adjust_all_relocs (elf, symscn, shdr, symndx_map);
 
   return symdata;
 }
@@ -839,9 +833,7 @@ collect_symbols (Elf *outelf, bool rel, Elf_Scn *symscn, Elf_Scn *strscn,
 		 struct section *split_bss)
 {
   Elf_Data *symdata = elf_getdata (symscn, NULL);
-  ELF_CHECK (symdata != NULL, _("cannot get symbol section data: %s"));
   Elf_Data *strdata = elf_getdata (strscn, NULL);
-  ELF_CHECK (strdata != NULL, _("cannot get string section data: %s"));
   Elf_Data *shndxdata = NULL;	/* XXX */
 
   for (size_t i = 1; i < nent; ++i)
@@ -854,9 +846,7 @@ collect_symbols (Elf *outelf, bool rel, Elf_Scn *symscn, Elf_Scn *strscn,
       if (sym->st_shndx != SHN_XINDEX)
 	shndx = sym->st_shndx;
 
-      if (sym->st_name >= strdata->d_size
-	  || memrchr (strdata->d_buf + sym->st_name, '\0',
-		      strdata->d_size - sym->st_name) == NULL)
+      if (sym->st_name >= strdata->d_size)
 	error (EXIT_FAILURE, 0,
 	       _("invalid string offset in symbol [%zu]"), i);
 
@@ -939,14 +929,14 @@ compare_symbols_output (const void *a, const void *b)
 	{
 	  /* binutils always puts section symbols in section index order.  */
 	  CMP (shndx);
-	  else if (s1 != s2)
-	    error (EXIT_FAILURE, 0, "section symbols in unexpected order");
+	  else
+	    assert (s1 == s2);
 	}
 
       /* Nothing really matters, so preserve the original order.  */
       CMP (map);
-      else if (s1 != s2)
-	error (EXIT_FAILURE, 0, "found two identical symbols");
+      else
+	assert (s1 == s2);
     }
 
   return cmp;
@@ -1313,7 +1303,7 @@ new_shstrtab (Elf *unstripped, size_t unstripped_shnum,
   if (strtab == NULL)
     return NULL;
 
-  Dwelf_Strent *unstripped_strent[unstripped_shnum];
+  Dwelf_Strent *unstripped_strent[unstripped_shnum - 1];
   memset (unstripped_strent, 0, sizeof unstripped_strent);
   for (struct section *sec = sections;
        sec < &sections[stripped_shnum - 1];
@@ -1336,7 +1326,6 @@ new_shstrtab (Elf *unstripped, size_t unstripped_shnum,
 	Elf_Scn *scn = elf_getscn (unstripped, i + 1);
 	GElf_Shdr shdr_mem;
 	GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
-	ELF_CHECK (shdr != NULL, _("cannot get section header: %s"));
 	const char *name = get_section_name (i + 1, shdr, shstrtab);
 	unstripped_strent[i] = dwelf_strtab_add (strtab, name);
 	ELF_CHECK (unstripped_strent[i] != NULL,
@@ -1360,7 +1349,6 @@ new_shstrtab (Elf *unstripped, size_t unstripped_shnum,
 	Elf_Scn *scn = elf_getscn (unstripped, i + 1);
 	GElf_Shdr shdr_mem;
 	GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
-	ELF_CHECK (shdr != NULL, _("cannot get section header: %s"));
 	shdr->sh_name = dwelf_strent_off (unstripped_strent[i]);
 	if (i + 1 == unstripped_shstrndx)
 	  shdr->sh_size = strtab_data->d_size;
@@ -1395,19 +1383,6 @@ copy_elided_sections (Elf *unstripped, Elf *stripped,
   if (unlikely (stripped_shnum > unstripped_shnum))
     error (EXIT_FAILURE, 0, _("\
 more sections in stripped file than debug file -- arguments reversed?"));
-
-  if (unlikely (stripped_shnum == 0))
-    error (EXIT_FAILURE, 0, _("no sections in stripped file"));
-
-  /* Used as sanity check for allocated section offset, if the section
-     offset needs to be preserved.  We want to know the max size of the
-     ELF file, to check if any existing section offsets are OK.  */
-  int64_t max_off = -1;
-  if (stripped_ehdr->e_type != ET_REL)
-    {
-      elf_flagelf (stripped, ELF_C_SET, ELF_F_LAYOUT);
-      max_off = elf_update (stripped, ELF_C_NULL);
-    }
 
   /* Cache the stripped file's section details.  */
   struct section sections[stripped_shnum - 1];
@@ -1571,11 +1546,10 @@ more sections in stripped file than debug file -- arguments reversed?"));
   /* Make sure each main file section has a place to go.  */
   const struct section *stripped_dynsym = NULL;
   size_t debuglink = SHN_UNDEF;
-  size_t ndx_sec_num = stripped_shnum - 1;
-  size_t ndx_section[ndx_sec_num];
+  size_t ndx_section[stripped_shnum - 1];
   Dwelf_Strtab *strtab = NULL;
   for (struct section *sec = sections;
-       sec < &sections[ndx_sec_num];
+       sec < &sections[stripped_shnum - 1];
        ++sec)
     {
       size_t secndx = elf_ndxscn (sec->scn);
@@ -1680,21 +1654,9 @@ more sections in stripped file than debug file -- arguments reversed?"));
 	  shdr_mem.sh_flags |= SHF_INFO_LINK;
 
 	if (sec->shdr.sh_link != SHN_UNDEF)
-	  {
-	    if (sec->shdr.sh_link > ndx_sec_num)
-	      error (EXIT_FAILURE, 0,
-		     "section [%zd] has invalid sh_link %" PRId32,
-		     elf_ndxscn (sec->scn), sec->shdr.sh_link);
-	    shdr_mem.sh_link = ndx_section[sec->shdr.sh_link - 1];
-	  }
+	  shdr_mem.sh_link = ndx_section[sec->shdr.sh_link - 1];
 	if (SH_INFO_LINK_P (&sec->shdr) && sec->shdr.sh_info != 0)
-	  {
-	    if (sec->shdr.sh_info > ndx_sec_num)
-	      error (EXIT_FAILURE, 0,
-		     "section [%zd] has invalid sh_info %" PRId32,
-		     elf_ndxscn (sec->scn), sec->shdr.sh_info);
-	    shdr_mem.sh_info = ndx_section[sec->shdr.sh_info - 1];
-	  }
+	  shdr_mem.sh_info = ndx_section[sec->shdr.sh_info - 1];
 
 	if (strtab != NULL)
 	  shdr_mem.sh_name = dwelf_strent_off (sec->strent);
@@ -1709,11 +1671,6 @@ more sections in stripped file than debug file -- arguments reversed?"));
 	/* Preserve the file layout of the allocated sections.  */
 	if (stripped_ehdr->e_type != ET_REL && (shdr_mem.sh_flags & SHF_ALLOC))
 	  {
-	    if (max_off > 0 && sec->shdr.sh_offset > (Elf64_Off) max_off)
-		error (EXIT_FAILURE, 0,
-		       "allocated section offset too large [%zd] %" PRIx64,
-		       elf_ndxscn (sec->scn), sec->shdr.sh_offset);
-
 	    shdr_mem.sh_offset = sec->shdr.sh_offset;
 	    placed[elf_ndxscn (sec->outscn) - 1] = true;
 
@@ -1815,8 +1772,8 @@ more sections in stripped file than debug file -- arguments reversed?"));
       /* First collect all the symbols from both tables.  */
 
       const size_t total_syms = stripped_nsym - 1 + unstripped_nsym - 1;
-      struct symbol *symbols = xmalloc (total_syms * sizeof (struct symbol));
-      size_t *symndx_map = xmalloc (total_syms * sizeof (size_t));
+      struct symbol symbols[total_syms];
+      size_t symndx_map[total_syms];
 
       if (stripped_symtab != NULL)
 	collect_symbols (unstripped, stripped_ehdr->e_type == ET_REL,
@@ -1997,16 +1954,12 @@ more sections in stripped file than debug file -- arguments reversed?"));
 	       ++sec)
 	    if (sec->outscn != NULL && sec->shdr.sh_link == old_sh_link)
 	      adjust_relocs (sec->outscn, sec->scn, &sec->shdr,
-			     symndx_map, total_syms, shdr);
+			     symndx_map, shdr);
 	}
 
       /* Also adjust references to the other old symbol table.  */
       adjust_all_relocs (unstripped, unstripped_symtab, shdr,
-			 &symndx_map[stripped_nsym - 1],
-			 total_syms - (stripped_nsym - 1));
-
-      free (symbols);
-      free (symndx_map);
+			 &symndx_map[stripped_nsym - 1]);
     }
   else if (stripped_symtab != NULL && stripped_shnum != unstripped_shnum)
     check_symtab_section_symbols (unstripped,

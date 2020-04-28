@@ -52,10 +52,8 @@ __libdw_allocate (Dwarf *dbg, size_t minsize, size_t align)
   newp->size = size - offsetof (struct libdw_memblock, mem);
   newp->remaining = (uintptr_t) newp + size - (result + minsize);
 
-  newp->prev = (struct libdw_memblock*)atomic_exchange_explicit(
-      &dbg->mem_tail, (uintptr_t)newp, memory_order_relaxed);
-  if (pthread_setspecific (dbg->mem_key, newp) != 0)
-    dbg->oom_handler ();
+  newp->prev = dbg->mem_tail;
+  dbg->mem_tail = newp;
 
   return (void *) result;
 }

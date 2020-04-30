@@ -1,3 +1,8 @@
+2020-04-30  Mark Wielaard  <mark@klomp.org>
+
+	* find-debuginfo.c (dwfl_standard_find_debuginfo): When mod->dw
+	is already set then try fetching debugaltlink.
+
 2020-04-25  Mark Wielaard  <mark@klomp.org>
 
 	* gzip.c (open_stream): Return DWFL_E_NOMEM instead of calling

@@ -218,6 +218,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile9.bz2 testfile10.bz2 testfile11.bz2 testfile12.bz2 \
 	     testfile13.bz2 run-strip-test3.sh run-allfcts.sh \
 	     testfile_class_func.bz2 testfile_nested_funcs.bz2 \
+	     testfile-lto-gcc10.bz2 \
 	     run-line2addr.sh run-elflint-test.sh testfile14.bz2 \
 	     run-strip-test4.sh run-strip-test5.sh run-strip-test6.sh \
 	     run-strip-test7.sh run-strip-test8.sh run-strip-groups.sh \

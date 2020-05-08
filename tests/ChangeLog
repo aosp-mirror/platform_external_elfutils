@@ -1,5 +1,14 @@
 2020-05-05  Mark Wielaard  <mark@klomp.org>
 
+	* testfile-lto-gcc8.bz2: New test file.
+	* testfile-lto-gcc9.bz2: Likewise.
+	* Makefile.am (EXTRA_DIST): Add testfile-lto-gcc8.bz2 and
+	testfile-lto-gcc9.bz2.
+	* run-allfcts.sh: Add testfile-lto-gcc9 and testfile-lto-gcc8
+	tests.
+
+2020-05-05  Mark Wielaard  <mark@klomp.org>
+
 	* testfile-lto-gcc10.bz2: New test file.
 	* Makefile.am (EXTRA_DIST): Add testfile-lto-gcc10.bz2.
 	* run-allfcts.sh: Add testfile-lto-gcc10 test.

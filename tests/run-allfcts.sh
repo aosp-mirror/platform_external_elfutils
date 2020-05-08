@@ -143,4 +143,31 @@ testrun_compare ${abs_builddir}/allfcts testfile-lto-gcc10 <<\EOF
 /home/mark/src/tests/testfile-lto-main.c:6:main
 EOF
 
+# Using gcc (GCC) 8.3.1 20190311 (Red Hat 8.3.1-3)
+# gcc -g -O2 -flto -c testfile-lto-func.c
+# gcc -g -O2 -flto -c testfile-lto-main.c
+# gcc -g -O2 -flto -o testfile-lto-gcc8 testfile-lto-func.o testfile-lto-main.o
+
+testfiles testfile-lto-gcc8
+
+testrun_compare ${abs_builddir}/allfcts testfile-lto-gcc8 <<\EOF
+/home/mark/src/tests/testfile-lto-func.c:4:foo
+/home/mark/src/tests/testfile-lto-main.c:6:main
+/home/mark/src/tests/testfile-lto-main.c:6:main
+/home/mark/src/tests/testfile-lto-func.c:4:foo
+EOF
+
+# gcc (GCC) 9.1.1 20190605 (Red Hat 9.1.1-2)
+# gcc -g -O2 -flto -c testfile-lto-func.c
+# gcc -g -O2 -flto -c testfile-lto-main.c
+# gcc -g -O2 -flto -o testfile-lto-gcc9 testfile-lto-func.o testfile-lto-main.o
+
+testfiles testfile-lto-gcc9
+
+testrun_compare ${abs_builddir}/allfcts testfile-lto-gcc9 <<\EOF
+/home/mark/src/tests/testfile-lto-main.c:6:main
+/home/mark/src/tests/testfile-lto-func.c:4:foo
+/home/mark/src/tests/testfile-lto-main.c:6:main
+EOF
+
 exit 0

@@ -4492,10 +4492,6 @@ only executables, shared objects, and core files can have program headers\n"));
 	  continue;
 	}
 
-#ifndef PT_GNU_PROPERTY
-#define PT_GNU_PROPERTY (PT_LOOS + 0x474e553)
-#endif
-
       if (phdr->p_type >= PT_NUM && phdr->p_type != PT_GNU_EH_FRAME
 	  && phdr->p_type != PT_GNU_STACK && phdr->p_type != PT_GNU_RELRO
 	  && phdr->p_type != PT_GNU_PROPERTY

@@ -1,3 +1,7 @@
+2020-06-04  Mark Wielaard  <mark@klomp.org>
+
+	* elflint.c (check_program_header): Remove PT_GNU_PROPERTY define.
+
 2020-05-14  Mark Wielaard  <mark@klomp.org>
 
 	* size.c (show_bsd): Set printf format based on radix.

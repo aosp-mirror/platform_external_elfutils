@@ -1,3 +1,8 @@
+2020-06-04  Mark Wielaard  <mark@klomp.org>
+
+	* eblsegmenttypename.c (ebl_segment_type_name): Remove
+	PT_GNU_PROPERTY define.
+
 2020-04-17  Mark Wielaard  <mark@klomp.org>
 
 	* eblopenbackend.c (default_debugscn_p): Handle .gnu.debuglto_

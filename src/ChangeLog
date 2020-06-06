@@ -1,3 +1,13 @@
+2020-06-06  Mark Wielaard  <mark@klomp.org>
+
+	* nm.c (show_symbols_sysv): Skip no name and STT_FILE symbols.
+	When not printing address and size pad strings. Strip "GNU_"
+	prefix from binding name.
+	(class_type_char): Use 'V' for weak symbols, 'C' for common
+	symbols and 'T' for weak functions.
+	(show_symbols_posix): Skip STT_FILE symbols. Don't print value and
+	size when undefined.
+
 2020-06-04  Mark Wielaard  <mark@klomp.org>
 
 	* elflint.c (check_program_header): Remove PT_GNU_PROPERTY define.

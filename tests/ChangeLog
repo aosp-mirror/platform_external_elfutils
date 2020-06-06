@@ -1,3 +1,12 @@
+2020-06-06  Mark Wielaard  <mark@klomp.org>
+
+	* testfilesyms32.bz2: New test file.
+	* testfilesyms64.bz2: Likewise.
+	* run-nm-syms.sh: New test.
+	* Makefile.am (TESTS): Add run-nm-syms.sh.
+	(EXTRA_DIST): run-nm-syms.sh, testfilesyms32.bz2 and
+	testfilesyms64.bz2
+
 2020-05-08  Mark Wielaard  <mark@klomp.org>
 
 	* elfputzdata.c (main): Explicitly check orig_buf is not NULL

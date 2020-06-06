@@ -110,7 +110,7 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-ranlib-test2.sh run-ranlib-test3.sh run-ranlib-test4.sh \
 	run-addrscopes.sh run-strings-test.sh run-funcscopes.sh \
 	run-find-prologues.sh run-allregs.sh run-addrcfi.sh \
-	run-dwarfcfi.sh \
+	run-dwarfcfi.sh run-nm-syms.sh \
 	run-nm-self.sh run-readelf-self.sh run-readelf-info-plus.sh \
 	run-readelf-compressed.sh \
 	run-readelf-const-values.sh \
@@ -243,6 +243,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-elflint-self.sh run-ranlib-test.sh run-ranlib-test2.sh \
 	     run-ranlib-test3.sh run-ranlib-test4.sh \
 	     run-addrscopes.sh run-strings-test.sh run-funcscopes.sh \
+	     run-nm-syms.sh testfilesyms32.bz2 testfilesyms64.bz2 \
 	     run-nm-self.sh run-readelf-self.sh run-readelf-info-plus.sh \
 	     run-readelf-compressed.sh \
 	     run-readelf-const-values.sh testfile-const-values.debug.bz2 \

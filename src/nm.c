@@ -797,6 +797,16 @@ show_symbols_sysv (Ebl *ebl, GElf_Word strndx, const char *fullname,
       const char *symstr = sym_name (ebl->elf, strndx, syms[cnt].sym.st_name,
 				     symstrbuf, sizeof symstrbuf);
 
+      /* Printing entries with a zero-length name makes the output
+	 not very well parseable.  Since these entries don't carry
+	 much information we leave them out.  */
+      if (symstr[0] == '\0')
+	continue;
+
+      /* We do not print the entries for files.  */
+      if (GELF_ST_TYPE (syms[cnt].sym.st_info) == STT_FILE)
+	continue;
+
 #ifdef USE_DEMANGLE
       /* Demangle if necessary.  Require GNU v3 ABI by the "_Z" prefix.  */
       if (demangle && symstr[0] == '_' && symstr[1] == 'Z')
@@ -825,7 +835,10 @@ show_symbols_sysv (Ebl *ebl, GElf_Word strndx, const char *fullname,
 
       /* Covert the address.  */
       if (syms[cnt].sym.st_shndx == SHN_UNDEF)
-	addressbuf[0] = sizebuf[0] = '\0';
+	{
+	  sprintf (addressbuf, "%*c", digits, ' ');
+	  sprintf (sizebuf, "%*c", digits, ' ');
+	}
       else
 	{
 	  snprintf (addressbuf, sizeof (addressbuf),
@@ -841,11 +854,14 @@ show_symbols_sysv (Ebl *ebl, GElf_Word strndx, const char *fullname,
 	}
 
       /* Print the actual string.  */
+      const char *bind;
+      bind = ebl_symbol_binding_name (ebl,
+				      GELF_ST_BIND (syms[cnt].sym.st_info),
+				      symbindbuf, sizeof (symbindbuf));
+      if (bind != NULL && strncmp (bind, "GNU_", strlen ("GNU_")) == 0)
+	bind += strlen ("GNU_");
       printf ("%-*s|%s|%-6s|%-8s|%s|%*s|%s\n",
-	      longest_name, symstr, addressbuf,
-	      ebl_symbol_binding_name (ebl,
-				       GELF_ST_BIND (syms[cnt].sym.st_info),
-				       symbindbuf, sizeof (symbindbuf)),
+	      longest_name, symstr, addressbuf, bind,
 	      ebl_symbol_type_name (ebl, GELF_ST_TYPE (syms[cnt].sym.st_info),
 				    symtypebuf, sizeof (symtypebuf)),
 	      sizebuf, longest_where, syms[cnt].where,
@@ -884,6 +900,10 @@ class_type_char (Elf *elf, const GElf_Ehdr *ehdr, GElf_Sym *sym)
       if (ehdr->e_ident[EI_OSABI] == ELFOSABI_LINUX
 	  && GELF_ST_BIND (sym->st_info) == STB_GNU_UNIQUE)
 	result = 'u';
+      else if (GELF_ST_BIND (sym->st_info) == STB_WEAK)
+	result = 'V';
+      else if (sym->st_shndx == SHN_COMMON)
+	result = 'C';
       else
 	{
 	  GElf_Shdr shdr_mem;
@@ -897,6 +917,11 @@ class_type_char (Elf *elf, const GElf_Ehdr *ehdr, GElf_Sym *sym)
 		result = 'B';
 	    }
 	}
+    }
+  else if (result == 'T')
+    {
+      if (GELF_ST_BIND (sym->st_info) == STB_WEAK)
+	result = 'W';
     }
 
   return local_p ? tolower (result) : result;
@@ -1063,6 +1088,10 @@ show_symbols_posix (Elf *elf, const GElf_Ehdr *ehdr, GElf_Word strndx,
       if (symstr[0] == '\0')
 	continue;
 
+      /* We do not print the entries for files.  */
+      if (GELF_ST_TYPE (syms[cnt].sym.st_info) == STT_FILE)
+	continue;
+
 #ifdef USE_DEMANGLE
       /* Demangle if necessary.  Require GNU v3 ABI by the "_Z" prefix.  */
       if (demangle && symstr[0] == '_' && symstr[1] == 'Z')
@@ -1084,21 +1113,23 @@ show_symbols_posix (Elf *elf, const GElf_Ehdr *ehdr, GElf_Word strndx,
 	  putchar_unlocked (' ');
 	}
 
-      printf ((radix == radix_hex
-	       ? "%s %c%s %0*" PRIx64 " %0*" PRIx64 "\n"
-	       : (radix == radix_decimal
-		  ? "%s %c%s %*" PRId64 " %*" PRId64 "\n"
-		  : "%s %c%s %0*" PRIo64 " %0*" PRIo64 "\n")),
-	      symstr,
+      printf ("%s %c%s", symstr,
 	      class_type_char (elf, ehdr, &syms[cnt].sym),
 	      mark_special
 	      ? (GELF_ST_TYPE (syms[cnt].sym.st_info) == STT_TLS
 		 ? "@"
 		 : (GELF_ST_BIND (syms[cnt].sym.st_info) == STB_WEAK
 		    ? "*" : " "))
-	      : "",
-	      digits, syms[cnt].sym.st_value,
-	      digits, syms[cnt].sym.st_size);
+	      : "");
+      if (syms[cnt].sym.st_shndx != SHN_UNDEF)
+	printf ((radix == radix_hex
+		 ? " %0*" PRIx64 " %0*" PRIx64
+		 : (radix == radix_decimal
+		    ? " %*" PRId64 " %*" PRId64
+		    : " %0*" PRIo64 " %0*" PRIo64)),
+		digits, syms[cnt].sym.st_value,
+		digits, syms[cnt].sym.st_size);
+      putchar ('\n');
     }
 
 #ifdef USE_DEMANGLE

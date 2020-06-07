@@ -1,3 +1,11 @@
+2020-06-07  Mark Wielaard  <mark@klomp.org>
+
+	* nm.c (sort_by_name_strtab): Replace by...
+	(sort_by_name_elf): New static Elf pointer and ...
+	(sort_by_name_ndx): New static size_t index.
+	(sort_by_name): Use elf_strptr to get symbol string.
+	(show_symbols): Set sort_by_name_elf and sort_by_name_ndx.
+
 2020-06-06  Mark Wielaard  <mark@klomp.org>
 
 	* nm.c (show_symbols_sysv): Skip no name and STT_FILE symbols.

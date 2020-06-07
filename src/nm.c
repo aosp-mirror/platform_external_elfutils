@@ -1,5 +1,5 @@
 /* Print symbol information from ELF file in human-readable form.
-   Copyright (C) 2000-2008, 2009, 2011, 2012, 2014, 2015 Red Hat, Inc.
+   Copyright (C) 2000-2008, 2009, 2011, 2012, 2014, 2015, 2020 Red Hat, Inc.
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2000.
 
@@ -1153,7 +1153,8 @@ sort_by_address (const void *p1, const void *p2)
   return reverse_sort ? -result : result;
 }
 
-static Elf_Data *sort_by_name_strtab;
+static Elf *sort_by_name_elf;
+static size_t sort_by_name_ndx;
 
 static int
 sort_by_name (const void *p1, const void *p2)
@@ -1161,8 +1162,10 @@ sort_by_name (const void *p1, const void *p2)
   GElf_SymX *s1 = (GElf_SymX *) p1;
   GElf_SymX *s2 = (GElf_SymX *) p2;
 
-  const char *n1 = sort_by_name_strtab->d_buf + s1->sym.st_name;
-  const char *n2 = sort_by_name_strtab->d_buf + s2->sym.st_name;
+  const char *n1 = elf_strptr (sort_by_name_elf, sort_by_name_ndx,
+			       s1->sym.st_name) ?: "";
+  const char *n2 = elf_strptr (sort_by_name_elf, sort_by_name_ndx,
+			       s2->sym.st_name) ?: "";
 
   int result = strcmp (n1, n2);
 
@@ -1475,8 +1478,8 @@ show_symbols (int fd, Ebl *ebl, GElf_Ehdr *ehdr,
   /* Sort the entries according to the users wishes.  */
   if (sort == sort_name)
     {
-      sort_by_name_strtab = elf_getdata (elf_getscn (ebl->elf, shdr->sh_link),
-					 NULL);
+      sort_by_name_elf = ebl->elf;
+      sort_by_name_ndx = shdr->sh_link;
       qsort (sym_mem, nentries, sizeof (GElf_SymX), sort_by_name);
     }
   else if (sort == sort_numeric)

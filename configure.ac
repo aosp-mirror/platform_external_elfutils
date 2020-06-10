@@ -627,12 +627,6 @@ esac
 # Round up to the next release API (x.y) version.
 eu_version=$(( (eu_version + 999) / 1000 ))
 
-dnl Unique ID for this build.
-MODVERSION="Build for ${eu_version} ${ac_cv_build}"
-AC_SUBST([MODVERSION])
-AC_DEFINE_UNQUOTED(MODVERSION, "$MODVERSION")
-AH_TEMPLATE([MODVERSION], [Identifier for modules in the build.])
-
 AC_CHECK_SIZEOF(long)
 
 # On aarch64 before glibc 2.20 we would get the kernel user_pt_regs instead

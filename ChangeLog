@@ -1,3 +1,7 @@
+2020-06-10  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac (MODVERSION): Remove.
+
 2020-03-30  Mark Wielaard  <mark@klomp.org>
 
 	* configure.ac: Set version to 0.179.

@@ -1,3 +1,7 @@
+2020-06-11  Mark Wielaard  <mark@klomp.org>
+
+	* elfutils.spec.in: Update for 0.189.
+
 2020-04-21  Frank Ch. Eigler <fche@redhat.com>
 
 	* debuginfod.sysconfig (DEBUGINFOD_PATHS): Add /var/lib/pulp.

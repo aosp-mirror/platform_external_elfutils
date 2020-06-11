@@ -1,3 +1,7 @@
+2020-06-11  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (nlist-test): Add GCOV flags when necessary.
+
 2020-06-06  Mark Wielaard  <mark@klomp.org>
 
 	* testfilesyms32.bz2: New test file.

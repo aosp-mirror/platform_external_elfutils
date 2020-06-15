@@ -1,3 +1,33 @@
+2020-06-16  Mark Wielaard  <mark@klomp.org>
+
+	* coverage.sh: Use /usr/bin/env bash.
+	* run-ar.sh: Likewise.
+	* run-backtrace-core-aarch64.sh: Likewise.
+	* run-backtrace-core-i386.sh: Likewise.
+	* run-backtrace-core-ppc.sh: Likewise.
+	* run-backtrace-core-s390.sh: Likewise.
+	* run-backtrace-core-s390x.sh: Likewise.
+	* run-backtrace-core-sparc.sh: Likewise.
+	* run-backtrace-core-x32.sh: Likewise.
+	* run-backtrace-core-x86_64.sh: Likewise.
+	* run-backtrace-data.sh: Likewise.
+	* run-backtrace-demangle.sh: Likewise.
+	* run-backtrace-dwarf.sh: Likewise.
+	* run-backtrace-fp-core-aarch64.sh: Likewise.
+	* run-backtrace-fp-core-i386.sh: Likewise.
+	* run-backtrace-fp-core-ppc64le.sh: Likewise.
+	* run-backtrace-fp-core-x86_64.sh: Likewise.
+	* run-backtrace-native-biarch.sh: Likewise.
+	* run-backtrace-native-core-biarch.sh: Likewise.
+	* run-backtrace-native-core.sh: Likewise.
+	* run-backtrace-native.sh: Likewise.
+	* run-debuginfod-find.sh: Likewise.
+	* run-deleted.sh: Likewise.
+	* run-dwelf_elf_e_machine_string.sh: Likewise.
+	* run-large-elf-file.sh: Likewise.
+	* run-lfs-symbols.sh: Likewise.
+	* run-linkmap-cut.sh: Likewise.
+
 2020-06-11  Mark Wielaard  <mark@klomp.org>
 
 	* Makefile.am (nlist-test): Add GCOV flags when necessary.

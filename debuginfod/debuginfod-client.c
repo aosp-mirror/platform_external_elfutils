@@ -474,7 +474,7 @@ debuginfod_query_server (debuginfod_client *c,
   char *target_cache_dir = NULL;
   char *target_cache_path = NULL;
   char *target_cache_tmppath = NULL;
-  char suffix[PATH_MAX];
+  char suffix[PATH_MAX + 1]; /* +1 for zero terminator.  */
   char build_id_bytes[MAX_BUILD_ID_BYTES * 2 + 1];
   int rc;
 
@@ -511,7 +511,7 @@ debuginfod_query_server (debuginfod_client *c,
 
       /* copy the filename to suffix, s,/,#,g */
       unsigned q = 0;
-      for (unsigned fi=0; q < PATH_MAX-1; fi++)
+      for (unsigned fi=0; q < PATH_MAX-2; fi++) /* -2, escape is 2 chars.  */
         switch (filename[fi])
           {
           case '\0':

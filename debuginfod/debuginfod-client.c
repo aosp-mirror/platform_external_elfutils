@@ -496,7 +496,7 @@ debuginfod_query_server (debuginfod_client *c,
   /* Copy lowercase hex representation of build_id into buf.  */
   if ((build_id_len >= MAX_BUILD_ID_BYTES) ||
       (build_id_len == 0 &&
-       sizeof(build_id_bytes) > MAX_BUILD_ID_BYTES*2 + 1))
+       strlen ((const char *) build_id) > MAX_BUILD_ID_BYTES*2))
     return -EINVAL;
   if (build_id_len == 0) /* expect clean hexadecimal */
     strcpy (build_id_bytes, (const char *) build_id);

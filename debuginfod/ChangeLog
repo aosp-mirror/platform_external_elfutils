@@ -1,5 +1,10 @@
 2020-06-16  Mark Wielaard  <mark@klomp.org>
 
+	* debuginfod-client.c (debuginfod_query_server): Replace sizeof
+	build_id_bytes check with strlen build_id check.
+
+2020-06-16  Mark Wielaard  <mark@klomp.org>
+
 	* debuginfod-client.c (debuginfod_query_server): Increase suffix
 	array and prepare having to escape 1 character with 2.
 

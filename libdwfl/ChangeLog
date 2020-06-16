@@ -1,5 +1,10 @@
 2020-06-16  Mark Wielaard  <mark@klomp.org>
 
+	* frame_unwind.c (handle_cfi): Flag an error if
+	return_address_register is invalid.
+
+2020-06-16  Mark Wielaard  <mark@klomp.org>
+
 	* linux-kernel-modules.c (try_kernel_name): Don't try other
 	compressed kernels if we already found an compressed image.
 

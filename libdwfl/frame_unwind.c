@@ -562,7 +562,11 @@ handle_cfi (Dwfl_Frame *state, Dwarf_Addr pc, Dwarf_CFI *cfi, Dwarf_Addr bias)
   /* The return register is special for setting the unwound->pc_state.  */
   unsigned ra = frame->fde->cie->return_address_register;
   bool ra_set = false;
-  ebl_dwarf_to_regno (ebl, &ra);
+  if (! ebl_dwarf_to_regno (ebl, &ra))
+    {
+      __libdwfl_seterrno (DWFL_E_INVALID_REGISTER);
+      return;
+    }
 
   for (unsigned regno = 0; regno < nregs; regno++)
     {

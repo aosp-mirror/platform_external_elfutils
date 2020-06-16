@@ -1,5 +1,13 @@
 2020-06-16  Mark Wielaard  <mark@klomp.org>
 
+	* ar.c (do_oper_extract): Split large if statement. Call fchown
+	before fchmod and explicitly ignore the return value.
+	(do_oper_delete): Likewise.
+	(do_oper_insert): Likewise.
+	* ranlib.c (handle_file): Likewise.
+
+2020-06-16  Mark Wielaard  <mark@klomp.org>
+
 	* elflint.c (check_elf_header): Explicitly check and ignore
 	any error from elf_compress.
 

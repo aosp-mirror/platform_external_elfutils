@@ -467,7 +467,7 @@ invalid number of section header table entries\n"));
 	  break;
 	/* If the section wasn't compressed this does nothing, but
 	   returns an error.  We don't care.  */
-	elf_compress (scn, 0, 0);
+	if (elf_compress (scn, 0, 0) < 0) { ; }
      }
   if (scnt < shnum)
     ERROR (gettext ("Can only check %u headers, shnum was %u\n"), scnt, shnum);

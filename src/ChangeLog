@@ -1,3 +1,8 @@
+2020-06-16  Mark Wielaard  <mark@klomp.org>
+
+	* elflint.c (check_elf_header): Explicitly check and ignore
+	any error from elf_compress.
+
 2020-06-07  Mark Wielaard  <mark@klomp.org>
 
 	* nm.c (sort_by_name_strtab): Replace by...

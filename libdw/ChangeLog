@@ -1,3 +1,7 @@
+2020-06-16  Mark Wielaard  <mark@klomp.org>
+
+	* cfi.c (execute_cfi): Add missing FALLTHROUGH.
+
 2020-05-08  Mark Wielaard  <mark@klomp.org>
 
 	* libdw_visit_scopes.c (walk_children): Don't recurse into imported

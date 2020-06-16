@@ -229,6 +229,7 @@ execute_cfi (Dwarf_CFI *cache,
 	case DW_CFA_offset_extended:
 	  get_uleb128 (operand, program, end);
 	  cfi_assert (program < end);
+	  FALLTHROUGH;
 	case DW_CFA_offset + 0 ... DW_CFA_offset + CFI_PRIMARY_MAX:
 	  get_uleb128 (offset, program, end);
 	  offset *= cie->data_alignment_factor;

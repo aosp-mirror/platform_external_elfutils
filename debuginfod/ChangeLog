@@ -1,5 +1,10 @@
 2020-06-16  Mark Wielaard  <mark@klomp.org>
 
+	* debuginfod-client.c (debuginfod_query_server): Check malloc.
+	Move curl_multi_init call before handle_data malloc call.
+
+2020-06-16  Mark Wielaard  <mark@klomp.org>
+
 	* debuginfod-client.c (debuginfod_query_server): Replace sizeof
 	build_id_bytes check with strlen build_id check.
 

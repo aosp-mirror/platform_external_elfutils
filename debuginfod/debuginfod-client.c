@@ -665,10 +665,24 @@ debuginfod_query_server (debuginfod_client *c,
         && (i == 0 || server_urls[i - 1] == url_delim_char))
       num_urls++;
 
+  CURLM *curlm = curl_multi_init();
+  if (curlm == NULL)
+    {
+      rc = -ENETUNREACH;
+      goto out0;
+    }
+
   /* Tracks which handle should write to fd. Set to the first
      handle that is ready to write the target file to the cache.  */
   CURL *target_handle = NULL;
   struct handle_data *data = malloc(sizeof(struct handle_data) * num_urls);
+  if (data == NULL)
+    {
+      rc = -ENOMEM;
+      goto out0;
+    }
+
+  /* thereafter, goto out1 on error.  */
 
   /* Initalize handle_data with default values. */
   for (int i = 0; i < num_urls; i++)
@@ -676,14 +690,6 @@ debuginfod_query_server (debuginfod_client *c,
       data[i].handle = NULL;
       data[i].fd = -1;
     }
-
-  CURLM *curlm = curl_multi_init();
-  if (curlm == NULL)
-    {
-      rc = -ENETUNREACH;
-      goto out0;
-    }
-  /* thereafter, goto out1 on error.  */
 
   char *strtok_saveptr;
   char *server_url = strtok_r(server_urls, url_delim, &strtok_saveptr);

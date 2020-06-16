@@ -1,3 +1,8 @@
+2020-06-16  Mark Wielaard  <mark@klomp.org>
+
+	* linux-kernel-modules.c (try_kernel_name): Don't try other
+	compressed kernels if we already found an compressed image.
+
 2020-05-09  Mark Wielaard  <mark@klomp.org>
 
 	* find-debuginfo.c (dwfl_standard_find_debuginfo): Return failure

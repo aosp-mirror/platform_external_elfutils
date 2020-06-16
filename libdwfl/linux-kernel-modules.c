@@ -128,7 +128,7 @@ try_kernel_name (Dwfl *dwfl, char **fname, bool try_debug)
 
   if (fd < 0)
     for (size_t i = 0;
-	 i < sizeof vmlinux_suffixes / sizeof vmlinux_suffixes[0];
+	 i < sizeof vmlinux_suffixes / sizeof vmlinux_suffixes[0] && fd < 0;
 	 ++i)
       {
 	char *zname;

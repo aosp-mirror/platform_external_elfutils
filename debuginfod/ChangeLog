@@ -1,3 +1,8 @@
+2020-06-16  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (debuginfod_clean_cache): Handle failing
+	fopen (interval_path).
+
 2020-03-29  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod-client.c (debuginfod_add_http_header): Check header

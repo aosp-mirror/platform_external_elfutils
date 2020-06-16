@@ -244,9 +244,14 @@ debuginfod_clean_cache(debuginfod_client *c,
   /* Check timestamp of interval file to see whether cleaning is necessary.  */
   time_t clean_interval;
   interval_file = fopen(interval_path, "r");
-  if (fscanf(interval_file, "%ld", &clean_interval) != 1)
+  if (interval_file)
+    {
+      if (fscanf(interval_file, "%ld", &clean_interval) != 1)
+        clean_interval = cache_clean_default_interval_s;
+      fclose(interval_file);
+    }
+  else
     clean_interval = cache_clean_default_interval_s;
-  fclose(interval_file);
 
   if (time(NULL) - st.st_mtime < clean_interval)
     /* Interval has not passed, skip cleaning.  */

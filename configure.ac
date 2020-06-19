@@ -676,19 +676,40 @@ if test "$HAVE_BUNZIP2" = "no"; then
   AC_MSG_WARN([No bunzip2, needed to run make check])
 fi
 
-# Look for libmicrohttpd, libcurl, libarchive, sqlite for debuginfo server
-# minimum versions as per rhel7.  Single --enable-* option arranges to build
-# both client and server.
-AC_ARG_ENABLE([debuginfod],AC_HELP_STRING([--enable-debuginfod], [Build debuginfod server and client]))
+# Look for libcurl for libdebuginfod minimum version as per rhel7.
+AC_ARG_ENABLE([libdebuginfod],AC_HELP_STRING([--enable-libdebuginfod], [Build debuginfod client library (can be =dummy)]))
+AS_IF([test "x$enable_libdebuginfod" != "xno"], [
+    if test "x$enable_libdebuginfod" != "xdummy"; then
+      AC_MSG_NOTICE([checking libdebuginfod dependencies, --disable-libdebuginfod or --enable-libdebuginfo=dummy to skip])
+      enable_libdebuginfod=yes # presume success
+      PKG_PROG_PKG_CONFIG
+      PKG_CHECK_MODULES([libcurl],[libcurl >= 7.29.0],[],[enable_libdebuginfod=no])
+      if test "x$enable_libdebuginfod" = "xno"; then
+        AC_MSG_ERROR([dependencies not found, use --disable-libdebuginfod to disable or --enable-libdebuginfod=dummy to build a (bootstrap) dummy library.])
+      fi
+    else
+      AC_MSG_NOTICE([building (bootstrap) dummy libdebuginfo library])
+    fi
+])
+
+AS_IF([test "x$enable_libdebuginfod" = "xdummy"],AC_DEFINE([DUMMY_LIBDEBUGINFOD],[1],[Build dummy libdebuginfod]))
+AM_CONDITIONAL([LIBDEBUGINFOD],[test "x$enable_libdebuginfod" = "xyes" || test "x$enable_libdebuginfod" = "xdummy"])
+AM_CONDITIONAL([DUMMY_LIBDEBUGINFOD],[test "x$enable_libdebuginfod" = "xdummy"])
+
+# Look for libmicrohttpd, libarchive, sqlite for debuginfo server
+# minimum versions as per rhel7.
+AC_ARG_ENABLE([debuginfod],AC_HELP_STRING([--enable-debuginfod], [Build debuginfod server]))
 AC_PROG_CXX
 AS_IF([test "x$enable_debuginfod" != "xno"], [
     AC_MSG_NOTICE([checking debuginfod C++11 support, --disable-debuginfod to skip])
     AX_CXX_COMPILE_STDCXX(11, noext, mandatory)
     AC_MSG_NOTICE([checking debuginfod dependencies, --disable-debuginfod to skip])
+    if test "x$enable_libdebuginfod" = "xno"; then
+      AC_MSG_ERROR([need libdebuginfod (or dummy), use --disable-debuginfod to disable.])
+    fi
     enable_debuginfod=yes # presume success
     PKG_PROG_PKG_CONFIG
     PKG_CHECK_MODULES([libmicrohttpd],[libmicrohttpd >= 0.9.33],[],[enable_debuginfod=no])
-    PKG_CHECK_MODULES([libcurl],[libcurl >= 7.29.0],[],[enable_debuginfod=no])
     PKG_CHECK_MODULES([sqlite3],[sqlite3 >= 3.7.17],[],[enable_debuginfod=no])
     PKG_CHECK_MODULES([libarchive],[libarchive >= 3.1.2],[],[enable_debuginfod=no])
     if test "x$enable_debuginfod" = "xno"; then
@@ -729,7 +750,8 @@ AC_MSG_NOTICE([
     Deterministic archives by default  : ${default_ar_deterministic}
     Native language support            : ${USE_NLS}
     Extra Valgrind annotations         : ${use_vg_annotations}
-    Debuginfod client/server support   : ${enable_debuginfod}
+    libdebuginfod client support       : ${enable_libdebuginfod}
+    Debuginfod server support          : ${enable_debuginfod}
 
   EXTRA TEST FEATURES (used with make check)
     have bunzip2 installed (required)  : ${HAVE_BUNZIP2}

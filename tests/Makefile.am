@@ -210,7 +210,10 @@ endif
 
 if DEBUGINFOD
 check_PROGRAMS += debuginfod_build_id_find
+# With the dummy delegation doesn't work
+if !DUMMY_LIBDEBUGINFOD
 TESTS += run-debuginfod-find.sh
+endif
 endif
 
 EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \

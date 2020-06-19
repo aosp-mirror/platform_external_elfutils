@@ -41,13 +41,35 @@
 #include "config.h"
 #include "debuginfod.h"
 #include "system.h"
+#include <errno.h>
+#include <stdlib.h>
+
+/* We might be building a bootstrap dummy library, which is really simple. */
+#ifdef DUMMY_LIBDEBUGINFOD
+
+debuginfod_client *debuginfod_begin (void) { errno = ENOSYS; return NULL; }
+int debuginfod_find_debuginfo (debuginfod_client *c, const unsigned char *b,
+                               int s, char **p) { return -ENOSYS; }
+int debuginfod_find_executable (debuginfod_client *c, const unsigned char *b,
+                                int s, char **p) { return -ENOSYS; }
+int debuginfod_find_source (debuginfod_client *c, const unsigned char *b,
+                            int s, const char *f, char **p)  { return -ENOSYS; }
+void debuginfod_set_progressfn(debuginfod_client *c,
+			       debuginfod_progressfn_t fn) { }
+void debuginfod_set_user_data (debuginfod_client *c, void *d) { }
+void* debuginfod_get_user_data (debuginfod_client *c) { return NULL; }
+const char* debuginfod_get_url (debuginfod_client *c) { return NULL; }
+int debuginfod_add_http_header (debuginfod_client *c,
+				const char *h) { return -ENOSYS; }
+void debuginfod_end (debuginfod_client *c) { }
+
+#else /* DUMMY_LIBDEBUGINFOD */
+
 #include <assert.h>
 #include <dirent.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <fts.h>
 #include <regex.h>
@@ -1090,3 +1112,5 @@ __attribute__((destructor)) attribute_hidden void libdebuginfod_dtor(void)
   /* ... so don't do this: */
   /* curl_global_cleanup(); */
 }
+
+#endif /* DUMMY_LIBDEBUGINFOD */

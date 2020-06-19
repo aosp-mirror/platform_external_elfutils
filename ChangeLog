@@ -1,3 +1,9 @@
+2020-06-19  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (SUBDIRS): Always add debuginfod.
+	* configure.ac (debuginfod): Split off...
+	(libdebuginfod): ... this. Also add DUMME_DEBUGINFOD.
+
 2020-06-15  Sergei Trofimovich <slyfox@gentoo.org>
 
 	* configure.ac: Use READELF in build-id check.

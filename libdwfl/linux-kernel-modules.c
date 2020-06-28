@@ -538,10 +538,14 @@ intuit_kernel_bounds (Dwarf_Addr *start, Dwarf_Addr *end, Dwarf_Addr *notes)
 
   if (result == 0)
     {
+      Dwarf_Addr addr;
       *end = *start;
-      while (read_address (&state, end))
-	if (*notes == 0 && !strcmp (state.p, "__start_notes\n"))
-	  *notes = *end;
+      while (read_address (&state, &addr) && addr >= *end)
+	{
+	  *end = addr;
+	  if (*notes == 0 && !strcmp (state.p, "__start_notes\n"))
+	    *notes = *end;
+	}
 
       Dwarf_Addr round_kernel = sysconf (_SC_PAGESIZE);
       *start &= -(Dwarf_Addr) round_kernel;

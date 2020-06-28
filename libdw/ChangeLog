@@ -1,3 +1,8 @@
+2020-06-28  Mark Wielaard  <mark@klomp.org>
+
+	* linux-kernel-modules.c (intuit_kernel_bounds): Check read_address
+	returns an increasing address when searching for end.
+
 2020-06-16  Mark Wielaard  <mark@klomp.org>
 
 	* cfi.c (execute_cfi): Add missing FALLTHROUGH.

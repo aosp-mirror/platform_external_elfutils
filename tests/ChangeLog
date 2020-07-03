@@ -1,3 +1,7 @@
+2020-07-03  Alice Zhang  <alizhang@redhat.com>
+
+	* run-debuginfod-find.sh: Add scheme free url testcase.
+
 2020-06-19  Mark Wielaard  <mark@klomp.org>
 
 	* Makefile.am (TESTS): Don't add run-debuginfod-find.sh when

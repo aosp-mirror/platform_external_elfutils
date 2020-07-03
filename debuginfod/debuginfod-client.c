@@ -899,19 +899,44 @@ debuginfod_query_server (debuginfod_client *c,
 						    &resp_code);
                   if(ok1 == CURLE_OK && ok2 == CURLE_OK && effective_url)
                     {
-                      if (strncmp (effective_url, "http", 4) == 0)
+                      if (strncasecmp (effective_url, "HTTP", 4) == 0)
                         if (resp_code == 200)
                           {
                             verified_handle = msg->easy_handle;
                             break;
                           }
-                      if (strncmp (effective_url, "file", 4) == 0)
+                      if (strncasecmp (effective_url, "FILE", 4) == 0)
                         if (resp_code == 0)
                           {
                             verified_handle = msg->easy_handle;
                             break;
                           }
                     }
+                  /* - libcurl since 7.52.0 version start to support
+                       CURLINFO_SCHEME;
+                     - before 7.61.0, effective_url would give us a
+                       url with upper case SCHEME added in the front;
+                     - effective_url between 7.61 and 7.69 can be lack
+                       of scheme if the original url doesn't include one;
+                     - since version 7.69 effective_url will be provide
+                       a scheme in lower case.  */
+                  #if LIBCURL_VERSION_NUM >= 0x073d00 /* 7.61.0 */
+                  #if LIBCURL_VERSION_NUM <= 0x074500 /* 7.69.0 */
+                  char *scheme = NULL;
+                  CURLcode ok3 = curl_easy_getinfo (target_handle,
+                                                    CURLINFO_SCHEME,
+                                                    &scheme);
+                  if(ok3 == CURLE_OK && scheme)
+                    {
+                      if (strncmp (scheme, "HTTP", 4) == 0)
+                        if (resp_code == 200)
+                          {
+                            verified_handle = msg->easy_handle;
+                            break;
+                          }
+                    }
+                  #endif
+                  #endif
                 }
             }
         }

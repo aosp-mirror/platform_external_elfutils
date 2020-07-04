@@ -184,7 +184,7 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-elfclassify.sh run-elfclassify-self.sh \
 	run-disasm-riscv64.sh \
 	run-pt_gnu_prop-tests.sh \
-	run-getphdrnum.sh
+	run-getphdrnum.sh run-test-includes.sh
 
 if !BIARCH
 export ELFUTILS_DISABLE_BIARCH = 1
@@ -505,7 +505,8 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     debuginfod-tars/pacman-sources/hello.c \
 	     run-pt_gnu_prop-tests.sh \
 	     testfile_pt_gnu_prop.bz2 testfile_pt_gnu_prop32.bz2 \
-	     run-getphdrnum.sh testfile-phdrs.elf.bz2
+	     run-getphdrnum.sh testfile-phdrs.elf.bz2 \
+	     run-test-includes.sh
 
 
 if USE_VALGRIND

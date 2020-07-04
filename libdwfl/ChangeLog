@@ -1,3 +1,17 @@
+2020-07-05  Mark Wielaard  <mark@klomp.org>
+
+	* argp-std.c (parse_opt): Don't assert, but call fail when
+	dwfl_report_end fails.
+	* dwfl_build_id_find_elf.c (__libdwfl_open_by_build_id): Don't
+	assert, but goto bad_id when snprintf fails.
+	* frame_unwind.c (__libdwfl_frame_unwind): Don't assert, but
+	return when dwfl_frame_pc fails.
+	* linux-core-attach.c (core_set_initial_registers): Don't assert,
+	but return false when gelf_getnote fails or the core note is not
+	as expected.
+	* linux-pid-attach.c (dwfl_linux_proc_attach): Don't assert, but
+	goto fail when snprintf fails.
+
 2020-06-16  Mark Wielaard  <mark@klomp.org>
 
 	* frame_unwind.c (handle_cfi): Flag an error if

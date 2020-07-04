@@ -1,3 +1,10 @@
+2020-07-05  Mark Wielaard  <mark@klomp.org>
+
+	* stack.c (module_callback): Don't assert if dwfl_module_info fails.
+	* unstrip.c (adjust_relocs): Produce a proper error when HAS
+	section has inconsistent size or entsize.
+	(match_module): Don't assert if dwfl_module_info fails.
+
 2020-06-16  Mark Wielaard  <mark@klomp.org>
 
 	* ar.c (do_oper_extract): Split large if statement. Call fchown

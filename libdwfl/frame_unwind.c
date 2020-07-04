@@ -723,7 +723,8 @@ __libdwfl_frame_unwind (Dwfl_Frame *state)
      which would deadlock us.  */
   Dwarf_Addr pc;
   bool ok = INTUSE(dwfl_frame_pc) (state, &pc, NULL);
-  assert (ok);
+  if (!ok)
+    return;
   /* Check whether this is the initial frame or a signal frame.
      Then we need to unwind from the original, unadjusted PC.  */
   if (! state->initial_frame && ! state->signal_frame)

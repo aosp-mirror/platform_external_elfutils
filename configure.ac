@@ -261,7 +261,8 @@ dnl check it before including config.h (which might define _FILE_OFFSET_BITS).
 AC_CACHE_CHECK([whether fts.h is bad when included (with LFS)], ac_cv_bad_fts,
   [AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <fts.h>]])],
 		     ac_cv_bad_fts=no, ac_cv_bad_fts=yes)])
-AS_IF([test "x$ac_cv_bad_fts" = "xyes"], [CFLAGS="$CFLAGS -DBAD_FTS=1"])
+AS_IF([test "x$ac_cv_bad_fts" = "xyes"],
+      [CFLAGS="$CFLAGS -DBAD_FTS=1" CXXFLAGS="$CXXFLAGS -DBAD_FTS=1"])
 
 # See if we can add -D_FORTIFY_SOURCE=2. Don't do it if it is already
 # (differently) defined or if it generates warnings/errors because we

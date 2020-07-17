@@ -1,3 +1,7 @@
+2020-07-17  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac: Set -DBAD_FTS=1 also for CXXFLAGS.
+
 2020-06-19  Mark Wielaard  <mark@klomp.org>
 
 	* Makefile.am (SUBDIRS): Always add debuginfod.

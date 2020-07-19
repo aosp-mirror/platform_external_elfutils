@@ -1,3 +1,15 @@
+2020-07-19  Mark Wielaard  <mark@klomp.org>
+
+	* asm-tst1.c: Include libebl.h after libasm.h.
+	* asm-tst2.c: Likewise.
+	* asm-tst3.c: Likewise.
+	* asm-tst4.c: Likewise.
+	* asm-tst5.c: Likewise.
+	* asm-tst6.c: Likewise.
+	* asm-tst7.c: Likewise.
+	* asm-tst8.c: Likewise.
+	* asm-tst9.c: Likewise.
+
 2020-07-05  Mark Wielaard  <mark@klomp.org>
 
 	* run-test-includes.sh: New test.

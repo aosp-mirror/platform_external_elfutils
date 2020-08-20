@@ -693,7 +693,10 @@ AS_IF([test "x$enable_libdebuginfod" != "xno"], [
     fi
 ])
 
-AS_IF([test "x$enable_libdebuginfod" = "xdummy"],AC_DEFINE([DUMMY_LIBDEBUGINFOD],[1],[Build dummy libdebuginfod]))
+AS_IF([test "x$enable_libdebuginfod" = "xyes" || test "x$enable_libdebuginfod" = "xdummy"],
+      [AC_DEFINE([ENABLE_LIBDEBUGINFOD], [1], [Enable libdebuginfod])])
+AS_IF([test "x$enable_libdebuginfod" = "xdummy"],
+      [AC_DEFINE([DUMMY_LIBDEBUGINFOD], [1], [Build dummy libdebuginfod])])
 AM_CONDITIONAL([LIBDEBUGINFOD],[test "x$enable_libdebuginfod" = "xyes" || test "x$enable_libdebuginfod" = "xdummy"])
 AM_CONDITIONAL([DUMMY_LIBDEBUGINFOD],[test "x$enable_libdebuginfod" = "xdummy"])
 

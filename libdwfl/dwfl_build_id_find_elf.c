@@ -192,12 +192,14 @@ dwfl_build_id_find_elf (Dwfl_Module *mod,
     }
   else
     {
+#ifdef ENABLE_LIBDEBUGINFOD
       /* If all else fails and a build-id is available, query the
 	 debuginfo-server if enabled.  */
       if (fd < 0 && mod->build_id_len > 0)
 	fd = __libdwfl_debuginfod_find_executable (mod->dwfl,
 						   mod->build_id_bits,
 						   mod->build_id_len);
+#endif
     }
 
   if (fd < 0 && errno == 0 && mod->build_id_len > 0)

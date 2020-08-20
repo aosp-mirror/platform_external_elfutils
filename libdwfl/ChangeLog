@@ -1,3 +1,21 @@
+2020-08-20  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* Makefile.am (libdwfl_a_SOURCES): Conditionalize
+	debuginfod-client.c on LIBDEBUGINFOD.
+	* dwfl_build_id_find_elf.c (dwfl_build_id_find_elf): Conditionalize
+	__libdwfl_debuginfod_find_executable invocation on
+	ENABLE_LIBDEBUGINFOD.
+	* dwfl_end.c (dwfl_end): Conditionalize __libdwfl_debuginfod_end
+	invocation on ENABLE_LIBDEBUGINFOD.
+	* find-debuginfo.c (dwfl_standard_find_debuginfo): Conditionalize
+	__libdwfl_debuginfod_find_debuginfo invocation on
+	ENABLE_LIBDEBUGINFOD.
+	* libdwflP.h: Guard debuginfod.h include with ENABLE_LIBDEBUGINFOD.
+	(struct Dwfl): Guard debuginfod field with ENABLE_LIBDEBUGINFOD.
+	(__libdwfl_debuginfod_find_executable,
+	__libdwfl_debuginfod_find_debuginfo, __libdwfl_debuginfod_end):
+	Guard declarations with ENABLE_LIBDEBUGINFOD.
+
 2020-07-05  Mark Wielaard  <mark@klomp.org>
 
 	* argp-std.c (parse_opt): Don't assert, but call fail when

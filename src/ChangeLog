@@ -1,3 +1,8 @@
+2020-08-26  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (print_debug_line_section): It is not an error if there
+	are no line number statements at the end of a debug line section.
+
 2020-07-19  Mark Wielaard  <mark@klomp.org>
 
 	* elfclassify.c (process_current_path): Handle fwrite failing.

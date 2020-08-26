@@ -8642,7 +8642,7 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 		    printf (", ");
 		}
 	      printf ("\n");
-	      if (linep >= lineendp)
+	      if (linep > lineendp)
 		goto invalid_unit;
 	    }
 	}
@@ -8683,6 +8683,12 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 	    goto invalid_unit;
 	  /* Skip the final NUL byte.  */
 	  ++linep;
+	}
+
+      if (linep == lineendp)
+	{
+	  puts (gettext ("\nNo line number statements."));
+	  return;
 	}
 
       puts (gettext ("\nLine number statements:"));

@@ -6045,10 +6045,16 @@ print_debug_ranges_section (Dwfl_Module *dwflmod,
 
       if (begin == (Dwarf_Addr) -1l) /* Base address entry.  */
 	{
-	  printf (gettext (" [%6tx] base address\n          "), offset);
+	  if (first)
+	    printf (" [%6tx] ", offset);
+	  else
+	    printf ("          ");
+	  puts (gettext ("base address"));
+	  printf ("          ");
 	  print_dwarf_addr (dwflmod, address_size, end, end);
 	  printf ("\n");
 	  base = end;
+	  first = false;
 	}
       else if (begin == 0 && end == 0) /* End of list entry.  */
 	{
@@ -9615,10 +9621,16 @@ print_debug_loc_section (Dwfl_Module *dwflmod,
 
       if (begin == (Dwarf_Addr) -1l) /* Base address entry.  */
 	{
-	  printf (gettext (" [%6tx] base address\n          "), offset);
+	  if (first)
+	    printf (" [%6tx] ", offset);
+	  else
+	    printf ("          ");
+	  puts (gettext ("base address"));
+	  printf ("          ");
 	  print_dwarf_addr (dwflmod, address_size, end, end);
 	  printf ("\n");
 	  base = end;
+	  first = false;
 	}
       else if (begin == 0 && end == 0) /* End of list entry.  */
 	{

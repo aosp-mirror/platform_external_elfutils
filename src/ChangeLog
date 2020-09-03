@@ -1,3 +1,10 @@
+2020-09-03  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (print_cfa_program): Take ehdr as argument. Use it to
+	recognize DW_CFA_AARCH64_negate_ra_state.
+	(print_debug_frame_section): Pass ehdr to print_cfa_program.
+	(print_debug): Don't warn if we dump frames, but cannot get dbg.
+
 2020-09-01  Mark Wielaard  <mark@klomp.org>
 
 	* readelf.c (print_debug_ranges_section): Base address entry can

@@ -1,3 +1,11 @@
+2020-09-03  Mark Wielaard  <mark@klomp.org>
+
+	* libdw.map (ELFUTILS_0.126): Remove local wildcard.
+	(ELFUTILS_0.127): Likewise.
+	(ELFUTILS_0.130): Likewise.
+	(ELFUTILS_0.136): Likewise.
+	(ELFUTILS_0.138): Likewise.
+
 2020-08-25  Mark Wielaard  <mark@klomp.org>
 
 	* dwarf_getlocation.c (check_constant_offset): Rename to...

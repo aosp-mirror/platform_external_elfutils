@@ -1,3 +1,10 @@
+2020-09-03  Mark Wielaard  <mark@klomp.org>
+
+	* testfile-gnu-property-note-aarch64.bz2: New file.
+	* run-readelf-n.sh: Handle testfile-gnu-property-note-aarch64.
+	* Makefile.am (EXTRA_DIST): Add
+	testfile-gnu-property-note-aarch64.bz2.
+
 2020-07-19  Mark Wielaard  <mark@klomp.org>
 
 	* asm-tst1.c: Include libebl.h after libasm.h.

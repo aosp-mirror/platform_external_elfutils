@@ -1,3 +1,8 @@
+2020-09-08  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (BUILD_STATIC): Include libcurl_LIBS in libdebuginfod
+	when NOT DUMMY_LIBDEBUGINFOD.
+
 2020-09-16  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod-find.c: Fix license block comment.

@@ -24,6 +24,7 @@ BuildRequires: flex
 BuildRequires: zlib-devel
 BuildRequires: bzip2-devel
 BuildRequires: xz-devel
+BuildRequires: libzstd-devel
 
 # For debuginfod
 BuildRequires: pkgconfig(libmicrohttpd) >= 0.9.33
@@ -33,6 +34,7 @@ BuildRequires: pkgconfig(libarchive) >= 3.1.2
 
 # For tests need to bunzip2 test files.
 BuildRequires: bzip2
+BuildRequires: zstd
 # For the run-debuginfod-find.sh test case in %check for /usr/sbin/ss
 BuildRequires: iproute
 BuildRequires: bsdtar

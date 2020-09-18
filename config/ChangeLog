@@ -1,3 +1,8 @@
+2020-09-18  Mark Wielaard  <mark@klomp.org>
+
+	* elfutils.spec.in: Add BuildRequires for libzstd-devel and zstd.
+	* libdw.pc.in: Requires.private libzstd.
+
 2020-09-08  Mark Wielaard  <mark@klomp.org>
 
 	* elfutils.spec.in: Update for 0.181.

@@ -1,3 +1,9 @@
+2020-09-18  Mark Wielaard  <mark@klomp.org>
+
+	* run-readelf-compressed-zstd.sh: New test.
+	* Makefile.am (EXTRA_DISTS): Add run-readelf-compressed-zstd.sh.
+	(TESTS): Add run-readelf-compressed-zstd.sh if HAVE_ZSTD.
+
 2020-09-03  Mark Wielaard  <mark@klomp.org>
 
 	* run-readelf-frames.sh: New test.

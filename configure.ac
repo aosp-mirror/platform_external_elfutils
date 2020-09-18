@@ -397,8 +397,8 @@ eu_ZIPLIB(zlib,ZLIB,z,gzdirect,gzip)
 AS_IF([test "x$with_zlib" = xno], [AC_MSG_ERROR([zlib not found but is required])])
 LIBS="$save_LIBS"
 
-dnl Test for bzlib and xz/lzma, gives BZLIB/LZMALIB .am
-dnl conditional and config.h USE_BZLIB/USE_LZMALIB #define.
+dnl Test for bzlib and xz/lzma/zstd, gives BZLIB/LZMALIB/ZSTD .am
+dnl conditional and config.h USE_BZLIB/USE_LZMALIB/USE_ZSTD #define.
 save_LIBS="$LIBS"
 LIBS=
 eu_ZIPLIB(bzlib,BZLIB,bz2,BZ2_bzdopen,bzip2)
@@ -408,6 +408,9 @@ AC_SUBST([BZ2_LIB])
 eu_ZIPLIB(lzma,LZMA,lzma,lzma_auto_decoder,[LZMA (xz)])
 AS_IF([test "x$with_lzma" = xyes], [LIBLZMA="liblzma"], [LIBLZMA=""])
 AC_SUBST([LIBLZMA])
+eu_ZIPLIB(zstd,ZSTD,zstd,ZSTD_decompress,[ZSTD (zst)])
+AS_IF([test "x$with_zstd" = xyes], [LIBZSTD="libzstd"], [LIBLZSTD=""])
+AC_SUBST([LIBZSTD])
 zip_LIBS="$LIBS"
 LIBS="$save_LIBS"
 AC_SUBST([zip_LIBS])
@@ -677,6 +680,10 @@ if test "$HAVE_BUNZIP2" = "no"; then
   AC_MSG_WARN([No bunzip2, needed to run make check])
 fi
 
+# For tests that need to use zstd compression
+AC_CHECK_PROG(HAVE_ZSTD, zstd, yes, no)
+AM_CONDITIONAL([HAVE_ZSTD],[test "x$HAVE_ZSTD" = "xyes"])
+
 # Look for libcurl for libdebuginfod minimum version as per rhel7.
 AC_ARG_ENABLE([libdebuginfod],AC_HELP_STRING([--enable-libdebuginfod], [Build debuginfod client library (can be =dummy)]))
 AS_IF([test "x$enable_libdebuginfod" != "xno"], [
@@ -742,6 +749,7 @@ AC_MSG_NOTICE([
     gzip support                       : ${with_zlib}
     bzip2 support                      : ${with_bzlib}
     lzma/xz support                    : ${with_lzma}
+    zstd support                       : ${with_zstd}
     libstdc++ demangle support         : ${enable_demangler}
     File textrel check                 : ${enable_textrelcheck}
     Symbol versioning                  : ${enable_symbol_versioning}
@@ -759,6 +767,7 @@ AC_MSG_NOTICE([
 
   EXTRA TEST FEATURES (used with make check)
     have bunzip2 installed (required)  : ${HAVE_BUNZIP2}
+    have zstd installed                : ${HAVE_ZSTD}
     debug branch prediction            : ${use_debugpred}
     gprof support                      : ${use_gprof}
     gcov support                       : ${use_gcov}

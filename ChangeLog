@@ -1,3 +1,7 @@
+2020-09-18  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac: Check availability of libzstd and zstd.
+
 2020-09-08  Mark Wielaard  <mark@klomp.org>
 
 	* configure.ac: Set version to 0.181.

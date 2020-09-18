@@ -1,3 +1,8 @@
+2020-09-18  Frank Ch. Eigler <fche@redhat.com>
+
+	* debuginfod.cxx (scan_source_file, archive_classify): Store only
+	canonicalized file names in sdef & sref records in the database.
+
 2020-09-08  Mark Wielaard  <mark@klomp.org>
 
 	* Makefile.am (BUILD_STATIC): Include libcurl_LIBS in libdebuginfod

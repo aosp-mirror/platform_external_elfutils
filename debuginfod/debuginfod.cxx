@@ -1505,6 +1505,8 @@ handle_buildid (MHD_Connection* conn,
                           "order by sharedprefix(source0,source0ref) desc, mtime desc");
       pp->reset();
       pp->bind(1, buildid);
+      // NB: we don't store the non-canonicalized path names any more, but old databases
+      // might have them (and no canon ones), so we keep searching for both.
       pp->bind(2, suffix);
       pp->bind(3, canon_pathname(suffix));
     }
@@ -2254,40 +2256,26 @@ scan_source_file (const string& rps, const stat_t& st,
             .bind(1, srps)
             .step_ok_done();
 
-          // register the dwarfsrc name in the interning table too
-          ps_upsert_files
-            .reset()
-            .bind(1, dwarfsrc)
-            .step_ok_done();
-
-          ps_upsert_s
-            .reset()
-            .bind(1, buildid)
-            .bind(2, dwarfsrc)
-            .bind(3, srps)
-            .bind(4, sfs.st_mtime)
-            .step_ok_done();
-
-          // PR25548: also store canonicalized source path
+          // PR25548: store canonicalized dwarfsrc path
           string dwarfsrc_canon = canon_pathname (dwarfsrc);
           if (dwarfsrc_canon != dwarfsrc)
             {
               if (verbose > 3)
                 obatched(clog) << "canonicalized src=" << dwarfsrc << " alias=" << dwarfsrc_canon << endl;
-
-              ps_upsert_files
-                .reset()
-                .bind(1, dwarfsrc_canon)
-                .step_ok_done();
-
-              ps_upsert_s
-                .reset()
-                .bind(1, buildid)
-                .bind(2, dwarfsrc_canon)
-                .bind(3, srps)
-                .bind(4, sfs.st_mtime)
-                .step_ok_done();
             }
+          
+          ps_upsert_files
+            .reset()
+            .bind(1, dwarfsrc_canon)
+            .step_ok_done();
+
+          ps_upsert_s
+            .reset()
+            .bind(1, buildid)
+            .bind(2, dwarfsrc_canon)
+            .bind(3, srps)
+            .bind(4, sfs.st_mtime)
+            .step_ok_done();
 
           inc_metric("found_sourcerefs_total","source","files");
         }
@@ -2439,36 +2427,25 @@ archive_classify (const string& rps, string& archive_extension,
                       continue;
                     }
 
-                  ps_upsert_files
-                    .reset()
-                    .bind(1, s)
-                    .step_ok_done();
-
-                  ps_upsert_sref
-                    .reset()
-                    .bind(1, buildid)
-                    .bind(2, s)
-                    .step_ok_done();
-
-                  // PR25548: also store canonicalized source path
+                  // PR25548: store canonicalized source path
                   const string& dwarfsrc = s;
                   string dwarfsrc_canon = canon_pathname (dwarfsrc);
                   if (dwarfsrc_canon != dwarfsrc)
                     {
                       if (verbose > 3)
                         obatched(clog) << "canonicalized src=" << dwarfsrc << " alias=" << dwarfsrc_canon << endl;
-
-                      ps_upsert_files
-                        .reset()
-                        .bind(1, dwarfsrc_canon)
-                        .step_ok_done();
-
-                      ps_upsert_sref
-                        .reset()
-                        .bind(1, buildid)
-                        .bind(2, dwarfsrc_canon)
-                        .step_ok_done();
                     }
+                  
+                  ps_upsert_files
+                    .reset()
+                    .bind(1, dwarfsrc_canon)
+                    .step_ok_done();
+
+                  ps_upsert_sref
+                    .reset()
+                    .bind(1, buildid)
+                    .bind(2, dwarfsrc_canon)
+                    .step_ok_done();
 
                   fts_sref ++;
                 }

@@ -90,6 +90,11 @@ cc_library_headers {
 cc_library_host_static {
     name: "libdw",
     defaults: ["elfutils_defaults"],
+    target: {
+        darwin: {
+            enabled: false,
+        },
+    },
     srcs: [
         "backends/*.c",
         "libcpu/*_disasm.c",

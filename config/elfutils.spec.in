@@ -181,7 +181,7 @@ such servers to download those files on demand.
 %setup -q
 
 %build
-%configure --program-prefix=%{_programprefix} --enable-debuginfod
+%configure --program-prefix=%{_programprefix} --enable-debuginfod --enable-debuginfod-urls
 make -s %{?_smp_mflags}
 
 %install
@@ -296,7 +296,8 @@ fi
 %{_libdir}/libdebuginfod.so.*
 %{_bindir}/debuginfod-find
 %{_mandir}/man1/debuginfod-find.1*
-
+%config(noreplace) %verify(not md5 size mtime) %{_sysconfdir}/profile.d/*
+  
 %files debuginfod-client-devel
 %defattr(-,root,root)
 %{_libdir}/pkgconfig/libdebuginfod.pc

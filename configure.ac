@@ -731,6 +731,18 @@ AS_IF([test "x$enable_debuginfod" != "xno"], [
 AS_IF([test "x$enable_debuginfod" != "xno"],AC_DEFINE([ENABLE_DEBUGINFOD],[1],[Build debuginfod]))
 AM_CONDITIONAL([DEBUGINFOD],[test "x$enable_debuginfod" = "xyes"])
 
+dnl for /etc/profile.d/elfutils.{csh,sh}
+default_debuginfod_urls=""
+AC_ARG_ENABLE(debuginfod-urls,
+            [AS_HELP_STRING([--enable-debuginfod-urls@<:@=URLS@:>@],[add URLS to profile.d DEBUGINFOD_URLS])],
+            [if test "x${enableval}" = "xyes";
+             then default_debuginfod_urls="https://debuginfod.elfutils.org/";
+             elif test "x${enableval}" != "xno"; then
+             default_debuginfod_urls="${enableval}";
+             fi],
+            [default_debuginfod_urls=""])
+AC_SUBST(DEBUGINFOD_URLS, $default_debuginfod_urls)                
+AC_CONFIG_FILES([config/profile.sh config/profile.csh])
 
 AC_OUTPUT
 
@@ -764,6 +776,7 @@ AC_MSG_NOTICE([
     Extra Valgrind annotations         : ${use_vg_annotations}
     libdebuginfod client support       : ${enable_libdebuginfod}
     Debuginfod server support          : ${enable_debuginfod}
+    Default DEBUGINFOD_URLS            : ${default_debuginfod_urls}
 
   EXTRA TEST FEATURES (used with make check)
     have bunzip2 installed (required)  : ${HAVE_BUNZIP2}

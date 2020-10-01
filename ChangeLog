@@ -1,3 +1,8 @@
+2020-10-01  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR25461
+	* configure.ac: Add --enable-debuginfod-urls[=URLS] option.
+
 2020-09-18  Mark Wielaard  <mark@klomp.org>
 
 	* configure.ac: Check availability of libzstd and zstd.

@@ -1,7 +1,11 @@
+2020-10-08  Frank Ch. Eigler  <fche@redhat.com>
+
+	* Makefile.am (uninstall-local): Uninstall the new profile.d files.
+
 2020-10-01  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR25461
-	* profile.sh.in, profile.csh.in: New files for /etc/profiles.d
+	* profile.sh.in, profile.csh.in: New files for /etc/profile.d
 	to define $DEBUGINFOD_URLS.
 	* elfutils.spec.in: Configure with --enable-debuginfod-urls.
 	* Makefile.am: Install them.

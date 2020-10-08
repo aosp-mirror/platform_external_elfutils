@@ -42,6 +42,9 @@ install-data-local:
 	$(INSTALL_DATA) profile.sh -D $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.sh
 	$(INSTALL_DATA) profile.csh -D $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.csh
 
+uninstall-local:
+	rm -f $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.sh $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.csh
+
 if MAINTAINER_MODE
 $(srcdir)/elfutils.spec.in: $(top_srcdir)/NEWS
 	@tmpname=$$(mktemp $${TMPDIR:-/tmp}/elfutils.XXXXXX); \

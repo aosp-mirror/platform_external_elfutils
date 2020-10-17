@@ -40,13 +40,13 @@ modules = i386 sh x86_64 ia64 alpha arm aarch64 sparc ppc ppc64 s390 \
 	  tilegx m68k bpf riscv csky
 
 i386_SRCS = i386_init.c i386_symbol.c i386_corenote.c i386_cfi.c \
-	    i386_retval.c i386_regs.c i386_auxv.c i386_syscall.c \
+	    i386_retval.c i386_regs.c i386_auxv.c \
 	    i386_initreg.c i386_unwind.c
 
 sh_SRCS = sh_init.c sh_symbol.c sh_corenote.c sh_regs.c sh_retval.c
 
 x86_64_SRCS = x86_64_init.c x86_64_symbol.c x86_64_corenote.c x86_64_cfi.c \
-	      x86_64_retval.c x86_64_regs.c x86_64_syscall.c x86_64_initreg.c \
+	      x86_64_retval.c x86_64_regs.c x86_64_initreg.c \
 	      x86_64_unwind.c x32_corenote.c
 
 
@@ -67,7 +67,7 @@ sparc_SRCS = sparc_init.c sparc_symbol.c sparc_regs.c sparc_retval.c \
              sparc_cfi.c sparc_initreg.c
 
 ppc_SRCS = ppc_init.c ppc_symbol.c ppc_retval.c ppc_regs.c \
-	   ppc_corenote.c ppc_auxv.c ppc_attrs.c ppc_syscall.c \
+	   ppc_corenote.c ppc_auxv.c ppc_attrs.c \
 	   ppc_cfi.c ppc_initreg.c
 
 ppc64_SRCS = ppc64_init.c ppc64_symbol.c ppc64_retval.c ppc64_corenote.c \

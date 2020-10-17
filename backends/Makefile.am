@@ -37,7 +37,7 @@ AM_CPPFLAGS += -I$(top_srcdir)/libebl -I$(top_srcdir)/libasm \
 noinst_LIBRARIES = libebl_backends.a libebl_backends_pic.a
 
 modules = i386 sh x86_64 ia64 alpha arm aarch64 sparc ppc ppc64 s390 \
-	  tilegx m68k bpf riscv csky
+	  m68k bpf riscv csky
 
 i386_SRCS = i386_init.c i386_symbol.c i386_corenote.c i386_cfi.c \
 	    i386_retval.c i386_regs.c i386_auxv.c \
@@ -77,9 +77,6 @@ s390_SRCS = s390_init.c s390_symbol.c s390_regs.c s390_retval.c \
 	    s390_corenote.c s390x_corenote.c s390_cfi.c s390_initreg.c \
 	    s390_unwind.c
 
-tilegx_SRCS = tilegx_init.c tilegx_symbol.c tilegx_regs.c \
-              tilegx_retval.c tilegx_corenote.c
-
 m68k_SRCS = m68k_init.c m68k_symbol.c m68k_regs.c \
 	    m68k_retval.c m68k_corenote.c m68k_cfi.c m68k_initreg.c
 
@@ -101,7 +98,7 @@ csky_SRCS = csky_attrs.c csky_init.c csky_symbol.c csky_cfi.c \
 libebl_backends_a_SOURCES = $(i386_SRCS) $(sh_SRCS) $(x86_64_SRCS) \
 			    $(ia64_SRCS) $(alpha_SRCS) $(arm_SRCS) \
 			    $(aarch64_SRCS) $(sparc_SRCS) $(ppc_SRCS) \
-			    $(ppc64_SRCS) $(s390_SRCS) $(tilegx_SRCS) \
+			    $(ppc64_SRCS) $(s390_SRCS) \
 			    $(m68k_SRCS) $(bpf_SRCS) $(riscv_SRCS) $(csky_SRCS)
 
 libebl_backends_pic_a_SOURCES =

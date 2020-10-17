@@ -367,7 +367,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-macro-test.sh testfile-macinfo.bz2 testfile-macros.bz2 \
 	     run-elf_cntl_gelf_getshdr.sh \
 	     run-test-archive64.sh testarchive64.a.bz2 \
-	     testfile60.bz2 testfile61.bz2 \
+	     testfile61.bz2 \
 	     run-readelf-vmcoreinfo.sh testfile62.bz2 \
 	     run-readelf-mixed-corenote.sh testfile63.bz2 testfile64.bz2 \
 	     testfile65.bz2 testfile67.bz2 testfile68.bz2 \

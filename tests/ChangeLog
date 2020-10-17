@@ -1,3 +1,9 @@
+2020-10-19  Mark Wielaard  <mark@klomp.org>
+
+	* testfile60.bz2: Removed.
+	* Makefile.am (EXTRA_DIST): Remove testfile60.bz2.
+	* run-allregs.sh: Remove tilegx testfile60 testcase.
+
 2020-10-20  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR26756: more prometheus metrics

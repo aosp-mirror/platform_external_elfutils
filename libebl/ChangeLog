@@ -1,5 +1,10 @@
 2020-10-19  Mark Wielaard  <mark@klomp.org>
 
+	* eblopenbackend.c (tilegx_init): Removed.
+	(machines): Set init to NULL for tilegx.
+
+2020-10-19  Mark Wielaard  <mark@klomp.org>
+
 	* Makefile.am (libebl_a_SOURCES): Remove ebl_syscall_abi.c.
 	* ebl-hooks.h (syscall_abi): Remove.
 	* ebl_syscall_abi.c: Delete.

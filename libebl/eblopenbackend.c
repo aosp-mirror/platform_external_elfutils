@@ -52,7 +52,6 @@ Ebl *sparc_init (Elf *, GElf_Half, Ebl *);
 Ebl *ppc_init (Elf *, GElf_Half, Ebl *);
 Ebl *ppc64_init (Elf *, GElf_Half, Ebl *);
 Ebl *s390_init (Elf *, GElf_Half, Ebl *);
-Ebl *tilegx_init (Elf *, GElf_Half, Ebl *);
 Ebl *m68k_init (Elf *, GElf_Half, Ebl *);
 Ebl *bpf_init (Elf *, GElf_Half, Ebl *);
 Ebl *riscv_init (Elf *, GElf_Half, Ebl *);
@@ -79,7 +78,6 @@ static const struct
   { x86_64_init, "elf_x86_64", "x86_64", 6, EM_X86_64, ELFCLASS64, ELFDATA2LSB },
   { ppc_init, "elf_ppc", "ppc", 3, EM_PPC, ELFCLASS32, ELFDATA2MSB },
   { ppc64_init, "elf_ppc64", "ppc64", 5, EM_PPC64, ELFCLASS64, ELFDATA2MSB },
-  { tilegx_init, "elf_tilegx", "tilegx", 6, EM_TILEGX, ELFCLASS64, ELFDATA2LSB },
   // XXX class and machine fields need to be filled in for all archs.
   { sh_init, "elf_sh", "sh", 2, EM_SH, 0, 0 },
   { arm_init, "ebl_arm", "arm", 3, EM_ARM, 0, 0 },
@@ -88,6 +86,7 @@ static const struct
   { sparc_init, "elf_sparcv8plus", "sparc", 5, EM_SPARC32PLUS, 0, 0 },
   { s390_init, "ebl_s390", "s390", 4, EM_S390, 0, 0 },
 
+  { NULL, "elf_tilegx", "tilegx", 6, EM_TILEGX, ELFCLASS64, ELFDATA2LSB },
   { NULL, "elf_m32", "m32", 3, EM_M32, 0, 0 },
   { m68k_init, "elf_m68k", "m68k", 4, EM_68K, ELFCLASS32, ELFDATA2MSB },
   { NULL, "elf_m88k", "m88k", 4, EM_88K, 0, 0 },

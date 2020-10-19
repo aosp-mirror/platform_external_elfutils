@@ -1,5 +1,9 @@
 2020-10-19  Mark Wielaard  <mark@klomp.org>
 
+	* addrcfi.c (print_register): Make ops_mem 3 elements.
+
+2020-10-19  Mark Wielaard  <mark@klomp.org>
+
 	* testfile60.bz2: Removed.
 	* Makefile.am (EXTRA_DIST): Remove testfile60.bz2.
 	* run-allregs.sh: Remove tilegx testfile60 testcase.

@@ -1,3 +1,10 @@
+2020-10-19  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_frame_register.c (dwarf_frame_register): Declare ops_mem
+	as array of (at least) 3 elements.
+	* libdw.h (dwarf_frame_register): Add extra explanation of ops_mem
+	argument.
+
 2020-10-23  Tom Tromey  <tom@tromey.com>
 
 	* memory-access.h (read_3ubyte_unaligned_inc): Call

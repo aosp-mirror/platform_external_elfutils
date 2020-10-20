@@ -890,10 +890,12 @@ add_mhd_last_modified (struct MHD_Response *resp, time_t mtime)
 
 
 static struct MHD_Response*
-handle_buildid_f_match (int64_t b_mtime,
+handle_buildid_f_match (bool internal_req_t,
+                        int64_t b_mtime,
                         const string& b_source0,
                         int *result_fd)
 {
+  (void) internal_req_t; // ignored
   int fd = open(b_source0.c_str(), O_RDONLY);
   if (fd < 0)
     {
@@ -1226,7 +1228,8 @@ string canonicalized_archive_entry_pathname(struct archive_entry *e)
 
 
 static struct MHD_Response*
-handle_buildid_r_match (int64_t b_mtime,
+handle_buildid_r_match (bool internal_req_p,
+                        int64_t b_mtime,
                         const string& b_source0,
                         const string& b_source1,
                         int *result_fd)
@@ -1330,7 +1333,8 @@ handle_buildid_r_match (int64_t b_mtime,
   // 3) extract some number of prefetched entries (just into fdcache)
   // 4) abort any further processing
   struct MHD_Response* r = 0;                 // will set in stage 2
-  unsigned prefetch_count = fdcache_prefetch; // will decrement in stage 3
+  unsigned prefetch_count =
+    internal_req_p ? 0 : fdcache_prefetch;    // will decrement in stage 3
 
   while(r == 0 || prefetch_count > 0) // stage 1, 2, or 3
     {
@@ -1424,16 +1428,17 @@ handle_buildid_r_match (int64_t b_mtime,
 
 
 static struct MHD_Response*
-handle_buildid_match (int64_t b_mtime,
+handle_buildid_match (bool internal_req_p,
+                      int64_t b_mtime,
                       const string& b_stype,
                       const string& b_source0,
                       const string& b_source1,
                       int *result_fd)
 {
   if (b_stype == "F")
-    return handle_buildid_f_match(b_mtime, b_source0, result_fd);
+    return handle_buildid_f_match(internal_req_p, b_mtime, b_source0, result_fd);
   else if (b_stype == "R")
-    return handle_buildid_r_match(b_mtime, b_source0, b_source1, result_fd);
+    return handle_buildid_r_match(internal_req_p, b_mtime, b_source0, b_source1, result_fd);
   else
     return 0;
 }
@@ -1531,7 +1536,8 @@ handle_buildid (MHD_Connection* conn,
 
       // Try accessing the located match.
       // XXX: in case of multiple matches, attempt them in parallel?
-      auto r = handle_buildid_match (b_mtime, b_stype, b_source0, b_source1, result_fd);
+      auto r = handle_buildid_match (conn ? false : true,
+                                     b_mtime, b_stype, b_source0, b_source1, result_fd);
       if (r)
         return r;
     }

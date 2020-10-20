@@ -1,3 +1,8 @@
+2020-10-20  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.cxx (handle_buildid*): Add a parameter for detecting
+	internally-originated lookups for dwz resolution.
+
 2020-09-18  Frank Ch. Eigler <fche@redhat.com>
 
 	* debuginfod.cxx (scan_source_file, archive_classify): Store only

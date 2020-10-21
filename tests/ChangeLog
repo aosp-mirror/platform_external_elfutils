@@ -1,3 +1,9 @@
+2020-10-20  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR26756: more prometheus metrics
+	* run-debuginfod-find.sh: Trigger some errors with dummy "nothing.rpm"
+	and check for new metrics.
+
 2020-09-18  Mark Wielaard  <mark@klomp.org>
 
 	* run-readelf-compressed-zstd.sh: New test.

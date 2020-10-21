@@ -548,23 +548,31 @@ struct sqlite_exception: public reportable_exception
 struct libc_exception: public reportable_exception
 {
   libc_exception(int rc, const string& msg):
-    reportable_exception(string("libc error: ") + msg + ": " + string(strerror(rc) ?: "?")) {}
+    reportable_exception(string("libc error: ") + msg + ": " + string(strerror(rc) ?: "?")) {
+    inc_metric("error_count","libc",strerror(rc));
+  }
 };
 
 
 struct archive_exception: public reportable_exception
 {
   archive_exception(const string& msg):
-    reportable_exception(string("libarchive error: ") + msg) {}
+    reportable_exception(string("libarchive error: ") + msg) {
+      inc_metric("error_count","libarchive",msg);
+  }
   archive_exception(struct archive* a, const string& msg):
-    reportable_exception(string("libarchive error: ") + msg + ": " + string(archive_error_string(a) ?: "?")) {}
+    reportable_exception(string("libarchive error: ") + msg + ": " + string(archive_error_string(a) ?: "?")) {
+    inc_metric("error_count","libarchive",msg);
+  }
 };
 
 
 struct elfutils_exception: public reportable_exception
 {
   elfutils_exception(int rc, const string& msg):
-    reportable_exception(string("elfutils error: ") + msg + ": " + string(elf_errmsg(rc) ?: "?")) {}
+    reportable_exception(string("elfutils error: ") + msg + ": " + string(elf_errmsg(rc) ?: "?")) {
+    inc_metric("error_count","elfutils",elf_errmsg(rc));
+  }
 };
 
 
@@ -1085,6 +1093,15 @@ private:
   long max_mbs;
 
 public:
+  void set_metrics()
+  {
+    double total_mb = 0.0;
+    for (auto i = lru.begin(); i < lru.end(); i++)
+      total_mb += i->fd_size_mb;
+    set_metric("fdcache_bytes", (int64_t)(total_mb*1024.0*1024.0));
+    set_metric("fdcache_count", lru.size());
+  }
+
   void intern(const string& a, const string& b, string fd, off_t sz, bool front_p)
   {
     {
@@ -1095,19 +1112,27 @@ public:
             {
               unlink (i->fd.c_str());
               lru.erase(i);
+              inc_metric("fdcache_op_count","op","dequeue");
               break; // must not continue iterating
             }
         }
       double mb = (sz+65535)/1048576.0; // round up to 64K block
       fdcache_entry n = { a, b, fd, mb };
       if (front_p)
-        lru.push_front(n);
+        {
+          inc_metric("fdcache_op_count","op","enqueue_front");
+          lru.push_front(n);
+        }
       else
-        lru.push_back(n);
-    if (verbose > 3)
-      obatched(clog) << "fdcache interned a=" << a << " b=" << b
-                     << " fd=" << fd << " mb=" << mb << " front=" << front_p << endl;
+        {
+          inc_metric("fdcache_op_count","op","enqueue_back");
+          lru.push_back(n);
+        }
+      if (verbose > 3)
+        obatched(clog) << "fdcache interned a=" << a << " b=" << b
+                       << " fd=" << fd << " mb=" << mb << " front=" << front_p << endl;
     }
+    set_metrics();
 
     // NB: we age the cache at lookup time too
     if (front_p)
@@ -1126,7 +1151,7 @@ public:
               fdcache_entry n = *i;
               lru.erase(i); // invalidates i, so no more iteration!
               lru.push_front(n);
-
+              inc_metric("fdcache_op_count","op","requeue_front");
               fd = open(n.fd.c_str(), O_RDONLY); // NB: no problem if dup() fails; looks like cache miss
               break;
             }
@@ -1145,8 +1170,12 @@ public:
     for (auto i = lru.begin(); i < lru.end(); i++)
       {
         if (i->archive == a && i->entry == b)
-          return true;
+          {
+            inc_metric("fdcache_op_count","op","probe_hit");
+            return true;
+          }
       }
+    inc_metric("fdcache_op_count","op","probe_miss");
     return false;
   }
 
@@ -1159,13 +1188,15 @@ public:
           { // found it; move it to head of lru
             fdcache_entry n = *i;
             lru.erase(i); // invalidates i, so no more iteration!
+            inc_metric("fdcache_op_count","op","clear");
             unlink (n.fd.c_str());
+            set_metrics();
             return;
           }
       }
   }
 
-  void limit(long maxfds, long maxmbs)
+  void limit(long maxfds, long maxmbs, bool metrics_p = true)
   {
     if (verbose > 3 && (this->max_fds != maxfds || this->max_mbs != maxmbs))
       obatched(clog) << "fdcache limited to maxfds=" << maxfds << " maxmbs=" << maxmbs << endl;
@@ -1190,19 +1221,23 @@ public:
                 if (verbose > 3)
                   obatched(clog) << "fdcache evicted a=" << j->archive << " b=" << j->entry
                                  << " fd=" << j->fd << " mb=" << j->fd_size_mb << endl;
+                if (metrics_p)
+                  inc_metric("fdcache_op_count","op","evict");
                 unlink (j->fd.c_str());
               }
 
             lru.erase(i, lru.end()); // erase the nodes generally
             break;
           }
-
       }
+    if (metrics_p) set_metrics();
   }
 
   ~libarchive_fdcache()
   {
-    limit(0, 0);
+    // unlink any fdcache entries in $TMPDIR
+    // don't update metrics; those globals may be already destroyed 
+    limit(0, 0, false);
   }
 };
 static libarchive_fdcache fdcache;
@@ -1638,6 +1673,8 @@ handle_buildid (MHD_Connection* conn,
 static map<string,int64_t> metrics; // arbitrary data for /metrics query
 // NB: store int64_t since all our metrics are integers; prometheus accepts double
 static mutex metrics_lock;
+// NB: these objects get released during the process exit via global dtors
+// do not call them from within other global dtors
 
 // utility function for assembling prometheus-compatible
 // name="escaped-value" strings
@@ -2269,7 +2306,7 @@ scan_source_file (const string& rps, const stat_t& st,
               if (verbose > 3)
                 obatched(clog) << "canonicalized src=" << dwarfsrc << " alias=" << dwarfsrc_canon << endl;
             }
-          
+
           ps_upsert_files
             .reset()
             .bind(1, dwarfsrc_canon)
@@ -2441,7 +2478,7 @@ archive_classify (const string& rps, string& archive_extension,
                       if (verbose > 3)
                         obatched(clog) << "canonicalized src=" << dwarfsrc << " alias=" << dwarfsrc_canon << endl;
                     }
-                  
+
                   ps_upsert_files
                     .reset()
                     .bind(1, dwarfsrc_canon)

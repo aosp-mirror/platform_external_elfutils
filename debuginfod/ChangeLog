@@ -1,5 +1,13 @@
 2020-10-20  Frank Ch. Eigler  <fche@redhat.com>
 
+	PR26756: more prometheus metrics
+	* debuginfod.cxx (*_exception): Add counters for error occurrences.
+	(fdcache::*): Add counters for fdcache operations and status.
+	(fdcache::set_metric): New fn for overall stat counts.
+	(fdcache::limit): ... allow metric-less use from dtors.
+
+2020-10-20  Frank Ch. Eigler  <fche@redhat.com>
+
 	* debuginfod.cxx (handle_buildid*): Add a parameter for detecting
 	internally-originated lookups for dwz resolution.
 

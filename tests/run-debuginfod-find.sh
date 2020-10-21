@@ -95,6 +95,10 @@ wait_ready()
   fi
 }
 
+# create a 000 empty .rpm file to evoke a metric-visible error
+touch R/nothing.rpm
+chmod 000 R/nothing.rpm
+
 env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -R -d $DB -p $PORT1 -t0 -g0 --fdcache-fds 1 --fdcache-mbs 2 -Z .tar.xz -Z .tar.bz2=bzcat -v R F Z L > vlog4 2>&1 &
 PID1=$!
 tempfiles vlog4
@@ -240,8 +244,8 @@ fi
 
 cp -rvp ${abs_srcdir}/debuginfod-tars Z
 kill -USR1 $PID1
-# All rpms need to be in the index
-rpms=$(find R -name \*rpm | wc -l)
+# All rpms need to be in the index, except the dummy permission-000 one
+rpms=$(find R -name \*rpm | grep -v nothing | wc -l)
 wait_ready $PORT1 'scanned_total{source=".rpm archive"}' $rpms
 txz=$(find Z -name \*tar.xz | wc -l)
 wait_ready $PORT1 'scanned_total{source=".tar.xz archive"}' $txz
@@ -255,7 +259,7 @@ kill -USR1 $PID1  # two hits of SIGUSR1 may be needed to resolve .debug->dwz->sr
 mkdir extracted
 cd extracted
 subdir=0;
-newrpms=$(find ../R -name \*\.rpm)
+newrpms=$(find ../R -name \*\.rpm | grep -v nothing)
 for i in $newrpms; do
     subdir=$[$subdir+1];
     mkdir $subdir;
@@ -440,6 +444,8 @@ curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_duration_millisec
 curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_duration_milliseconds_sum'
 curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_transfer_bytes_count'
 curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_transfer_bytes_sum'
+curl -s http://127.0.0.1:$PORT1/metrics | grep 'fdcache_'
+curl -s http://127.0.0.1:$PORT1/metrics | grep 'error_count'
 
 # And generate a few errors into the second debuginfod's logs, for analysis just below
 curl -s http://127.0.0.1:$PORT2/badapi > /dev/null || true

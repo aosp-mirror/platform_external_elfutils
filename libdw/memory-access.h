@@ -363,7 +363,7 @@ read_3ubyte_unaligned (Dwarf *dbg, const unsigned char *p)
 
 
 #define read_3ubyte_unaligned_inc(Dbg, Addr) \
-  ({ uint32_t t_ = read_2ubyte_unaligned (Dbg, Addr);			      \
+  ({ uint32_t t_ = read_3ubyte_unaligned (Dbg, Addr);			      \
      Addr = (__typeof (Addr)) (((uintptr_t) (Addr)) + 3);		      \
      t_; })
 

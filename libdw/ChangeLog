@@ -1,3 +1,8 @@
+2020-10-23  Tom Tromey  <tom@tromey.com>
+
+	* memory-access.h (read_3ubyte_unaligned_inc): Call
+	read_3ubyte_unaligned.
+
 2020-09-03  Mark Wielaard  <mark@klomp.org>
 
 	* dwarf.h: Add DW_CFA_AARCH64_negate_ra_state.

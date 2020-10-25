@@ -1,3 +1,9 @@
+2020-10-25  Mark Wielaard  <mark@klomp.org>
+
+	* read_unaligned.c: New test.
+	* Makefile.am (check_PROGRAMS, TESTS): Add read_unaligned.
+	(read_unaligned_LDADD): New variable.
+
 2020-10-28  Tom Tromey  <tom@tromey.com>
 
 	PR26773

@@ -1,3 +1,8 @@
+2020-10-25  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (debuginfod_query_server): Translate
+	CURLE_PEER_FAILED_VERIFICATION to ECONNREFUSED.
+
 2020-10-20  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR26756: more prometheus metrics

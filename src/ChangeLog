@@ -1,3 +1,7 @@
+2020-10-27  Érico N. Rolim  <erico.erc@gmail.com>
+
+	* unstrip.c (make_directories): Use strndup, not strndupa.
+
 2020-09-28  Mark Wielaard  <mark@klomp.org>
 
 	* readelf.c (next_listptr_offset): Take idx as pointer, to be updated

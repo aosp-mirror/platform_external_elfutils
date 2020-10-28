@@ -1,3 +1,7 @@
+2020-10-28  Tom Tromey  <tom@tromey.com>
+
+	* .gitignore: Add /tests/leb128.
+
 2020-10-01  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR25461

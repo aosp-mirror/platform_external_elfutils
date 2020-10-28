@@ -1,3 +1,13 @@
+2020-10-28  Tom Tromey  <tom@tromey.com>
+
+	PR26773
+	* dwarf_getlocation.c (store_implicit_value): Use
+	__libdw_get_uleb128_unchecked.
+	* memory-access.h (get_sleb128_step): Assume unsigned type for
+	'var'.
+	(__libdw_get_sleb128, __libdw_get_sleb128_unchecked): Work in
+	unsigned type.  Handle final byte.
+
 2020-10-19  Mark Wielaard  <mark@klomp.org>
 
 	* dwarf_frame_register.c (dwarf_frame_register): Declare ops_mem

@@ -1,3 +1,10 @@
+2020-10-28  Tom Tromey  <tom@tromey.com>
+
+	PR26773
+	* Makefile.am (check_PROGRAMS, TESTS): Add leb128.
+	(leb128_LDADD): New variable.
+	* leb128.c: New file.
+
 2020-10-19  Mark Wielaard  <mark@klomp.org>
 
 	* addrcfi.c (print_register): Make ops_mem 3 elements.

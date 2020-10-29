@@ -1,3 +1,12 @@
+2020-10-29  Mark Wielaard  <mark@klomp.org>
+
+	* test-wrapper.sh: Determine whether the test is a script or not
+	and run binaries directly under valgrind.
+	* dwfl-bug-fd-leak.c (main): Call getrlimit before calling setrlimit.
+	* dwfl-proc-attach.c (main): Call dwfl_end, pthread_cancel and
+	pthread_join.
+	* vdsosyms.c (main): Call dwfl_end.
+
 2020-10-30  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR26775

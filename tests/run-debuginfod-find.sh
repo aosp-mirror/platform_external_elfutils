@@ -357,6 +357,38 @@ testrun ${abs_top_builddir}/debuginfod/debuginfod-find executable $BUILDID2
 
 ########################################################################
 
+# PR26810: Now rename some files in the R directory, then rescan, so
+# there are two copies of the same buildid in the index, one for the
+# no-longer-existing file name, and one under the new name.
+
+# run a groom cycle to force server to drop its fdcache
+kill -USR2 $PID1  # groom cycle
+wait_ready $PORT1 'thread_work_total{role="groom"}' 3
+# move it around a couple of times to make it likely to hit a nonexistent entry during iteration
+mv R/debuginfod-rpms/rhel7 R/debuginfod-rpms/rhel7renamed
+kill -USR1 $PID1  # scan cycle
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 6
+wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
+wait_ready $PORT1 'thread_busy{role="scan"}' 0
+mv R/debuginfod-rpms/rhel7renamed R/debuginfod-rpms/rhel7renamed2
+kill -USR1 $PID1  # scan cycle
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 7
+wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
+wait_ready $PORT1 'thread_busy{role="scan"}' 0
+mv R/debuginfod-rpms/rhel7renamed2 R/debuginfod-rpms/rhel7renamed3
+kill -USR1 $PID1  # scan cycle
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 8
+wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
+wait_ready $PORT1 'thread_busy{role="scan"}' 0
+
+# retest rhel7
+archive_test bc1febfd03ca05e030f0d205f7659db29f8a4b30 /usr/src/debug/hello-1.0/hello.c $SHA
+archive_test f0aa15b8aba4f3c28cac3c2a73801fefa644a9f2 /usr/src/debug/hello-1.0/hello.c $SHA
+
+egrep '(libc.error.*rhel7)|(bc1febfd03ca)|(f0aa15b8aba)' vlog4
+
+########################################################################
+
 # Federation mode
 
 # find another unused port

@@ -1,3 +1,11 @@
+2020-10-29  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR26810
+	* debuginfod.cxx (handle_buildid_*_match): Throw exceptions for
+	more lower level libc errors.
+	(handle_buildid_match): Catch & report exceptions but return 0
+	for continued iteration in the caller.
+
 2020-10-25  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod-client.c (debuginfod_query_server): Translate

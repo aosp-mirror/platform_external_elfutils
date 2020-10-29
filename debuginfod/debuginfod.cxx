@@ -906,12 +906,7 @@ handle_buildid_f_match (bool internal_req_t,
   (void) internal_req_t; // ignored
   int fd = open(b_source0.c_str(), O_RDONLY);
   if (fd < 0)
-    {
-      if (verbose)
-        obatched(clog) << "cannot open " << b_source0 << endl;
-      // if still missing, a periodic groom pass will delete this buildid record
-      return 0;
-    }
+    throw libc_exception (errno, string("open ") + b_source0);
 
   // NB: use manual close(2) in error case instead of defer_dtor, because
   // in the normal case, we want to hand the fd over to libmicrohttpd for
@@ -921,10 +916,8 @@ handle_buildid_f_match (bool internal_req_t,
   int rc = fstat(fd, &s);
   if (rc < 0)
     {
-      if (verbose)
-        clog << "cannot fstat " << b_source0 << endl;
       close(fd);
-      return 0;
+      throw libc_exception (errno, string("fstat ") + b_source0);
     }
 
   if ((int64_t) s.st_mtime != b_mtime)
@@ -1470,12 +1463,21 @@ handle_buildid_match (bool internal_req_p,
                       const string& b_source1,
                       int *result_fd)
 {
-  if (b_stype == "F")
-    return handle_buildid_f_match(internal_req_p, b_mtime, b_source0, result_fd);
-  else if (b_stype == "R")
-    return handle_buildid_r_match(internal_req_p, b_mtime, b_source0, b_source1, result_fd);
-  else
-    return 0;
+  try
+    {
+      if (b_stype == "F")
+        return handle_buildid_f_match(internal_req_p, b_mtime, b_source0, result_fd);
+      else if (b_stype == "R")
+        return handle_buildid_r_match(internal_req_p, b_mtime, b_source0, b_source1, result_fd);
+    }
+  catch (const reportable_exception &e)
+    {
+      e.report(clog);
+      // Report but swallow libc etc. errors here; let the caller
+      // iterate to other matches of the content.
+    }
+  
+  return 0;
 }
 
 

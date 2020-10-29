@@ -1,5 +1,11 @@
 2020-10-29  Frank Ch. Eigler  <fche@redhat.com>
 
+	PR26775
+	* run-debuginfod-find.sh: Modify test for different
+	thread_work_total semantics for grooming.
+
+2020-10-29  Frank Ch. Eigler  <fche@redhat.com>
+
 	PR26810
 	* run-debuginfod-find.sh: Add tests for successful archive fetches across
 	renamed RPMs, even without grooming.

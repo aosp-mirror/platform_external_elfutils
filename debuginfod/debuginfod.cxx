@@ -388,7 +388,9 @@ static string db_path;
 static sqlite3 *db; // single connection, serialized across all our threads!
 static unsigned verbose;
 static volatile sig_atomic_t interrupted = 0;
+static volatile sig_atomic_t forced_rescan_count = 0;
 static volatile sig_atomic_t sigusr1 = 0;
+static volatile sig_atomic_t forced_groom_count = 0;
 static volatile sig_atomic_t sigusr2 = 0;
 static unsigned http_port = 8002;
 static unsigned rescan_s = 300;
@@ -605,6 +607,14 @@ public:
     // optional: q.clear();
     dead = true;
     cv.notify_all();
+  }
+
+  // clear the workqueue, when scanning is interrupted with USR2
+  void clear() {
+    unique_lock<mutex> lock(mtx);
+    q.clear();
+    set_metric("thread_work_pending","role","scan", q.size());
+    cv.notify_all(); // maybe wake up waiting idlers
   }
 
   // block this scanner thread until there is work to do and no active
@@ -2741,6 +2751,12 @@ thread_main_scanner (void* arg)
         }
 
       inc_metric("thread_work_total", "role","scan");
+      
+      if (sigusr2 != forced_groom_count) // stop early if groom triggered 
+        {
+          scanq.clear();
+          break;
+        }
     }
 
   add_metric("thread_busy", "role", "scan", -1);
@@ -2784,6 +2800,9 @@ scan_source_paths()
   {
     if (interrupted) break;
 
+    if (sigusr2 != forced_groom_count) // stop early if groom triggered 
+      break;
+    
     fts_scanned ++;
 
     if (verbose > 2)
@@ -2842,7 +2861,6 @@ thread_main_fts_source_paths (void* arg)
 {
   (void) arg; // ignore; we operate on global data
 
-  sig_atomic_t forced_rescan_count = 0;
   set_metric("thread_tid", "role","traverse", tid());
   add_metric("thread_count", "role", "traverse", 1);
 
@@ -2923,6 +2941,8 @@ void groom()
   struct timeval tv_start, tv_end;
   gettimeofday (&tv_start, NULL);
 
+  database_stats_report();
+  
   // scan for files that have disappeared
   sqlite_ps files (db, "check old files", "select s.mtime, s.file, f.name from "
                        BUILDIDS "_file_mtime_scanned s, " BUILDIDS "_files f "
@@ -2951,6 +2971,10 @@ void groom()
           files_del_r_de.reset().bind(1,fileid).bind(2,mtime).step_ok_done();
           files_del_scan.reset().bind(1,fileid).bind(2,mtime).step_ok_done();
         }
+      
+      inc_metric("thread_work_total", "role", "groom");
+      if (sigusr1 != forced_rescan_count) // stop early if scan triggered
+        break;
     }
   files.reset();
 
@@ -2987,7 +3011,6 @@ void groom()
 static void*
 thread_main_groom (void* /*arg*/)
 {
-  sig_atomic_t forced_groom_count = 0;
   set_metric("thread_tid", "role", "groom", tid());
   add_metric("thread_count", "role", "groom", 1);
 
@@ -3016,7 +3039,6 @@ thread_main_groom (void* /*arg*/)
             set_metric("thread_busy", "role", "groom", 1);
             groom ();
             last_groom = time(NULL); // NB: now was before grooming
-            inc_metric("thread_work_total", "role", "groom");
             set_metric("thread_busy", "role", "groom", 0);
           }
         catch (const sqlite_exception& e)

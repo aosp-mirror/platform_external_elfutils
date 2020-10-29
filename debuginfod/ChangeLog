@@ -1,5 +1,16 @@
 2020-10-29  Frank Ch. Eigler  <fche@redhat.com>
 
+	PR26775
+	* debuginfod.cxx (forced_*_count): Make these global.
+	(runq::clear): New function.
+	(thread_main_scanner): Check for pending SIGUSR2; interrupt.
+	(scan_source_paths): Check for pending SIGUSR2; interrupt.
+	(groom): Report prometheus stats before groom also.  Check for
+	pending SIGUSR1; interrupt.  Increment thread_work_total for
+	each file scanned, not the entire cycle.
+
+2020-10-29  Frank Ch. Eigler  <fche@redhat.com>
+
 	PR26810
 	* debuginfod.cxx (handle_buildid_*_match): Throw exceptions for
 	more lower level libc errors.

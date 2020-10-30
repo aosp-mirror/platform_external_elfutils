@@ -2711,7 +2711,8 @@ thread_main_scanner (void* arg)
       add_metric("thread_busy", "role", "scan", -1);
       bool gotone = scanq.wait_front(p);
       add_metric("thread_busy", "role", "scan", 1);
-      if (! gotone) continue; // or break
+
+      if (! gotone) continue; // go back to waiting
 
       try
         {
@@ -2750,13 +2751,9 @@ thread_main_scanner (void* arg)
           e.report(cerr);
         }
 
-      inc_metric("thread_work_total", "role","scan");
-      
-      if (sigusr2 != forced_groom_count) // stop early if groom triggered 
-        {
-          scanq.clear();
-          break;
-        }
+      // finished a scanning step -- not a "loop", because we just
+      // consume the traversal loop's work, whenever
+      inc_metric("thread_work_total","role","scan");
     }
 
   add_metric("thread_busy", "role", "scan", -1);
@@ -2801,7 +2798,10 @@ scan_source_paths()
     if (interrupted) break;
 
     if (sigusr2 != forced_groom_count) // stop early if groom triggered 
-      break;
+      {
+        scanq.clear(); // clear previously issued work for scanner threads
+        break;
+      }
     
     fts_scanned ++;
 
@@ -2825,6 +2825,10 @@ scan_source_paths()
         if (verbose > 3)
           obatched(clog) << "fts skipped by regex " << (!ri ? "I" : "") << (rx ? "X" : "") << endl;
         fts_regex ++;
+        if (!ri)
+          inc_metric("traversed_total","type","regex-skipped-I");
+        if (rx)
+          inc_metric("traversed_total","type","regex-skipped-X");
         continue;
       }
 
@@ -2832,6 +2836,7 @@ scan_source_paths()
       {
       case FTS_F:
         scanq.push_back (make_pair(rps, *f->fts_statp));
+        inc_metric("traversed_total","type","file");
         break;
 
       case FTS_ERR:
@@ -2841,11 +2846,16 @@ scan_source_paths()
           auto x = libc_exception(f->fts_errno, string("fts traversal ") + string(f->fts_path));
           x.report(cerr);
         }
+        inc_metric("traversed_total","type","error");
         break;
 
-      default:
-        ;
-        /* ignore */
+      case FTS_D: // ignore
+        inc_metric("traversed_total","type","directory");
+        break;
+        
+      default: // ignore
+        inc_metric("traversed_total","type","other");
+        break;
       }
   }
   gettimeofday (&tv_end, NULL);
@@ -2890,6 +2900,7 @@ thread_main_fts_source_paths (void* arg)
             set_metric("thread_busy", "role","traverse", 1);
             scan_source_paths();
             last_rescan = time(NULL); // NB: now was before scanning
+            // finished a traversal loop
             inc_metric("thread_work_total", "role","traverse");
             set_metric("thread_busy", "role","traverse", 0);
           }
@@ -2970,9 +2981,11 @@ void groom()
           files_del_f_de.reset().bind(1,fileid).bind(2,mtime).step_ok_done();
           files_del_r_de.reset().bind(1,fileid).bind(2,mtime).step_ok_done();
           files_del_scan.reset().bind(1,fileid).bind(2,mtime).step_ok_done();
+          inc_metric("groomed_total", "decision", "stale");
         }
-      
-      inc_metric("thread_work_total", "role", "groom");
+      else
+        inc_metric("groomed_total", "decision", "fresh");
+
       if (sigusr1 != forced_rescan_count) // stop early if scan triggered
         break;
     }
@@ -3039,6 +3052,8 @@ thread_main_groom (void* /*arg*/)
             set_metric("thread_busy", "role", "groom", 1);
             groom ();
             last_groom = time(NULL); // NB: now was before grooming
+            // finished a grooming loop
+            inc_metric("thread_work_total", "role", "groom");
             set_metric("thread_busy", "role", "groom", 0);
           }
         catch (const sqlite_exception& e)

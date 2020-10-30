@@ -1,3 +1,14 @@
+2020-10-30  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR26775 cont'd.
+	(thread_main_scanner): Ensure control doesn't leave
+	infinite loop until program exit, even if SIGUSR2.
+	(scan_source_paths): Have traverser clean scanq on
+	SIGUSR2.  Emit additional traversed_total metrics.
+	(groom): Emit additional groomed_total metrics.
+	(thread_main_groom): Restore previous thread_work_total
+	metric.
+
 2020-10-29  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR26775

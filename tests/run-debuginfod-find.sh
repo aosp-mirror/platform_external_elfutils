@@ -346,8 +346,7 @@ rm -r R/debuginfod-rpms/rhel6/*
 kill -USR2 $PID1  # groom cycle
 # Expect 3 rpms to be deleted by the groom
 # 1 groom cycle already took place at/soon-after startup, so -USR2 makes 2
-# ... times the # of files checked in each cycle
-wait_ready $PORT1 'thread_work_total{role="groom"}' 51
+wait_ready $PORT1 'thread_work_total{role="groom"}' 2
 wait_ready $PORT1 'groom{statistic="file d/e"}' 3
 
 rm -rf $DEBUGINFOD_CACHE_PATH # clean it from previous tests
@@ -364,7 +363,7 @@ testrun ${abs_top_builddir}/debuginfod/debuginfod-find executable $BUILDID2
 
 # run a groom cycle to force server to drop its fdcache
 kill -USR2 $PID1  # groom cycle
-wait_ready $PORT1 'thread_work_total{role="groom"}' 98 # 3 complete cycles
+wait_ready $PORT1 'thread_work_total{role="groom"}' 3
 # move it around a couple of times to make it likely to hit a nonexistent entry during iteration
 mv R/debuginfod-rpms/rhel7 R/debuginfod-rpms/rhel7renamed
 kill -USR1 $PID1  # scan cycle

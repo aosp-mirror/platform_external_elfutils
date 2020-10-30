@@ -191,6 +191,8 @@ mkdir -p ${RPM_BUILD_ROOT}%{_prefix}
 %make_install
 
 chmod +x ${RPM_BUILD_ROOT}%{_prefix}/%{_lib}/lib*.so*
+mkdir -p ${RPM_BUILD_ROOT}%{_localstatedir}/cache/debuginfod
+touch ${RPM_BUILD_ROOT}%{_localstatedir}/cache/debuginfod/debuginfod.sqlite
 
 # XXX Nuke unpackaged files
 ( cd ${RPM_BUILD_ROOT}
@@ -296,7 +298,7 @@ fi
 %{_libdir}/libdebuginfod.so.*
 %{_bindir}/debuginfod-find
 %{_mandir}/man1/debuginfod-find.1*
-%config(noreplace) %verify(not md5 size mtime) %{_sysconfdir}/profile.d/*
+%config(noreplace) %{_sysconfdir}/profile.d/*
   
 %files debuginfod-client-devel
 %defattr(-,root,root)
@@ -308,13 +310,13 @@ fi
 %files debuginfod
 %defattr(-,root,root)
 %{_bindir}/debuginfod
-%config(noreplace) %verify(not md5 size mtime) %{_sysconfdir}/sysconfig/debuginfod
+%config(noreplace) %{_sysconfdir}/sysconfig/debuginfod
 %{_unitdir}/debuginfod.service
 %{_sysconfdir}/sysconfig/debuginfod
 %{_mandir}/man8/debuginfod.8*
 
 %dir %attr(0700,debuginfod,debuginfod) %{_localstatedir}/cache/debuginfod
-%verify(not md5 size mtime) %attr(0600,debuginfod,debuginfod) %{_localstatedir}/cache/debuginfod/debuginfod.sqlite
+%ghost %attr(0600,debuginfod,debuginfod) %{_localstatedir}/cache/debuginfod/debuginfod.sqlite
 
 %pre debuginfod
 getent group debuginfod >/dev/null || groupadd -r debuginfod

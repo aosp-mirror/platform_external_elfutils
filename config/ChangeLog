@@ -1,3 +1,8 @@
+2020-10-30  Frank Ch. Eigler  <fche@redhat.com>
+
+	* elfutils.spec.in: Fix debuginfod config/state file attributes
+	for non-lossy updates.
+
 2020-10-08  Frank Ch. Eigler  <fche@redhat.com>
 
 	* Makefile.am (uninstall-local): Uninstall the new profile.d files.

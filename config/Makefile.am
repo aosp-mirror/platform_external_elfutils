@@ -36,7 +36,6 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libelf.pc libdw.pc
 if DEBUGINFOD
 pkgconfig_DATA += libdebuginfod.pc
-endif
 
 install-data-local:
 	$(INSTALL_DATA) profile.sh -D $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.sh
@@ -44,6 +43,7 @@ install-data-local:
 
 uninstall-local:
 	rm -f $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.sh $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.csh
+endif
 
 if MAINTAINER_MODE
 $(srcdir)/elfutils.spec.in: $(top_srcdir)/NEWS

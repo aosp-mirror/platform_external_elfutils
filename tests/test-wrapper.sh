@@ -66,7 +66,7 @@ fi
 
 # When it is a run-*.sh script the VALGRIND_CMD will be passed on
 # otherwise we'll need to run the binary explicitly under valgrind.
-if [ "x$is_shell_script" == "xyes" ]; then
+if [ "x$is_shell_script" = xyes ]; then
   exec "$@"
 else
   exec $VALGRIND_CMD "$@"

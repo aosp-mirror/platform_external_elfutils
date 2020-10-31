@@ -1,5 +1,9 @@
 2020-10-31  Mark Wielaard  <mark@klomp.org>
 
+	* dwfl-proc-attach.c (dlopen): New external function override.
+
+2020-10-31  Mark Wielaard  <mark@klomp.org>
+
 	* test-wrapper.sh: Use =, not == for string compare.
 
 2020-10-29  Mark Wielaard  <mark@klomp.org>

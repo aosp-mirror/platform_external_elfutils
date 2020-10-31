@@ -107,4 +107,16 @@ main (int argc __attribute__ ((unused)),
   return (threads == 3) ? 0 : -1;
 }
 
+/* HACK. This is a simple workaround for a combination of old glibc
+   and valgrind. libdw will try to dlopen libdebuginfod this causes
+   some unsuppressable memory leak warnings when the process is
+   multi-threaded under valgrind because of some bad backtraces.
+   So simply override dlopen and always return NULL so libdebuginfod
+   (and libcurl) are never loaded.  This test doesn't rely on
+   libdebuginfod anyway.  */
+void *dlopen (void)
+{
+  return NULL;
+}
+
 #endif /* __linux__ */

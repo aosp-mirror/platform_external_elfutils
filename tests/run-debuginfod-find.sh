@@ -246,11 +246,11 @@ cp -rvp ${abs_srcdir}/debuginfod-tars Z
 kill -USR1 $PID1
 # All rpms need to be in the index, except the dummy permission-000 one
 rpms=$(find R -name \*rpm | grep -v nothing | wc -l)
-wait_ready $PORT1 'scanned_total{source=".rpm archive"}' $rpms
+wait_ready $PORT1 'scanned_files_total{source=".rpm archive"}' $rpms
 txz=$(find Z -name \*tar.xz | wc -l)
-wait_ready $PORT1 'scanned_total{source=".tar.xz archive"}' $txz
+wait_ready $PORT1 'scanned_files_total{source=".tar.xz archive"}' $txz
 tb2=$(find Z -name \*tar.bz2 | wc -l)
-wait_ready $PORT1 'scanned_total{source=".tar.bz2 archive"}' $tb2
+wait_ready $PORT1 'scanned_files_total{source=".tar.bz2 archive"}' $tb2
 
 kill -USR1 $PID1  # two hits of SIGUSR1 may be needed to resolve .debug->dwz->srefs
 # Expect all source files found in the rpms (they are all called hello.c :)
@@ -419,9 +419,9 @@ if type bsdtar 2>/dev/null; then
     kill -USR1 $PID2
     # All debs need to be in the index
     debs=$(find D -name \*.deb | wc -l)
-    wait_ready $PORT2 'scanned_total{source=".deb archive"}' `expr $debs`
+    wait_ready $PORT2 'scanned_files_total{source=".deb archive"}' `expr $debs`
     ddebs=$(find D -name \*.ddeb | wc -l)
-    wait_ready $PORT2 'scanned_total{source=".ddeb archive"}' `expr $ddebs`
+    wait_ready $PORT2 'scanned_files_total{source=".ddeb archive"}' `expr $ddebs`
 
     # ubuntu
     archive_test f17a29b5a25bd4960531d82aa6b07c8abe84fa66 "" ""
@@ -478,6 +478,8 @@ curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_transfer_bytes_co
 curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_transfer_bytes_sum'
 curl -s http://127.0.0.1:$PORT1/metrics | grep 'fdcache_'
 curl -s http://127.0.0.1:$PORT1/metrics | grep 'error_count'
+curl -s http://127.0.0.1:$PORT1/metrics | grep 'traversed_total'
+curl -s http://127.0.0.1:$PORT1/metrics | grep 'scanned_bytes_total'
 
 # And generate a few errors into the second debuginfod's logs, for analysis just below
 curl -s http://127.0.0.1:$PORT2/badapi > /dev/null || true

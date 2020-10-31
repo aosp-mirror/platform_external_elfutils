@@ -1405,7 +1405,8 @@ handle_buildid_r_match (bool internal_req_p,
         throw libc_exception (errno, "cannot create temporary file");
       // NB: don't unlink (tmppath), as fdcache will take charge of it.
 
-      rc = archive_read_data_into_fd (a, fd);
+      // NB: this can take many uninterruptible seconds for a huge file
+      rc = archive_read_data_into_fd (a, fd); 
       if (rc != ARCHIVE_OK) // e.g. ENOSPC!
         {
           close (fd);
@@ -2228,7 +2229,9 @@ scan_source_file (const string& rps, const stat_t& st,
         elf_classify (fd, executable_p, debuginfo_p, buildid, sourcefiles);
       else
         throw libc_exception(errno, string("open ") + rps);
-      inc_metric ("scanned_total","source","file");
+      add_metric ("scanned_bytes_total","source","file",
+                  st.st_size);
+      inc_metric ("scanned_files_total","source","file");
     }
   // NB: we catch exceptions here too, so that we can
   // cache the corrupt-elf case (!executable_p &&
@@ -2411,9 +2414,12 @@ archive_classify (const string& rps, string& archive_extension,
   if (verbose > 3)
     obatched(clog) << "libarchive scanning " << rps << endl;
 
-  while(1) // parse cpio archive entries
+  while(1) // parse archive entries
     {
-      try
+    if (interrupted)
+      break;
+
+    try
         {
           struct archive_entry *e;
           rc = archive_read_next_header (a, &e);
@@ -2602,7 +2608,9 @@ scan_archive_file (const string& rps, const stat_t& st,
                         st.st_mtime,
                         my_fts_executable, my_fts_debuginfo, my_fts_sref, my_fts_sdef,
                         my_fts_sref_complete_p);
-      inc_metric ("scanned_total","source",archive_extension + " archive");
+      add_metric ("scanned_bytes_total","source",archive_extension + " archive",
+                  st.st_size);
+      inc_metric ("scanned_files_total","source",archive_extension + " archive");
       add_metric("found_debuginfo_total","source",archive_extension + " archive",
                  my_fts_debuginfo);
       add_metric("found_executable_total","source",archive_extension + " archive",
@@ -2808,35 +2816,39 @@ scan_source_paths()
     if (verbose > 2)
       obatched(clog) << "fts traversing " << f->fts_path << endl;
 
-    /* Found a file.  Convert it to an absolute path, so
-       the buildid database does not have relative path
-       names that are unresolvable from a subsequent run
-       in a different cwd. */
-    char *rp = realpath(f->fts_path, NULL);
-    if (rp == NULL)
-      continue; // ignore dangling symlink or such
-    string rps = string(rp);
-    free (rp);
-
-    bool ri = !regexec (&file_include_regex, rps.c_str(), 0, 0, 0);
-    bool rx = !regexec (&file_exclude_regex, rps.c_str(), 0, 0, 0);
-    if (!ri || rx)
-      {
-        if (verbose > 3)
-          obatched(clog) << "fts skipped by regex " << (!ri ? "I" : "") << (rx ? "X" : "") << endl;
-        fts_regex ++;
-        if (!ri)
-          inc_metric("traversed_total","type","regex-skipped-I");
-        if (rx)
-          inc_metric("traversed_total","type","regex-skipped-X");
-        continue;
-      }
-
     switch (f->fts_info)
       {
       case FTS_F:
-        scanq.push_back (make_pair(rps, *f->fts_statp));
-        inc_metric("traversed_total","type","file");
+        {
+          /* Found a file.  Convert it to an absolute path, so
+             the buildid database does not have relative path
+             names that are unresolvable from a subsequent run
+             in a different cwd. */
+          char *rp = realpath(f->fts_path, NULL);
+          if (rp == NULL)
+            continue; // ignore dangling symlink or such
+          string rps = string(rp);
+          free (rp);
+          
+          bool ri = !regexec (&file_include_regex, rps.c_str(), 0, 0, 0);
+          bool rx = !regexec (&file_exclude_regex, rps.c_str(), 0, 0, 0);
+          if (!ri || rx)
+            {
+              if (verbose > 3)
+                obatched(clog) << "fts skipped by regex "
+                               << (!ri ? "I" : "") << (rx ? "X" : "") << endl;
+              fts_regex ++;
+              if (!ri)
+                inc_metric("traversed_total","type","file-skipped-I");
+              if (rx)
+                inc_metric("traversed_total","type","file-skipped-X");
+            }
+          else
+            {
+              scanq.push_back (make_pair(rps, *f->fts_statp));
+              inc_metric("traversed_total","type","file");
+            }
+        }
         break;
 
       case FTS_ERR:
@@ -2847,6 +2859,10 @@ scan_source_paths()
           x.report(cerr);
         }
         inc_metric("traversed_total","type","error");
+        break;
+
+      case FTS_SL: // ignore, but count because debuginfod -L would traverse these
+        inc_metric("traversed_total","type","symlink");
         break;
 
       case FTS_D: // ignore

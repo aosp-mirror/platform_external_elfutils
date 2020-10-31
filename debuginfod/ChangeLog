@@ -1,8 +1,16 @@
+2020-10-31  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.cxx (scan_source_file, scan_archive_file): Add new scanned_bytes_total,
+	scanned_files_total metrics.
+	(archive_classify): Exit early if interrupted.
+	(scan_source_paths): Perform realpath/regex checks only on FTS_F files.
+	Tweak metrics.
+
 2020-10-30  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR26775 cont'd.
-	(thread_main_scanner): Ensure control doesn't leave
-	infinite loop until program exit, even if SIGUSR2.
+	* debuginfod.cxx (thread_main_scanner): Ensure control doesn't
+	leave infinite loop until program exit, even if SIGUSR2.
 	(scan_source_paths): Have traverser clean scanq on
 	SIGUSR2.  Emit additional traversed_total metrics.
 	(groom): Emit additional groomed_total metrics.

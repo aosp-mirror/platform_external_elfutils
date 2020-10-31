@@ -15,6 +15,10 @@
 	pthread_join.
 	* vdsosyms.c (main): Call dwfl_end.
 
+2020-10-31  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Modify for tweaked/new metrics.
+
 2020-10-30  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR26775

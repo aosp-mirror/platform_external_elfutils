@@ -332,6 +332,15 @@ exit 0
 %systemd_postun_with_restart debuginfod.service
 
 %changelog
+* Sat Oct 31 2020 Mark Wielaard <mark@klomp.org> 0.182-1
+- backends: Support for tilegx has been removed.
+- config: New /etc/profile.d files to provide default $DEBUGINFOD_URLS.
+- debuginfod: More efficient package traversal, tolerate various
+  errors during scanning, grooming progress is more visible and
+  interruptible, more prometheus metrics.
+- debuginfod-client: Now supports compressed (kernel) ELF images.
+- libdwfl: Add ZSTD compression support.
+
 * Tue Sep  8 2020 Mark Wielaard <mark@klomp.org> 0.181-1
 - libelf: elf_update now compensates (fixes up) a bad sh_addralign
   for SHF_COMPRESSED sections.

@@ -1,5 +1,10 @@
 2020-11-01  Mark Wielaard  <mark@klomp.org>
 
+	* elf_getphdrnum.c (__elf_getphdrnum_rdlock): Set *dst to zero on
+	error.
+
+2020-11-01  Mark Wielaard  <mark@klomp.org>
+
 	* libelfP.h (__libelf_data_type): Take an GElf_Ehdr instead of an
 	Elf handle.
 	* elf_getdata.c (__libelf_data_type): Likewise. And check ehdr

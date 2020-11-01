@@ -197,7 +197,8 @@ elf_compress_gnu (Elf_Scn *scn, int inflate, unsigned int flags)
 	}
 
       __libelf_reset_rawdata (scn, buf_out, size, sh_addralign,
-			      __libelf_data_type (elf, sh_type, sh_addralign));
+			      __libelf_data_type (&ehdr, sh_type,
+						  sh_addralign));
 
       scn->zdata_base = buf_out;
 

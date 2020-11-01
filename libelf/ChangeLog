@@ -1,3 +1,12 @@
+2020-11-01  Mark Wielaard  <mark@klomp.org>
+
+	* libelfP.h (__libelf_data_type): Take an GElf_Ehdr instead of an
+	Elf handle.
+	* elf_getdata.c (__libelf_data_type): Likewise. And check ehdr
+	directly instead of fetching a new one.
+	(__libelf_set_rawdata_wrlock): Fetch Ehdr, report an error when that
+	fails, otherwise call __libelf_data_type.
+
 2020-10-28  Mark Wielaard  <mark@klomp.org>
 
 	* elf.h: Update from glibc.

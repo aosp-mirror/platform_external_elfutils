@@ -436,10 +436,11 @@ extern const uint_fast8_t __libelf_type_aligns[ELFCLASSNUM - 1][ELF_T_NUM]
 # define __libelf_type_align(class, type)	\
     (__libelf_type_aligns[class - 1][type] ?: 1)
 
-/* Given an Elf handle and a section type returns the Elf_Data d_type.
+/* Given an GElf_Ehdr handle and a section type returns the Elf_Data d_type.
    Should not be called when SHF_COMPRESSED is set, the d_type should
    be ELF_T_BYTE.  */
-extern Elf_Type __libelf_data_type (Elf *elf, int sh_type, GElf_Xword align)
+extern Elf_Type __libelf_data_type (GElf_Ehdr *ehdr,
+				    int sh_type, GElf_Xword align)
   internal_function;
 
 

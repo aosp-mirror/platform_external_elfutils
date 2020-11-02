@@ -1,3 +1,8 @@
+2020-11-02  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* Makefile.am (pkgconfig_DATA, install-data-local, uninstall-local):
+	Conditionalize on LIBDEBUGINFOD instead of DEBUGINFOD.
+
 2020-10-31  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* Makefile.am (install-data-local, uninstall-local): Conditionalize

@@ -95,9 +95,10 @@ wait_ready()
   fi
 }
 
-# create a 000 empty .rpm file to evoke a metric-visible error
-touch R/nothing.rpm
-chmod 000 R/nothing.rpm
+# create a bogus .rpm file to evoke a metric-visible error
+# Use a cyclic symlink instead of chmod 000 to make sure even root
+# would see an error (running the testsuite under root is NOT encouraged).
+ln -s R/nothing.rpm R/nothing.rpm
 
 env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -R -d $DB -p $PORT1 -t0 -g0 --fdcache-fds 1 --fdcache-mbs 2 -Z .tar.xz -Z .tar.bz2=bzcat -v R F Z L > vlog4 2>&1 &
 PID1=$!

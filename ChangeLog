@@ -1,3 +1,7 @@
+2020-11-01  Érico N. Rolim  <erico.erc@gmail.com>
+
+	* configure.ac: Check for fts and obstack from outside libc.
+
 2020-10-28  Mark Wielaard  <mark@klomp.org>
 
 	* configure.ac: Set version to 0.182.

@@ -542,6 +542,26 @@ else
 fi
 AC_SUBST([argp_LDADD])
 
+saved_LIBS="$LIBS"
+AC_SEARCH_LIBS([fts_close], [fts])
+LIBS="$saved_LIBS"
+case "$ac_cv_search_fts_close" in
+        no) AC_MSG_FAILURE([failed to find fts_close]) ;;
+        -l*) fts_LIBS="$ac_cv_search_fts_close" ;;
+        *) fts_LIBS= ;;
+esac
+AC_SUBST([fts_LIBS])
+
+saved_LIBS="$LIBS"
+AC_SEARCH_LIBS([_obstack_free], [obstack])
+LIBS="$saved_LIBS"
+case "$ac_cv_search__obstack_free" in
+        no) AC_MSG_FAILURE([failed to find obstack_free]) ;;
+        -l*) obstack_LIBS="$ac_cv_search__obstack_free" ;;
+        *) obstack_LIBS= ;;
+esac
+AC_SUBST([obstack_LIBS])
+
 dnl The directories with content.
 
 dnl Documentation.

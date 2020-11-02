@@ -1,3 +1,7 @@
+2020-11-01  Érico N. Rolim  <erico.erc@gmail.com>
+
+	* Makefile.am (libdw_so_LDLIBS): Add fts_LIBS.
+
 2020-10-28  Tom Tromey  <tom@tromey.com>
 
 	PR26773

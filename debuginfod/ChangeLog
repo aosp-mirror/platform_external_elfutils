@@ -1,3 +1,9 @@
+2020-11-01  Érico N. Rolim  <erico.erc@gmail.com>
+
+	* Makefile.am (debuginfod_LDADD): Add argp_LDADD and fts_LIBS.
+	(debuginfod_find_LDADD): Likewise.
+	(libdebuginfod_so_LDLIBS): Add fts_LIBS.
+
 2020-10-31  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod.cxx (scan_source_file, scan_archive_file): Add new scanned_bytes_total,

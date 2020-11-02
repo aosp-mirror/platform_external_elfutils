@@ -1,5 +1,10 @@
 2020-11-01  Érico N. Rolim  <erico.erc@gmail.com>
 
+	* debuginfod-client.c (debuginfod_init_cache): Use ACCESSPERMS for
+	mkdir, DEFFILEMODE for open with O_CREAT.
+
+2020-11-01  Érico N. Rolim  <erico.erc@gmail.com>
+
 	* debuginfod.cxx: include libintl.h.
 
 2020-11-01  Érico N. Rolim  <erico.erc@gmail.com>

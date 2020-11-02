@@ -212,13 +212,13 @@ debuginfod_init_cache (char *cache_path, char *interval_path, char *maxage_path)
     return 0;
 
   /* Create the cache and config files as necessary.  */
-  if (stat(cache_path, &st) != 0 && mkdir(cache_path, 0777) < 0)
+  if (stat(cache_path, &st) != 0 && mkdir(cache_path, ACCESSPERMS) < 0)
     return -errno;
 
   int fd = -1;
 
   /* init cleaning interval config file.  */
-  fd = open(interval_path, O_CREAT | O_RDWR, 0666);
+  fd = open(interval_path, O_CREAT | O_RDWR, DEFFILEMODE);
   if (fd < 0)
     return -errno;
 
@@ -227,7 +227,7 @@ debuginfod_init_cache (char *cache_path, char *interval_path, char *maxage_path)
 
   /* init max age config file.  */
   if (stat(maxage_path, &st) != 0
-      && (fd = open(maxage_path, O_CREAT | O_RDWR, 0666)) < 0)
+      && (fd = open(maxage_path, O_CREAT | O_RDWR, DEFFILEMODE)) < 0)
     return -errno;
 
   if (dprintf(fd, "%ld", cache_default_max_unused_age_s) < 0)

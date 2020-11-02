@@ -315,7 +315,7 @@ make_directories (const char *path)
   if (dir == NULL)
     error(EXIT_FAILURE, errno, _("memory exhausted"));
 
-  while (mkdir (dir, 0777) < 0 && errno != EEXIST)
+  while (mkdir (dir, ACCESSPERMS) < 0 && errno != EEXIST)
     {
       if (errno == ENOENT)
         make_directories (dir);
@@ -2192,7 +2192,8 @@ DWARF data in '%s' not adjusted for prelinking bias; consider prelink -u"),
 
       /* Copy the unstripped file and then modify it.  */
       int outfd = open (output_file, O_RDWR | O_CREAT,
-			  stripped_ehdr->e_type == ET_REL ? 0666 : 0777);
+			(stripped_ehdr->e_type == ET_REL
+			 ? DEFFILEMODE : ACCESSPERMS));
       if (outfd < 0)
 	error (EXIT_FAILURE, errno, _("cannot open '%s'"), output_file);
       Elf *outelf = elf_begin (outfd, ELF_C_WRITE, NULL);

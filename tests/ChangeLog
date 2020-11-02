@@ -1,3 +1,18 @@
+2020-11-01  Érico N. Rolim  <erico.erc@gmail.com>
+	    Mark Wielaard  <mark@klomp.org>
+
+	* alldts.c (main): Use DEFFILEMODE for open with O_CREAT.
+	* arextract.c (main): Likewise.
+	* ecp.c (main): Likewise for creat.
+	* elfstrtab.c (check_elf): Use DEFFILEMODE for open with O_CREAT,
+	remove mode from open calls without O_CREAT.
+	* emptyfile.c (check_elf): Likewise.
+	* fillfile.c (check_elf): Likewise.
+	* vendorelf.c (check_elf): Likewise.
+	* newdata.c (checkelf): Use DEFFILEMODE for open with O_CREAT.
+	* update{1,2,3,4}.c (main): Likewise.
+	*
+
 2020-10-31  Mark Wielaard  <mark@klomp.org>
 
 	* dwfl-proc-attach.c (dlopen): New external function override.

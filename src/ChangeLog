@@ -1,5 +1,11 @@
 2020-11-01  Érico N. Rolim  <erico.erc@gmail.com>
 
+	* unstrip.c (make_directories): Use ACCESSPERMS for mkdir.
+	(handle_file): Use DEFFILEMODE for open with O_CREAT for ET_REL
+	files, ACCESSPERMS otherwise.
+
+2020-11-01  Érico N. Rolim  <erico.erc@gmail.com>
+
 	* Makefile.am (nm_LDADD): Add obstack_LIBS.
 	(ranlib_LDADD): Likewise.
 	(ar_LDADD): Likewise.

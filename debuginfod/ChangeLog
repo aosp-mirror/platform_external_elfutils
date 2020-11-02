@@ -1,5 +1,9 @@
 2020-11-01  Érico N. Rolim  <erico.erc@gmail.com>
 
+	* debuginfod.cxx: include libintl.h.
+
+2020-11-01  Érico N. Rolim  <erico.erc@gmail.com>
+
 	* Makefile.am (debuginfod_LDADD): Add argp_LDADD and fts_LIBS.
 	(debuginfod_find_LDADD): Likewise.
 	(libdebuginfod_so_LDLIBS): Add fts_LIBS.

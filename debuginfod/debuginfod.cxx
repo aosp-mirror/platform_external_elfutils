@@ -46,7 +46,7 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #include <error.h>
-// #include <libintl.h> // not until it supports C++ << better
+#include <libintl.h>
 #include <locale.h>
 #include <pthread.h>
 #include <signal.h>

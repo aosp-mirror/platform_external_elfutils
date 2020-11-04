@@ -1,3 +1,8 @@
+2020-11-04  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* profile.sh.in, profile.csh.in: Do not define $DEBUGINFOD_URLS unless
+	configured using --enable-debuginfod-urls.
+
 2020-11-02  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* Makefile.am (pkgconfig_DATA, install-data-local, uninstall-local):

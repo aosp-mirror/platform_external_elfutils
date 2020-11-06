@@ -1,3 +1,7 @@
+2020-11-06  Mark Wielaard  <mark@klomp.org>
+
+	* elf-knowledge.h (SH_ENTSIZE_HASH): Update comment.
+
 2020-11-01  Mark Wielaard  <mark@klomp.org>
 
 	* elf_strptr.c (elf_strptr): Check shdr is not NULL.

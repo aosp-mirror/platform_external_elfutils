@@ -1,3 +1,19 @@
+2020-11-11  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (debuginfod_set_verbose_fd): New function.
+	(struct debuginfod_client): Add verbose_fd.
+	(struct handle_data): Add errbuf.
+	(debuginfod_query_server): Produce verbose output when
+	debuginfod_client verbose_fd is set. Only clear old data and set
+	default_headers when any work is done. Always goto out when setting
+	rc to an error value. Use CURLOPT_ERRORBUFFER to get more error
+	output when verbose output is requested.
+	* debuginfod.h (DEBUGINFOD_VERBOSE_ENV_VAR): New.
+	(debuginfod_set_verbose_fd): Added.
+	* debuginfod-find.c (parse_opt): Set debuginfod_set_verbose_fd on -v.
+	* bdebuginfod.map (ELFUTILS_0.183): New section, add
+	debuginfod_set_verbose_fd.
+
 2020-11-21  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod.cxx (handle_root): New function.

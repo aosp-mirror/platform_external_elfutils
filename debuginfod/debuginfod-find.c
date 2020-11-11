@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <argp.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -64,7 +65,28 @@ static int verbose;
 int progressfn(debuginfod_client *c __attribute__((__unused__)),
 	       long a, long b)
 {
-  fprintf (stderr, "Progress %ld / %ld\n", a, b);
+  static bool first = true;
+  static struct timespec last;
+  struct timespec now;
+  uint64_t delta;
+  if (!first)
+    {
+      clock_gettime (CLOCK_MONOTONIC, &now);
+      delta = ((now.tv_sec - last.tv_sec) * 1000000
+	       + (now.tv_nsec - last.tv_nsec) / 1000);
+    }
+  else
+    {
+      first = false;
+      delta = 250000;
+    }
+
+  /* Show progress the first time and then at most 5 times a second. */
+  if (delta > 200000)
+    {
+      fprintf (stderr, "Progress %ld / %ld\n", a, b);
+      clock_gettime (CLOCK_MONOTONIC, &last);
+    }
   return 0;
 }
 

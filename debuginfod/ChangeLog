@@ -1,3 +1,8 @@
+2020-11-11  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-find.c (progressfn): Use clock_gettime to print Progress
+	at most 5 times a second.
+
 2020-11-01  Érico N. Rolim  <erico.erc@gmail.com>
 
 	* debuginfod-client.c (debuginfod_init_cache): Use ACCESSPERMS for

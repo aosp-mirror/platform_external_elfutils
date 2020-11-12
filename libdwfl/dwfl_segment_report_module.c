@@ -282,21 +282,10 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
      here so we can always safely free it.  */
   void *phdrsp = NULL;
 
-  inline int finish (void)
-  {
-    free (phdrsp);
-    release_buffer (&buffer, &buffer_available);
-    if (elf != NULL)
-      elf_end (elf);
-    if (fd != -1)
-      close (fd);
-    return ndx;
-  }
-
   if (segment_read (ndx, &buffer, &buffer_available,
 		    start, sizeof (Elf64_Ehdr))
       || memcmp (buffer, ELFMAG, SELFMAG) != 0)
-    return finish ();
+    goto out;
 
   inline bool read_portion (void **data, size_t *data_size,
 			    GElf_Addr vaddr, size_t filesz)
@@ -363,13 +352,13 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
     case ELFCLASS32:
       xlatefrom.d_size = sizeof (Elf32_Ehdr);
       if (elf32_xlatetom (&xlateto, &xlatefrom, ei_data) == NULL)
-	return finish ();
+	goto out;
       e_type = ehdr.e32.e_type;
       phoff = ehdr.e32.e_phoff;
       phnum = ehdr.e32.e_phnum;
       phentsize = ehdr.e32.e_phentsize;
       if (phentsize != sizeof (Elf32_Phdr))
-	return finish ();
+	goto out;
       /* NOTE if the number of sections is > 0xff00 then e_shnum
 	 is zero and the actual number would come from the section
 	 zero sh_size field. We ignore this here because getting shdrs
@@ -381,19 +370,19 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
     case ELFCLASS64:
       xlatefrom.d_size = sizeof (Elf64_Ehdr);
       if (elf64_xlatetom (&xlateto, &xlatefrom, ei_data) == NULL)
-	return finish ();
+	goto out;
       e_type = ehdr.e64.e_type;
       phoff = ehdr.e64.e_phoff;
       phnum = ehdr.e64.e_phnum;
       phentsize = ehdr.e64.e_phentsize;
       if (phentsize != sizeof (Elf64_Phdr))
-	return finish ();
+	goto out;
       /* See the NOTE above for shdrs_end and ehdr.e32.e_shnum.  */
       shdrs_end = ehdr.e64.e_shoff + ehdr.e64.e_shnum * ehdr.e64.e_shentsize;
       break;
 
     default:
-      return finish ();
+      goto out;
     }
 
   /* The file header tells where to find the program headers.
@@ -401,7 +390,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
      Without them, we don't have a module to report.  */
 
   if (phnum == 0)
-    return finish ();
+    goto out;
 
   xlatefrom.d_type = xlateto.d_type = ELF_T_PHDR;
   xlatefrom.d_size = phnum * phentsize;
@@ -410,7 +399,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   size_t ph_buffer_size = 0;
   if (read_portion (&ph_buffer, &ph_buffer_size,
 		    start + phoff, xlatefrom.d_size))
-    return finish ();
+    goto out;
 
   /* ph_buffer_size will be zero if we got everything from the initial
      buffer, otherwise it will be the size of the new buffer that
@@ -423,11 +412,11 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   bool class32 = ei_class == ELFCLASS32;
   size_t phdr_size = class32 ? sizeof (Elf32_Phdr) : sizeof (Elf64_Phdr);
   if (unlikely (phnum > SIZE_MAX / phdr_size))
-    return finish ();
+    goto out;
   const size_t phdrsp_bytes = phnum * phdr_size;
   phdrsp = malloc (phdrsp_bytes);
   if (unlikely (phdrsp == NULL))
-    return finish ();
+    goto out;
 
   xlateto.d_buf = phdrsp;
   xlateto.d_size = phdrsp_bytes;
@@ -638,7 +627,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   if (unlikely (!found_bias))
     {
       free (build_id);
-      return finish ();
+      goto out;
     }
 
   /* Now we know enough to report a module for sure: its bounds.  */
@@ -709,7 +698,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
       if (skip_this_module)
 	{
 	  free (build_id);
-	  return finish ();
+	  goto out;
 	}
     }
 
@@ -799,7 +788,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
       Elf32_Dyn *d32 = dyns;
       Elf64_Dyn *d64 = dyns;
       if (unlikely (dyns == NULL))
-	return finish ();
+	goto out;
 
       xlatefrom.d_type = xlateto.d_type = ELF_T_DYN;
       xlatefrom.d_buf = (void *) dyn_data;
@@ -889,7 +878,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   if (unlikely (mod == NULL))
     {
       ndx = -1;
-      return finish ();
+      goto out;
     }
 
   /* We have reported the module.  Now let the caller decide whether we
@@ -913,7 +902,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 
       void *contents = calloc (1, file_trimmed_end);
       if (unlikely (contents == NULL))
-	return finish ();
+	goto out;
 
       inline void final_read (size_t offset, GElf_Addr vaddr, size_t size)
       {
@@ -975,5 +964,12 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
       mod->main_bias = bias;
     }
 
-  return finish ();
+out:
+  free (phdrsp);
+  release_buffer (&buffer, &buffer_available);
+  if (elf != NULL)
+    elf_end (elf);
+  if (fd != -1)
+    close (fd);
+  return ndx;
 }

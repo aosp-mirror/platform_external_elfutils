@@ -1,5 +1,10 @@
 2020-11-12  Timm Bäder <tbaeder@redhat.com>
 
+	* dwfl_segment_report_module.c (dwfl_segment_report_module): Remove
+	finish function, replace with goto out.
+
+2020-11-12  Timm Bäder <tbaeder@redhat.com>
+
 	* dwfl_segment_report_module.c (dwfl_segment_report_module): Declare
 	p32 and p64 as pointers instead of arrays.
 

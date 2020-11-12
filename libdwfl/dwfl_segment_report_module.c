@@ -606,18 +606,18 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
       }
   }
 
-  Elf32_Phdr (*p32)[phnum] = phdrsp;
-  Elf64_Phdr (*p64)[phnum] = phdrsp;
+  Elf32_Phdr *p32 = phdrsp;
+  Elf64_Phdr *p64 = phdrsp;
   if (ei_class == ELFCLASS32)
     {
       if (elf32_xlatetom (&xlateto, &xlatefrom, ei_data) == NULL)
 	found_bias = false;	/* Trigger error check.  */
       else
 	for (uint_fast16_t i = 0; i < phnum; ++i)
-	  consider_phdr ((*p32)[i].p_type,
-			 (*p32)[i].p_vaddr, (*p32)[i].p_memsz,
-			 (*p32)[i].p_offset, (*p32)[i].p_filesz,
-			 (*p32)[i].p_align);
+	  consider_phdr (p32[i].p_type,
+			 p32[i].p_vaddr, p32[i].p_memsz,
+			 p32[i].p_offset, p32[i].p_filesz,
+			 p32[i].p_align);
     }
   else
     {
@@ -625,10 +625,10 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 	found_bias = false;	/* Trigger error check.  */
       else
 	for (uint_fast16_t i = 0; i < phnum; ++i)
-	  consider_phdr ((*p64)[i].p_type,
-			 (*p64)[i].p_vaddr, (*p64)[i].p_memsz,
-			 (*p64)[i].p_offset, (*p64)[i].p_filesz,
-			 (*p64)[i].p_align);
+	  consider_phdr (p64[i].p_type,
+			 p64[i].p_vaddr, p64[i].p_memsz,
+			 p64[i].p_offset, p64[i].p_filesz,
+			 p64[i].p_align);
     }
 
   finish_portion (&ph_buffer, &ph_buffer_size);
@@ -796,8 +796,8 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 	dyn_filesz = dyn_data_size;
 
       void *dyns = malloc (dyn_filesz);
-      Elf32_Dyn (*d32)[dyn_filesz / sizeof (Elf32_Dyn)] = dyns;
-      Elf64_Dyn (*d64)[dyn_filesz / sizeof (Elf64_Dyn)] = dyns;
+      Elf32_Dyn *d32 = dyns;
+      Elf64_Dyn *d64 = dyns;
       if (unlikely (dyns == NULL))
 	return finish ();
 
@@ -811,14 +811,14 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 	{
 	  if (elf32_xlatetom (&xlateto, &xlatefrom, ei_data) != NULL)
 	    for (size_t i = 0; i < dyn_filesz / sizeof (Elf32_Dyn); ++i)
-	      if (consider_dyn ((*d32)[i].d_tag, (*d32)[i].d_un.d_val))
+	      if (consider_dyn (d32[i].d_tag, d32[i].d_un.d_val))
 		break;
 	}
       else
 	{
 	  if (elf64_xlatetom (&xlateto, &xlatefrom, ei_data) != NULL)
 	    for (size_t i = 0; i < dyn_filesz / sizeof (Elf64_Dyn); ++i)
-	      if (consider_dyn ((*d64)[i].d_tag, (*d64)[i].d_un.d_val))
+	      if (consider_dyn (d64[i].d_tag, d64[i].d_un.d_val))
 		break;
 	}
       free (dyns);
@@ -937,12 +937,12 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 
 	  if (ei_class == ELFCLASS32)
 	    for (uint_fast16_t i = 0; i < phnum; ++i)
-	      read_phdr ((*p32)[i].p_type, (*p32)[i].p_vaddr,
-			 (*p32)[i].p_offset, (*p32)[i].p_filesz);
+	      read_phdr (p32[i].p_type, p32[i].p_vaddr,
+			 p32[i].p_offset, p32[i].p_filesz);
 	  else
 	    for (uint_fast16_t i = 0; i < phnum; ++i)
-	      read_phdr ((*p64)[i].p_type, (*p64)[i].p_vaddr,
-			 (*p64)[i].p_offset, (*p64)[i].p_filesz);
+	      read_phdr (p64[i].p_type, p64[i].p_vaddr,
+			 p64[i].p_offset, p64[i].p_filesz);
 	}
       else
 	{

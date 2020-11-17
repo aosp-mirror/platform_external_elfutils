@@ -1,3 +1,8 @@
+2020-11-17  Mark Wielard  <mark@klomp.org>
+
+	* x86_64_symbol.c (x86_64_check_reloc_target_type): New function.
+	* x86_64_init.c (x86_64_init): Hook check_reloc_target_type.
+
 2020-10-19  Mark Wielard  <mark@klomp.org>
 
 	* Makefile.am (modules): Remove tilegx.

@@ -411,6 +411,9 @@ wait_ready $PORT2 'thread_work_total{role="traverse"}' 1
 wait_ready $PORT2 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT2 'thread_busy{role="scan"}' 0
 
+wait_ready $PORT2 'thread_busy{role="http-buildid"}' 0
+wait_ready $PORT2 'thread_busy{role="http-metrics"}' 1
+
 # have clients contact the new server
 export DEBUGINFOD_URLS=http://127.0.0.1:$PORT2
 

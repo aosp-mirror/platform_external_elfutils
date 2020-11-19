@@ -3,6 +3,11 @@
 	* debuginfod-find.c (progressfn): Use clock_gettime to print Progress
 	at most 5 times a second.
 
+2020-11-19  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.cxx (tmp_inc_metric): New class.
+	(handler_cb): Use it to track webapi operations.
+
 2020-11-01  Érico N. Rolim  <erico.erc@gmail.com>
 
 	* debuginfod-client.c (debuginfod_init_cache): Use ACCESSPERMS for

@@ -421,6 +421,21 @@ static void add_metric(const string& metric,
                        int64_t value);
 // static void add_metric(const string& metric, int64_t value);
 
+class tmp_inc_metric { // a RAII style wrapper for exception-safe scoped increment & decrement
+  string m, n, v;
+public:
+  tmp_inc_metric(const string& mname, const string& lname, const string& lvalue):
+    m(mname), n(lname), v(lvalue)
+  {
+    add_metric (m, n, v, 1);
+  }
+  ~tmp_inc_metric()
+  {
+    add_metric (m, n, v, -1);
+  }
+};
+
+
 /* Handle program arguments.  */
 static error_t
 parse_opt (int key, char *arg,
@@ -1823,6 +1838,7 @@ handler_cb (void * /*cls*/,
 
       if (slash1 != string::npos && url1 == "/buildid")
         {
+          tmp_inc_metric m ("thread_busy", "role", "http-buildid");
           size_t slash2 = url_copy.find('/', slash1+1);
           if (slash2 == string::npos)
             throw reportable_exception("/buildid/ webapi error, need buildid");
@@ -1856,6 +1872,7 @@ handler_cb (void * /*cls*/,
         }
       else if (url1 == "/metrics")
         {
+          tmp_inc_metric m ("thread_busy", "role", "http-metrics");
           inc_metric("http_requests_total", "type", "metrics");
           r = handle_metrics(& http_size);
         }

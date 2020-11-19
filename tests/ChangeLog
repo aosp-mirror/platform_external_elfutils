@@ -3,6 +3,10 @@
 	* run-debuginfod-find.sh: Create bogus R/nothing.rpm with cyclic
 	symlink instead of chmod 000.
 
+2020-11-19  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Look for http-* metrics.
+
 2020-11-01  Érico N. Rolim  <erico.erc@gmail.com>
 	    Mark Wielaard  <mark@klomp.org>
 

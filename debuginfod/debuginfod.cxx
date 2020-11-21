@@ -1799,6 +1799,19 @@ handle_metrics (off_t* size)
   return r;
 }
 
+static struct MHD_Response*
+handle_root (off_t* size)
+{
+  static string version = "debuginfod (" + string (PACKAGE_NAME) + ") "
+			  + string (PACKAGE_VERSION);
+  MHD_Response* r = MHD_create_response_from_buffer (version.size (),
+						     (void *) version.c_str (),
+						     MHD_RESPMEM_PERSISTENT);
+  *size = version.size ();
+  MHD_add_response_header (r, "Content-Type", "text/plain");
+  return r;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -1876,8 +1889,13 @@ handler_cb (void * /*cls*/,
           inc_metric("http_requests_total", "type", "metrics");
           r = handle_metrics(& http_size);
         }
+      else if (url1 == "/")
+        {
+          inc_metric("http_requests_total", "type", "/");
+          r = handle_root(& http_size);
+        }
       else
-        throw reportable_exception("webapi error, unrecognized /operation");
+        throw reportable_exception("webapi error, unrecognized '" + url1 + "'");
 
       if (r == 0)
         throw reportable_exception("internal error, missing response");

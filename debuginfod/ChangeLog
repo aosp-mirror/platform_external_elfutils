@@ -1,3 +1,8 @@
+2020-11-21  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod.cxx (handle_root): New function.
+	(handler_cb): Handle "/" and report url1 in webapi error.
+
 2020-11-11  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod-find.c (progressfn): Use clock_gettime to print Progress

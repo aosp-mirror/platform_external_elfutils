@@ -1,5 +1,10 @@
 2020-11-23  Timm Bäder  <tbaeder@redhat.com>
 
+	* segment_report_module.c (dwfl_segment_report_module): Do one
+	loop check for d32/d64 arrays.
+
+2020-11-23  Timm Bäder  <tbaeder@redhat.com>
+
 	* segment_report_module.c (dwfl_segment_report_module): Remove
 	read_phdr, do check and call memory_callback directly.
 

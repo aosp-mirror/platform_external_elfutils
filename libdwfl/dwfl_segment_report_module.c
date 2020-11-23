@@ -792,20 +792,22 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
       xlateto.d_buf = dyns;
       xlateto.d_size = dyn_filesz;
 
-      if (ei_class == ELFCLASS32)
-	{
-	  if (elf32_xlatetom (&xlateto, &xlatefrom, ei_data) != NULL)
-	    for (size_t i = 0; i < dyn_filesz / sizeof (Elf32_Dyn); ++i)
-	      if (consider_dyn (d32[i].d_tag, d32[i].d_un.d_val))
-		break;
-	}
-      else
-	{
-	  if (elf64_xlatetom (&xlateto, &xlatefrom, ei_data) != NULL)
-	    for (size_t i = 0; i < dyn_filesz / sizeof (Elf64_Dyn); ++i)
-	      if (consider_dyn (d64[i].d_tag, d64[i].d_un.d_val))
-		break;
-	}
+      bool is32 = (ei_class == ELFCLASS32);
+      if ((is32 && elf32_xlatetom (&xlateto, &xlatefrom, ei_data) != NULL)
+          || (!is32 && elf64_xlatetom (&xlateto, &xlatefrom, ei_data) != NULL))
+        {
+          size_t n = (is32
+		      ? (dyn_filesz / sizeof (Elf32_Dyn))
+		      : (dyn_filesz / sizeof (Elf64_Dyn)));
+          for (size_t i = 0; i < n; ++i)
+            {
+              GElf_Sxword tag = is32 ? d32[i].d_tag : d64[i].d_tag;
+              GElf_Xword val = is32 ? d32[i].d_un.d_val : d64[i].d_un.d_val;
+
+              if (consider_dyn (tag, val))
+                break;
+            }
+        }
       free (dyns);
     }
   finish_portion (&dyn_data, &dyn_data_size);

@@ -357,7 +357,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
       /* NOTE if the number of sections is > 0xff00 then e_shnum
 	 is zero and the actual number would come from the section
 	 zero sh_size field. We ignore this here because getting shdrs
-	 is just a nice bonus (see below in consider_phdr PT_LOAD
+	 is just a nice bonus (see below in the type == PT_LOAD case
 	 where we trim the last segment).  */
       shdrs_end = ehdr.e32.e_shoff + ehdr.e32.e_shnum * ehdr.e32.e_shentsize;
       break;
@@ -522,75 +522,6 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
     finish_portion (&data, &data_size);
   }
 
-  /* Consider each of the program headers we've read from the image.  */
-  inline void consider_phdr (GElf_Word type,
-			     GElf_Addr vaddr, GElf_Xword memsz,
-			     GElf_Off offset, GElf_Xword filesz,
-			     GElf_Xword align)
-  {
-    switch (type)
-      {
-      case PT_DYNAMIC:
-	dyn_vaddr = vaddr;
-	dyn_filesz = filesz;
-	break;
-
-      case PT_NOTE:
-	/* We calculate from the p_offset of the note segment,
-	   because we don't yet know the bias for its p_vaddr.  */
-	consider_notes (start + offset, filesz, align);
-	break;
-
-      case PT_LOAD:
-	align = dwfl->segment_align > 1 ? dwfl->segment_align : align ?: 1;
-
-	GElf_Addr vaddr_end = (vaddr + memsz + align - 1) & -align;
-	GElf_Addr filesz_vaddr = filesz < memsz ? vaddr + filesz : vaddr_end;
-	GElf_Off filesz_offset = filesz_vaddr - vaddr + offset;
-
-	if (file_trimmed_end < offset + filesz)
-	  {
-	    file_trimmed_end = offset + filesz;
-
-	    /* Trim the last segment so we don't bother with zeros
-	       in the last page that are off the end of the file.
-	       However, if the extra bit in that page includes the
-	       section headers, keep them.  */
-	    if (shdrs_end <= filesz_offset && shdrs_end > file_trimmed_end)
-	      {
-		filesz += shdrs_end - file_trimmed_end;
-		file_trimmed_end = shdrs_end;
-	      }
-	  }
-
-	total_filesz += filesz;
-
-	if (file_end < filesz_offset)
-	  {
-	    file_end = filesz_offset;
-	    if (filesz_vaddr - start == filesz_offset)
-	      contiguous = file_end;
-	  }
-
-	if (!found_bias && (offset & -align) == 0
-	    && likely (filesz_offset >= phoff + phnum * phentsize))
-	  {
-	    bias = start - vaddr;
-	    found_bias = true;
-	  }
-
-	if ((vaddr & -align) < module_start)
-	  {
-	    module_start = vaddr & -align;
-	    module_address_sync = vaddr + memsz;
-	  }
-
-	if (module_end < vaddr_end)
-	  module_end = vaddr_end;
-	break;
-      }
-  }
-
   Elf32_Phdr *p32 = phdrsp;
   Elf64_Phdr *p64 = phdrsp;
   if ((ei_class == ELFCLASS32
@@ -602,6 +533,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
     }
   else
     {
+      /* Consider each of the program headers we've read from the image.  */
       for (uint_fast16_t i = 0; i < phnum; ++i)
         {
           bool is32 = (ei_class == ELFCLASS32);
@@ -612,7 +544,68 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
           GElf_Xword filesz = is32 ? p32[i].p_filesz : p64[i].p_filesz;
           GElf_Xword align = is32 ? p32[i].p_align : p64[i].p_align;
 
-          consider_phdr (type, vaddr, memsz, offset, filesz, align);
+          if (type == PT_DYNAMIC)
+            {
+              dyn_vaddr = vaddr;
+              dyn_filesz = filesz;
+            }
+          else if (type == PT_NOTE)
+            {
+              /* We calculate from the p_offset of the note segment,
+               because we don't yet know the bias for its p_vaddr.  */
+              consider_notes ( start + offset, filesz, align);
+            }
+          else if (type == PT_LOAD)
+            {
+              align = (dwfl->segment_align > 1
+                       ? dwfl->segment_align : (align ?: 1));
+
+              GElf_Addr vaddr_end = (vaddr + memsz + align - 1) & -align;
+              GElf_Addr filesz_vaddr = (filesz < memsz
+                                        ? vaddr + filesz : vaddr_end);
+              GElf_Off filesz_offset = filesz_vaddr - vaddr + offset;
+
+              if (file_trimmed_end < offset + filesz)
+                {
+                  file_trimmed_end = offset + filesz;
+
+                  /* Trim the last segment so we don't bother with zeros
+                     in the last page that are off the end of the file.
+                     However, if the extra bit in that page includes the
+                     section headers, keep them.  */
+                  if (shdrs_end <= filesz_offset
+                      && shdrs_end > file_trimmed_end)
+                    {
+                      filesz += shdrs_end - file_trimmed_end;
+                      file_trimmed_end = shdrs_end;
+                    }
+                }
+
+              total_filesz += filesz;
+
+              if (file_end < filesz_offset)
+                {
+                  file_end = filesz_offset;
+                  if (filesz_vaddr - start == filesz_offset)
+                    contiguous = file_end;
+                }
+
+              if (!found_bias && (offset & -align) == 0
+                  && likely (filesz_offset >= phoff + phnum * phentsize))
+                {
+                  bias = start - vaddr;
+                  found_bias = true;
+                }
+
+              if ((vaddr & -align) < module_start)
+                {
+                  module_start = vaddr & -align;
+                  module_address_sync = vaddr + memsz;
+                }
+
+              if (module_end < vaddr_end)
+                module_end = vaddr_end;
+            }
         }
     }
 

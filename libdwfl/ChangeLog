@@ -1,6 +1,11 @@
 2020-11-23  Timm Bäder  <tbaeder@redhat.com>
 
 	* segment_report_module.c (dwfl_segment_report_module): Remove
+	consider_phdr, do checks inline.
+
+2020-11-23  Timm Bäder  <tbaeder@redhat.com>
+
+	* segment_report_module.c (dwfl_segment_report_module): Remove
 	consider_dyn, do checks inline.
 
 2020-11-23  Timm Bäder  <tbaeder@redhat.com>

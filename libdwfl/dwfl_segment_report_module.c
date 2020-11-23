@@ -54,6 +54,13 @@
 # define MY_ELFDATA	ELFDATA2MSB
 #endif
 
+struct elf_build_id
+{
+  void *memory;
+  size_t len;
+  GElf_Addr vaddr;
+};
+
 
 /* Return user segment index closest to ADDR but not above it.
    If NEXT, return the closest to ADDR but not below it.  */
@@ -206,16 +213,16 @@ handle_file_note (GElf_Addr module_start, GElf_Addr module_end,
 
 static bool
 invalid_elf (Elf *elf, bool disk_file_has_build_id,
-	     const void *build_id, size_t build_id_len)
+             struct elf_build_id *build_id)
 {
-  if (! disk_file_has_build_id && build_id_len > 0)
+  if (! disk_file_has_build_id && build_id->len > 0)
     {
       /* Module found in segments with build-id is more reliable
 	 than a module found via DT_DEBUG on disk without any
 	 build-id.   */
       return true;
     }
-  if (disk_file_has_build_id && build_id_len > 0)
+  if (disk_file_has_build_id && build_id->len > 0)
     {
       const void *elf_build_id;
       ssize_t elf_build_id_len;
@@ -224,8 +231,8 @@ invalid_elf (Elf *elf, bool disk_file_has_build_id,
       elf_build_id_len = INTUSE(dwelf_elf_gnu_build_id) (elf, &elf_build_id);
       if (elf_build_id_len > 0)
 	{
-	  if (build_id_len != (size_t) elf_build_id_len
-	      || memcmp (build_id, elf_build_id, build_id_len) != 0)
+	  if (build_id->len != (size_t) elf_build_id_len
+	      || memcmp (build_id->memory, elf_build_id, build_id->len) != 0)
 	    return true;
 	}
     }
@@ -429,16 +436,17 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   GElf_Xword dyn_filesz = 0;
 
   /* Collect the build ID bits here.  */
-  void *build_id = NULL;
-  size_t build_id_len = 0;
-  GElf_Addr build_id_vaddr = 0;
+  struct elf_build_id build_id;
+  build_id.memory = NULL;
+  build_id.len = 0;
+  build_id.vaddr =0;
 
   /* Consider a PT_NOTE we've found in the image.  */
   inline void consider_notes (GElf_Addr vaddr, GElf_Xword filesz,
 			      GElf_Xword align)
   {
     /* If we have already seen a build ID, we don't care any more.  */
-    if (build_id != NULL || filesz == 0)
+    if (build_id.memory != NULL || filesz == 0)
       return;
 
     void *data;
@@ -495,11 +503,11 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 	    && nh->n_namesz == sizeof "GNU"
 	    && !memcmp (note_name, "GNU", sizeof "GNU"))
 	  {
-	    build_id_vaddr = note_desc - (const void *) notes + vaddr;
-	    build_id_len = nh->n_descsz;
-	    build_id = malloc (nh->n_descsz);
-	    if (likely (build_id != NULL))
-	      memcpy (build_id, note_desc, build_id_len);
+	    build_id.vaddr = note_desc - (const void *) notes + vaddr;
+	    build_id.len = nh->n_descsz;
+	    build_id.memory = malloc (build_id.len);
+	    if (likely (build_id.memory != NULL))
+	      memcpy (build_id.memory, note_desc, build_id.len);
 	    break;
 	  }
 
@@ -614,7 +622,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
      header we read at START was not produced by these program headers.  */
   if (unlikely (!found_bias))
     {
-      free (build_id);
+      free (build_id.memory);
       goto out;
     }
 
@@ -669,7 +677,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 	  {
 	    if (module->elf != NULL
 	        && invalid_elf (module->elf, module->disk_file_has_build_id,
-				build_id, build_id_len))
+				&build_id))
 	      {
 		elf_end (module->elf);
 		close (module->fd);
@@ -685,7 +693,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 	  }
       if (skip_this_module)
 	{
-	  free (build_id);
+	  free (build_id.memory);
 	  goto out;
 	}
     }
@@ -704,7 +712,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 	  Dwfl_Error error = __libdw_open_file (&fd, &elf, true, false);
 	  if (error == DWFL_E_NOERROR)
 	    invalid = invalid_elf (elf, true /* disk_file_has_build_id */,
-				   build_id, build_id_len);
+                                   &build_id);
 	}
       if (invalid)
 	{
@@ -848,11 +856,11 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   if (mod != NULL && (execlike || ehdr.e32.e_type == ET_EXEC))
     mod->is_executable = true;
 
-  if (likely (mod != NULL) && build_id != NULL
+  if (likely (mod != NULL) && build_id.memory != NULL
       && unlikely (INTUSE(dwfl_module_report_build_id) (mod,
-							build_id,
-							build_id_len,
-							build_id_vaddr)))
+							build_id.memory,
+							build_id.len,
+							build_id.vaddr)))
     {
       mod->gc = true;
       mod = NULL;
@@ -860,7 +868,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 
   /* At this point we do not need BUILD_ID or NAME any more.
      They have been copied.  */
-  free (build_id);
+  free (build_id.memory);
   finish_portion (&soname, &soname_size);
 
   if (unlikely (mod == NULL))

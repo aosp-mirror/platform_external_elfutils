@@ -1,3 +1,8 @@
+2020-11-23  Timm Bäder  <tbaeder@redhat.com>
+
+	* segment_report_module.c (dwfl_segment_report_module): Remove
+	segment_read, call memory_callback directly.
+
 2020-11-19  Andreas Krebbel  <krebbel@linux.ibm.com>
 
 	* linux-pid-attach.c (pid_memory_read): Shift the upper 4 bytes

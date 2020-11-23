@@ -257,18 +257,11 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 
   GElf_Addr start = dwfl->lookup_addr[segment];
 
-  inline bool segment_read (int segndx,
-			    void **buffer, size_t *buffer_available,
-			    GElf_Addr addr, size_t minread)
-  {
-    return ! (*memory_callback) (dwfl, segndx, buffer, buffer_available,
-				 addr, minread, memory_callback_arg);
-  }
-
   inline void release_buffer (void **buffer, size_t *buffer_available)
   {
     if (*buffer != NULL)
-      (void) segment_read (-1, buffer, buffer_available, 0, 0);
+      (*memory_callback) (dwfl, -1, buffer, buffer_available, 0, 0,
+			  memory_callback_arg);
   }
 
   /* First read in the file header and check its sanity.  */
@@ -282,8 +275,8 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
      here so we can always safely free it.  */
   void *phdrsp = NULL;
 
-  if (segment_read (ndx, &buffer, &buffer_available,
-		    start, sizeof (Elf64_Ehdr))
+  if (! (*memory_callback) (dwfl, ndx, &buffer, &buffer_available,
+			    start, sizeof (Elf64_Ehdr), memory_callback_arg)
       || memcmp (buffer, ELFMAG, SELFMAG) != 0)
     goto out;
 
@@ -301,8 +294,10 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
       {
 	*data = NULL;
 	*data_size = filesz;
-	return segment_read (addr_segndx (dwfl, segment, vaddr, false),
-			     data, data_size, vaddr, filesz);
+	return ! (*memory_callback) (dwfl, addr_segndx (dwfl, segment,
+							vaddr, false),
+				     data, data_size, vaddr, filesz,
+				     memory_callback_arg);
       }
 
     /* We already have this whole note segment from our initial read.  */
@@ -908,8 +903,9 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
       {
 	void *into = contents + offset;
 	size_t read_size = size;
-	(void) segment_read (addr_segndx (dwfl, segment, vaddr, false),
-			     &into, &read_size, vaddr, size);
+	(*memory_callback) (dwfl, addr_segndx (dwfl, segment, vaddr, false),
+			    &into, &read_size, vaddr, size,
+			    memory_callback_arg);
       }
 
       if (contiguous < file_trimmed_end)

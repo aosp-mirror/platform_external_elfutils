@@ -904,31 +904,24 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 	{
 	  /* We can't use the memory image verbatim as the file image.
 	     So we'll be reading into a local image of the virtual file.  */
-
-	  inline void read_phdr (GElf_Word type, GElf_Addr vaddr,
-				 GElf_Off offset, GElf_Xword filesz)
-	  {
-	    if (type == PT_LOAD)
-              {
-		void *into = contents + offset;
-		size_t read_size = filesz;
-		(*memory_callback) (dwfl,
-				    addr_segndx (dwfl, segment,
-						 vaddr + bias, false),
-                                    &into, &read_size, vaddr + bias,
-				    read_size, memory_callback_arg);
-              }
-	  }
-
           for (uint_fast16_t i = 0; i < phnum; ++i)
             {
               bool is32 = (ei_class == ELFCLASS32);
               GElf_Word type = is32 ? p32[i].p_type : p64[i].p_type;
+
+              if (type != PT_LOAD)
+                continue;
+
               GElf_Addr vaddr = is32 ? p32[i].p_vaddr : p64[i].p_vaddr;
               GElf_Off offset = is32 ? p32[i].p_offset : p64[i].p_offset;
               GElf_Xword filesz = is32 ? p32[i].p_filesz : p64[i].p_filesz;
 
-              read_phdr (type, vaddr, offset, filesz);
+              void *into = contents + offset;
+              size_t read_size = filesz;
+              (*memory_callback) (dwfl, addr_segndx (dwfl, segment,
+                                                     vaddr + bias, false),
+                                  &into, &read_size, vaddr + bias, read_size,
+                                  memory_callback_arg);
             }
 	}
       else

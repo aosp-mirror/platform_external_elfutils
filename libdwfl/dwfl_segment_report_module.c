@@ -593,27 +593,27 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 
   Elf32_Phdr *p32 = phdrsp;
   Elf64_Phdr *p64 = phdrsp;
-  if (ei_class == ELFCLASS32)
+  if ((ei_class == ELFCLASS32
+       && elf32_xlatetom (&xlateto, &xlatefrom, ei_data) == NULL)
+      || (ei_class == ELFCLASS64
+          && elf64_xlatetom (&xlateto, &xlatefrom, ei_data) == NULL))
     {
-      if (elf32_xlatetom (&xlateto, &xlatefrom, ei_data) == NULL)
-	found_bias = false;	/* Trigger error check.  */
-      else
-	for (uint_fast16_t i = 0; i < phnum; ++i)
-	  consider_phdr (p32[i].p_type,
-			 p32[i].p_vaddr, p32[i].p_memsz,
-			 p32[i].p_offset, p32[i].p_filesz,
-			 p32[i].p_align);
+      found_bias = false; /* Trigger error check */
     }
   else
     {
-      if (elf64_xlatetom (&xlateto, &xlatefrom, ei_data) == NULL)
-	found_bias = false;	/* Trigger error check.  */
-      else
-	for (uint_fast16_t i = 0; i < phnum; ++i)
-	  consider_phdr (p64[i].p_type,
-			 p64[i].p_vaddr, p64[i].p_memsz,
-			 p64[i].p_offset, p64[i].p_filesz,
-			 p64[i].p_align);
+      for (uint_fast16_t i = 0; i < phnum; ++i)
+        {
+          bool is32 = (ei_class == ELFCLASS32);
+          GElf_Word type = is32 ? p32[i].p_type : p64[i].p_type;
+          GElf_Addr vaddr = is32 ? p32[i].p_vaddr : p64[i].p_vaddr;
+          GElf_Xword memsz = is32 ? p32[i].p_memsz : p64[i].p_memsz;
+          GElf_Off offset = is32 ? p32[i].p_offset : p64[i].p_offset;
+          GElf_Xword filesz = is32 ? p32[i].p_filesz : p64[i].p_filesz;
+          GElf_Xword align = is32 ? p32[i].p_align : p64[i].p_align;
+
+          consider_phdr (type, vaddr, memsz, offset, filesz, align);
+        }
     }
 
   finish_portion (&ph_buffer, &ph_buffer_size);
@@ -920,14 +920,16 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
               }
 	  }
 
-	  if (ei_class == ELFCLASS32)
-	    for (uint_fast16_t i = 0; i < phnum; ++i)
-	      read_phdr (p32[i].p_type, p32[i].p_vaddr,
-			 p32[i].p_offset, p32[i].p_filesz);
-	  else
-	    for (uint_fast16_t i = 0; i < phnum; ++i)
-	      read_phdr (p64[i].p_type, p64[i].p_vaddr,
-			 p64[i].p_offset, p64[i].p_filesz);
+          for (uint_fast16_t i = 0; i < phnum; ++i)
+            {
+              bool is32 = (ei_class == ELFCLASS32);
+              GElf_Word type = is32 ? p32[i].p_type : p64[i].p_type;
+              GElf_Addr vaddr = is32 ? p32[i].p_vaddr : p64[i].p_vaddr;
+              GElf_Off offset = is32 ? p32[i].p_offset : p64[i].p_offset;
+              GElf_Xword filesz = is32 ? p32[i].p_filesz : p64[i].p_filesz;
+
+              read_phdr (type, vaddr, offset, filesz);
+            }
 	}
       else
 	{

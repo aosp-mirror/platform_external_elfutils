@@ -257,13 +257,6 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 
   GElf_Addr start = dwfl->lookup_addr[segment];
 
-  inline void release_buffer (void **buffer, size_t *buffer_available)
-  {
-    if (*buffer != NULL)
-      (*memory_callback) (dwfl, -1, buffer, buffer_available, 0, 0,
-			  memory_callback_arg);
-  }
-
   /* First read in the file header and check its sanity.  */
 
   void *buffer = NULL;
@@ -308,8 +301,8 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 
   inline void finish_portion (void **data, size_t *data_size)
   {
-    if (*data_size != 0)
-      release_buffer (data, data_size);
+    if (*data_size != 0 && *data != NULL)
+      (*memory_callback) (dwfl, -1, data, data_size, 0, 0, memory_callback_arg);
   }
 
   /* Extract the information we need from the file header.  */
@@ -962,7 +955,10 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 
 out:
   free (phdrsp);
-  release_buffer (&buffer, &buffer_available);
+  if (buffer != NULL)
+    (*memory_callback) (dwfl, -1, &buffer, &buffer_available, 0, 0,
+                        memory_callback_arg);
+
   if (elf != NULL)
     elf_end (elf);
   if (fd != -1)

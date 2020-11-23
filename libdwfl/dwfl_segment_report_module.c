@@ -740,33 +740,6 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   GElf_Addr dynstr_vaddr = 0;
   GElf_Xword dynstrsz = 0;
   bool execlike = false;
-  inline bool consider_dyn (GElf_Sxword tag, GElf_Xword val)
-  {
-    switch (tag)
-      {
-      default:
-	return false;
-
-      case DT_DEBUG:
-	execlike = true;
-	break;
-
-      case DT_SONAME:
-	soname_stroff = val;
-	break;
-
-      case DT_STRTAB:
-	dynstr_vaddr = val;
-	break;
-
-      case DT_STRSZ:
-	dynstrsz = val;
-	break;
-      }
-
-    return soname_stroff != 0 && dynstr_vaddr != 0 && dynstrsz != 0;
-  }
-
   const size_t dyn_entsize = (ei_class == ELFCLASS32
 			      ? sizeof (Elf32_Dyn) : sizeof (Elf64_Dyn));
   void *dyn_data = NULL;
@@ -804,7 +777,18 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
               GElf_Sxword tag = is32 ? d32[i].d_tag : d64[i].d_tag;
               GElf_Xword val = is32 ? d32[i].d_un.d_val : d64[i].d_un.d_val;
 
-              if (consider_dyn (tag, val))
+              if (tag == DT_DEBUG)
+                execlike = true;
+              else if (tag == DT_SONAME)
+                soname_stroff = val;
+              else if (tag == DT_STRTAB)
+                dynstr_vaddr = val;
+              else if (tag == DT_STRSZ)
+                dynstrsz = val;
+              else
+                continue;
+
+              if (soname_stroff != 0 && dynstr_vaddr != 0 && dynstrsz != 0)
                 break;
             }
         }

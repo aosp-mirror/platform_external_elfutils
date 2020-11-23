@@ -1,5 +1,10 @@
 2020-11-23  Timm Bäder  <tbaeder@redhat.com>
 
+	* segment_report_module.c (dwfl_segment_report_module): Remove
+	final_read, call memory_callback directly.
+
+2020-11-23  Timm Bäder  <tbaeder@redhat.com>
+
 	* segment_report_module.c (struct elf_build_id): New.
 	(dwfl_segment_report_module): Pass build_id as struct.
 

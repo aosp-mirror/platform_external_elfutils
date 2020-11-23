@@ -900,15 +900,6 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
       if (unlikely (contents == NULL))
 	goto out;
 
-      inline void final_read (size_t offset, GElf_Addr vaddr, size_t size)
-      {
-	void *into = contents + offset;
-	size_t read_size = size;
-	(*memory_callback) (dwfl, addr_segndx (dwfl, segment, vaddr, false),
-			    &into, &read_size, vaddr, size,
-			    memory_callback_arg);
-      }
-
       if (contiguous < file_trimmed_end)
 	{
 	  /* We can't use the memory image verbatim as the file image.
@@ -918,7 +909,15 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 				 GElf_Off offset, GElf_Xword filesz)
 	  {
 	    if (type == PT_LOAD)
-	      final_read (offset, vaddr + bias, filesz);
+              {
+		void *into = contents + offset;
+		size_t read_size = filesz;
+		(*memory_callback) (dwfl,
+				    addr_segndx (dwfl, segment,
+						 vaddr + bias, false),
+                                    &into, &read_size, vaddr + bias,
+				    read_size, memory_callback_arg);
+              }
 	  }
 
 	  if (ei_class == ELFCLASS32)
@@ -939,7 +938,15 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 	  memcpy (contents, buffer, have);
 
 	  if (have < file_trimmed_end)
-	    final_read (have, start + have, file_trimmed_end - have);
+            {
+	      void *into = contents + have;
+	      size_t read_size = file_trimmed_end - have;
+	      (*memory_callback) (dwfl,
+				  addr_segndx (dwfl, segment,
+					       start + have, false),
+				  &into, &read_size, start + have,
+				  read_size, memory_callback_arg);
+            }
 	}
 
       elf = elf_memory (contents, file_trimmed_end);

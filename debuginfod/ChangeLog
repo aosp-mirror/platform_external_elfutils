@@ -1,3 +1,8 @@
+2020-11-23  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (debuginfod_query_server): Initialize
+	struct handle_data errbuf to the empty string.
+
 2020-11-11  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod-client.c (debuginfod_set_verbose_fd): New function.

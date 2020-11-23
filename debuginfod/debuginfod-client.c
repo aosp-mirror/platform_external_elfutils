@@ -756,6 +756,7 @@ debuginfod_query_server (debuginfod_client *c,
     {
       data[i].handle = NULL;
       data[i].fd = -1;
+      data[i].errbuf[0] = '\0';
     }
 
   char *strtok_saveptr;

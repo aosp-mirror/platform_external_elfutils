@@ -435,6 +435,27 @@ public:
   }
 };
 
+class tmp_ms_metric { // a RAII style wrapper for exception-safe scoped timing
+  string m, n, v;
+  struct timeval tv_start;
+public:
+  tmp_ms_metric(const string& mname, const string& lname, const string& lvalue):
+    m(mname), n(lname), v(lvalue)
+  {
+    gettimeofday (& tv_start, NULL);
+  }
+  ~tmp_ms_metric()
+  {
+    struct timeval tv_end;
+    gettimeofday (& tv_end, NULL);
+    double deltas = (tv_end.tv_sec - tv_start.tv_sec)
+      + (tv_end.tv_usec - tv_start.tv_usec)*0.000001;
+
+    add_metric (m + "_milliseconds_sum", n, v, (deltas*1000));
+    inc_metric (m + "_milliseconds_count", n, v);
+  }
+};
+
 
 /* Handle program arguments.  */
 static error_t
@@ -559,7 +580,9 @@ struct reportable_exception
 struct sqlite_exception: public reportable_exception
 {
   sqlite_exception(int rc, const string& msg):
-    reportable_exception(string("sqlite3 error: ") + msg + ": " + string(sqlite3_errstr(rc) ?: "?")) {}
+    reportable_exception(string("sqlite3 error: ") + msg + ": " + string(sqlite3_errstr(rc) ?: "?")) {
+    inc_metric("error_count","sqlite3",sqlite3_errstr(rc));    
+  }
 };
 
 struct libc_exception: public reportable_exception
@@ -755,6 +778,7 @@ private:
 
 public:
   sqlite_ps (sqlite3* d, const string& n, const string& s): db(d), nickname(n), sql(s) {
+    // tmp_ms_metric tick("sqlite3","prep",nickname);
     if (verbose > 4)
       obatched(clog) << nickname << " prep " << sql << endl;
     int rc = sqlite3_prepare_v2 (db, sql.c_str(), -1 /* to \0 */, & this->pp, NULL);
@@ -764,6 +788,7 @@ public:
 
   sqlite_ps& reset()
   {
+    tmp_ms_metric tick("sqlite3","reset",nickname);
     sqlite3_reset(this->pp);
     return *this;
   }
@@ -800,6 +825,7 @@ public:
 
 
   void step_ok_done() {
+    tmp_ms_metric tick("sqlite3","step-done",nickname);
     int rc = sqlite3_step (this->pp);
     if (verbose > 4)
       obatched(clog) << nickname << " step-ok-done(" << sqlite3_errstr(rc) << ") " << sql << endl;
@@ -810,13 +836,12 @@ public:
 
 
   int step() {
+    tmp_ms_metric tick("sqlite3","step",nickname);
     int rc = sqlite3_step (this->pp);
     if (verbose > 4)
       obatched(clog) << nickname << " step(" << sqlite3_errstr(rc) << ") " << sql << endl;
     return rc;
   }
-
-
 
   ~sqlite_ps () { sqlite3_finalize (this->pp); }
   operator sqlite3_stmt* () { return this->pp; }

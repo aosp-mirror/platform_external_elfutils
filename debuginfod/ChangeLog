@@ -3,6 +3,12 @@
 	* debuginfod-client.c (debuginfod_query_server): Initialize
 	struct handle_data errbuf to the empty string.
 
+2020-11-23  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.cxx (tmp_ms_metric): New class for RAII timing metrics.
+	(sqlite_ps::reset, step*): Call it to track sqlite3 performance.
+	(sqlite_exception ctor): Increment sqlite3 error_count.
+
 2020-11-11  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod-client.c (debuginfod_set_verbose_fd): New function.

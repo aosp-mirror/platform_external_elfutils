@@ -1,3 +1,7 @@
+2020-11-23  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Add sqlite error injection & stats.
+
 2020-11-02  Mark Wielaard  <mark@klomp.org>
 
 	* run-debuginfod-find.sh: Create bogus R/nothing.rpm with cyclic

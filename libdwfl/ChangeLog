@@ -1,5 +1,10 @@
 2020-11-26  Timm Bäder  <tbaeder@redhat.com>
 
+	* dwfl_segment_report_module.c (dwfl_segment_report_module):
+	Remove consider_notes function. Inline code for type == PT_NOTE.
+
+2020-11-26  Timm Bäder  <tbaeder@redhat.com>
+
 	* dwfl_segment_report_module.c (read_portion): New static function.
 	(dwfl_segment_report_module): Remove read_portion function.
 	Call static function with read_state, start and segment.

@@ -466,88 +466,6 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   build_id.len = 0;
   build_id.vaddr =0;
 
-  /* Consider a PT_NOTE we've found in the image.  */
-  inline void consider_notes (GElf_Addr vaddr, GElf_Xword filesz,
-			      GElf_Xword align)
-  {
-    /* If we have already seen a build ID, we don't care any more.  */
-    if (build_id.memory != NULL || filesz == 0)
-      return;
-
-    void *data;
-    size_t data_size;
-    if (read_portion (&read_state, &data, &data_size,
-		      start, segment, vaddr, filesz))
-      return;
-
-    /* data_size will be zero if we got everything from the initial
-       buffer, otherwise it will be the size of the new buffer that
-       could be read.  */
-    if (data_size != 0)
-      filesz = data_size;
-
-    assert (sizeof (Elf32_Nhdr) == sizeof (Elf64_Nhdr));
-
-    void *notes;
-    if (ei_data == MY_ELFDATA)
-      notes = data;
-    else
-      {
-	notes = malloc (filesz);
-	if (unlikely (notes == NULL))
-	  return;
-	xlatefrom.d_type = xlateto.d_type = (align == 8
-					     ? ELF_T_NHDR8 : ELF_T_NHDR);
-	xlatefrom.d_buf = (void *) data;
-	xlatefrom.d_size = filesz;
-	xlateto.d_buf = notes;
-	xlateto.d_size = filesz;
-	if (elf32_xlatetom (&xlateto, &xlatefrom,
-			    ehdr.e32.e_ident[EI_DATA]) == NULL)
-	  goto done;
-      }
-
-    const GElf_Nhdr *nh = notes;
-    size_t len = 0;
-    while (filesz > len + sizeof (*nh))
-      {
-	const void *note_name;
-	const void *note_desc;
-
-	len += sizeof (*nh);
-	note_name = notes + len;
-
-	len += nh->n_namesz;
-	len = align == 8 ? NOTE_ALIGN8 (len) : NOTE_ALIGN4 (len);
-	note_desc = notes + len;
-
-	if (unlikely (filesz < len + nh->n_descsz))
-	  break;
-
-        if (nh->n_type == NT_GNU_BUILD_ID
-	    && nh->n_descsz > 0
-	    && nh->n_namesz == sizeof "GNU"
-	    && !memcmp (note_name, "GNU", sizeof "GNU"))
-	  {
-	    build_id.vaddr = note_desc - (const void *) notes + vaddr;
-	    build_id.len = nh->n_descsz;
-	    build_id.memory = malloc (build_id.len);
-	    if (likely (build_id.memory != NULL))
-	      memcpy (build_id.memory, note_desc, build_id.len);
-	    break;
-	  }
-
-	len += nh->n_descsz;
-	len = align == 8 ? NOTE_ALIGN8 (len) : NOTE_ALIGN4 (len);
-	nh = (void *) notes + len;
-      }
-
-  done:
-    if (notes != data)
-      free (notes);
-    finish_portion (&read_state, &data, &data_size);
-  }
-
   Elf32_Phdr *p32 = phdrsp;
   Elf64_Phdr *p64 = phdrsp;
   if ((ei_class == ELFCLASS32
@@ -577,9 +495,92 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
             }
           else if (type == PT_NOTE)
             {
+              /* If we have already seen a build ID, we don't care any more.  */
+              if (build_id.memory != NULL || filesz == 0)
+                continue; /* Next header */
+
               /* We calculate from the p_offset of the note segment,
                because we don't yet know the bias for its p_vaddr.  */
-              consider_notes ( start + offset, filesz, align);
+              const size_t note_vaddr = start + offset;
+              void *data;
+              size_t data_size;
+              if (read_portion (&read_state, &data, &data_size,
+				start, segment, note_vaddr, filesz))
+                continue; /* Next header */
+
+              /* data_size will be zero if we got everything from the initial
+                 buffer, otherwise it will be the size of the new buffer that
+                 could be read.  */
+              if (data_size != 0)
+                filesz = data_size;
+
+              assert (sizeof (Elf32_Nhdr) == sizeof (Elf64_Nhdr));
+
+              void *notes;
+              if (ei_data == MY_ELFDATA)
+                notes = data;
+              else
+                {
+                  const unsigned int xencoding = ehdr.e32.e_ident[EI_DATA];
+
+                  notes = malloc (filesz);
+                  if (unlikely (notes == NULL))
+                    continue; /* Next header */
+                  xlatefrom.d_type = xlateto.d_type = (align == 8
+                                                       ? ELF_T_NHDR8
+						       : ELF_T_NHDR);
+                  xlatefrom.d_buf = (void *) data;
+                  xlatefrom.d_size = filesz;
+                  xlateto.d_buf = notes;
+                  xlateto.d_size = filesz;
+                  if (elf32_xlatetom (&xlateto, &xlatefrom, xencoding) == NULL)
+                    {
+                      free (notes);
+                      finish_portion (&read_state, &data, &data_size);
+                      continue;
+                    }
+                }
+
+              const GElf_Nhdr *nh = notes;
+              size_t len = 0;
+              while (filesz > len + sizeof (*nh))
+                {
+                  const void *note_name;
+                  const void *note_desc;
+
+                  len += sizeof (*nh);
+                  note_name = notes + len;
+
+                  len += nh->n_namesz;
+                  len = align == 8 ? NOTE_ALIGN8 (len) : NOTE_ALIGN4 (len);
+                  note_desc = notes + len;
+
+                  if (unlikely (filesz < len + nh->n_descsz))
+                    break;
+
+                  if (nh->n_type == NT_GNU_BUILD_ID
+                      && nh->n_descsz > 0
+                      && nh->n_namesz == sizeof "GNU"
+                      && !memcmp (note_name, "GNU", sizeof "GNU"))
+                    {
+                      build_id.vaddr = (note_desc
+					- (const void *) notes
+					+ note_vaddr);
+                      build_id.len = nh->n_descsz;
+                      build_id.memory = malloc (build_id.len);
+                      if (likely (build_id.memory != NULL))
+                        memcpy (build_id.memory, note_desc, build_id.len);
+                      break;
+                    }
+
+                  len += nh->n_descsz;
+                  len = align == 8 ? NOTE_ALIGN8 (len) : NOTE_ALIGN4 (len);
+                  nh = (void *) notes + len;
+                }
+
+              if (notes != data)
+                free (notes);
+              finish_portion (&read_state, &data, &data_size);
             }
           else if (type == PT_LOAD)
             {

@@ -825,7 +825,7 @@ public:
 
 
   void step_ok_done() {
-    tmp_ms_metric tick("sqlite3","step-done",nickname);
+    tmp_ms_metric tick("sqlite3","step_done",nickname);
     int rc = sqlite3_step (this->pp);
     if (verbose > 4)
       obatched(clog) << nickname << " step-ok-done(" << sqlite3_errstr(rc) << ") " << sql << endl;

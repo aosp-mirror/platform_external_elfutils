@@ -1,7 +1,6 @@
-2020-11-23  Mark Wielaard  <mark@klomp.org>
+2020-11-25  Frank Ch. Eigler  <fche@redhat.com>
 
-	* debuginfod-client.c (debuginfod_query_server): Initialize
-	struct handle_data errbuf to the empty string.
+	* debuginfod.cxx (step_ok_done): Correct typo in prom metric label.
 
 2020-11-25  Frank Ch. Eigler  <fche@redhat.com>
 
@@ -14,6 +13,11 @@
 	* debuginfod.cxx (tmp_ms_metric): New class for RAII timing metrics.
 	(sqlite_ps::reset, step*): Call it to track sqlite3 performance.
 	(sqlite_exception ctor): Increment sqlite3 error_count.
+
+2020-11-23  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (debuginfod_query_server): Initialize
+	struct handle_data errbuf to the empty string.
 
 2020-11-11  Mark Wielaard  <mark@klomp.org>
 

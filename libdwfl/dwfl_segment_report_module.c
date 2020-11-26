@@ -256,6 +256,38 @@ finish_portion (struct read_state *read_state,
 				    0, 0, read_state->memory_callback_arg);
 }
 
+static inline bool
+read_portion (struct read_state *read_state,
+	      void **data, size_t *data_size,
+	      GElf_Addr start, size_t segment,
+	      GElf_Addr vaddr, size_t filesz)
+{
+  /* Check whether we will have to read the segment data, or if it
+     can be returned from the existing buffer.  */
+  if (filesz > *read_state->buffer_available
+      || vaddr - start > *read_state->buffer_available - filesz
+      /* If we're in string mode, then don't consider the buffer we have
+	 sufficient unless it contains the terminator of the string.  */
+      || (filesz == 0 && memchr (vaddr - start + *read_state->buffer, '\0',
+				 (*read_state->buffer_available
+				  - (vaddr - start))) == NULL))
+    {
+      *data = NULL;
+      *data_size = filesz;
+      return !(*read_state->memory_callback) (read_state->dwfl,
+					      addr_segndx (read_state->dwfl,
+							   segment, vaddr,
+							   false),
+					      data, data_size, vaddr, filesz,
+					      read_state->memory_callback_arg);
+    }
+
+  /* We already have this whole note segment from our initial read.  */
+  *data = vaddr - start + (*read_state->buffer);
+  *data_size = 0;
+  return false;
+}
+
 int
 dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 			    Dwfl_Memory_Callback *memory_callback,
@@ -303,32 +335,6 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 			    start, sizeof (Elf64_Ehdr), memory_callback_arg)
       || memcmp (buffer, ELFMAG, SELFMAG) != 0)
     goto out;
-
-  inline bool read_portion (void **data, size_t *data_size,
-			    GElf_Addr vaddr, size_t filesz)
-  {
-    /* Check whether we will have to read the segment data, or if it
-       can be returned from the existing buffer.  */
-    if (filesz > buffer_available
-	|| vaddr - start > buffer_available - filesz
-	/* If we're in string mode, then don't consider the buffer we have
-	   sufficient unless it contains the terminator of the string.  */
-	|| (filesz == 0 && memchr (vaddr - start + buffer, '\0',
-				   buffer_available - (vaddr - start)) == NULL))
-      {
-	*data = NULL;
-	*data_size = filesz;
-	return ! (*memory_callback) (dwfl, addr_segndx (dwfl, segment,
-							vaddr, false),
-				     data, data_size, vaddr, filesz,
-				     memory_callback_arg);
-      }
-
-    /* We already have this whole note segment from our initial read.  */
-    *data = vaddr - start + buffer;
-    *data_size = 0;
-    return false;
-  }
 
   /* Extract the information we need from the file header.  */
   const unsigned char *e_ident;
@@ -410,7 +416,8 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 
   void *ph_buffer = NULL;
   size_t ph_buffer_size = 0;
-  if (read_portion (&ph_buffer, &ph_buffer_size,
+  if (read_portion (&read_state, &ph_buffer, &ph_buffer_size,
+		    start, segment,
 		    start + phoff, xlatefrom.d_size))
     goto out;
 
@@ -469,7 +476,8 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 
     void *data;
     size_t data_size;
-    if (read_portion (&data, &data_size, vaddr, filesz))
+    if (read_portion (&read_state, &data, &data_size,
+		      start, segment, vaddr, filesz))
       return;
 
     /* data_size will be zero if we got everything from the initial
@@ -756,7 +764,8 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   void *dyn_data = NULL;
   size_t dyn_data_size = 0;
   if (dyn_filesz != 0 && dyn_filesz % dyn_entsize == 0
-      && ! read_portion (&dyn_data, &dyn_data_size, dyn_vaddr, dyn_filesz))
+      && ! read_portion (&read_state, &dyn_data, &dyn_data_size,
+			 start, segment, dyn_vaddr, dyn_filesz))
     {
       /* dyn_data_size will be zero if we got everything from the initial
          buffer, otherwise it will be the size of the new buffer that
@@ -837,7 +846,8 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 
       /* Try to get the DT_SONAME string.  */
       if (soname_stroff != 0 && soname_stroff + 1 < dynstrsz
-	  && ! read_portion (&soname, &soname_size,
+	  && ! read_portion (&read_state, &soname, &soname_size,
+			     start, segment,
 			     dynstr_vaddr + soname_stroff, 0))
 	name = soname;
     }

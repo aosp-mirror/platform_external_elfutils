@@ -3,6 +3,12 @@
 	* debuginfod-client.c (debuginfod_query_server): Initialize
 	struct handle_data errbuf to the empty string.
 
+2020-11-25  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.cxx (tmp_ms_metric): Switch from gettimeofday to
+	clock_gettime(CLOCK_MONOTONIC) for time-interval measurements.
+	(handler_cb, scan_source_paths, groom): Ditto.
+
 2020-11-23  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod.cxx (tmp_ms_metric): New class for RAII timing metrics.

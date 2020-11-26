@@ -437,19 +437,19 @@ public:
 
 class tmp_ms_metric { // a RAII style wrapper for exception-safe scoped timing
   string m, n, v;
-  struct timeval tv_start;
+  struct timespec ts_start;
 public:
   tmp_ms_metric(const string& mname, const string& lname, const string& lvalue):
     m(mname), n(lname), v(lvalue)
   {
-    gettimeofday (& tv_start, NULL);
+    clock_gettime (CLOCK_MONOTONIC, & ts_start);
   }
   ~tmp_ms_metric()
   {
-    struct timeval tv_end;
-    gettimeofday (& tv_end, NULL);
-    double deltas = (tv_end.tv_sec - tv_start.tv_sec)
-      + (tv_end.tv_usec - tv_start.tv_usec)*0.000001;
+    struct timespec ts_end;
+    clock_gettime (CLOCK_MONOTONIC, & ts_end);
+    double deltas = (ts_end.tv_sec - ts_start.tv_sec)
+      + (ts_end.tv_nsec - ts_start.tv_nsec)/1.e9;
 
     add_metric (m + "_milliseconds_sum", n, v, (deltas*1000));
     inc_metric (m + "_milliseconds_count", n, v);
@@ -1862,8 +1862,8 @@ handler_cb (void * /*cls*/,
 #endif
   int http_code = 500;
   off_t http_size = -1;
-  struct timeval tv_start, tv_end;
-  gettimeofday (&tv_start, NULL);
+  struct timespec ts_start, ts_end;
+  clock_gettime (CLOCK_MONOTONIC, &ts_start);
 
   try
     {
@@ -1938,8 +1938,8 @@ handler_cb (void * /*cls*/,
       rc = e.mhd_send_response (connection);
     }
 
-  gettimeofday (&tv_end, NULL);
-  double deltas = (tv_end.tv_sec - tv_start.tv_sec) + (tv_end.tv_usec - tv_start.tv_usec)*0.000001;
+  clock_gettime (CLOCK_MONOTONIC, &ts_end);
+  double deltas = (ts_end.tv_sec - ts_start.tv_sec) + (ts_end.tv_nsec - ts_start.tv_nsec)/1.e9;
   obatched(clog) << conninfo(connection)
                  << ' ' << method << ' ' << url
                  << ' ' << http_code << ' ' << http_size
@@ -2856,8 +2856,8 @@ scan_source_paths()
     throw libc_exception(errno, "cannot fts_open");
   defer_dtor<FTS*,int> fts_cleanup (fts, fts_close);
 
-  struct timeval tv_start, tv_end;
-  gettimeofday (&tv_start, NULL);
+  struct timespec ts_start, ts_end;
+  clock_gettime (CLOCK_MONOTONIC, &ts_start);
   unsigned fts_scanned = 0, fts_regex = 0;
 
   FTSENT *f;
@@ -2934,8 +2934,8 @@ scan_source_paths()
         break;
       }
   }
-  gettimeofday (&tv_end, NULL);
-  double deltas = (tv_end.tv_sec - tv_start.tv_sec) + (tv_end.tv_usec - tv_start.tv_usec)*0.000001;
+  clock_gettime (CLOCK_MONOTONIC, &ts_end);
+  double deltas = (ts_end.tv_sec - ts_start.tv_sec) + (ts_end.tv_nsec - ts_start.tv_nsec)/1.e9;
 
   obatched(clog) << "fts traversed source paths in " << deltas << "s, scanned=" << fts_scanned
                  << ", regex-skipped=" << fts_regex << endl;
@@ -3025,8 +3025,8 @@ void groom()
 {
   obatched(clog) << "grooming database" << endl;
 
-  struct timeval tv_start, tv_end;
-  gettimeofday (&tv_start, NULL);
+  struct timespec ts_start, ts_end;
+  clock_gettime (CLOCK_MONOTONIC, &ts_start);
 
   database_stats_report();
   
@@ -3090,8 +3090,8 @@ void groom()
   fdcache.limit(0,0); // release the fdcache contents
   fdcache.limit(fdcache_fds,fdcache_mbs); // restore status quo parameters
 
-  gettimeofday (&tv_end, NULL);
-  double deltas = (tv_end.tv_sec - tv_start.tv_sec) + (tv_end.tv_usec - tv_start.tv_usec)*0.000001;
+  clock_gettime (CLOCK_MONOTONIC, &ts_end);
+  double deltas = (ts_end.tv_sec - ts_start.tv_sec) + (ts_end.tv_nsec - ts_start.tv_nsec)/1.e9;
 
   obatched(clog) << "groomed database in " << deltas << "s" << endl;
 }

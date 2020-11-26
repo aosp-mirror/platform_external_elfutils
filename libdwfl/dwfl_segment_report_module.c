@@ -61,6 +61,14 @@ struct elf_build_id
   GElf_Addr vaddr;
 };
 
+struct read_state
+{
+  Dwfl *dwfl;
+  Dwfl_Memory_Callback *memory_callback;
+  void *memory_callback_arg;
+  void **buffer;
+  size_t *buffer_available;
+};
 
 /* Return user segment index closest to ADDR but not above it.
    If NEXT, return the closest to ADDR but not below it.  */
@@ -239,6 +247,15 @@ invalid_elf (Elf *elf, bool disk_file_has_build_id,
   return false;
 }
 
+static void
+finish_portion (struct read_state *read_state,
+		void **data, size_t *data_size)
+{
+  if (*data_size != 0 && *data != NULL)
+    (*read_state->memory_callback) (read_state->dwfl, -1, data, data_size,
+				    0, 0, read_state->memory_callback_arg);
+}
+
 int
 dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 			    Dwfl_Memory_Callback *memory_callback,
@@ -249,6 +266,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 			    const struct r_debug_info *r_debug_info)
 {
   size_t segment = ndx;
+  struct read_state read_state;
 
   if (segment >= dwfl->lookup_elts)
     segment = dwfl->lookup_elts - 1;
@@ -270,6 +288,12 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   size_t buffer_available = INITIAL_READ;
   Elf *elf = NULL;
   int fd = -1;
+
+  read_state.dwfl = dwfl;
+  read_state.memory_callback = memory_callback;
+  read_state.memory_callback_arg = memory_callback_arg;
+  read_state.buffer = &buffer;
+  read_state.buffer_available = &buffer_available;
 
   /* We might have to reserve some memory for the phdrs.  Set to NULL
      here so we can always safely free it.  */
@@ -304,12 +328,6 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
     *data = vaddr - start + buffer;
     *data_size = 0;
     return false;
-  }
-
-  inline void finish_portion (void **data, size_t *data_size)
-  {
-    if (*data_size != 0 && *data != NULL)
-      (*memory_callback) (dwfl, -1, data, data_size, 0, 0, memory_callback_arg);
   }
 
   /* Extract the information we need from the file header.  */
@@ -519,7 +537,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   done:
     if (notes != data)
       free (notes);
-    finish_portion (&data, &data_size);
+    finish_portion (&read_state, &data, &data_size);
   }
 
   Elf32_Phdr *p32 = phdrsp;
@@ -609,7 +627,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
         }
     }
 
-  finish_portion (&ph_buffer, &ph_buffer_size);
+  finish_portion (&read_state, &ph_buffer, &ph_buffer_size);
 
   /* We must have seen the segment covering offset 0, or else the ELF
      header we read at START was not produced by these program headers.  */
@@ -787,7 +805,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
         }
       free (dyns);
     }
-  finish_portion (&dyn_data, &dyn_data_size);
+  finish_portion (&read_state, &dyn_data, &dyn_data_size);
 
   /* We'll use the name passed in or a stupid default if not DT_SONAME.  */
   if (name == NULL)
@@ -848,7 +866,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   /* At this point we do not need BUILD_ID or NAME any more.
      They have been copied.  */
   free (build_id.memory);
-  finish_portion (&soname, &soname_size);
+  finish_portion (&read_state, &soname, &soname_size);
 
   if (unlikely (mod == NULL))
     {

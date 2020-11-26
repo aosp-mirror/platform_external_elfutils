@@ -1,3 +1,10 @@
+2020-11-26  Timm Bäder  <tbaeder@redhat.com>
+
+	* dwfl_segment_report_module.c (struct read_state): New.
+	(finish_portion): New static function.
+	(dwfl_segment_report_module): Introduce read_state. Remove
+	finish_portion function. Call static function with read_state.
+
 2020-11-23  Timm Bäder  <tbaeder@redhat.com>
 
 	* segment_report_module.c (dwfl_segment_report_module): Remove

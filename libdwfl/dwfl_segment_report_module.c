@@ -501,7 +501,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 
               /* We calculate from the p_offset of the note segment,
                because we don't yet know the bias for its p_vaddr.  */
-              const size_t note_vaddr = start + offset;
+              const GElf_Addr note_vaddr = start + offset;
               void *data;
               size_t data_size;
               if (read_portion (&read_state, &data, &data_size,

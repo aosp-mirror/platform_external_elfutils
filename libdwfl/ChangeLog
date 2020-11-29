@@ -1,3 +1,8 @@
+2020-11-28  Mark Wielaard  <mark@klomp.org>
+
+	* dwfl_segment_report_module.c (dwfl_segment_report_module):
+	Use GElf_Addr to calculate note_vaddr instead of size_t.
+
 2020-11-26  Timm Bäder  <tbaeder@redhat.com>
 
 	* dwfl_segment_report_module.c (dwfl_segment_report_module):

@@ -1,3 +1,7 @@
+2020-11-30  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* Makefile.am (libelf.so$(EXEEXT)): Drop $(EXEEXT) suffix.
+
 2020-11-06  Mark Wielaard  <mark@klomp.org>
 
 	* elf-knowledge.h (SH_ENTSIZE_HASH): Update comment.

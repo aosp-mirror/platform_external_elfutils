@@ -100,7 +100,7 @@ libdebuginfod_so_LDLIBS =
 else
 libdebuginfod_so_LDLIBS = $(libcurl_LIBS) $(fts_LIBS)
 endif
-libdebuginfod.so$(EXEEXT): $(srcdir)/libdebuginfod.map $(libdebuginfod_so_LIBS)
+libdebuginfod.so: $(srcdir)/libdebuginfod.map $(libdebuginfod_so_LIBS)
 	$(AM_V_CCLD)$(LINK) $(dso_LDFLAGS) -o $@ \
 		-Wl,--soname,$@.$(VERSION) \
 		-Wl,--version-script,$<,--no-undefined \

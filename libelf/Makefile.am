@@ -113,7 +113,7 @@ endif
 
 libelf_so_LIBS = libelf_pic.a
 libelf_so_SOURCES =
-libelf.so$(EXEEXT): $(srcdir)/libelf.map $(libelf_so_LIBS) $(libelf_so_DEPS)
+libelf.so: $(srcdir)/libelf.map $(libelf_so_LIBS) $(libelf_so_DEPS)
 	$(AM_V_CCLD)$(LINK) $(dso_LDFLAGS) -o $@ \
 		-Wl,--soname,$@.$(VERSION) \
 		-Wl,--version-script,$<,--no-undefined \

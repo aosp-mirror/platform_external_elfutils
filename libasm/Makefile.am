@@ -63,7 +63,7 @@ endif
 
 libasm_so_LIBS = libasm_pic.a
 libasm_so_SOURCES =
-libasm.so$(EXEEXT): $(srcdir)/libasm.map $(libasm_so_LIBS) $(libasm_so_DEPS)
+libasm.so: $(srcdir)/libasm.map $(libasm_so_LIBS) $(libasm_so_DEPS)
 	$(AM_V_CCLD)$(LINK) $(dso_LDFLAGS) -o $@ \
 		-Wl,--soname,$@.$(VERSION) \
 		-Wl,--version-script,$<,--no-undefined \

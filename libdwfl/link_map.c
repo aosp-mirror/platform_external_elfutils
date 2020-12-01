@@ -758,31 +758,6 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
       GElf_Xword dyn_filesz = 0;
       GElf_Addr dyn_bias = (GElf_Addr) -1;
 
-      inline bool consider_phdr (GElf_Word type,
-				 GElf_Addr vaddr, GElf_Xword filesz)
-      {
-	switch (type)
-	  {
-	  case PT_PHDR:
-	    if (dyn_bias == (GElf_Addr) -1
-		/* Do a sanity check on the putative address.  */
-		&& ((vaddr & (dwfl->segment_align - 1))
-		    == (phdr & (dwfl->segment_align - 1))))
-	      {
-		dyn_bias = phdr - vaddr;
-		return dyn_vaddr != 0;
-	      }
-	    break;
-
-	  case PT_DYNAMIC:
-	    dyn_vaddr = vaddr;
-	    dyn_filesz = filesz;
-	    return dyn_bias != (GElf_Addr) -1;
-	  }
-
-	return false;
-      }
-
       if (phdr != 0 && phnum != 0)
 	{
 	  Dwfl_Module *phdr_mod;
@@ -895,22 +870,39 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 			   ? elf32_xlatetom : elf64_xlatetom)
 			  (&out, &in, elfdata) != NULL))
 		{
-		  /* We are looking for PT_DYNAMIC.  */
-		  if (elfclass == ELFCLASS32)
+		  bool is32 = (elfclass == ELFCLASS32);
+		  for (size_t i = 0; i < phnum; ++i)
 		    {
-		      for (size_t i = 0; i < phnum; ++i)
-			if (consider_phdr ((*p32)[i].p_type,
-					   (*p32)[i].p_vaddr,
-					   (*p32)[i].p_filesz))
-			  break;
-		    }
-		  else
-		    {
-		      for (size_t i = 0; i < phnum; ++i)
-			if (consider_phdr ((*p64)[i].p_type,
-					   (*p64)[i].p_vaddr,
-					   (*p64)[i].p_filesz))
-			  break;
+		      GElf_Word type = (is32
+					? (*p32)[i].p_type
+					: (*p64)[i].p_type);
+		      GElf_Addr vaddr = (is32
+					 ? (*p32)[i].p_vaddr
+					 : (*p64)[i].p_vaddr);
+		      GElf_Xword filesz = (is32
+					   ? (*p32)[i].p_filesz
+					   : (*p64)[i].p_filesz);
+
+		      if (type == PT_PHDR)
+			{
+			  if (dyn_bias == (GElf_Addr) -1
+			      /* Do a sanity check on the putative address.  */
+			      && ((vaddr & (dwfl->segment_align - 1))
+				  == (phdr & (dwfl->segment_align - 1))))
+			    {
+			      dyn_bias = phdr - vaddr;
+			      if (dyn_vaddr != 0)
+				break;
+			    }
+
+			}
+		      else if (type == PT_DYNAMIC)
+			{
+			  dyn_vaddr = vaddr;
+			  dyn_filesz = filesz;
+			  if (dyn_bias != (GElf_Addr) -1)
+			    break;
+			}
 		    }
 		}
 

@@ -1,3 +1,8 @@
+2020-12-07  Timm Bäder  <tbaeder@redhat.com>
+
+	* link_map.c (report_r_debug): Pull release_buffer() function into
+	file scope. Add memory_closure struct.
+
 2020-12-08  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* debuginfod-client.c (__libdwfl_debuginfod_init): Replace

@@ -225,6 +225,24 @@ addrsize (uint_fast8_t elfclass)
   return elfclass * 4;
 }
 
+struct memory_closure
+{
+  Dwfl *dwfl;
+  Dwfl_Memory_Callback *callback;
+  void *arg;
+};
+
+static inline int
+release_buffer (struct memory_closure *closure,
+                void **buffer, size_t *buffer_available, int result)
+{
+  if (*buffer != NULL)
+    (*closure->callback) (closure->dwfl, -1, buffer, buffer_available, 0, 0,
+                          closure->arg);
+
+  return result;
+}
+
 /* Report a module for each struct link_map in the linked list at r_map
    in the struct r_debug at R_DEBUG_VADDR.  For r_debug_info description
    see dwfl_link_map_report in libdwflP.h.  If R_DEBUG_INFO is not NULL then no
@@ -249,15 +267,9 @@ report_r_debug (uint_fast8_t elfclass, uint_fast8_t elfdata,
 
   void *buffer = NULL;
   size_t buffer_available = 0;
-  inline int release_buffer (int result)
-  {
-    if (buffer != NULL)
-      (void) (*memory_callback) (dwfl, -1, &buffer, &buffer_available, 0, 0,
-				 memory_callback_arg);
-    return result;
-  }
-
   GElf_Addr addrs[4];
+  struct memory_closure memory_closure = { dwfl, memory_callback,
+                                           memory_callback_arg };
   inline bool read_addrs (GElf_Addr vaddr, size_t n)
   {
     size_t nb = n * addrsize (elfclass); /* Address words -> bytes to read.  */
@@ -267,7 +279,7 @@ report_r_debug (uint_fast8_t elfclass, uint_fast8_t elfdata,
 	|| vaddr < read_vaddr
 	|| vaddr - read_vaddr + nb > buffer_available)
       {
-	release_buffer (0);
+	release_buffer (&memory_closure, &buffer, &buffer_available, 0);
 
 	read_vaddr = vaddr;
 	int segndx = INTUSE(dwfl_addrsegment) (dwfl, vaddr, NULL);
@@ -304,7 +316,7 @@ report_r_debug (uint_fast8_t elfclass, uint_fast8_t elfdata,
   }
 
   if (unlikely (read_addrs (read_vaddr, 1)))
-    return release_buffer (-1);
+    return release_buffer (&memory_closure, &buffer, &buffer_available, -1);
 
   GElf_Addr next = addrs[0];
 
@@ -319,7 +331,7 @@ report_r_debug (uint_fast8_t elfclass, uint_fast8_t elfdata,
   while (next != 0 && ++iterations < dwfl->lookup_elts)
     {
       if (read_addrs (next, 4))
-	return release_buffer (-1);
+	return release_buffer (&memory_closure, &buffer, &buffer_available, -1);
 
       /* Unused: l_addr is the difference between the address in memory
          and the ELF file when the core was created. We need to
@@ -345,7 +357,7 @@ report_r_debug (uint_fast8_t elfclass, uint_fast8_t elfdata,
 	name = l_name - read_vaddr + buffer;
       else
 	{
-	  release_buffer (0);
+	  release_buffer (&memory_closure, &buffer, &buffer_available, 0);
 	  read_vaddr = l_name;
 	  int segndx = INTUSE(dwfl_addrsegment) (dwfl, l_name, NULL);
 	  if (likely (segndx >= 0)
@@ -372,7 +384,8 @@ report_r_debug (uint_fast8_t elfclass, uint_fast8_t elfdata,
 	  r_debug_info_module = malloc (sizeof (*r_debug_info_module)
 					+ strlen (name1) + 1);
 	  if (unlikely (r_debug_info_module == NULL))
-	    return release_buffer (result);
+	    release_buffer (&memory_closure, &buffer,
+                            &buffer_available, result);
 	  r_debug_info_module->fd = -1;
 	  r_debug_info_module->elf = NULL;
 	  r_debug_info_module->l_ld = l_ld;
@@ -413,7 +426,8 @@ report_r_debug (uint_fast8_t elfclass, uint_fast8_t elfdata,
 		      GElf_Addr build_id_vaddr = (build_id_elfaddr
 						  - elf_dynamic_vaddr + l_ld);
 
-		      release_buffer (0);
+		      release_buffer (&memory_closure, &buffer,
+				      &buffer_available, 0);
 		      int segndx = INTUSE(dwfl_addrsegment) (dwfl,
 							     build_id_vaddr,
 							     NULL);
@@ -432,7 +446,9 @@ report_r_debug (uint_fast8_t elfclass, uint_fast8_t elfdata,
 			    /* File has valid build-id which does not match
 			       the one in memory.  */
 			    valid = false;
-			  release_buffer (0);
+			  release_buffer (&memory_closure, &buffer,
+					  &buffer_available, 0);
+
 			}
 		    }
 
@@ -498,7 +514,7 @@ report_r_debug (uint_fast8_t elfclass, uint_fast8_t elfdata,
 	}
     }
 
-  return release_buffer (result);
+  return release_buffer (&memory_closure, &buffer, &buffer_available, result);
 }
 
 static GElf_Addr

@@ -1,5 +1,10 @@
 2020-12-07  Timm Bäder  <tbaeder@redhat.com>
 
+	* link_map.c (report_r_debug): Pull read_addrs() function into
+	file scope.
+
+2020-12-07  Timm Bäder  <tbaeder@redhat.com>
+
 	* link_map.c (report_r_debug): Pull release_buffer() function into
 	file scope. Add memory_closure struct.
 

@@ -243,6 +243,57 @@ release_buffer (struct memory_closure *closure,
   return result;
 }
 
+static inline bool
+read_addrs (struct memory_closure *closure,
+	    uint_fast8_t elfclass, uint_fast8_t elfdata,
+	    void **buffer, size_t *buffer_available,
+	    GElf_Addr vaddr, GElf_Addr *read_vaddr,
+	    size_t n, GElf_Addr *addrs /* [4] */)
+{
+  size_t nb = n * addrsize (elfclass); /* Address words -> bytes to read.  */
+  Dwfl *dwfl = closure->dwfl;
+
+  /* Read a new buffer if the old one doesn't cover these words.  */
+  if (buffer == NULL
+      || vaddr < *read_vaddr
+      || vaddr - (*read_vaddr) + nb > *buffer_available)
+    {
+      release_buffer (closure, buffer, buffer_available, 0);
+
+      *read_vaddr = vaddr;
+      int segndx = INTUSE(dwfl_addrsegment) (dwfl, vaddr, NULL);
+      if (unlikely (segndx < 0)
+	  || unlikely (! (*closure->callback) (dwfl, segndx,
+					       buffer, buffer_available,
+					       vaddr, nb, closure->arg)))
+	return true;
+    }
+
+  Elf32_Addr (*a32)[n] = vaddr - (*read_vaddr) + (*buffer);
+  Elf64_Addr (*a64)[n] = (void *) a32;
+
+  if (elfclass == ELFCLASS32)
+    {
+      if (elfdata == ELFDATA2MSB)
+	for (size_t i = 0; i < n; ++i)
+	  addrs[i] = BE32 (read_4ubyte_unaligned_noncvt (&(*a32)[i]));
+      else
+	for (size_t i = 0; i < n; ++i)
+	  addrs[i] = LE32 (read_4ubyte_unaligned_noncvt (&(*a32)[i]));
+    }
+  else
+    {
+      if (elfdata == ELFDATA2MSB)
+	for (size_t i = 0; i < n; ++i)
+	  addrs[i] = BE64 (read_8ubyte_unaligned_noncvt (&(*a64)[i]));
+      else
+	for (size_t i = 0; i < n; ++i)
+	  addrs[i] = LE64 (read_8ubyte_unaligned_noncvt (&(*a64)[i]));
+    }
+
+  return false;
+}
+
 /* Report a module for each struct link_map in the linked list at r_map
    in the struct r_debug at R_DEBUG_VADDR.  For r_debug_info description
    see dwfl_link_map_report in libdwflP.h.  If R_DEBUG_INFO is not NULL then no
@@ -270,52 +321,9 @@ report_r_debug (uint_fast8_t elfclass, uint_fast8_t elfdata,
   GElf_Addr addrs[4];
   struct memory_closure memory_closure = { dwfl, memory_callback,
                                            memory_callback_arg };
-  inline bool read_addrs (GElf_Addr vaddr, size_t n)
-  {
-    size_t nb = n * addrsize (elfclass); /* Address words -> bytes to read.  */
-
-    /* Read a new buffer if the old one doesn't cover these words.  */
-    if (buffer == NULL
-	|| vaddr < read_vaddr
-	|| vaddr - read_vaddr + nb > buffer_available)
-      {
-	release_buffer (&memory_closure, &buffer, &buffer_available, 0);
-
-	read_vaddr = vaddr;
-	int segndx = INTUSE(dwfl_addrsegment) (dwfl, vaddr, NULL);
-	if (unlikely (segndx < 0)
-	    || unlikely (! (*memory_callback) (dwfl, segndx,
-					       &buffer, &buffer_available,
-					       vaddr, nb, memory_callback_arg)))
-	  return true;
-      }
-
-    Elf32_Addr (*a32)[n] = vaddr - read_vaddr + buffer;
-    Elf64_Addr (*a64)[n] = (void *) a32;
-
-    if (elfclass == ELFCLASS32)
-      {
-	if (elfdata == ELFDATA2MSB)
-	  for (size_t i = 0; i < n; ++i)
-	    addrs[i] = BE32 (read_4ubyte_unaligned_noncvt (&(*a32)[i]));
-	else
-	  for (size_t i = 0; i < n; ++i)
-	    addrs[i] = LE32 (read_4ubyte_unaligned_noncvt (&(*a32)[i]));
-      }
-    else
-      {
-	if (elfdata == ELFDATA2MSB)
-	  for (size_t i = 0; i < n; ++i)
-	    addrs[i] = BE64 (read_8ubyte_unaligned_noncvt (&(*a64)[i]));
-	else
-	  for (size_t i = 0; i < n; ++i)
-	    addrs[i] = LE64 (read_8ubyte_unaligned_noncvt (&(*a64)[i]));
-      }
-
-    return false;
-  }
-
-  if (unlikely (read_addrs (read_vaddr, 1)))
+  if (unlikely (read_addrs (&memory_closure, elfclass, elfdata,
+			    &buffer, &buffer_available, read_vaddr, &read_vaddr,
+			    1, addrs)))
     return release_buffer (&memory_closure, &buffer, &buffer_available, -1);
 
   GElf_Addr next = addrs[0];
@@ -330,7 +338,9 @@ report_r_debug (uint_fast8_t elfclass, uint_fast8_t elfdata,
   size_t iterations = 0;
   while (next != 0 && ++iterations < dwfl->lookup_elts)
     {
-      if (read_addrs (next, 4))
+      if (read_addrs (&memory_closure, elfclass, elfdata,
+		      &buffer, &buffer_available, next, &read_vaddr,
+		      4, addrs))
 	return release_buffer (&memory_closure, &buffer, &buffer_available, -1);
 
       /* Unused: l_addr is the difference between the address in memory

@@ -35,7 +35,7 @@ VERSION = 1
 
 lib_LIBRARIES = libasm.a
 noinst_LIBRARIES = libasm_pic.a
-noinst_PROGRAMS = $(noinst_LIBRARIES:_pic.a=.so)
+noinst_DATA = $(noinst_LIBRARIES:_pic.a=.so)
 pkginclude_HEADERS = libasm.h
 
 libasm_a_SOURCES = asm_begin.c asm_abort.c asm_end.c asm_error.c \
@@ -62,7 +62,6 @@ libasm_so_LDLIBS += -lpthread
 endif
 
 libasm_so_LIBS = libasm_pic.a
-libasm_so_SOURCES =
 libasm.so: $(srcdir)/libasm.map $(libasm_so_LIBS) $(libasm_so_DEPS)
 	$(AM_V_CCLD)$(LINK) $(dso_LDFLAGS) -o $@ \
 		-Wl,--soname,$@.$(VERSION) \
@@ -87,4 +86,4 @@ uninstall: uninstall-am
 noinst_HEADERS = libasmP.h symbolhash.h
 EXTRA_DIST = libasm.map
 
-CLEANFILES += $(am_libasm_pic_a_OBJECTS) libasm.so.$(VERSION)
+CLEANFILES += $(am_libasm_pic_a_OBJECTS) libasm.so libasm.so.$(VERSION)

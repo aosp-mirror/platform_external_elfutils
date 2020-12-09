@@ -36,7 +36,7 @@ VERSION = 1
 
 lib_LIBRARIES = libelf.a
 noinst_LIBRARIES = libelf_pic.a
-noinst_PROGRAMS = $(noinst_LIBRARIES:_pic.a=.so)
+noinst_DATA = $(noinst_LIBRARIES:_pic.a=.so)
 include_HEADERS = libelf.h gelf.h nlist.h
 
 noinst_HEADERS = abstract.h common.h exttypes.h gelf_xlate.h libelfP.h \
@@ -112,7 +112,6 @@ libelf_so_LDLIBS += -lpthread
 endif
 
 libelf_so_LIBS = libelf_pic.a
-libelf_so_SOURCES =
 libelf.so: $(srcdir)/libelf.map $(libelf_so_LIBS) $(libelf_so_DEPS)
 	$(AM_V_CCLD)$(LINK) $(dso_LDFLAGS) -o $@ \
 		-Wl,--soname,$@.$(VERSION) \
@@ -135,4 +134,4 @@ uninstall: uninstall-am
 
 EXTRA_DIST = libelf.map
 
-CLEANFILES += $(am_libelf_pic_a_OBJECTS) libelf.so.$(VERSION)
+CLEANFILES += $(am_libelf_pic_a_OBJECTS) libelf.so libelf.so.$(VERSION)

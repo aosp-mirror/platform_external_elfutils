@@ -1,3 +1,7 @@
+2020-12-06  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* debuginfod_find_debuginfo.3: Document DEBUGINFOD_SONAME macro.
+
 2020-11-11  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod_find_debuginfo.3: Document debuginfod_set_verbose_fd

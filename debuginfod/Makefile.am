@@ -34,7 +34,6 @@ AM_CPPFLAGS += -I$(srcdir) -I$(srcdir)/../libelf -I$(srcdir)/../libebl \
 	   -I$(srcdir)/../libdw -I$(srcdir)/../libdwelf \
 	   $(libmicrohttpd_CFLAGS) $(libcurl_CFLAGS) $(sqlite3_CFLAGS) \
 	   $(libarchive_CFLAGS)
-VERSION = 1
 
 # Disable eu- prefixing for artifacts (binaries & man pages) in this
 # directory, since they do not conflict with binutils tools.
@@ -102,30 +101,30 @@ libdebuginfod_so_LDLIBS = $(libcurl_LIBS) $(fts_LIBS)
 endif
 libdebuginfod.so: $(srcdir)/libdebuginfod.map $(libdebuginfod_so_LIBS)
 	$(AM_V_CCLD)$(LINK) $(dso_LDFLAGS) -o $@ \
-		-Wl,--soname,$@.$(VERSION) \
+		-Wl,--soname,$(LIBDEBUGINFOD_SONAME) \
 		-Wl,--version-script,$<,--no-undefined \
 		-Wl,--whole-archive $(libdebuginfod_so_LIBS) -Wl,--no-whole-archive \
 		$(libdebuginfod_so_LDLIBS)
 	@$(textrel_check)
-	$(AM_V_at)ln -fs $@ $@.$(VERSION)
+	$(AM_V_at)ln -fs $@ $(LIBDEBUGINFOD_SONAME)
 endif
 
 if LIBDEBUGINFOD
 install: install-am libdebuginfod.so
 	$(mkinstalldirs) $(DESTDIR)$(libdir)
 	$(INSTALL_PROGRAM) libdebuginfod.so $(DESTDIR)$(libdir)/libdebuginfod-$(PACKAGE_VERSION).so
-	ln -fs libdebuginfod-$(PACKAGE_VERSION).so $(DESTDIR)$(libdir)/libdebuginfod.so.$(VERSION)
-	ln -fs libdebuginfod.so.$(VERSION) $(DESTDIR)$(libdir)/libdebuginfod.so
+	ln -fs libdebuginfod-$(PACKAGE_VERSION).so $(DESTDIR)$(libdir)/$(LIBDEBUGINFOD_SONAME)
+	ln -fs libdebuginfod-$(PACKAGE_VERSION).so $(DESTDIR)$(libdir)/libdebuginfod.so
 
 uninstall: uninstall-am
 	rm -f $(DESTDIR)$(libdir)/libdebuginfod-$(PACKAGE_VERSION).so
-	rm -f $(DESTDIR)$(libdir)/libdebuginfod.so.$(VERSION)
+	rm -f $(DESTDIR)$(libdir)/$(LIBDEBUGINFOD_SONAME)
 	rm -f $(DESTDIR)$(libdir)/libdebuginfod.so
 	rmdir --ignore-fail-on-non-empty $(DESTDIR)$(includedir)/elfutils
 endif
 
 EXTRA_DIST = libdebuginfod.map
-MOSTLYCLEANFILES = $(am_libdebuginfod_pic_a_OBJECTS) libdebuginfod.so.$(VERSION)
+MOSTLYCLEANFILES = $(am_libdebuginfod_pic_a_OBJECTS) $(LIBDEBUGINFOD_SONAME)
 CLEANFILES += $(am_libdebuginfod_pic_a_OBJECTS) libdebuginfod.so
 
 # automake std-options override: arrange to pass LD_LIBRARY_PATH

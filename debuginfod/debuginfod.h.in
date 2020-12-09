@@ -36,6 +36,9 @@
 #define DEBUGINFOD_PROGRESS_ENV_VAR "DEBUGINFOD_PROGRESS"
 #define DEBUGINFOD_VERBOSE_ENV_VAR "DEBUGINFOD_VERBOSE"
 
+/* The libdebuginfod soname.  */
+#define DEBUGINFOD_SONAME "@LIBDEBUGINFOD_SONAME@"
+
 /* Handle for debuginfod-client connection.  */
 typedef struct debuginfod_client debuginfod_client;
 

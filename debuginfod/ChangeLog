@@ -1,5 +1,16 @@
 2020-11-30  Dmitry V. Levin  <ldv@altlinux.org>
 
+	* Makefile.am (libdebuginfod.so): Replace $@.$(VERSION) with
+	$(LIBDEBUGINFOD_SONAME).
+	(install, uninstall, MOSTLYCLEANFILES): Replace
+	libdebuginfod.so.$(VERSION) with $(LIBDEBUGINFOD_SONAME).
+	(VERSION): Remove.
+	* debuginfod.h: Rename to ...
+	* debuginfod.h.in ... this.
+	(DEBUGINFOD_SONAME): New macro.
+
+2020-11-30  Dmitry V. Levin  <ldv@altlinux.org>
+
 	* Makefile.am (libdebuginfod.so$(EXEEXT)): Drop $(EXEEXT) suffix.
 
 2020-11-25  Frank Ch. Eigler  <fche@redhat.com>

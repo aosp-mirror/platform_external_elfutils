@@ -25,6 +25,9 @@ m4_ifndef([AC_PACKAGE_URL],
                     [Define to home page for this package])
           AC_SUBST([PACKAGE_URL], ["http://elfutils.org/"])])
 
+LIBDEBUGINFOD_SONAME=libdebuginfod.so.1
+AC_SUBST([LIBDEBUGINFOD_SONAME])
+
 # We want eu- as default program prefix if none was given by the user.
 # But if the user explicitly provided --program-prefix="" then pretend
 # it wasn't set at all (NONE). We want to test this really early before
@@ -61,7 +64,7 @@ dnl The RPM spec file.  We substitute a few values in the file.
 AC_CONFIG_FILES([elfutils.spec:config/elfutils.spec.in])
 
 dnl debuginfo-server client & server parts.
-AC_CONFIG_FILES([debuginfod/Makefile])
+AC_CONFIG_FILES([debuginfod/Makefile debuginfod/debuginfod.h])
 
 AC_CANONICAL_HOST
 

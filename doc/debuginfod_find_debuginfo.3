@@ -209,6 +209,21 @@ removed from the cache during cleaning. These files should contain only an
 ASCII decimal integer representing the interval or max unused age in seconds.
 The default is one day and one week, respectively.  Values of zero mean "immediately".
 
+.SH "MACROS"
+
+.SS "DEBUGINFOD_SONAME"
+
+Defined to the string that could be passed to
+.BR dlopen (3)
+if the library is loaded at runtime, for example
+
+.PP
+.in +4n
+.EX
+void *debuginfod_so = dlopen(DEBUGINFOD_SONAME, RTLD_LAZY);
+.EE
+.in
+
 .SH "SECURITY"
 .BR debuginfod_find_debuginfo (),
 .BR debuginfod_find_executable (),

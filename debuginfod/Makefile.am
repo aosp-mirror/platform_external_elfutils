@@ -99,20 +99,21 @@ libdebuginfod_so_LDLIBS =
 else
 libdebuginfod_so_LDLIBS = $(libcurl_LIBS) $(fts_LIBS)
 endif
-libdebuginfod.so: $(srcdir)/libdebuginfod.map $(libdebuginfod_so_LIBS)
+$(LIBDEBUGINFOD_SONAME): $(srcdir)/libdebuginfod.map $(libdebuginfod_so_LIBS)
 	$(AM_V_CCLD)$(LINK) $(dso_LDFLAGS) -o $@ \
 		-Wl,--soname,$(LIBDEBUGINFOD_SONAME) \
 		-Wl,--version-script,$<,--no-undefined \
 		-Wl,--whole-archive $(libdebuginfod_so_LIBS) -Wl,--no-whole-archive \
 		$(libdebuginfod_so_LDLIBS)
 	@$(textrel_check)
-	$(AM_V_at)ln -fs $@ $(LIBDEBUGINFOD_SONAME)
-endif
 
-if LIBDEBUGINFOD
+libdebuginfod.so: $(LIBDEBUGINFOD_SONAME)
+	ln -fs $< $@
+
 install: install-am libdebuginfod.so
 	$(mkinstalldirs) $(DESTDIR)$(libdir)
-	$(INSTALL_PROGRAM) libdebuginfod.so $(DESTDIR)$(libdir)/libdebuginfod-$(PACKAGE_VERSION).so
+	$(INSTALL_PROGRAM) $(LIBDEBUGINFOD_SONAME) \
+		$(DESTDIR)$(libdir)/libdebuginfod-$(PACKAGE_VERSION).so
 	ln -fs libdebuginfod-$(PACKAGE_VERSION).so $(DESTDIR)$(libdir)/$(LIBDEBUGINFOD_SONAME)
 	ln -fs libdebuginfod-$(PACKAGE_VERSION).so $(DESTDIR)$(libdir)/libdebuginfod.so
 

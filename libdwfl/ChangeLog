@@ -1,3 +1,9 @@
+2020-12-08  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* debuginfod-client.c (__libdwfl_debuginfod_init): Replace
+	"libdebuginfod-" VERSION ".so" with DEBUGINFOD_SONAME in dlopen call.
+	Do not fall back to dlopen of "libdebuginfod.so".
+
 2020-12-01  Timm Bäder  <tbaeder@redhat.com>
 
 	* link_map.c (dwfl_link_map_report): Removed consider_phdr function

@@ -1,3 +1,12 @@
+2020-12-11  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* configure.ac: Remove.
+	* Makefile.am [STANDALONE]: Remove.
+	(check_PROGRAMS): Add msg_tst, system-elf-libelf-test, and $(asm_TESTS)
+	unconditionally.
+	(TESTS): Add msg_tst, system-elf-libelf-test, $(asm_TESTS), and
+	run-disasm-bpf.sh unconditionally.
+
 2020-11-23  Frank Ch. Eigler  <fche@redhat.com>
 
 	* run-debuginfod-find.sh: Add sqlite error injection & stats.

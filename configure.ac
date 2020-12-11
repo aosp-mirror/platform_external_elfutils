@@ -577,7 +577,6 @@ dnl CPU handling library.
 AC_CONFIG_FILES([libcpu/Makefile])
 
 dnl Assembler library.
-AM_CONDITIONAL(HAVE_LIBASM, true)dnl Used in tests/Makefile.am, which see.
 AC_CONFIG_FILES([libasm/Makefile])
 
 dnl CPU-specific backend libraries.
@@ -587,7 +586,6 @@ dnl Tools.
 AC_CONFIG_FILES([src/Makefile po/Makefile.in])
 
 dnl Test suite.
-AM_CONDITIONAL(STANDALONE, false)dnl Used in tests/Makefile.am, which see.
 AC_CONFIG_FILES([tests/Makefile])
 
 dnl pkgconfig files

@@ -520,29 +520,14 @@ if test "$ac_cv_implicit_fallthrough" = "yes"; then
 		  [Defined if __attribute__((fallthrough)) is supported])
 fi
 
-dnl Check if we have argp available from our libc
-AC_LINK_IFELSE(
-	[AC_LANG_PROGRAM(
-		[#include <argp.h>],
-		[int argc=1; char *argv[]={"test"}; argp_parse(0,argc,&argv,0,0,0); return 0;]
-		)],
-	[libc_has_argp="true"],
-	[libc_has_argp="false"]
-)
-
-dnl If our libc doesn't provide argp, then test for libargp
-if test "$libc_has_argp" = "false" ; then
-	AC_MSG_WARN("libc does not have argp")
-	AC_CHECK_LIB([argp], [argp_parse], [have_argp="true"], [have_argp="false"])
-
-	if test "$have_argp" = "false"; then
-		AC_MSG_ERROR("no libargp found")
-	else
-		argp_LDADD="-largp"
-	fi
-else
-	argp_LDADD=""
-fi
+saved_LIBS="$LIBS"
+AC_SEARCH_LIBS([argp_parse], [argp])
+LIBS="$saved_LIBS"
+case "$ac_cv_search_argp_parse" in
+        no) AC_MSG_FAILURE([failed to find argp_parse]) ;;
+        -l*) argp_LDADD="$ac_cv_search_argp_parse" ;;
+        *) argp_LDADD= ;;
+esac
 AC_SUBST([argp_LDADD])
 
 saved_LIBS="$LIBS"

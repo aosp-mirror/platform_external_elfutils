@@ -31,7 +31,7 @@ include $(top_srcdir)/config/eu.am
 if BUILD_STATIC
 AM_CFLAGS += $(fpic_CFLAGS)
 endif
-GCC_INCLUDE = -I$(shell $(CC) -print-file-name=include)
+
 VERSION = 1
 
 lib_LIBRARIES = libelf.a

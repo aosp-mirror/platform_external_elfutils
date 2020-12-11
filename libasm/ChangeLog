@@ -1,3 +1,7 @@
+2020-12-11  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* Makefile.am (GCC_INCLUDE): Remove.
+
 2020-12-09  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* Makefile.am (noinst_PROGRAMS): Rename to noinst_DATA.

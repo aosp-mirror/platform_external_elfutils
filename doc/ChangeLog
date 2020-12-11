@@ -1,3 +1,10 @@
+2020-12-11  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* debuginfod.8: Fix spelling typos.
+	* debuginfod_find_debuginfo.3: Likewise.
+	* elfutils.sgml: Likewise.
+	* readelf.1: Likewise.
+
 2020-12-06  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* debuginfod_find_debuginfo.3: Document DEBUGINFOD_SONAME macro.

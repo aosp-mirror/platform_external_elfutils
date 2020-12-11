@@ -82,7 +82,7 @@ be 0. Otherwise \fIbuild_id_len\fP should be the number of bytes in
 the binary blob.
 
 .BR debuginfod_find_source ()
-also requries a \fIfilename\fP in order to specify a particular
+also requires a \fIfilename\fP in order to specify a particular
 source file. \fIfilename\fP should be an absolute path that includes
 the compilation directory of the CU associated with the source file.
 Relative path names commonly appear in the DWARF file's source directory,
@@ -149,7 +149,7 @@ likely return with an error, but might still succeed.
 
 The \fBdebuginfod_find_*\fP() functions may use several techniques
 to retrieve the requested files, through the cache or through one
-or multiple servers or file URLs. To show how a query is handled hte
+or multiple servers or file URLs. To show how a query is handled the
 .BR debuginfod_set_verbose_fd ()
 can be used to set a particular file descriptor on which verbose
 output is given about the query steps and eventual errors encountered.
@@ -291,7 +291,7 @@ couldn't be verified (bad certificate).
 
 .TP
 .BR ECONNRESET
-Unable to either send or recieve network data.
+Unable to either send or receive network data.
 
 .TP
 .BR EHOSTUNREACH

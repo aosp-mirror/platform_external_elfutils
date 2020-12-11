@@ -1,3 +1,7 @@
+2020-12-11  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* configure.ac (AC_MSG_FAILURE): Fix typo.
+
 2020-11-30  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* configure.ac (LIBDEBUGINFOD_SONAME): New AC_SUBST variable.

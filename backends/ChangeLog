@@ -1,3 +1,9 @@
+2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* aarch64_retval.c (aarch64_return_value_location): Fix spelling typo
+	in comment.
+	* ppc_cfi.c (ppc_abi_cfi): Likewise.
+
 2020-11-17  Mark Wielard  <mark@klomp.org>
 
 	* x86_64_symbol.c (x86_64_check_reloc_target_type): New function.

@@ -143,7 +143,7 @@ elf_compress_gnu (Elf_Scn *scn, int inflate, unsigned int flags)
     }
   else if (inflate == 0)
     {
-      /* In theory the user could have constucted a compressed section
+      /* In theory the user could have constructed a compressed section
 	 by hand.  And in practice they do. For example when copying
 	 a section from one file to another using elf_newdata. So we
 	 have to use elf_getdata (not elf_rawdata).  */

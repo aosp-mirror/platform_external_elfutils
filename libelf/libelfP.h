@@ -148,7 +148,7 @@ enum
 };
 
 
-/* The visible `Elf_Data' type is not sufficent for some operations due
+/* The visible `Elf_Data' type is not sufficient for some operations due
    to a misdesigned interface.  Extend it for internal purposes.  */
 typedef struct
 {

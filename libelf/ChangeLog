@@ -1,3 +1,14 @@
+2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* common.h: Fix spelling typo in comment.
+	* gelf.h: Likewise.
+	* libelf.h: Likewise.
+	* libelfP.h: Likewise.
+	* elf32_checksum.c (elfw2): Likewise.
+	* elf_begin.c (dup_elf, write_file): Likewise.
+	* elf_compress.c (__libelf_compress): Likewise.
+	* elf_compress_gnu.c (elf_compress_gnu): Likewise.
+
 2020-12-11  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* Makefile.am (GCC_INCLUDE): Remove.

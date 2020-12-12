@@ -124,7 +124,7 @@ __libelf_compress (Elf_Scn *scn, size_t hsize, int ei_data,
   int flush = Z_NO_FLUSH;
   do
     {
-      /* Convert to raw if different endianess.  */
+      /* Convert to raw if different endianness.  */
       cdata = *data;
       bool convert = ei_data != MY_ELFDATA && data->d_size > 0;
       if (convert)

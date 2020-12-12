@@ -1040,7 +1040,7 @@ dup_elf (int fildes, Elf_Cmd cmd, Elf *ref)
     }
 
   /* This is an archive.  We must create a descriptor for the archive
-     member the internal pointer of the archive file desriptor is
+     member the internal pointer of the archive file descriptor is
      pointing to.  First read the header of the next member if this
      has not happened already.  */
   if (ref->state.ar.elf_ar_hdr.ar_name == NULL
@@ -1064,7 +1064,7 @@ dup_elf (int fildes, Elf_Cmd cmd, Elf *ref)
 }
 
 
-/* Return desriptor for empty file ready for writing.  */
+/* Return descriptor for empty file ready for writing.  */
 static struct Elf *
 write_file (int fd, Elf_Cmd cmd)
 {

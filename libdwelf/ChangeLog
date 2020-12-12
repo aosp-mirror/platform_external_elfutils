@@ -1,5 +1,8 @@
 2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
 
+	* libdwelf.h: Fix spelling typos in comments.
+	* dwelf_strtab.c (newstring): Likewise.
+
 	* dwelf_elf_e_machine_string.c (dwelf_elf_e_machine_string): Fix
 	spelling typos in returned strings.
 

@@ -1,3 +1,8 @@
+2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* dwelf_elf_e_machine_string.c (dwelf_elf_e_machine_string): Fix
+	spelling typos in returned strings.
+
 2020-06-04  Mark Wielaard  <mark@klomp.org>
 
 	* dwelf_elf_e_machine_string.c (dwelf_elf_e_machine_string):

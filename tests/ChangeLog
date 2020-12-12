@@ -1,3 +1,14 @@
+2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* dwarf-die-addr-die.c (main): Fix spelling typo in error diagnostics.
+	* run-lfs-symbols.sh: Likewise.
+	* elfstrmerge.c (main): Fix spelling typos in comments.
+	* dwfl-bug-fd-leak.c: Likewise.
+	* run-readelf-line.sh: Likewise.
+	* run-stack-demangled-test.sh: Likewise.
+	* sectiondump.c (main): Likewise.
+	* varlocs.c (handle_die): Likewise.
+
 2020-12-11  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* configure.ac: Remove.

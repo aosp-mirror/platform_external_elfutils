@@ -240,7 +240,7 @@ LDFLAGS="$save_LDFLAGS"])
 AS_IF([test "x$ac_cv_tls" != xyes],
       AC_MSG_ERROR([__thread support required]))
 
-dnl Before 4.9 gcc doesn't ship stdatomic.h, but the nessesary atomics are
+dnl Before 4.9 gcc doesn't ship stdatomic.h, but the necessary atomics are
 dnl available by (at least) 4.7. So if the system doesn't have a stdatomic.h we
 dnl fall back on one copied from FreeBSD that handles the difference.
 AC_CACHE_CHECK([whether gcc provides stdatomic.h], ac_cv_has_stdatomic,
@@ -298,7 +298,7 @@ case $use_debugpred in
 esac
 AC_SUBST([DEBUGPRED], $use_debugpred_val)
 
-dnl Enable gprof suport.
+dnl Enable gprof support.
 AC_ARG_ENABLE([gprof],
 AS_HELP_STRING([--enable-gprof],[build binaries with gprof support]), [use_gprof=$enableval], [use_gprof=no])
 if test "$use_gprof" = yes; then
@@ -307,7 +307,7 @@ if test "$use_gprof" = yes; then
 fi
 AM_CONDITIONAL(GPROF, test "$use_gprof" = yes)
 
-# Enable gcov suport.
+# Enable gcov support.
 AC_ARG_ENABLE([gcov],
 AS_HELP_STRING([--enable-gcov],[build binaries with gcov support]), [use_gcov=$enableval], [use_gcov=no])
 if test "$use_gcov" = yes; then

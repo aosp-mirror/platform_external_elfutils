@@ -1,3 +1,10 @@
+2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* configure.ac: Fix spelling typos in comments.
+	* NEWS: Fix spelling typos.
+	* NOTES: Likewise.
+	* TODO: Likewise.
+
 2020-12-11  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* configure.ac (AM_CONDITIONAL): Remove HAVE_LIBASM and STANDALONE.

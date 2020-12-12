@@ -1,3 +1,7 @@
+2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* *.po (msgid): Fix spelling typos.
+
 2020-10-31  Mark Wielaard  <mark@klomp.org>
 
 	* *.po: Update for 0.182.

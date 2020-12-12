@@ -5251,7 +5251,7 @@ print_debug_addr_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
 		    {
 		      error (0, 0,
 			     "Warning: Couldn't calculate .debug_addr "
-			     " unit lenght at %" PRIx64, off);
+			     " unit length at %" PRIx64, off);
 		      next_unitp = readendp;
 		    }
 		}

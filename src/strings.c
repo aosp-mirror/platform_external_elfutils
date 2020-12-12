@@ -67,7 +67,7 @@ static const struct argp_option options[] =
   { "bytes", 'n', "MIN-LEN", 0,
     N_("Only NUL-terminated sequences of MIN-LEN characters or more are printed"), 0 },
   { "encoding", 'e', "SELECTOR", 0, N_("\
-Select character size and endianess: s = 7-bit, S = 8-bit, {b,l} = 16-bit, {B,L} = 32-bit"),
+Select character size and endianness: s = 7-bit, S = 8-bit, {b,l} = 16-bit, {B,L} = 32-bit"),
     0},
   { "print-file-name", 'f', NULL, 0,
     N_("Print name of the file before each string."), 0 },

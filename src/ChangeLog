@@ -1,3 +1,11 @@
+2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* readelf.c (print_debug_addr_section): Fix spelling typo in error
+	diagnostics.
+	* strip.c (options): Fix spelling typos in argp help text.
+	* strings.c (options): Likewise.
+	* stack.c (options): Likewise.
+
 2020-11-01  Érico N. Rolim  <erico.erc@gmail.com>
 
 	* unstrip.c (make_directories): Use ACCESSPERMS for mkdir.

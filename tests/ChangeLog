@@ -1,3 +1,10 @@
+2020-12-12  Mark Wielaard  <mark@klomp.org>
+
+	* testfile-retain.o.bz2: New test file.
+	* run-retain.sh: New test.
+	* Makefile.am (TESTS): Add run-retain.sh.
+	(EXTRA_DIST): Add run-retain.sh and testfile-retain.o.bz2
+
 2020-12-16  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* dwflmodtest.c (N_): Remove.

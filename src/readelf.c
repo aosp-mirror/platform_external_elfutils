@@ -1298,6 +1298,8 @@ There are %zd section headers, starting at offset %#" PRIx64 ":\n\
 	*cp++ = 'O';
       if (shdr->sh_flags & SHF_EXCLUDE)
 	*cp++ = 'E';
+      if (shdr->sh_flags & SHF_GNU_RETAIN)
+	*cp++ = 'R';
       *cp = '\0';
 
       const char *sname;

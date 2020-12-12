@@ -3935,6 +3935,9 @@ section [%2zu] '%s': size not multiple of entry size\n"),
 		       cnt, section_name (ebl, cnt), sh_flags & SHF_MASKPROC);
 	      sh_flags &= ~(GElf_Xword) SHF_MASKPROC;
 	    }
+	  if (sh_flags & SHF_MASKOS)
+	    if (gnuld)
+	      sh_flags &= ~(GElf_Xword) SHF_GNU_RETAIN;
 	  if (sh_flags != 0)
 	    ERROR (_("section [%2zu] '%s' contains unknown flag(s)"
 			    " %#" PRIx64 "\n"),

@@ -1,3 +1,8 @@
+2020-12-12  Mark Wielaard  <mark@klomp.org>
+
+	* elflint.c (check_sections): Handle SHF_GNU_RETAIN.
+	* readelf.c (print_shdr): Likewise.
+
 2020-12-16  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* *.c: Replace gettext(...) with _(...).

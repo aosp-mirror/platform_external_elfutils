@@ -124,7 +124,7 @@ read_cached_memory (struct __libdwfl_pid_arg *pid_arg,
 		    Dwarf_Addr addr, Dwarf_Word *result)
 {
   /* Let the ptrace fallback deal with the corner case of the address
-     possibly crossing a page boundery.  */
+     possibly crossing a page boundary.  */
   if ((addr & ((Dwarf_Addr)__LIBDWFL_REMOTE_MEM_CACHE_SIZE - 1))
       > (Dwarf_Addr)__LIBDWFL_REMOTE_MEM_CACHE_SIZE - sizeof (unsigned long))
     return false;

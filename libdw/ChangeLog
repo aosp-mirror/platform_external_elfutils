@@ -1,3 +1,12 @@
+2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* dwarf.h: Fix spelling typo in comment.
+	* dwarf_begin_elf.c (dwarf_begin_elf): Likewise.
+	* dwarf_getlocation.c (attr_ok, __libdw_intern_expression): Likewise.
+	* dwarf_getsrclines.c (read_srclines): Likewise.
+	* libdw.h: Fix spelling typos in comments.
+	* libdwP.h: Likewise.
+
 2020-12-09  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* Makefile.am (noinst_PROGRAMS): Rename to noinst_DATA.
@@ -180,7 +189,7 @@
 2019-02-02  Mark Wielaard  <mark@klomp.org>
 
 	* dwarf_nextcu.c (__libdw_next_unit): Define bytes_end.
-	Check there are enough bytes to read extended lenght, version
+	Check there are enough bytes to read extended length, version
 	and unit.
 
 2019-01-20  Mark Wielaard  <mark@klomp.org>

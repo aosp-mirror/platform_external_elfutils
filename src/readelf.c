@@ -1548,7 +1548,7 @@ print_phdr (Ebl *ebl, GElf_Ehdr *ehdr)
 	      printf (" %s",
 		      elf_strptr (ebl->elf, shstrndx, shdr->sh_name));
 
-	      /* Signal that this sectin is only partially covered.  */
+	      /* Signal that this section is only partially covered.  */
 	      if (has_relro && in_relro
 		       && shdr->sh_addr + shdr->sh_size > relro_to)
 		{
@@ -3392,7 +3392,7 @@ handle_gnu_hash (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, size_t shstrndx)
   Elf32_Word shift = ((Elf32_Word *) data->d_buf)[3];
 
   /* Is there still room for the sym chain?
-     Use uint64_t calculation to prevent 32bit overlow.  */
+     Use uint64_t calculation to prevent 32bit overflow.  */
   uint64_t used_buf = (4ULL + bitmask_words + nbucket) * sizeof (Elf32_Word);
   uint32_t max_nsyms = (data->d_size - used_buf) / sizeof (Elf32_Word);
   if (used_buf > data->d_size)
@@ -4055,7 +4055,7 @@ dwarf_locexpr_opcode_string (unsigned int code)
 {
   static const char *const known[] =
     {
-      /* Normally we can't affort building huge table of 64K entries,
+      /* Normally we can't afford building huge table of 64K entries,
 	 most of them zero, just because there are a couple defined
 	 values at the far end.  In case of opcodes, it's OK.  */
 #define DWARF_ONE_KNOWN_DW_OP(NAME, CODE) [CODE] = #NAME,

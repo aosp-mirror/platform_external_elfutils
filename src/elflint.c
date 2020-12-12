@@ -107,7 +107,7 @@ static unsigned int error_count;
 /* True if we should perform very strict testing.  */
 static bool be_strict;
 
-/* True if no message is to be printed if the run is succesful.  */
+/* True if no message is to be printed if the run is successful.  */
 static bool be_quiet;
 
 /* True if binary is from strip -f, not a normal ELF file.  */
@@ -2161,7 +2161,7 @@ section [%2d] '%s': bitmask size zero or not power of 2: %u\n"),
   Elf32_Word shift = ((Elf32_Word *) data->d_buf)[3];
 
   /* Is there still room for the sym chain?
-     Use uint64_t calculation to prevent 32bit overlow.  */
+     Use uint64_t calculation to prevent 32bit overflow.  */
   uint64_t used_buf = (4ULL + bitmask_words + nbuckets) * sizeof (Elf32_Word);
   if (used_buf > data->d_size)
     {
@@ -3675,7 +3675,7 @@ static const struct
 	       sizeof string - (prefix ? 1 : 0)))
 
 
-/* Indeces of some sections we need later.  */
+/* Indices of some sections we need later.  */
 static size_t eh_frame_hdr_scnndx;
 static size_t eh_frame_scnndx;
 static size_t gcc_except_table_scnndx;

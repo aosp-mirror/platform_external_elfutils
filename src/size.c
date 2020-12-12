@@ -145,7 +145,7 @@ static const int length_map[2][3] =
 
 /* True if total sizes should be printed.  */
 static bool totals;
-/* To print the total sizes in a reasonable format remember the higest
+/* To print the total sizes in a reasonable format remember the highest
    "class" of ELF binaries processed.  */
 static int totals_class;
 

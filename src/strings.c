@@ -698,7 +698,7 @@ read_elf (Elf *elf, int fd, const char *fname, off_t fdlen)
 
   /* We will look at each section separately.  The ELF file is not
      mmapped.  The libelf implementation will load the needed parts on
-     demand.  Since we only interate over the section header table the
+     demand.  Since we only iterate over the section header table the
      memory consumption at this stage is kept minimal.  */
   Elf_Scn *scn = elf_nextscn (elf, NULL);
   if (scn == NULL)

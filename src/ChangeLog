@@ -1,5 +1,15 @@
 2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
 
+	* ar.c (write_member, do_oper_insert): Fix spelling typo in comment.
+	* elfclassify.c (issue, elf_issue, is_unstripped): Likewise.
+	* elfcompress.c (process_file): Likewise.
+	* elflint.c (be_quiet, check_gnu_hash): Likewise.
+	* readelf.c (print_phdr, handle_gnu_hash,
+	dwarf_locexpr_opcode_string): Likewise.
+	* size.c (totals_class): Likewise.
+	* strings.c (read_elf): Likewise.
+	* strip.c (handle_elf): Likewise.
+
 	* readelf.c (print_debug_addr_section): Fix spelling typo in error
 	diagnostics.
 	* strip.c (options): Fix spelling typos in argp help text.
@@ -2798,7 +2808,7 @@
 	(show_symbols_posix): Likewise.
 	(show_symbols): Adjust calls to show_symbols_bsd and
 	show_symbols_posix.
-	(show_symbols_sysv): Avoid printing adress and size for undefined
+	(show_symbols_sysv): Avoid printing address and size for undefined
 	symbols.  Don't print initial special entry and section entries.
 
 2011-10-02  Ulrich Drepper  <drepper@gmail.com>
@@ -3634,7 +3644,7 @@
 
 	* elflint.c (check_group): Check that signature symbol for section
 	group is not an empty string.
-	* ldgeneric.c: Remove magic assignment of indeces in the dynsym
+	* ldgeneric.c: Remove magic assignment of indices in the dynsym
 	section.  Start implementation of --hash-style.
 	* i386_ld.c: Likewise.
 	* ld.c: Recognize --hash-style.

@@ -848,7 +848,7 @@ write_member (struct armem *memb, off_t *startp, off_t *lenp, Elf *elf,
 	      off_t end_off, int newfd)
 {
   struct ar_hdr arhdr;
-  /* The ar_name is not actually zero teminated, but we need that for
+  /* The ar_name is not actually zero terminated, but we need that for
      snprintf.  Also if the name is too long, then the string starts
      with '/' plus an index off number (decimal).  */
   char tmpbuf[sizeof (arhdr.ar_name) + 2];
@@ -1458,7 +1458,7 @@ do_oper_insert (int oper, const char *arfname, char **argv, int argc,
 
 	      /* Create the header.  */
 	      struct ar_hdr arhdr;
-	      /* The ar_name is not actually zero teminated, but we
+	      /* The ar_name is not actually zero terminated, but we
 		 need that for snprintf.  Also if the name is too
 		 long, then the string starts with '/' plus an index
 		 off number (decimal).  */

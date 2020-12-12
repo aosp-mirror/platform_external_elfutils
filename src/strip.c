@@ -1832,7 +1832,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	shdr_info[cnt].shdr.sh_name = dwelf_strent_off (shdr_info[cnt].se);
 
 	/* Update the section header from the input file.  Some fields
-	   might be section indeces which now have to be adjusted.  Keep
+	   might be section indices which now have to be adjusted.  Keep
 	   the index to the "current" sh_link in case we need it to lookup
 	   symbol table names.  */
 	size_t sh_link = shdr_info[cnt].shdr.sh_link;

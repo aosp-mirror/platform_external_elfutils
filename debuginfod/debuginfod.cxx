@@ -125,7 +125,7 @@ string_endswith(const string& haystack, const string& needle)
 }
 
 
-// Roll this identifier for every sqlite schema incompatiblity.
+// Roll this identifier for every sqlite schema incompatibility.
 #define BUILDIDS "buildids9"
 
 #if SQLITE_VERSION_NUMBER >= 3008000
@@ -521,13 +521,13 @@ parse_opt (int key, char *arg,
       regfree (&file_include_regex);
       rc = regcomp (&file_include_regex, arg, REG_EXTENDED|REG_NOSUB);
       if (rc != 0)
-        argp_failure(state, 1, EINVAL, "regular expession");
+        argp_failure(state, 1, EINVAL, "regular expression");
       break;
     case 'X':
       regfree (&file_exclude_regex);
       rc = regcomp (&file_exclude_regex, arg, REG_EXTENDED|REG_NOSUB);
       if (rc != 0)
-        argp_failure(state, 1, EINVAL, "regular expession");
+        argp_failure(state, 1, EINVAL, "regular expression");
       break;
     case ARGP_KEY_FDCACHE_FDS:
       fdcache_fds = atol (arg);

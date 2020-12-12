@@ -751,7 +751,7 @@ debuginfod_query_server (debuginfod_client *c,
 
   /* thereafter, goto out1 on error.  */
 
-  /* Initalize handle_data with default values. */
+  /* Initialize handle_data with default values. */
   for (int i = 0; i < num_urls; i++)
     {
       data[i].handle = NULL;
@@ -954,7 +954,7 @@ debuginfod_query_server (debuginfod_client *c,
 
           if (msg->data.result != CURLE_OK)
             {
-              /* Unsucessful query, determine error code.  */
+              /* Unsuccessful query, determine error code.  */
               switch (msg->data.result)
                 {
                 case CURLE_COULDNT_RESOLVE_HOST: rc = -EHOSTUNREACH; break; // no NXDOMAIN

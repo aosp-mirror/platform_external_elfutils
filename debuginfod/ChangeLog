@@ -1,3 +1,10 @@
+2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* debuginfod-client.c (debuginfod_query_server): Fix spelling typos in
+	comments.
+	* debuginfod.cxx: Likewise.
+	(parse_opt): Fix spelling typos in error diagnostics.
+
 2020-12-08  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* Makefile.am [LIBDEBUGINFOD]: Create libdebuginfod.so.1 first, turn

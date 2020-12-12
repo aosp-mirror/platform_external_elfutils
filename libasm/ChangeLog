@@ -1,3 +1,8 @@
+2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* asm_begin.c (prepare_binary_output): Fix spelling typo in comment.
+	* asm_end.c (binary_end): Likewise.
+
 2020-12-11  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* Makefile.am (GCC_INCLUDE): Remove.

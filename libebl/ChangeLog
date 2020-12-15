@@ -1,3 +1,17 @@
+2020-12-15  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* eblbackendname.c (ebl_backend_name): Replace gettext(...) with _(...).
+	* eblcorenotetypename.c (ebl_core_note_type_name): Likewise.
+	* ebldynamictagname.c (ebl_dynamic_tag_name): Likewise.
+	* eblobjnote.c (ebl_object_note): Likewise.
+	* eblobjnotetypename.c (ebl_object_note_type_name): Likewise.
+	* eblosabiname.c (ebl_osabi_name): Likewise.
+	* eblsectionname.c (ebl_section_name): Likewise.
+	* eblsectiontypename.c (ebl_section_type_name): Likewise.
+	* eblsegmenttypename.c (ebl_segment_type_name): Likewise.
+	* eblsymbolbindingname.c (ebl_symbol_binding_name): Likewise.
+	* eblsymboltypename.c (ebl_symbol_type_name): Likewise.
+
 2020-10-19  Mark Wielaard  <mark@klomp.org>
 
 	* eblopenbackend.c (tilegx_init): Removed.

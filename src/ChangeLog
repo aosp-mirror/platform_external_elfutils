@@ -1,3 +1,8 @@
+2020-12-15  Mark Wielaard  <mark@klomp.org>
+
+	* elflint.c (check_symtab): Always print symbol name (if known)
+	in error messages.
+
 2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* ar.c (write_member, do_oper_insert): Fix spelling typo in comment.

@@ -706,7 +706,7 @@ section [%2d] '%s': XINDEX for zeroth entry not zero\n"),
 	  continue;
 	}
 
-      const char *name = NULL;
+      const char *name = "<invalid>";
       if (strshdr == NULL)
 	name = "";
       else if (sym->st_name >= strshdr->sh_size)
@@ -726,14 +726,14 @@ section [%2d] '%s': symbol %zu: invalid name value\n"),
 	    {
 	      if (!no_xndx_warned)
 		ERROR (gettext ("\
-section [%2d] '%s': symbol %zu: too large section index but no extended section index section\n"),
-		       idx, section_name (ebl, idx), cnt);
+section [%2d] '%s': symbol %zu (%s): too large section index but no extended section index section\n"),
+		       idx, section_name (ebl, idx), cnt, name);
 	      no_xndx_warned = true;
 	    }
 	  else if (xndx < SHN_LORESERVE)
 	    ERROR (gettext ("\
-section [%2d] '%s': symbol %zu: XINDEX used for index which would fit in st_shndx (%" PRIu32 ")\n"),
-		   xndxscnidx, section_name (ebl, xndxscnidx), cnt,
+section [%2d] '%s': symbol %zu (%s): XINDEX used for index which would fit in st_shndx (%" PRIu32 ")\n"),
+		   xndxscnidx, section_name (ebl, xndxscnidx), cnt, name,
 		   xndx);
 	}
       else if ((sym->st_shndx >= SHN_LORESERVE
@@ -744,43 +744,43 @@ section [%2d] '%s': symbol %zu: XINDEX used for index which would fit in st_shnd
 		   && (sym->st_shndx < SHN_LORESERVE
 		       /* || sym->st_shndx > SHN_HIRESERVE  always false */)))
 	ERROR (gettext ("\
-section [%2d] '%s': symbol %zu: invalid section index\n"),
-	       idx, section_name (ebl, idx), cnt);
+section [%2d] '%s': symbol %zu (%s): invalid section index\n"),
+	       idx, section_name (ebl, idx), cnt, name);
       else
 	xndx = sym->st_shndx;
 
       if (GELF_ST_TYPE (sym->st_info) >= STT_NUM
 	  && !ebl_symbol_type_name (ebl, GELF_ST_TYPE (sym->st_info), NULL, 0))
-	ERROR (gettext ("section [%2d] '%s': symbol %zu: unknown type\n"),
-	       idx, section_name (ebl, idx), cnt);
+	ERROR (gettext ("section [%2d] '%s': symbol %zu (%s): unknown type\n"),
+	       idx, section_name (ebl, idx), cnt, name);
 
       if (GELF_ST_BIND (sym->st_info) >= STB_NUM
 	  && !ebl_symbol_binding_name (ebl, GELF_ST_BIND (sym->st_info), NULL,
 				       0))
 	ERROR (gettext ("\
-section [%2d] '%s': symbol %zu: unknown symbol binding\n"),
-	       idx, section_name (ebl, idx), cnt);
+section [%2d] '%s': symbol %zu (%s): unknown symbol binding\n"),
+	       idx, section_name (ebl, idx), cnt, name);
       if (GELF_ST_BIND (sym->st_info) == STB_GNU_UNIQUE
 	  && GELF_ST_TYPE (sym->st_info) != STT_OBJECT)
 	ERROR (gettext ("\
-section [%2d] '%s': symbol %zu: unique symbol not of object type\n"),
-	       idx, section_name (ebl, idx), cnt);
+section [%2d] '%s': symbol %zu (%s): unique symbol not of object type\n"),
+	       idx, section_name (ebl, idx), cnt, name);
 
       if (xndx == SHN_COMMON)
 	{
 	  /* Common symbols can only appear in relocatable files.  */
 	  if (ehdr->e_type != ET_REL)
 	    ERROR (gettext ("\
-section [%2d] '%s': symbol %zu: COMMON only allowed in relocatable files\n"),
-		   idx, section_name (ebl, idx), cnt);
+section [%2d] '%s': symbol %zu (%s): COMMON only allowed in relocatable files\n"),
+		   idx, section_name (ebl, idx), cnt, name);
 	  if (cnt < shdr->sh_info)
 	    ERROR (gettext ("\
-section [%2d] '%s': symbol %zu: local COMMON symbols are nonsense\n"),
-		   idx, section_name (ebl, idx), cnt);
+section [%2d] '%s': symbol %zu (%s): local COMMON symbols are nonsense\n"),
+		   idx, section_name (ebl, idx), cnt, name);
 	  if (GELF_R_TYPE (sym->st_info) == STT_FUNC)
 	    ERROR (gettext ("\
-section [%2d] '%s': symbol %zu: function in COMMON section is nonsense\n"),
-		   idx, section_name (ebl, idx), cnt);
+section [%2d] '%s': symbol %zu (%s): function in COMMON section is nonsense\n"),
+		   idx, section_name (ebl, idx), cnt, name);
 	}
       else if (xndx > 0 && xndx < shnum)
 	{
@@ -830,14 +830,14 @@ section [%2d] '%s': symbol %zu: function in COMMON section is nonsense\n"),
 				  && strcmp (name, "_end") != 0
 				  && strcmp (name, "__end") != 0))
 			    ERROR (gettext ("\
-section [%2d] '%s': symbol %zu: st_value out of bounds\n"),
-				   idx, section_name (ebl, idx), cnt);
+section [%2d] '%s': symbol %zu (%s): st_value out of bounds\n"),
+				   idx, section_name (ebl, idx), cnt, name);
 			}
 		      else if ((st_value - sh_addr
 				+ sym->st_size) > destshdr->sh_size)
 			ERROR (gettext ("\
-section [%2d] '%s': symbol %zu does not fit completely in referenced section [%2d] '%s'\n"),
-			       idx, section_name (ebl, idx), cnt,
+section [%2d] '%s': symbol %zu (%s) does not fit completely in referenced section [%2d] '%s'\n"),
+			       idx, section_name (ebl, idx), cnt, name,
 			       (int) xndx, section_name (ebl, xndx));
 		    }
 		}
@@ -845,8 +845,8 @@ section [%2d] '%s': symbol %zu does not fit completely in referenced section [%2
 		{
 		  if ((destshdr->sh_flags & SHF_TLS) == 0)
 		    ERROR (gettext ("\
-section [%2d] '%s': symbol %zu: referenced section [%2d] '%s' does not have SHF_TLS flag set\n"),
-			   idx, section_name (ebl, idx), cnt,
+section [%2d] '%s': symbol %zu (%s): referenced section [%2d] '%s' does not have SHF_TLS flag set\n"),
+			   idx, section_name (ebl, idx), cnt, name,
 			   (int) xndx, section_name (ebl, xndx));
 
 		  if (ehdr->e_type == ET_REL)
@@ -855,14 +855,14 @@ section [%2d] '%s': symbol %zu: referenced section [%2d] '%s' does not have SHF_
 			 into the section.  */
 		      if (st_value > destshdr->sh_size)
 			ERROR (gettext ("\
-section [%2d] '%s': symbol %zu: st_value out of bounds of referenced section [%2d] '%s'\n"),
-			       idx, section_name (ebl, idx), cnt,
+section [%2d] '%s': symbol %zu (%s): st_value out of bounds of referenced section [%2d] '%s'\n"),
+			       idx, section_name (ebl, idx), cnt, name,
 			       (int) xndx, section_name (ebl, xndx));
 		      else if (st_value + sym->st_size
 			       > destshdr->sh_size)
 			ERROR (gettext ("\
-section [%2d] '%s': symbol %zu does not fit completely in referenced section [%2d] '%s'\n"),
-			       idx, section_name (ebl, idx), cnt,
+section [%2d] '%s': symbol %zu (%s) does not fit completely in referenced section [%2d] '%s'\n"),
+			       idx, section_name (ebl, idx), cnt, name,
 			       (int) xndx, section_name (ebl, xndx));
 		    }
 		  else
@@ -882,36 +882,36 @@ section [%2d] '%s': symbol %zu does not fit completely in referenced section [%2
 			{
 			  if (no_pt_tls++ == 0)
 			    ERROR (gettext ("\
-section [%2d] '%s': symbol %zu: TLS symbol but no TLS program header entry\n"),
-				   idx, section_name (ebl, idx), cnt);
+section [%2d] '%s': symbol %zu (%s): TLS symbol but no TLS program header entry\n"),
+				   idx, section_name (ebl, idx), cnt, name);
 			}
 		      else if (phdr == NULL)
 			{
 			    ERROR (gettext ("\
-section [%2d] '%s': symbol %zu: TLS symbol but couldn't get TLS program header entry\n"),
-				   idx, section_name (ebl, idx), cnt);
+section [%2d] '%s': symbol %zu (%s): TLS symbol but couldn't get TLS program header entry\n"),
+				   idx, section_name (ebl, idx), cnt, name);
 			}
 		      else if (!is_debuginfo)
 			{
 			  if (st_value
 			      < destshdr->sh_offset - phdr->p_offset)
 			    ERROR (gettext ("\
-section [%2d] '%s': symbol %zu: st_value short of referenced section [%2d] '%s'\n"),
-				   idx, section_name (ebl, idx), cnt,
+section [%2d] '%s': symbol %zu (%s): st_value short of referenced section [%2d] '%s'\n"),
+				   idx, section_name (ebl, idx), cnt, name,
 				   (int) xndx, section_name (ebl, xndx));
 			  else if (st_value
 				   > (destshdr->sh_offset - phdr->p_offset
 				      + destshdr->sh_size))
 			    ERROR (gettext ("\
-section [%2d] '%s': symbol %zu: st_value out of bounds of referenced section [%2d] '%s'\n"),
-				   idx, section_name (ebl, idx), cnt,
+section [%2d] '%s': symbol %zu (%s): st_value out of bounds of referenced section [%2d] '%s'\n"),
+				   idx, section_name (ebl, idx), cnt, name,
 				   (int) xndx, section_name (ebl, xndx));
 			  else if (st_value + sym->st_size
 				   > (destshdr->sh_offset - phdr->p_offset
 				      + destshdr->sh_size))
 			    ERROR (gettext ("\
-section [%2d] '%s': symbol %zu does not fit completely in referenced section [%2d] '%s'\n"),
-				   idx, section_name (ebl, idx), cnt,
+section [%2d] '%s': symbol %zu (%s) does not fit completely in referenced section [%2d] '%s'\n"),
+				   idx, section_name (ebl, idx), cnt, name,
 				   (int) xndx, section_name (ebl, xndx));
 			}
 		    }
@@ -923,22 +923,22 @@ section [%2d] '%s': symbol %zu does not fit completely in referenced section [%2
 	{
 	  if (cnt >= shdr->sh_info)
 	    ERROR (gettext ("\
-section [%2d] '%s': symbol %zu: local symbol outside range described in sh_info\n"),
-		   idx, section_name (ebl, idx), cnt);
+section [%2d] '%s': symbol %zu (%s): local symbol outside range described in sh_info\n"),
+		   idx, section_name (ebl, idx), cnt, name);
 	}
       else
 	{
 	  if (cnt < shdr->sh_info)
 	    ERROR (gettext ("\
-section [%2d] '%s': symbol %zu: non-local symbol outside range described in sh_info\n"),
-		   idx, section_name (ebl, idx), cnt);
+section [%2d] '%s': symbol %zu (%s): non-local symbol outside range described in sh_info\n"),
+		   idx, section_name (ebl, idx), cnt, name);
 	}
 
       if (GELF_ST_TYPE (sym->st_info) == STT_SECTION
 	  && GELF_ST_BIND (sym->st_info) != STB_LOCAL)
 	ERROR (gettext ("\
-section [%2d] '%s': symbol %zu: non-local section symbol\n"),
-	       idx, section_name (ebl, idx), cnt);
+section [%2d] '%s': symbol %zu (%s): non-local section symbol\n"),
+	       idx, section_name (ebl, idx), cnt, name);
 
       if (name != NULL)
 	{
@@ -1061,12 +1061,12 @@ section [%2d] '%s': _DYNAMIC symbol size %" PRIu64 " does not match dynamic segm
       if (GELF_ST_VISIBILITY (sym->st_other) != STV_DEFAULT
 	  && shdr->sh_type == SHT_DYNSYM)
 	ERROR (gettext ("\
-section [%2d] '%s': symbol %zu: symbol in dynamic symbol table with non-default visibility\n"),
-	       idx, section_name (ebl, idx), cnt);
+section [%2d] '%s': symbol %zu (%s): symbol in dynamic symbol table with non-default visibility\n"),
+	       idx, section_name (ebl, idx), cnt, name);
       if (! ebl_check_st_other_bits (ebl, sym->st_other))
 	ERROR (gettext ("\
-section [%2d] '%s': symbol %zu: unknown bit set in st_other\n"),
-	       idx, section_name (ebl, idx), cnt);
+section [%2d] '%s': symbol %zu (%s): unknown bit set in st_other\n"),
+	       idx, section_name (ebl, idx), cnt, name);
 
     }
 }

@@ -57,8 +57,6 @@ AC_CONFIG_SRCDIR([libelf/libelf.h])
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_HEADERS([config.h])
 
-AC_CONFIG_FILES([m4/Makefile])
-
 dnl The RPM spec file.  We substitute a few values in the file.
 AC_CONFIG_FILES([elfutils.spec:config/elfutils.spec.in])
 

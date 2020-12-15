@@ -1,5 +1,8 @@
 2020-12-15  Dmitry V. Levin  <ldv@altlinux.org>
 
+	* Makefile.am (SUBDIRS): Remove m4.
+	* configure.ac (AC_CONFIG_FILES): Remove m4/Makefile.
+
 	* configure.ac (AC_CONFIG_MACRO_DIR): Remove.
 
 2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>

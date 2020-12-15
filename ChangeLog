@@ -1,5 +1,11 @@
 2020-12-15  Dmitry V. Levin  <ldv@altlinux.org>
 
+	* configure.ac (USE_NLS, AM_PO_SUBDIRS): Remove.
+	(AM_GNU_GETTEXT, AM_GNU_GETTEXT_VERSION,
+	AM_GNU_GETTEXT_REQUIRE_VERSION): Use these macros to setup the gettext
+	infrastructure.
+	* .gitignore: Update.
+
 	* Makefile.am (SUBDIRS): Remove m4.
 	* configure.ac (AC_CONFIG_FILES): Remove m4/Makefile.
 

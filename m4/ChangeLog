@@ -1,5 +1,7 @@
 2020-12-15  Dmitry V. Levin  <ldv@altlinux.org>
 
+	* .gitignore: New file.
+
 	* Makefile.am: Remove.
 
 2019-10-28  Aaron Merey  <amerey@redhat.com>

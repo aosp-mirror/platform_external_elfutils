@@ -588,10 +588,16 @@ AC_CONFIG_FILES([tests/Makefile])
 dnl pkgconfig files
 AC_CONFIG_FILES([config/libelf.pc config/libdw.pc config/libdebuginfod.pc])
 
-# Get the definitions necessary to create the Makefiles in the po
-# subdirectories.  This is a small subset of the gettext rules.
-AC_SUBST(USE_NLS, yes)
-AM_PO_SUBDIRS
+dnl As long as "git grep 'PRI[diouxX]' po" reports matches in
+dnl translatable strings, we must use need-formatstring-macros here.
+AM_GNU_GETTEXT([external], [need-formatstring-macros])
+
+dnl AM_GNU_GETTEXT_VERSION is still needed for old versions
+dnl of autoreconf that do not recognize AM_GNU_GETTEXT_REQUIRE_VERSION.
+dnl 0.19.6 is the first version of gettext that provides
+dnl AM_GNU_GETTEXT_REQUIRE_VERSION support.
+AM_GNU_GETTEXT_VERSION([0.19.6])
+AM_GNU_GETTEXT_REQUIRE_VERSION([0.19.6])
 
 dnl Appended to the config.h file.
 dnl We hide all kinds of configuration magic in lib/eu-config.h.

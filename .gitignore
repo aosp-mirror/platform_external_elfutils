@@ -14,6 +14,7 @@
 .deps
 .glimpse_*
 =*
+/ABOUT-NLS
 /INSTALL
 Makefile
 Makefile.in
@@ -28,6 +29,7 @@ Makefile.in
 /config/ar-lib
 /config/compile
 /config/config.guess
+/config/config.rpath
 /config/config.sub
 /config/depcomp
 /config/install-sh
@@ -47,16 +49,6 @@ Makefile.in
 /debuginfod/debuginfod
 /debuginfod/debuginfod-find
 /libdw/known-dwarf.h
-/po/*.gmo
-/po/*.pot
-/po/en@boldquot.insert-header
-/po/en@boldquot.po
-/po/en@quot.insert-header
-/po/en@quot.po
-/po/Makevars.template
-/po/POTFILES
-/po/remove-potcdate.sed
-/po/stamp-po
 /src/addr2line
 /src/ar
 /src/elfclassify

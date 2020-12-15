@@ -1,3 +1,7 @@
+2020-12-15  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* configure.ac (AC_CONFIG_MACRO_DIR): Remove.
+
 2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* configure.ac: Fix spelling typos in comments.

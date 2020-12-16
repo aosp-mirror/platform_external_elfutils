@@ -1,3 +1,7 @@
+2020-12-16  Érico Nogueira  <ericonr@disroot.org>
+
+	* Makefile.am (i386_gendis_LDADD): Add obstack_LIBS.
+
 2020-12-16  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* i386_lex.l (invalid_char): Replace gettext(...) with _(...).

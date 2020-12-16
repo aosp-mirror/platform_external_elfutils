@@ -1,5 +1,10 @@
 2020-12-16  Dmitry V. Levin  <ldv@altlinux.org>
 
+	* color.c (parse_opt): Replace gettext(...) and
+	dgettext("elfutils, ...) with _(...).
+	* printversion.c (print_version): Replace gettext(...) with _(...).
+	* system.h (sgettext): Likewise.
+
 	* eu-config.h (_): New macro.
 	* xmalloc.c (_): Remove.
 

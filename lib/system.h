@@ -71,7 +71,7 @@
 
 /* A special gettext function we use if the strings are too short.  */
 #define sgettext(Str) \
-  ({ const char *__res = strrchr (gettext (Str), '|');			      \
+  ({ const char *__res = strrchr (_(Str), '|');			      \
      __res ? __res + 1 : Str; })
 
 #define gettext_noop(Str) Str

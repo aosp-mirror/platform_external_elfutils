@@ -37,7 +37,7 @@ void
 print_version (FILE *stream, struct argp_state *state)
 {
   fprintf (stream, "%s (%s) %s\n", state->name, PACKAGE_NAME, PACKAGE_VERSION);
-  fprintf (stream, gettext ("\
+  fprintf (stream, _("\
 Copyright (C) %s The elfutils developers <%s>.\n\
 This is free software; see the source for copying conditions.  There is NO\n\
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\

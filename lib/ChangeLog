@@ -1,3 +1,8 @@
+2020-12-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* eu-config.h (_): New macro.
+	* xmalloc.c (_): Remove.
+
 2020-11-01  Érico N. Rolim  <erico.erc@gmail.com>
 
 	* system.h (ACCESSPERMS): Define macro if it doesn't exist.

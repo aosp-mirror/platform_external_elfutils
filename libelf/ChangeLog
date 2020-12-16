@@ -1,3 +1,7 @@
+2020-12-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* libelfP.h (_): Remove.
+
 2020-12-15  Mark Wielaard  <mark@klomp.org>
 
 	* elf_begin.c (get_shnum): Make sure the full Ehdr is available.

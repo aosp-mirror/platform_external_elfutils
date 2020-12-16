@@ -52,10 +52,6 @@
 #include "libeu.h"
 #include "printversion.h"
 
-#ifndef _
-# define _(str) gettext (str)
-#endif
-
 /* Name and version of program.  */
 ARGP_PROGRAM_VERSION_HOOK_DEF = print_version;
 

@@ -38,10 +38,6 @@
 #include "atomics.h"
 
 
-/* gettext helper macros.  */
-#define _(Str) dgettext ("elfutils", Str)
-
-
 /* Known location expressions already decoded.  */
 struct loc_s
 {

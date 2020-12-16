@@ -1,3 +1,7 @@
+2020-12-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* dwflmodtest.c (N_): Remove.
+
 2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* dwarf-die-addr-die.c (main): Fix spelling typo in error diagnostics.

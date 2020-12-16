@@ -1,3 +1,8 @@
+2020-12-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* argp-std.c (_): Remove.
+	* libdwflP.h (_): Likewise.
+
 2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* libdwfl.h: Fix spelling typos in comments.

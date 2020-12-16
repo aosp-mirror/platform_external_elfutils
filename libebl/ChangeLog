@@ -1,3 +1,7 @@
+2020-12-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* libeblP.h (_): Remove.
+
 2020-12-15  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* eblbackendname.c (ebl_backend_name): Replace gettext(...) with _(...).

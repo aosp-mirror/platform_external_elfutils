@@ -1,3 +1,7 @@
+2020-12-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* libdwP.h (_): Remove.
+
 2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* dwarf.h: Fix spelling typo in comment.

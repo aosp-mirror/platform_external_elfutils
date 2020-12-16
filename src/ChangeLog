@@ -1,3 +1,7 @@
+2020-12-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* unstrip.c (_): Remove.
+
 2020-12-15  Mark Wielaard  <mark@klomp.org>
 
 	* elflint.c (check_symtab): Always print symbol name (if known)

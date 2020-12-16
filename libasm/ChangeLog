@@ -1,3 +1,7 @@
+2020-12-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* libasmP.h (_): Remove.
+
 2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* asm_begin.c (prepare_binary_output): Fix spelling typo in comment.

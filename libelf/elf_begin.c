@@ -88,6 +88,13 @@ get_shnum (void *map_address, unsigned char *e_ident, int fildes,
   } ehdr_mem;
   bool is32 = e_ident[EI_CLASS] == ELFCLASS32;
 
+  if ((is32 && maxsize < sizeof (Elf32_Ehdr))
+      || (!is32 && maxsize < sizeof (Elf64_Ehdr)))
+    {
+       __libelf_seterrno (ELF_E_INVALID_ELF);
+      return (size_t) -1l;
+    }
+
   /* Make the ELF header available.  */
   if (e_ident[EI_DATA] == MY_ELFDATA
       && (ALLOW_UNALIGNED

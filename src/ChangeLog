@@ -1,5 +1,7 @@
 2020-12-16  Dmitry V. Levin  <ldv@altlinux.org>
 
+	* *.c: Replace gettext(...) with _(...).
+
 	* unstrip.c (_): Remove.
 
 2020-12-15  Mark Wielaard  <mark@klomp.org>

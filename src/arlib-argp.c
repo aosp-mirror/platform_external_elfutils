@@ -62,7 +62,7 @@ help_filter (int key, const char *text, void *input __attribute__ ((unused)))
   inline char *text_for_default (void)
   {
     char *new_text;
-    if (unlikely (asprintf (&new_text, gettext ("%s (default)"), text) < 0))
+    if (unlikely (asprintf (&new_text, _("%s (default)"), text) < 0))
       return (char *) text;
     return new_text;
   }

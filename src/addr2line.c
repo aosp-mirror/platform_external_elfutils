@@ -516,7 +516,7 @@ adjust_to_section (const char *name, uintmax_t *addr, Dwfl *dwfl)
   Dwfl_Module *mod = NULL;
   if (dwfl_getmodules (dwfl, &see_one_module, &mod, 0) != 0
       || mod == NULL)
-    error (EXIT_FAILURE, 0, gettext ("Section syntax requires"
+    error (EXIT_FAILURE, 0, _("Section syntax requires"
 				     " exactly one module"));
 
   int nscn = dwfl_module_relocations (mod);
@@ -539,7 +539,7 @@ adjust_to_section (const char *name, uintmax_t *addr, Dwfl *dwfl)
 
 	  if (*addr >= shdr->sh_size)
 	    error (0, 0,
-		   gettext ("offset %#" PRIxMAX " lies outside"
+		   _("offset %#" PRIxMAX " lies outside"
 			    " section '%s'"),
 		   *addr, scn);
 
@@ -629,12 +629,12 @@ handle_address (const char *string, Dwfl *dwfl)
 	  void *arg[3] = { name, &sym, &value };
 	  (void) dwfl_getmodules (dwfl, &find_symbol, arg, 0);
 	  if (arg[0] != NULL)
-	    error (0, 0, gettext ("cannot find symbol '%s'"), name);
+	    error (0, 0, _("cannot find symbol '%s'"), name);
 	  else
 	    {
 	      if (sym.st_size != 0 && addr >= sym.st_size)
 		error (0, 0,
-		       gettext ("offset %#" PRIxMAX " lies outside"
+		       _("offset %#" PRIxMAX " lies outside"
 				" contents of '%s'"),
 		       addr, name);
 	      addr += value;

@@ -130,7 +130,7 @@ static void cleanup_debug (void);
 #define INTERNAL_ERROR(fname) \
   do { \
     cleanup_debug (); \
-    error (EXIT_FAILURE, 0, gettext ("%s: INTERNAL ERROR %d (%s): %s"),      \
+    error (EXIT_FAILURE, 0, _("%s: INTERNAL ERROR %d (%s): %s"),      \
 	   fname, __LINE__, PACKAGE_VERSION, elf_errmsg (-1)); \
   } while (0)
 
@@ -244,13 +244,13 @@ main (int argc, char *argv[])
 
   if (reloc_debug && debug_fname == NULL)
     error (EXIT_FAILURE, 0,
-	   gettext ("--reloc-debug-sections used without -f"));
+	   _("--reloc-debug-sections used without -f"));
 
   if (reloc_debug_only &&
       (debug_fname != NULL || remove_secs != NULL
        || remove_comment == true || remove_debug == true))
     error (EXIT_FAILURE, 0,
-	   gettext ("--reloc-debug-sections-only incompatible with -f, -g, --remove-comment and --remove-section"));
+	   _("--reloc-debug-sections-only incompatible with -f, -g, --remove-comment and --remove-section"));
 
   /* Tell the library which version we are expecting.  */
   elf_version (EV_CURRENT);
@@ -264,7 +264,7 @@ main (int argc, char *argv[])
 	 input file.  */
       if ((output_fname != NULL || debug_fname != NULL)
 	  && remaining + 1 < argc)
-	error (EXIT_FAILURE, 0, gettext ("\
+	error (EXIT_FAILURE, 0, _("\
 Only one input file allowed together with '-o' and '-f'"));
 
       /* Process all the remaining files.  */
@@ -287,7 +287,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
     case 'f':
       if (debug_fname != NULL)
 	{
-	  error (0, 0, gettext ("-f option specified twice"));
+	  error (0, 0, _("-f option specified twice"));
 	  return EINVAL;
 	}
       debug_fname = arg;
@@ -296,7 +296,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
     case 'F':
       if (debug_fname_embed != NULL)
 	{
-	  error (0, 0, gettext ("-F option specified twice"));
+	  error (0, 0, _("-F option specified twice"));
 	  return EINVAL;
 	}
       debug_fname_embed = arg;
@@ -305,7 +305,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
     case 'o':
       if (output_fname != NULL)
 	{
-	  error (0, 0, gettext ("-o option specified twice"));
+	  error (0, 0, _("-o option specified twice"));
 	  return EINVAL;
 	}
       output_fname = arg;
@@ -359,7 +359,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
 	  && section_name_matches (keep_secs, ".comment"))
 	{
 	  argp_error (state,
-		      gettext ("cannot both keep and remove .comment section"));
+		      _("cannot both keep and remove .comment section"));
 	  return EINVAL;
 	}
       break;
@@ -571,7 +571,7 @@ remove_debug_relocations (Ebl *ebl, Elf *elf, GElf_Ehdr *ehdr,
 		    || tdata->d_size - offset < size)
 		  {
 		    cleanup_debug ();
-		    error (EXIT_FAILURE, 0, gettext ("bad relocation"));
+		    error (EXIT_FAILURE, 0, _("bad relocation"));
 		  }
 
 		/* When the symbol value is zero then for SHT_REL
@@ -723,7 +723,7 @@ process_file (const char *fname)
     {
       if (stat (fname, &pre_st) != 0)
 	{
-	  error (0, errno, gettext ("cannot stat input file '%s'"), fname);
+	  error (0, errno, _("cannot stat input file '%s'"), fname);
 	  return 1;
 	}
 
@@ -737,7 +737,7 @@ process_file (const char *fname)
   int fd = open (fname, output_fname == NULL ? O_RDWR : O_RDONLY);
   if (fd == -1)
     {
-      error (0, errno, gettext ("while opening '%s'"), fname);
+      error (0, errno, _("while opening '%s'"), fname);
       return 1;
     }
 
@@ -747,7 +747,7 @@ process_file (const char *fname)
   struct stat st;
   if (fstat (fd, &st) != 0)
     {
-      error (0, errno, gettext ("cannot stat input file '%s'"), fname);
+      error (0, errno, _("cannot stat input file '%s'"), fname);
       return 1;
     }
   /* Paranoid mode on.  */
@@ -775,7 +775,7 @@ process_file (const char *fname)
 	 the output to a specific file.  */
       if (unlikely (output_fname != NULL || debug_fname != NULL))
 	{
-	  error (0, 0, gettext ("%s: cannot use -o or -f when stripping archive"),
+	  error (0, 0, _("%s: cannot use -o or -f when stripping archive"),
 		 fname);
 	  result = 1;
 	}
@@ -787,14 +787,14 @@ process_file (const char *fname)
 	     result = handle_ar (fd, elf, NULL, fname,
 				 preserve_dates ? tv : NULL);
 	   */
-	  error (0, 0, gettext ("%s: no support for stripping archive"),
+	  error (0, 0, _("%s: no support for stripping archive"),
 		 fname);
 	  result = 1;
 	}
       break;
 
     default:
-      error (0, 0, gettext ("%s: File format not recognized"), fname);
+      error (0, 0, _("%s: File format not recognized"), fname);
       result = 1;
       break;
     }
@@ -981,7 +981,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
       fd = open (output_fname, O_RDWR | O_CREAT, mode);
       if (unlikely (fd == -1))
 	{
-	  error (0, errno, gettext ("cannot open '%s'"), output_fname);
+	  error (0, errno, _("cannot open '%s'"), output_fname);
 	  return 1;
 	}
     }
@@ -998,7 +998,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
       ebl = ebl_openbackend (elf);
       if (ebl == NULL)
 	{
-	  error (0, errno, gettext ("cannot open EBL backend"));
+	  error (0, errno, _("cannot open EBL backend"));
 	  result = 1;
 	  goto fail;
 	}
@@ -1018,7 +1018,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
       debug_fd = mkstemp (tmp_debug_fname);
       if (unlikely (debug_fd == -1))
 	{
-	  error (0, errno, gettext ("cannot open '%s'"), debug_fname);
+	  error (0, errno, _("cannot open '%s'"), debug_fname);
 	  result = 1;
 	  goto fail;
 	}
@@ -1035,7 +1035,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
     {
       cleanup_debug ();
       error (EXIT_FAILURE, 0,
-	     gettext ("cannot get section header string table index"));
+	     _("cannot get section header string table index"));
     }
 
   /* Get the number of phdrs in the old file.  */
@@ -1043,7 +1043,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
   if (elf_getphdrnum (elf, &phnum) != 0)
     {
       cleanup_debug ();
-      error (EXIT_FAILURE, 0, gettext ("cannot get number of phdrs"));
+      error (EXIT_FAILURE, 0, _("cannot get number of phdrs"));
     }
 
   /* We now create a new ELF descriptor for the same file.  We
@@ -1057,7 +1057,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 
   if (unlikely (gelf_newehdr (newelf, gelf_getclass (elf)) == 0))
     {
-      error (0, 0, gettext ("cannot create new ehdr for file '%s': %s"),
+      error (0, 0, _("cannot create new ehdr for file '%s': %s"),
 	     output_fname ?: fname, elf_errmsg (-1));
       goto fail;
     }
@@ -1067,7 +1067,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
     {
       if (unlikely (gelf_newphdr (newelf, phnum) == 0))
 	{
-	  error (0, 0, gettext ("cannot create new phdr for file '%s': %s"),
+	  error (0, 0, _("cannot create new phdr for file '%s': %s"),
 		 output_fname ?: fname, elf_errmsg (-1));
 	  goto fail;
 	}
@@ -1100,7 +1100,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
       debugelf = elf_begin (debug_fd, ELF_C_WRITE, NULL);
       if (unlikely (gelf_newehdr (debugelf, gelf_getclass (elf)) == 0))
 	{
-	  error (0, 0, gettext ("cannot create new ehdr for file '%s': %s"),
+	  error (0, 0, _("cannot create new ehdr for file '%s': %s"),
 		 debug_fname, elf_errmsg (-1));
 	  goto fail_close;
 	}
@@ -1110,7 +1110,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	{
 	  if (unlikely (gelf_newphdr (debugelf, phnum) == 0))
 	    {
-	      error (0, 0, gettext ("cannot create new phdr for file '%s': %s"),
+	      error (0, 0, _("cannot create new phdr for file '%s': %s"),
 		     debug_fname, elf_errmsg (-1));
 	      goto fail_close;
 	    }
@@ -1130,7 +1130,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
   size_t shnum;
   if (unlikely (elf_getshdrnum (elf, &shnum) < 0))
     {
-      error (0, 0, gettext ("cannot determine number of sections: %s"),
+      error (0, 0, _("cannot determine number of sections: %s"),
 	     elf_errmsg (-1));
       goto fail_close;
     }
@@ -1191,7 +1191,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
       if (shdr_info[cnt].name == NULL)
 	{
 	illformed:
-	  error (0, 0, gettext ("illformed file '%s'"), fname);
+	  error (0, 0, _("illformed file '%s'"), fname);
 	  goto fail_close;
 	}
 
@@ -1201,7 +1201,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	  if ((shdr_info[cnt].shdr.sh_flags & SHF_ALLOC) != 0)
 	    {
 	      error (0, 0,
-		     gettext ("Cannot remove allocated section '%s'"),
+		     _("Cannot remove allocated section '%s'"),
 		     shdr_info[cnt].name);
 	      result = 1;
 	      goto fail_close;
@@ -1210,7 +1210,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	  if (section_name_matches (keep_secs, shdr_info[cnt].name))
 	    {
 	      error (0, 0,
-		     gettext ("Cannot both keep and remove section '%s'"),
+		     _("Cannot both keep and remove section '%s'"),
 		     shdr_info[cnt].name);
 	      result = 1;
 	      goto fail_close;
@@ -1570,7 +1570,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	    {
 	      cleanup_debug ();
 	      error (EXIT_FAILURE, 0,
-		     gettext ("while generating output file: %s"),
+		     _("while generating output file: %s"),
 		     elf_errmsg (-1));
 	    }
 
@@ -1634,7 +1634,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 
       if (unlikely (gelf_update_ehdr (debugelf, debugehdr) == 0))
 	{
-	  error (0, 0, gettext ("%s: error while updating ELF header: %s"),
+	  error (0, 0, _("%s: error while updating ELF header: %s"),
 		 debug_fname, elf_errmsg (-1));
 	  result = 1;
 	  goto fail_close;
@@ -1643,7 +1643,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
       size_t shdrstrndx;
       if (elf_getshdrstrndx (elf, &shdrstrndx) < 0)
 	{
-	  error (0, 0, gettext ("%s: error while getting shdrstrndx: %s"),
+	  error (0, 0, _("%s: error while getting shdrstrndx: %s"),
 		 fname, elf_errmsg (-1));
 	  result = 1;
 	  goto fail_close;
@@ -1651,7 +1651,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 
       if (update_shdrstrndx (debugelf, shdrstrndx) != 0)
 	{
-	  error (0, 0, gettext ("%s: error updating shdrstrndx: %s"),
+	  error (0, 0, _("%s: error updating shdrstrndx: %s"),
 		 debug_fname, elf_errmsg (-1));
 	  result = 1;
 	  goto fail_close;
@@ -1668,7 +1668,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
   if (shst == NULL)
     {
       cleanup_debug ();
-      error (EXIT_FAILURE, errno, gettext ("while preparing output for '%s'"),
+      error (EXIT_FAILURE, errno, _("while preparing output for '%s'"),
 	     output_fname ?: fname);
     }
 
@@ -1685,7 +1685,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	  {
 	    cleanup_debug ();
 	    error (EXIT_FAILURE, 0,
-		   gettext ("while generating output file: %s"),
+		   _("while generating output file: %s"),
 		   elf_errmsg (-1));
 	  }
 
@@ -1730,7 +1730,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	{
 	  cleanup_debug ();
 	  error (EXIT_FAILURE, 0,
-		 gettext ("while create section header section: %s"),
+		 _("while create section header section: %s"),
 		 elf_errmsg (-1));
 	}
       elf_assert (elf_ndxscn (shdr_info[cnt].newscn) == shdr_info[cnt].idx);
@@ -1739,7 +1739,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
       if (shdr_info[cnt].data == NULL)
 	{
 	  cleanup_debug ();
-	  error (EXIT_FAILURE, 0, gettext ("cannot allocate section data: %s"),
+	  error (EXIT_FAILURE, 0, _("cannot allocate section data: %s"),
 		 elf_errmsg (-1));
 	}
 
@@ -1793,7 +1793,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
     {
       cleanup_debug ();
       error (EXIT_FAILURE, 0,
-	     gettext ("while create section header section: %s"),
+	     _("while create section header section: %s"),
 	     elf_errmsg (-1));
     }
   elf_assert (elf_ndxscn (shdr_info[cnt].newscn) == idx);
@@ -1805,14 +1805,14 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
     {
       cleanup_debug ();
       error (EXIT_FAILURE, 0,
-	     gettext ("while create section header string table: %s"),
+	     _("while create section header string table: %s"),
 	     elf_errmsg (-1));
     }
   if (dwelf_strtab_finalize (shst, shstrtab_data) == NULL)
     {
       cleanup_debug ();
       error (EXIT_FAILURE, 0,
-	     gettext ("no memory to create section header string table"));
+	     _("no memory to create section header string table"));
     }
 
   /* We have to set the section size.  */
@@ -2025,7 +2025,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 			   sections.  Just warn and set the symbol
 			   section to UNDEF.  */
 			error (0, 0,
-			       gettext ("Cannot remove symbol [%zd] from allocated symbol table [%zd]"), inner, cnt);
+			       _("Cannot remove symbol [%zd] from allocated symbol table [%zd]"), inner, cnt);
 			sym->st_shndx = SHN_UNDEF;
 			if (gelf_update_sym (shdr_info[cnt].data, destidx,
 					     sym) == 0)
@@ -2448,7 +2448,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
       /* Finally write the file.  */
       if (unlikely (elf_update (debugelf, ELF_C_WRITE) == -1))
 	{
-	  error (0, 0, gettext ("while writing '%s': %s"),
+	  error (0, 0, _("while writing '%s': %s"),
 		 tmp_debug_fname, elf_errmsg (-1));
 	  result = 1;
 	  goto fail_close;
@@ -2459,7 +2459,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
       if (rename (tmp_debug_fname, debug_fname) != 0
 	  || fchmod (debug_fd, mode) != 0)
 	{
-	  error (0, errno, gettext ("while creating '%s'"), debug_fname);
+	  error (0, errno, _("while creating '%s'"), debug_fname);
 	  result = 1;
 	  goto fail_close;
 	}
@@ -2482,7 +2482,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	  /* Compute the checksum which we will add to the executable.  */
 	  if (crc32_file (debug_fd, &debug_crc) != 0)
 	    {
-	      error (0, errno, gettext ("\
+	      error (0, errno, _("\
 while computing checksum for debug information"));
 	      unlink (debug_fname);
 	      result = 1;
@@ -2523,7 +2523,7 @@ while computing checksum for debug information"));
 
   if (gelf_update_ehdr (newelf, newehdr) == 0)
     {
-      error (0, 0, gettext ("%s: error while creating ELF header: %s"),
+      error (0, 0, _("%s: error while creating ELF header: %s"),
 	     output_fname ?: fname, elf_errmsg (-1));
       cleanup_debug ();
       return 1;
@@ -2532,7 +2532,7 @@ while computing checksum for debug information"));
   /* The new section header string table index.  */
   if (update_shdrstrndx (newelf, idx) != 0)
     {
-      error (0, 0, gettext ("%s: error updating shdrstrndx: %s"),
+      error (0, 0, _("%s: error updating shdrstrndx: %s"),
 	     output_fname ?: fname, elf_errmsg (-1));
       cleanup_debug ();
       return 1;
@@ -2541,7 +2541,7 @@ while computing checksum for debug information"));
   /* We have everything from the old file.  */
   if (elf_cntl (elf, ELF_C_FDDONE) != 0)
     {
-      error (0, 0, gettext ("%s: error while reading the file: %s"),
+      error (0, 0, _("%s: error while reading the file: %s"),
 	     fname, elf_errmsg (-1));
       cleanup_debug ();
       return 1;
@@ -2556,7 +2556,7 @@ while computing checksum for debug information"));
   /* Finally write the file.  */
   if (elf_update (newelf, ELF_C_WRITE) == -1)
     {
-      error (0, 0, gettext ("while writing '%s': %s"),
+      error (0, 0, _("while writing '%s': %s"),
 	     output_fname ?: fname, elf_errmsg (-1));
       result = 1;
     }
@@ -2581,7 +2581,7 @@ while computing checksum for debug information"));
 		  != sizeof zero)
 	      || ftruncate (fd, lastsec_offset) < 0)
 	    {
-	      error (0, errno, gettext ("while writing '%s'"),
+	      error (0, errno, _("while writing '%s'"),
 		     output_fname ?: fname);
 	      result = 1;
 	    }
@@ -2601,7 +2601,7 @@ while computing checksum for debug information"));
 		  != sizeof zero)
 	      || ftruncate (fd, lastsec_offset) < 0)
 	    {
-	      error (0, errno, gettext ("while writing '%s'"),
+	      error (0, errno, _("while writing '%s'"),
 		     output_fname ?: fname);
 	      result = 1;
 	    }
@@ -2638,14 +2638,14 @@ while computing checksum for debug information"));
   /* That was it.  Close the descriptors.  */
   if (elf_end (newelf) != 0)
     {
-      error (0, 0, gettext ("error while finishing '%s': %s"),
+      error (0, 0, _("error while finishing '%s': %s"),
 	     output_fname ?: fname, elf_errmsg (-1));
       result = 1;
     }
 
   if (debugelf != NULL && elf_end (debugelf) != 0)
     {
-      error (0, 0, gettext ("error while finishing '%s': %s"), debug_fname,
+      error (0, 0, _("error while finishing '%s': %s"), debug_fname,
 	     elf_errmsg (-1));
       result = 1;
     }
@@ -2662,7 +2662,7 @@ while computing checksum for debug information"));
     {
       if (futimens (fd, tvp) != 0)
 	{
-	  error (0, errno, gettext ("\
+	  error (0, errno, _("\
 cannot set access and modification date of '%s'"),
 		 output_fname ?: fname);
 	  result = 1;
@@ -2738,14 +2738,14 @@ handle_ar (int fd, Elf *elf, const char *prefix, const char *fname,
     {
       if (unlikely (futimens (fd, tvp) != 0))
 	{
-	  error (0, errno, gettext ("\
+	  error (0, errno, _("\
 cannot set access and modification date of '%s'"), fname);
 	  result = 1;
 	}
     }
 
   if (unlikely (close (fd) != 0))
-    error (EXIT_FAILURE, errno, gettext ("while closing '%s'"), fname);
+    error (EXIT_FAILURE, errno, _("while closing '%s'"), fname);
 
   return result;
 }

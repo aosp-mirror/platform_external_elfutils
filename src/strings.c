@@ -182,7 +182,7 @@ main (int argc, char *argv[])
 		  ? STDIN_FILENO : open (argv[remaining], O_RDONLY));
 	if (unlikely (fd == -1))
 	  {
-	    error (0, errno, gettext ("cannot open '%s'"), argv[remaining]);
+	    error (0, errno, _("cannot open '%s'"), argv[remaining]);
 	    result = 1;
 	  }
 	else
@@ -253,7 +253,7 @@ parse_opt (int key, char *arg,
 	  break;
 
 	default:
-	  error (0, 0, gettext ("invalid value '%s' for %s parameter"),
+	  error (0, 0, _("invalid value '%s' for %s parameter"),
 		 arg, "-e");
 	  argp_help (&argp, stderr, ARGP_HELP_SEE, "strings");
 	  return ARGP_ERR_UNKNOWN;
@@ -288,7 +288,7 @@ parse_opt (int key, char *arg,
 	  break;
 
 	default:
-	  error (0, 0, gettext ("invalid value '%s' for %s parameter"),
+	  error (0, 0, _("invalid value '%s' for %s parameter"),
 		 arg, "-t");
 	  argp_help (&argp, stderr, ARGP_HELP_SEE, "strings");
 	  return ARGP_ERR_UNKNOWN;
@@ -299,7 +299,7 @@ parse_opt (int key, char *arg,
       /* Compute the length in bytes of any match.  */
       if (min_len <= 0 || min_len > INT_MAX / bytes_per_char)
 	error (EXIT_FAILURE, 0,
-	       gettext ("invalid minimum length of matched string size"));
+	       _("invalid minimum length of matched string size"));
       min_len_bytes = min_len * bytes_per_char;
       break;
 
@@ -582,7 +582,7 @@ read_block (int fd, const char *fname, off_t fdlen, off_t from, off_t to)
       // XXX Eventually add flag which avoids this if the position
       // XXX is known to match.
       if (from != 0 && lseek (fd, from, SEEK_SET) != from)
-	error (EXIT_FAILURE, errno, gettext ("lseek failed"));
+	error (EXIT_FAILURE, errno, _("lseek failed"));
 
       return read_block_no_mmap (fd, fname, from, to - from);
     }
@@ -599,7 +599,7 @@ read_block (int fd, const char *fname, off_t fdlen, off_t from, off_t to)
       if (mmap (elfmap, elfmap_size, PROT_READ,
 		MAP_PRIVATE | MAP_POPULATE | MAP_FIXED, fd, from)
 	  == MAP_FAILED)
-	error (EXIT_FAILURE, errno, gettext ("re-mmap failed"));
+	error (EXIT_FAILURE, errno, _("re-mmap failed"));
       elfmap_base = elfmap;
     }
 
@@ -636,7 +636,7 @@ read_block (int fd, const char *fname, off_t fdlen, off_t from, off_t to)
 	     and for this we have to make the data writable.  */
 	  if (unlikely (mprotect (elfmap, keep_area, PROT_READ | PROT_WRITE)
 			!= 0))
-	    error (EXIT_FAILURE, errno, gettext ("mprotect failed"));
+	    error (EXIT_FAILURE, errno, _("mprotect failed"));
 
 	  elfmap_base = elfmap + keep_area;
 	}
@@ -663,7 +663,7 @@ read_block (int fd, const char *fname, off_t fdlen, off_t from, off_t to)
 	  if (mmap (remap_base, read_now, PROT_READ,
 		    MAP_PRIVATE | MAP_POPULATE | MAP_FIXED, fd, handled_to)
 	      == MAP_FAILED)
-	    error (EXIT_FAILURE, errno, gettext ("re-mmap failed"));
+	    error (EXIT_FAILURE, errno, _("re-mmap failed"));
 	  elfmap_off = handled_to;
 
 	  process_chunk (fname, remap_base - to_keep,
@@ -725,7 +725,7 @@ read_elf (Elf *elf, int fd, const char *fname, off_t fdlen)
 	      else
 		sname = elf_strptr (elf, strndx, shdr->sh_name) ?: "<unknown>";
 	      error (0, 0,
-		     gettext ("Skipping section %zd '%s' data outside file"),
+		     _("Skipping section %zd '%s' data outside file"),
 		     elf_ndxscn (scn), sname);
 	      result = 1;
 	    }

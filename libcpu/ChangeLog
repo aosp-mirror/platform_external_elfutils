@@ -1,3 +1,8 @@
+2020-12-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* i386_lex.l (invalid_char): Replace gettext(...) with _(...).
+	* i386_parse.y (yyerror): Likewise.
+
 2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* bpf_disasm.c (bswap_bpf_insn): Fix spelling typo in comment.

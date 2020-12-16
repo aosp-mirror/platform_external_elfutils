@@ -1,3 +1,7 @@
+2020-12-16  Érico Nogueira  <ericonr@disroot.org>
+
+	* readelf.c (qsort_r): Use qsort for improved portability.
+
 2020-12-20  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* .gitignore: New file.

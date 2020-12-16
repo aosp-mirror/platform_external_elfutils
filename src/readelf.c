@@ -4831,10 +4831,13 @@ listptr_base (struct listptr *p)
   return cudie_base (&cu);
 }
 
+/* To store the name used in compare_listptr */
+static const char *sort_listptr_name;
+
 static int
-compare_listptr (const void *a, const void *b, void *arg)
+compare_listptr (const void *a, const void *b)
 {
-  const char *name = arg;
+  const char *name = sort_listptr_name;
   struct listptr *p1 = (void *) a;
   struct listptr *p2 = (void *) b;
 
@@ -4944,8 +4947,11 @@ static void
 sort_listptr (struct listptr_table *table, const char *name)
 {
   if (table->n > 0)
-    qsort_r (table->table, table->n, sizeof table->table[0],
-	     &compare_listptr, (void *) name);
+    {
+      sort_listptr_name = name;
+      qsort (table->table, table->n, sizeof table->table[0],
+	     &compare_listptr);
+    }
 }
 
 static bool

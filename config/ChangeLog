@@ -1,3 +1,7 @@
+2020-12-20  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* .gitignore: New file.
+
 2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* 10-default-yama-scope.conf: Fix spelling typo in comment.

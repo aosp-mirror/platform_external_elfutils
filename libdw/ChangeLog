@@ -1,3 +1,7 @@
+2020-12-20  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* .gitignore: New file.
+
 2020-12-16  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* libdwP.h (_): Remove.

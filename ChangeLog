@@ -1,5 +1,7 @@
 2020-12-20  Dmitry V. Levin  <ldv@altlinux.org>
 
+	* .gitignore: Move subdirectory patterns to separate .gitignore files.
+
 	* .gitignore: Update.
 
 2020-12-15  Dmitry V. Levin  <ldv@altlinux.org>

@@ -1,3 +1,7 @@
+2020-12-20  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* .gitignore: Update.
+
 2020-12-15  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* configure.ac (USE_NLS, AM_PO_SUBDIRS): Remove.

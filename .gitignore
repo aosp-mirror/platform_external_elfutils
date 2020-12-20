@@ -1,6 +1,7 @@
-#*
 *#
 *.a
+*.gcda
+*.gcno
 *.o
 *.orig
 *.os
@@ -8,19 +9,17 @@
 *.rej
 *.so
 *.so.1
-*/Makefile.in
 *~
 .#*
 .deps
 .glimpse_*
 =*
-/ABOUT-NLS
-/INSTALL
 Makefile
 Makefile.in
+/ABOUT-NLS
+/INSTALL
 /aclocal.m4
 /autom4te.*
-/backends/*.map
 /config.cache
 /config.h
 /config.h.in
@@ -37,6 +36,8 @@ Makefile.in
 /config/libelf.pc
 /config/libdebuginfod.pc
 /config/missing
+/config/profile.csh
+/config/profile.sh
 /config/test-driver
 /config/ylwrap
 /configure
@@ -48,6 +49,7 @@ Makefile.in
 /libcpu/*_parse.[ch]
 /debuginfod/debuginfod
 /debuginfod/debuginfod-find
+/debuginfod/debuginfod.h
 /libdw/known-dwarf.h
 /src/addr2line
 /src/ar
@@ -96,6 +98,7 @@ Makefile.in
 /tests/backtrace-data
 /tests/backtrace-dwarf
 /tests/buildid
+/tests/core-dump-backtrace.lock
 /tests/debugaltlink
 /tests/debuginfod_build_id_find
 /tests/debuglink
@@ -155,6 +158,7 @@ Makefile.in
 /tests/next-lines
 /tests/peel_type
 /tests/rdwrmmap
+/tests/read_unaligned
 /tests/rerequest_tag
 /tests/saridx
 /tests/scnnames

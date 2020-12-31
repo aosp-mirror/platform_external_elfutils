@@ -1,5 +1,10 @@
 2020-12-31  Sergei Trofimovich  <slyfox@gentoo.org>
 
+	* elflint.c (srction_flags_string): Add NEWFLAG for GNU_RETAIN,
+	ORDERED and EXCLUDE.
+
+2020-12-31  Sergei Trofimovich  <slyfox@gentoo.org>
+
 	* elflint.c (section_flags_string): Update cp pointer after
 	snprintf for unknown flags.
 

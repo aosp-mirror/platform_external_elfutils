@@ -2789,7 +2789,10 @@ section_flags_string (GElf_Word flags, char *buf, size_t len)
       NEWFLAG (OS_NONCONFORMING),
       NEWFLAG (GROUP),
       NEWFLAG (TLS),
-      NEWFLAG (COMPRESSED)
+      NEWFLAG (COMPRESSED),
+      NEWFLAG (GNU_RETAIN),
+      NEWFLAG (ORDERED),
+      NEWFLAG (EXCLUDE)
     };
 #undef NEWFLAG
   const size_t nknown_flags = sizeof (known_flags) / sizeof (known_flags[0]);

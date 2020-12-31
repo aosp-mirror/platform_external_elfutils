@@ -1,3 +1,8 @@
+2020-12-31  Sergei Trofimovich  <slyfox@gentoo.org>
+
+	* elflint.c (section_flags_string): Update cp pointer after
+	snprintf for unknown flags.
+
 2020-12-16  Érico Nogueira  <ericonr@disroot.org>
 
 	* readelf.c (qsort_r): Use qsort for improved portability.

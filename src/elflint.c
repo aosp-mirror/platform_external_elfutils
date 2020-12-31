@@ -2813,8 +2813,12 @@ section_flags_string (GElf_Word flags, char *buf, size_t len)
       }
 
   if (flags != 0 || cp == buf)
-    snprintf (cp, len - 1, "%" PRIx64, (uint64_t) flags);
-
+    {
+      int r = snprintf (cp, len - 1, "%s%" PRIx64,
+			(cp == buf) ? "" : "|", (uint64_t) flags);
+      if (r > 0)
+	cp += r;
+    }
   *cp = '\0';
 
   return buf;

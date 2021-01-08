@@ -2175,49 +2175,43 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
     /* Find all relocation sections which use this symbol table.  */
     for (cnt = 1; cnt <= shdridx; ++cnt)
       {
-	if (shdr_info[cnt].idx == 0 && debug_fname == NULL)
+	struct shdr_info *info = &shdr_info[cnt];
+	if (info->idx == 0 && debug_fname == NULL)
 	  /* Ignore sections which are discarded.  When we are saving a
 	     relocation section in a separate debug file, we must fix up
 	     the symbol table references.  */
 	  continue;
 
-	const Elf32_Word symtabidx = shdr_info[cnt].old_sh_link;
+	const Elf32_Word symtabidx = info->old_sh_link;
 	elf_assert (symtabidx < shnum + 2);
 	const Elf32_Word *const newsymidx = shdr_info[symtabidx].newsymidx;
-	switch (shdr_info[cnt].shdr.sh_type)
+
+	/* If the symbol table hasn't changed, do not do anything.  */
+	if (newsymidx == NULL)
+	  continue;
+
+	/* If the symbol table is not discarded, but additionally
+	   duplicated in the separate debug file and this section
+	   is discarded, don't adjust anything.  */
+	if (info->idx == 0 && shdr_info[symtabidx].debug_data != NULL)
+	  continue;
+
+	switch (info->shdr.sh_type)
 	  {
-	    inline bool no_symtab_updates (void)
-	    {
-	      /* If the symbol table hasn't changed, do not do anything.  */
-	      if (shdr_info[symtabidx].newsymidx == NULL)
-		return true;
-
-	      /* If the symbol table is not discarded, but additionally
-		 duplicated in the separate debug file and this section
-		 is discarded, don't adjust anything.  */
-	      return (shdr_info[cnt].idx == 0
-		      && shdr_info[symtabidx].debug_data != NULL);
-	    }
-
 	  case SHT_REL:
 	  case SHT_RELA:
-	    if (no_symtab_updates ())
-	      break;
-
-	    Elf_Data *d = elf_getdata (shdr_info[cnt].idx == 0
-				       ? elf_getscn (debugelf, cnt)
-				       : elf_getscn (newelf,
-						     shdr_info[cnt].idx),
-				       NULL);
+	    scn = (info->idx == 0
+		   ? elf_getscn (debugelf, cnt)
+		   : elf_getscn (newelf, info->idx));
+	    Elf_Data *d = elf_getdata (scn, NULL);
 	    elf_assert (d != NULL && d->d_buf != NULL
-			&& shdr_info[cnt].shdr.sh_entsize != 0);
-	    size_t nrels = (shdr_info[cnt].shdr.sh_size
-			    / shdr_info[cnt].shdr.sh_entsize);
+			&& info->shdr.sh_entsize != 0);
+	    size_t nrels = (info->shdr.sh_size / info->shdr.sh_entsize);
 
 	    size_t symsize = gelf_fsize (elf, ELF_T_SYM, 1, EV_CURRENT);
 	    const Elf32_Word symidxn = (shdr_info[symtabidx].data->d_size
 					/ symsize);
-	    if (shdr_info[cnt].shdr.sh_type == SHT_REL)
+	    if (info->shdr.sh_type == SHT_REL)
 	      for (size_t relidx = 0; relidx < nrels; ++relidx)
 		{
 		  GElf_Rel rel_mem;
@@ -2258,15 +2252,12 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	    break;
 
 	  case SHT_HASH:
-	    if (no_symtab_updates ())
-	      break;
-
 	    /* We have to recompute the hash table.  */
 
-	    elf_assert (shdr_info[cnt].idx > 0);
+	    elf_assert (info->idx > 0);
 
 	    /* The hash section in the new file.  */
-	    scn = elf_getscn (newelf, shdr_info[cnt].idx);
+	    scn = elf_getscn (newelf, info->idx);
 
 	    /* The symbol table data.  */
 	    Elf_Data *symd = elf_getdata (elf_getscn (newelf,
@@ -2278,7 +2269,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	    Elf_Data *hashd = elf_getdata (scn, NULL);
 	    elf_assert (hashd != NULL && hashd->d_buf != NULL);
 
-	    if (shdr_info[cnt].shdr.sh_entsize == sizeof (Elf32_Word))
+	    if (info->shdr.sh_entsize == sizeof (Elf32_Word))
 	      {
 		/* Sane arches first.  */
 		elf_assert (hashd->d_size >= 2 * sizeof (Elf32_Word));
@@ -2339,8 +2330,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	    else
 	      {
 		/* Alpha and S390 64-bit use 64-bit SHT_HASH entries.  */
-		elf_assert (shdr_info[cnt].shdr.sh_entsize
-			    == sizeof (Elf64_Xword));
+		elf_assert (info->shdr.sh_entsize == sizeof (Elf64_Xword));
 
 		Elf64_Xword *bucket = (Elf64_Xword *) hashd->d_buf;
 
@@ -2402,13 +2392,10 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 
 	  case SHT_GNU_versym:
 	    /* If the symbol table changed we have to adjust the entries.  */
-	    if (no_symtab_updates ())
-	      break;
-
-	    elf_assert (shdr_info[cnt].idx > 0);
+	    elf_assert (info->idx > 0);
 
 	    /* The symbol version section in the new file.  */
-	    scn = elf_getscn (newelf, shdr_info[cnt].idx);
+	    scn = elf_getscn (newelf, info->idx);
 
 	    /* The symbol table data.  */
 	    symd = elf_getdata (elf_getscn (newelf, shdr_info[symtabidx].idx),
@@ -2444,12 +2431,9 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	    break;
 
 	  case SHT_GROUP:
-	    if (no_symtab_updates ())
-	      break;
-
 	    /* Yes, the symbol table changed.
 	       Update the section header of the section group.  */
-	    scn = elf_getscn (newelf, shdr_info[cnt].idx);
+	    scn = elf_getscn (newelf, info->idx);
 	    GElf_Shdr shdr_mem;
 	    GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
 	    elf_assert (shdr != NULL);

@@ -1,5 +1,11 @@
 2021-01-08  Timm Bäder  <tbaeder@redhat.com>
 
+	* strip.c (handle_elf): Remove no_symtab_updates function and
+	calls inside the switch statement. Add checks and (possibly)
+	continue, before switch statement is called.
+
+2021-01-08  Timm Bäder  <tbaeder@redhat.com>
+
 	* strip.c (handle_elf): Move inlined update_section_size function
 	to...
 	(update_section_size): ...here. New static function that takes as

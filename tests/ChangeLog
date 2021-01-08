@@ -1,3 +1,9 @@
+2021-01-06  Timm Bäder  <tbaeder@redhat.com>
+
+	* zstrptr.c (main): Lift print_strings function up to ...
+	(print_strings): ... here. New file scope function taking
+	Elf_Scn*, Elf* and ndx as arguments.
+
 2020-12-20  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* .gitignore: New file.

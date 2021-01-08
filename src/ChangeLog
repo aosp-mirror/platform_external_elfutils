@@ -1,5 +1,12 @@
 2021-01-08  Timm Bäder  <tbaeder@redhat.com>
 
+	* addr2line.c (handle_address): Move show_note and show_int up to
+	file scope.
+	(show_note: New static inline function.
+	(show_int): Likewise.
+
+2021-01-08  Timm Bäder  <tbaeder@redhat.com>
+
 	* strip.c (handle_elf): Remove no_symtab_updates function and
 	calls inside the switch statement. Add checks and (possibly)
 	continue, before switch statement is called.

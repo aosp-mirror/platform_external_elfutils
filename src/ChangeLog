@@ -1,5 +1,12 @@
 2021-01-08  Timm Bäder  <tbaeder@redhat.com>
 
+	* strip.c (handle_elf): Move inlined update_section_size function
+	to...
+	(update_section_size): ...here. New static function that takes as
+	extra arguments the Elf_Scn, debug_elf, section cnt and fname.
+
+2021-01-08  Timm Bäder  <tbaeder@redhat.com>
+
 	* strip.c (remove_debug_relocations): Rewrite inlined relocate
 	function to file static. Do R_*_NONE, reloc_simple_type and
 	ebl_debug_scn_p checks before calling new relocate function.

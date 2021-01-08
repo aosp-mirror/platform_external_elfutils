@@ -1,5 +1,11 @@
 2021-01-08  Timm Bäder  <tbaeder@redhat.com>
 
+	* readelf.c (handle_core_registers): Lift same_set function to...
+	(same_set): ...here. New file scope function adding regs and
+	maxnreg arguments.
+
+2021-01-08  Timm Bäder  <tbaeder@redhat.com>
+
 	* readelf.c (parse_opt): Lift add_dump_section function to...
 	(add_dump_section): ...here. New top level function. Added key
 	argument.

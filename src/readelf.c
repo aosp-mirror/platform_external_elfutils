@@ -12078,6 +12078,18 @@ compare_register_sets (const void *a, const void *b)
   return compare_sets_by_info (*p1, *p2);
 }
 
+static inline bool
+same_set (const struct register_info *a,
+	  const struct register_info *b,
+	  const struct register_info *regs,
+	  size_t maxnreg)
+{
+  return (a < &regs[maxnreg] && a->regloc != NULL
+	  && b < &regs[maxnreg] && b->regloc != NULL
+	  && a->bits == b->bits
+	  && (a->set == b->set || !strcmp (a->set, b->set)));
+}
+
 static unsigned int
 handle_core_registers (Ebl *ebl, Elf *core, const void *desc,
 		       const Ebl_Register_Location *reglocs, size_t nregloc)
@@ -12116,19 +12128,12 @@ handle_core_registers (Ebl *ebl, Elf *core, const void *desc,
   qsort (regs, maxreg + 1, sizeof regs[0], &compare_registers);
 
   /* Collect the unique sets and sort them.  */
-  inline bool same_set (const struct register_info *a,
-			const struct register_info *b)
-  {
-    return (a < &regs[maxnreg] && a->regloc != NULL
-	    && b < &regs[maxnreg] && b->regloc != NULL
-	    && a->bits == b->bits
-	    && (a->set == b->set || !strcmp (a->set, b->set)));
-  }
   struct register_info *sets[maxreg + 1];
   sets[0] = &regs[0];
   size_t nsets = 1;
   for (int i = 1; i <= maxreg; ++i)
-    if (regs[i].regloc != NULL && !same_set (&regs[i], &regs[i - 1]))
+    if (regs[i].regloc != NULL
+	&& !same_set (&regs[i], &regs[i - 1], regs, maxnreg))
       sets[nsets++] = &regs[i];
   qsort (sets, nsets, sizeof sets[0], &compare_register_sets);
 
@@ -12139,7 +12144,7 @@ handle_core_registers (Ebl *ebl, Elf *core, const void *desc,
       /* Find the longest name of a register in this set.  */
       size_t maxname = 0;
       const struct register_info *end;
-      for (end = sets[i]; same_set (sets[i], end); ++end)
+      for (end = sets[i]; same_set (sets[i], end, regs, maxnreg); ++end)
 	{
 	  size_t len = strlen (end->name);
 	  if (len > maxname)

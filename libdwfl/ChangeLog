@@ -1,5 +1,11 @@
 2021-01-08  Timm Bäder  <tbaeder@redhat.com>
 
+	* elf-from-memory.c (elf_from_remote_memory): Add for loop over
+	switch. inline handle_segment call, set vaddr, offset and filesz
+	directly based on class.
+
+2021-01-08  Timm Bäder  <tbaeder@redhat.com>
+
 	* elf-from-memory.c (elf_from_remote_memory): Use if instead of
 	switch on class. Set new vaddr, memsz, offset and filesz
 	variables. Inline handle_segment function check and set loadbase,

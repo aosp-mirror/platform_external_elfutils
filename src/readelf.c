@@ -381,24 +381,26 @@ main (int argc, char *argv[])
   return error_message_count != 0;
 }
 
+static void
+add_dump_section (const char *name,
+		  int key,
+		  bool implicit)
+{
+  struct section_argument *a = xmalloc (sizeof *a);
+  a->arg = name;
+  a->next = NULL;
+  a->implicit = implicit;
+  struct section_argument ***tailp
+    = key == 'x' ? &dump_data_sections_tail : &string_sections_tail;
+  **tailp = a;
+  *tailp = &a->next;
+}
 
 /* Handle program arguments.  */
 static error_t
 parse_opt (int key, char *arg,
 	   struct argp_state *state __attribute__ ((unused)))
 {
-  void add_dump_section (const char *name, bool implicit)
-  {
-    struct section_argument *a = xmalloc (sizeof *a);
-    a->arg = name;
-    a->next = NULL;
-    a->implicit = implicit;
-    struct section_argument ***tailp
-      = key == 'x' ? &dump_data_sections_tail : &string_sections_tail;
-    **tailp = a;
-    *tailp = &a->next;
-  }
-
   switch (key)
     {
     case 'a':
@@ -414,9 +416,9 @@ parse_opt (int key, char *arg,
       print_arch = true;
       print_notes = true;
       implicit_debug_sections |= section_exception;
-      add_dump_section (".strtab", true);
-      add_dump_section (".dynstr", true);
-      add_dump_section (".comment", true);
+      add_dump_section (".strtab", key, true);
+      add_dump_section (".dynstr", key, true);
+      add_dump_section (".comment", key, true);
       any_control_option = true;
       break;
     case 'A':
@@ -562,7 +564,7 @@ parse_opt (int key, char *arg,
 	}
       FALLTHROUGH;
     case 'x':
-      add_dump_section (arg, false);
+      add_dump_section (arg, key, false);
       any_control_option = true;
       break;
     case 'N':

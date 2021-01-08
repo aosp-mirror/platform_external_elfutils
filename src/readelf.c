@@ -6212,6 +6212,13 @@ read_encoded (unsigned int encoding, const unsigned char *readp,
   return readp;
 }
 
+static const char *
+regname (Ebl *ebl, unsigned int regno, char *regnamebuf)
+{
+  register_info (ebl, regno, NULL, regnamebuf, NULL, NULL);
+
+  return regnamebuf;
+}
 
 static void
 print_cfa_program (const unsigned char *readp, const unsigned char *const endp,
@@ -6222,11 +6229,6 @@ print_cfa_program (const unsigned char *readp, const unsigned char *const endp,
 		   Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr, Dwarf *dbg)
 {
   char regnamebuf[REGNAMESZ];
-  const char *regname (unsigned int regno)
-  {
-    register_info (ebl, regno, NULL, regnamebuf, NULL, NULL);
-    return regnamebuf;
-  }
 
   puts ("\n   Program:");
   Dwarf_Word pc = vma_base;
@@ -6283,26 +6285,28 @@ print_cfa_program (const unsigned char *readp, const unsigned char *const endp,
 	    get_uleb128 (op2, readp, endp);
 	    printf ("     offset_extended r%" PRIu64 " (%s) at cfa%+" PRId64
 		    "\n",
-		    op1, regname (op1), op2 * data_align);
+		    op1, regname (ebl, op1, regnamebuf), op2 * data_align);
 	    break;
 	  case DW_CFA_restore_extended:
 	    if ((uint64_t) (endp - readp) < 1)
 	      goto invalid;
 	    get_uleb128 (op1, readp, endp);
 	    printf ("     restore_extended r%" PRIu64 " (%s)\n",
-		    op1, regname (op1));
+		    op1, regname (ebl, op1, regnamebuf));
 	    break;
 	  case DW_CFA_undefined:
 	    if ((uint64_t) (endp - readp) < 1)
 	      goto invalid;
 	    get_uleb128 (op1, readp, endp);
-	    printf ("     undefined r%" PRIu64 " (%s)\n", op1, regname (op1));
+	    printf ("     undefined r%" PRIu64 " (%s)\n", op1,
+		    regname (ebl, op1, regnamebuf));
 	    break;
 	  case DW_CFA_same_value:
 	    if ((uint64_t) (endp - readp) < 1)
 	      goto invalid;
 	    get_uleb128 (op1, readp, endp);
-	    printf ("     same_value r%" PRIu64 " (%s)\n", op1, regname (op1));
+	    printf ("     same_value r%" PRIu64 " (%s)\n", op1,
+		    regname (ebl, op1, regnamebuf));
 	    break;
 	  case DW_CFA_register:
 	    if ((uint64_t) (endp - readp) < 1)
@@ -6312,7 +6316,8 @@ print_cfa_program (const unsigned char *readp, const unsigned char *const endp,
 	      goto invalid;
 	    get_uleb128 (op2, readp, endp);
 	    printf ("     register r%" PRIu64 " (%s) in r%" PRIu64 " (%s)\n",
-		    op1, regname (op1), op2, regname (op2));
+		    op1, regname (ebl, op1, regnamebuf), op2,
+		    regname (ebl, op2, regnamebuf));
 	    break;
 	  case DW_CFA_remember_state:
 	    puts ("     remember_state");
@@ -6328,14 +6333,14 @@ print_cfa_program (const unsigned char *readp, const unsigned char *const endp,
 	      goto invalid;
 	    get_uleb128 (op2, readp, endp);
 	    printf ("     def_cfa r%" PRIu64 " (%s) at offset %" PRIu64 "\n",
-		    op1, regname (op1), op2);
+		    op1, regname (ebl, op1, regnamebuf), op2);
 	    break;
 	  case DW_CFA_def_cfa_register:
 	    if ((uint64_t) (endp - readp) < 1)
 	      goto invalid;
 	    get_uleb128 (op1, readp, endp);
 	    printf ("     def_cfa_register r%" PRIu64 " (%s)\n",
-		    op1, regname (op1));
+		    op1, regname (ebl, op1, regnamebuf));
 	    break;
 	  case DW_CFA_def_cfa_offset:
 	    if ((uint64_t) (endp - readp) < 1)
@@ -6366,7 +6371,7 @@ print_cfa_program (const unsigned char *readp, const unsigned char *const endp,
 	      goto invalid;
 	    get_uleb128 (op2, readp, endp);	/* Length of DW_FORM_block.  */
 	    printf ("     expression r%" PRIu64 " (%s) \n",
-		    op1, regname (op1));
+		    op1, regname (ebl, op1, regnamebuf));
 	    if ((uint64_t) (endp - readp) < op2)
 	      goto invalid;
 	    print_ops (dwflmod, dbg, 10, 10, version, ptr_size, 0, NULL,
@@ -6382,7 +6387,7 @@ print_cfa_program (const unsigned char *readp, const unsigned char *const endp,
 	    get_sleb128 (sop2, readp, endp);
 	    printf ("     offset_extended_sf r%" PRIu64 " (%s) at cfa%+"
 		    PRId64 "\n",
-		    op1, regname (op1), sop2 * data_align);
+		    op1, regname (ebl, op1, regnamebuf), sop2 * data_align);
 	    break;
 	  case DW_CFA_def_cfa_sf:
 	    if ((uint64_t) (endp - readp) < 1)
@@ -6392,7 +6397,7 @@ print_cfa_program (const unsigned char *readp, const unsigned char *const endp,
 	      goto invalid;
 	    get_sleb128 (sop2, readp, endp);
 	    printf ("     def_cfa_sf r%" PRIu64 " (%s) at offset %" PRId64 "\n",
-		    op1, regname (op1), sop2 * data_align);
+		    op1, regname (ebl, op1, regnamebuf), sop2 * data_align);
 	    break;
 	  case DW_CFA_def_cfa_offset_sf:
 	    if ((uint64_t) (endp - readp) < 1)
@@ -6428,7 +6433,7 @@ print_cfa_program (const unsigned char *readp, const unsigned char *const endp,
 	      goto invalid;
 	    get_uleb128 (op2, readp, endp);	/* Length of DW_FORM_block.  */
 	    printf ("     val_expression r%" PRIu64 " (%s)\n",
-		    op1, regname (op1));
+		    op1, regname (ebl, op1, regnamebuf));
 	    if ((uint64_t) (endp - readp) < op2)
 	      goto invalid;
 	    print_ops (dwflmod, dbg, 10, 10, version, ptr_size, 0,
@@ -6468,11 +6473,12 @@ print_cfa_program (const unsigned char *readp, const unsigned char *const endp,
 	    goto invalid;
 	  get_uleb128 (offset, readp, endp);
 	  printf ("     offset r%u (%s) at cfa%+" PRId64 "\n",
-		  opcode & 0x3f, regname (opcode & 0x3f), offset * data_align);
+		  opcode & 0x3f, regname (ebl, opcode & 0x3f, regnamebuf),
+		  offset * data_align);
 	}
       else
 	printf ("     restore r%u (%s)\n",
-		opcode & 0x3f, regname (opcode & 0x3f));
+		opcode & 0x3f, regname (ebl, opcode & 0x3f, regnamebuf));
     }
 }
 

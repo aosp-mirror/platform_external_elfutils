@@ -223,61 +223,48 @@ elf_from_remote_memory (GElf_Addr ehdr_vma,
   bool found_base = false;
   Elf32_Phdr (*p32)[phnum] = phdrsp;
   Elf64_Phdr (*p64)[phnum] = phdrsp;
-  switch (ehdr.e32.e_ident[EI_CLASS])
+
+  if (class32)
     {
-      /* Sanity checks segments and calculates segment_end,
-	 segments_end, segments_end_mem and loadbase (if not
-	 found_base yet).  Returns true if sanity checking failed,
-	 false otherwise.  */
-      inline bool handle_segment (GElf_Addr vaddr, GElf_Off offset,
-				  GElf_Xword filesz, GElf_Xword memsz)
-	{
-	  /* Sanity check the segment load aligns with the pagesize.  */
-	  if (((vaddr - offset) & (pagesize - 1)) != 0)
-	    return true;
+      if (! elf32_xlatetom (&xlateto, &xlatefrom, ehdr.e32.e_ident[EI_DATA]))
+        goto libelf_error;
+    }
+  else
+    {
+      if (! elf64_xlatetom (&xlateto, &xlatefrom, ehdr.e64.e_ident[EI_DATA]))
+        goto libelf_error;
+    }
 
-	  GElf_Off segment_end = ((offset + filesz + pagesize - 1)
-				  & -pagesize);
+  for (uint_fast16_t i = 0; i < phnum; ++i)
+    {
+      GElf_Word type = class32 ? (*p32)[i].p_type : (*p64)[i].p_type;
 
-	  if (segment_end > (GElf_Off) contents_size)
-	    contents_size = segment_end;
+      if (type != PT_LOAD)
+        continue;
 
-	  if (!found_base && (offset & -pagesize) == 0)
-	    {
-	      loadbase = ehdr_vma - (vaddr & -pagesize);
-	      found_base = true;
-	    }
+      GElf_Addr vaddr = class32 ? (*p32)[i].p_vaddr : (*p64)[i].p_vaddr;
+      GElf_Xword memsz = class32 ? (*p32)[i].p_memsz : (*p64)[i].p_memsz;
+      GElf_Off offset = class32 ? (*p32)[i].p_offset : (*p64)[i].p_offset;
+      GElf_Xword filesz = class32 ? (*p32)[i].p_filesz : (*p64)[i].p_filesz;
 
-	  segments_end = offset + filesz;
-	  segments_end_mem = offset + memsz;
-	  return false;
-	}
+      /* Sanity check the segment load aligns with the pagesize.  */
+      if (((vaddr - offset) & (pagesize - 1)) != 0)
+        goto bad_elf;
 
-    case ELFCLASS32:
-      if (elf32_xlatetom (&xlateto, &xlatefrom,
-			  ehdr.e32.e_ident[EI_DATA]) == NULL)
-	goto libelf_error;
-      for (uint_fast16_t i = 0; i < phnum; ++i)
-	if ((*p32)[i].p_type == PT_LOAD)
-	  if (handle_segment ((*p32)[i].p_vaddr, (*p32)[i].p_offset,
-			      (*p32)[i].p_filesz, (*p32)[i].p_memsz))
-	    goto bad_elf;
-      break;
+      GElf_Off segment_end = ((offset + filesz + pagesize - 1)
+                              & -pagesize);
 
-    case ELFCLASS64:
-      if (elf64_xlatetom (&xlateto, &xlatefrom,
-			  ehdr.e64.e_ident[EI_DATA]) == NULL)
-	goto libelf_error;
-      for (uint_fast16_t i = 0; i < phnum; ++i)
-	if ((*p64)[i].p_type == PT_LOAD)
-	  if (handle_segment ((*p64)[i].p_vaddr, (*p64)[i].p_offset,
-			      (*p64)[i].p_filesz, (*p64)[i].p_memsz))
-	    goto bad_elf;
-      break;
+      if (segment_end > (GElf_Off) contents_size)
+        contents_size = segment_end;
 
-    default:
-      abort ();
-      break;
+      if (!found_base && (offset & -pagesize) == 0)
+        {
+          loadbase = ehdr_vma - (vaddr & -pagesize);
+          found_base = true;
+        }
+
+      segments_end = offset + filesz;
+      segments_end_mem = offset + memsz;
     }
 
   /* Trim the last segment so we don't bother with zeros in the last page

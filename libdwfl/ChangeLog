@@ -1,3 +1,10 @@
+2021-01-08  Timm Bäder  <tbaeder@redhat.com>
+
+	* elf-from-memory.c (elf_from_remote_memory): Use if instead of
+	switch on class. Set new vaddr, memsz, offset and filesz
+	variables. Inline handle_segment function check and set loadbase,
+	found_base, segments_end and segments_end_mem directly.
+
 2020-12-16  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* argp-std.c (_): Remove.

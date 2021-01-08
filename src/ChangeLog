@@ -1,5 +1,14 @@
 2021-01-08  Timm Bäder  <tbaeder@redhat.com>
 
+	* strip.c (remove_debug_relocations): Rewrite inlined relocate
+	function to file static. Do R_*_NONE, reloc_simple_type and
+	ebl_debug_scn_p checks before calling new relocate function.
+	(relocate): New file static function from
+	remove_debug_relocate. Remove R_*_NONE, reloc_simple_type and
+	ebl_debugscn_p checks.
+
+2021-01-08  Timm Bäder  <tbaeder@redhat.com>
+
 	* strip.c (handle_elf): Expand inlined function check_preserved.
 
 2021-01-12  Mark Wielaard  <mark@klomp.org>

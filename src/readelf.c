@@ -3571,6 +3571,13 @@ print_liblist (Ebl *ebl)
     }
 }
 
+static inline size_t
+left (Elf_Data *data,
+      const unsigned char *p)
+{
+  return (const unsigned char *) data->d_buf + data->d_size - p;
+}
+
 static void
 print_attributes (Ebl *ebl, const GElf_Ehdr *ehdr)
 {
@@ -3615,13 +3622,8 @@ print_attributes (Ebl *ebl, const GElf_Ehdr *ehdr)
 
       fputs_unlocked (_("  Owner          Size\n"), stdout);
 
-      inline size_t left (void)
-      {
-	return (const unsigned char *) data->d_buf + data->d_size - p;
-      }
-
       /* Loop over the sections.  */
-      while (left () >= 4)
+      while (left (data, p) >= 4)
 	{
 	  /* Section length.  */
 	  uint32_t len;
@@ -3630,7 +3632,7 @@ print_attributes (Ebl *ebl, const GElf_Ehdr *ehdr)
 	  if (MY_ELFDATA != ehdr->e_ident[EI_DATA])
 	    CONVERT (len);
 
-	  if (unlikely (len > left ()))
+	  if (unlikely (len > left (data, p)))
 	    break;
 
 	  /* Section vendor name.  */

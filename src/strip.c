@@ -1535,25 +1535,30 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 		 files by setting the .debug_data pointer to the original
 		 file's .data pointer.  Below, we'll copy the section
 		 contents.  */
+	      size_t shdr_indices[2] = { shdr_info[cnt].shdr.sh_link, 0 };
+	      int n = 1;
 
-	      inline void check_preserved (size_t i)
-	      {
-		if (i != 0 && i < shnum + 2 && shdr_info[i].idx != 0
-		    && shdr_info[i].debug_data == NULL)
-		  {
-		    if (shdr_info[i].data == NULL)
-		      shdr_info[i].data = elf_getdata (shdr_info[i].scn, NULL);
-		    if (shdr_info[i].data == NULL)
-		      INTERNAL_ERROR (fname);
-
-		    shdr_info[i].debug_data = shdr_info[i].data;
-		    changes |= i < cnt;
-		  }
-	      }
-
-	      check_preserved (shdr_info[cnt].shdr.sh_link);
 	      if (SH_INFO_LINK_P (&shdr_info[cnt].shdr))
-		check_preserved (shdr_info[cnt].shdr.sh_info);
+		{
+		  shdr_indices[1] = shdr_info[cnt].shdr.sh_info;
+		  n++;
+		}
+
+	      for (int j = 0; j < n; j++)
+		{
+		  size_t i = shdr_indices[j];
+		  if (i != 0 && i < shnum + 2 && shdr_info[i].idx != 0
+		      && shdr_info[i].debug_data == NULL)
+		    {
+		      if (shdr_info[i].data == NULL)
+			shdr_info[i].data = elf_getdata (shdr_info[i].scn, NULL);
+		      if (shdr_info[i].data == NULL)
+			INTERNAL_ERROR (fname);
+
+		      shdr_info[i].debug_data = shdr_info[i].data;
+		      changes |= i < cnt;
+		    }
+		}
 	    }
 	}
     }

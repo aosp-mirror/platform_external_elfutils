@@ -311,6 +311,9 @@ if test "$use_gcov" = yes; then
   CFLAGS="$CFLAGS -fprofile-arcs -ftest-coverage"
   CXXFLAGS="$CXXFLAGS -fprofile-arcs -ftest-coverage"
   LDFLAGS="$LDFLAGS -fprofile-arcs"
+  AC_CHECK_PROG([GCOV], [gcov], [gcov])
+  AC_CHECK_PROG([LCOV], [lcov], [lcov])
+  AC_CHECK_PROG([GENHTML], [genhtml], [genhtml])
 fi
 AM_CONDITIONAL(GCOV, test "$use_gcov" = yes)
 

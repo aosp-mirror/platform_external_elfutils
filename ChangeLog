@@ -1,3 +1,9 @@
+2021-01-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* configure.ac [--enable-gcov]: Check for gcov, lcov, and genhtml.
+	* Makefile.am [GCOV] (coverage, coverage-clean): New targets.
+	* .gitignore: Update.
+
 2020-12-20  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* .gitignore: Move subdirectory patterns to separate .gitignore files.

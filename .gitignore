@@ -16,6 +16,7 @@
 =*
 Makefile
 Makefile.in
+/*.lcov
 /ABOUT-NLS
 /INSTALL
 /aclocal.m4
@@ -26,6 +27,7 @@ Makefile.in
 /config.log
 /config.status
 /configure
+/coverage
 /elfutils.spec
 /stamp-h1
 /version.h

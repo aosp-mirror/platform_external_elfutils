@@ -1,6 +1,12 @@
+2021-01-12  Mark Wielaard  <mark@klomp.org>
+
+	* elflint.c (EXTRA_SHFLAGS): New define.
+	(check_sections): Use EXTRA_SHFLAGS. Add SHF_GNU_RETAIN to
+	ALL_SH_FLAGS.
+
 2020-12-31  Sergei Trofimovich  <slyfox@gentoo.org>
 
-	* elflint.c (srction_flags_string): Add NEWFLAG for GNU_RETAIN,
+	* elflint.c (section_flags_string): Add NEWFLAG for GNU_RETAIN,
 	ORDERED and EXCLUDE.
 
 2020-12-31  Sergei Trofimovich  <slyfox@gentoo.org>

@@ -3681,6 +3681,13 @@ static const struct
    && !memcmp (special_sections[idx].name, string, \
 	       sizeof string - (prefix ? 1 : 0)))
 
+/* Extra section flags that might or might not be added to the section
+   and have to be ignored.  */
+#define EXTRA_SHFLAGS (SHF_LINK_ORDER \
+		       | SHF_GNU_RETAIN \
+		       | SHF_GROUP \
+		       | SHF_COMPRESSED)
+
 
 /* Indices of some sections we need later.  */
 static size_t eh_frame_hdr_scnndx;
@@ -3796,11 +3803,10 @@ section [%2d] '%s' has wrong type: expected %s, is %s\n"),
 		if (special_sections[s].attrflag == exact
 		    || special_sections[s].attrflag == exact_or_gnuld)
 		  {
-		    /* Except for the link order, group bit and
+		    /* Except for the link order, retain, group bit and
 		       compression flag all the other bits should
 		       match exactly.  */
-		    if ((shdr->sh_flags
-			 & ~(SHF_LINK_ORDER | SHF_GROUP | SHF_COMPRESSED))
+		    if ((shdr->sh_flags & ~EXTRA_SHFLAGS)
 			!= special_sections[s].attr
 			&& (special_sections[s].attrflag == exact || !gnuld))
 		      ERROR (_("\
@@ -3809,7 +3815,7 @@ section [%2zu] '%s' has wrong flags: expected %s, is %s\n"),
 			     section_flags_string (special_sections[s].attr,
 						   stbuf1, sizeof (stbuf1)),
 			     section_flags_string (shdr->sh_flags
-						   & ~SHF_LINK_ORDER,
+						   & ~EXTRA_SHFLAGS,
 						   stbuf2, sizeof (stbuf2)));
 		  }
 		else if (special_sections[s].attrflag == atleast)
@@ -3817,7 +3823,7 @@ section [%2zu] '%s' has wrong flags: expected %s, is %s\n"),
 		    if ((shdr->sh_flags & special_sections[s].attr)
 			!= special_sections[s].attr
 			|| ((shdr->sh_flags
-			     & ~(SHF_LINK_ORDER | SHF_GROUP | SHF_COMPRESSED
+			     & ~(EXTRA_SHFLAGS
 				 | special_sections[s].attr
 				 | special_sections[s].attr2))
 			    != 0))
@@ -3829,8 +3835,7 @@ section [%2zu] '%s' has wrong flags: expected %s and possibly %s, is %s\n"),
 			     section_flags_string (special_sections[s].attr2,
 						   stbuf2, sizeof (stbuf2)),
 			     section_flags_string (shdr->sh_flags
-						   & ~(SHF_LINK_ORDER
-						       | SHF_GROUP),
+						   & ~EXTRA_SHFLAGS,
 						   stbuf3, sizeof (stbuf3)));
 		  }
 
@@ -3923,7 +3928,7 @@ section [%2zu] '%s': size not multiple of entry size\n"),
 #define ALL_SH_FLAGS (SHF_WRITE | SHF_ALLOC | SHF_EXECINSTR | SHF_MERGE \
 		      | SHF_STRINGS | SHF_INFO_LINK | SHF_LINK_ORDER \
 		      | SHF_OS_NONCONFORMING | SHF_GROUP | SHF_TLS \
-		      | SHF_COMPRESSED)
+		      | SHF_COMPRESSED | SHF_GNU_RETAIN)
       if (shdr->sh_flags & ~(GElf_Xword) ALL_SH_FLAGS)
 	{
 	  GElf_Xword sh_flags = shdr->sh_flags & ~(GElf_Xword) ALL_SH_FLAGS;

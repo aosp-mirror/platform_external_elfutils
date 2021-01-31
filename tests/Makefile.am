@@ -527,7 +527,8 @@ installed_TESTS_ENVIRONMENT = libdir=$(DESTDIR)$(libdir); \
 			      export libdir; export bindir; \
 			      export LC_ALL; export LANG; export VALGRIND_CMD; \
 			      unset DEBUGINFOD_URLS; \
-			      NM=$(NM); export NM;
+			      NM=$(NM); export NM; \
+			      CC=$(CC); export CC;
 installed_LOG_COMPILER = $(abs_srcdir)/test-wrapper.sh \
 			 installed $(tests_rpath) \
 			 '$(program_transform_name)'
@@ -538,7 +539,8 @@ TESTS_ENVIRONMENT = LC_ALL=C; LANG=C; VALGRIND_CMD=$(valgrind_cmd); \
 		    export abs_top_builddir; \
 		    export LC_ALL; export LANG; export VALGRIND_CMD; \
 		    unset DEBUGINFOD_URLS; \
-		    NM=$(NM); export NM;
+		    NM=$(NM); export NM; \
+		    CC=$(CC); export CC;
 LOG_COMPILER = $(abs_srcdir)/test-wrapper.sh \
 	       $(abs_top_builddir)/libdw:$(abs_top_builddir)/backends:$(abs_top_builddir)/libelf:$(abs_top_builddir)/libasm:$(abs_top_builddir)/debuginfod
 

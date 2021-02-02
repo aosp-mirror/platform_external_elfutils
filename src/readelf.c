@@ -8752,14 +8752,11 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
       /* Apply the "operation advance" from a special opcode
 	 or DW_LNS_advance_pc (as per DWARF4 6.2.5.1).  */
       unsigned int op_addr_advance;
-      bool show_op_index;
       inline void advance_pc (unsigned int op_advance)
       {
 	op_addr_advance = minimum_instr_len * ((op_index + op_advance)
 					       / max_ops_per_instr);
 	address += op_addr_advance;
-	show_op_index = (op_index > 0 ||
-			 (op_index + op_advance) % max_ops_per_instr > 0);
 	op_index = (op_index + op_advance) % max_ops_per_instr;
       }
 
@@ -8803,7 +8800,7 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 	      printf (_(" special opcode %u: address+%u = "),
 		      opcode, op_addr_advance);
 	      print_dwarf_addr (dwflmod, 0, address, address);
-	      if (show_op_index)
+	      if (op_index > 0)
 		printf (_(", op_index = %u, line%+d = %zu\n"),
 			op_index, line_increment, line);
 	      else
@@ -8921,7 +8918,7 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 		    printf (_(" advance address by %u to "),
 			    op_addr_advance);
 		    print_dwarf_addr (dwflmod, 0, address, address);
-		    if (show_op_index)
+		    if (op_index > 0)
 		      printf (_(", op_index to %u"), op_index);
 		    printf ("\n");
 		  }
@@ -8982,7 +8979,7 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 		    printf (_(" advance address by constant %u to "),
 			    op_addr_advance);
 		    print_dwarf_addr (dwflmod, 0, address, address);
-		    if (show_op_index)
+		    if (op_index > 0)
 		      printf (_(", op_index to %u"), op_index);
 		    printf ("\n");
 		  }

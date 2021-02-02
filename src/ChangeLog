@@ -1,3 +1,8 @@
+2021-02-02 Timm Bäder <tbaeder@redhat.com>
+
+	* readelf.c (print_debug_line_section): Remove unnecessary
+	show_op_index variable, replace with (op_index > 0).
+
 2021-01-08  Timm Bäder  <tbaeder@redhat.com>
 
 	* readelf.c (print_cfa_program): Lift regname function to...

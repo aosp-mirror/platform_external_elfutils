@@ -1,5 +1,5 @@
 /* Debuginfo-over-http server.
-   Copyright (C) 2019-2020 Red Hat, Inc.
+   Copyright (C) 2019-2021 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -385,7 +385,8 @@ static struct argp argp =
 
 
 static string db_path;
-static sqlite3 *db; // single connection, serialized across all our threads!
+static sqlite3 *db;  // single connection, serialized across all our threads!
+static sqlite3 *dbq; // webapi query-servicing readonly connection, serialized ditto!
 static unsigned verbose;
 static volatile sig_atomic_t interrupted = 0;
 static volatile sig_atomic_t forced_rescan_count = 0;
@@ -1569,11 +1570,15 @@ handle_buildid (MHD_Connection* conn,
     obatched(clog) << "searching for buildid=" << buildid << " artifacttype=" << artifacttype
          << " suffix=" << suffix << endl;
 
+  // If invoked from the scanner threads, use the scanners' read-write
+  // connection.  Otherwise use the web query threads' read-only connection.
+  sqlite3 *thisdb = (conn == 0) ? db : dbq;
+  
   sqlite_ps *pp = 0;
 
   if (atype_code == "D")
     {
-      pp = new sqlite_ps (db, "mhd-query-d",
+      pp = new sqlite_ps (thisdb, "mhd-query-d",
                           "select mtime, sourcetype, source0, source1 from " BUILDIDS "_query_d where buildid = ? "
                           "order by mtime desc");
       pp->reset();
@@ -1581,7 +1586,7 @@ handle_buildid (MHD_Connection* conn,
     }
   else if (atype_code == "E")
     {
-      pp = new sqlite_ps (db, "mhd-query-e",
+      pp = new sqlite_ps (thisdb, "mhd-query-e",
                           "select mtime, sourcetype, source0, source1 from " BUILDIDS "_query_e where buildid = ? "
                           "order by mtime desc");
       pp->reset();
@@ -1593,7 +1598,7 @@ handle_buildid (MHD_Connection* conn,
       // Incoming source queries may come in with either dwarf-level OR canonicalized paths.
       // We let the query pass with either one.
 
-      pp = new sqlite_ps (db, "mhd-query-s",
+      pp = new sqlite_ps (thisdb, "mhd-query-s",
                           "select mtime, sourcetype, source0, source1 from " BUILDIDS "_query_s where buildid = ? and artifactsrc in (?,?) "
                           "order by sharedprefix(source0,source0ref) desc, mtime desc");
       pp->reset();
@@ -1629,6 +1634,7 @@ handle_buildid (MHD_Connection* conn,
       if (r)
         return r;
     }
+  pp->reset();
 
   // We couldn't find it in the database.  Last ditch effort
   // is to defer to other debuginfo servers.
@@ -2971,19 +2977,21 @@ thread_main_fts_source_paths (void* arg)
           rescan_now = true;
         }
       if (rescan_now)
-        try
-          {
-            set_metric("thread_busy", "role","traverse", 1);
-            scan_source_paths();
-            last_rescan = time(NULL); // NB: now was before scanning
-            // finished a traversal loop
-            inc_metric("thread_work_total", "role","traverse");
-            set_metric("thread_busy", "role","traverse", 0);
-          }
-        catch (const reportable_exception& e)
-          {
-            e.report(cerr);
-          }
+        {
+          set_metric("thread_busy", "role","traverse", 1);
+          try
+            {
+              scan_source_paths();
+            }
+          catch (const reportable_exception& e)
+            {
+              e.report(cerr);
+            }
+          last_rescan = time(NULL); // NB: now was before scanning
+          // finished a traversal loop
+          inc_metric("thread_work_total", "role","traverse");
+          set_metric("thread_busy", "role","traverse", 0);
+        }
     }
 
   return 0;
@@ -3002,7 +3010,11 @@ database_stats_report()
   obatched(clog) << "database record counts:" << endl;
   while (1)
     {
-      int rc = sqlite3_step (ps_query);
+      if (interrupted) break;
+      if (sigusr1 != forced_rescan_count) // stop early if scan triggered
+        break;
+      
+      int rc = ps_query.step();
       if (rc == SQLITE_DONE) break;
       if (rc != SQLITE_ROW)
         throw sqlite_exception(rc, "step");
@@ -3029,7 +3041,7 @@ void groom()
   clock_gettime (CLOCK_MONOTONIC, &ts_start);
 
   database_stats_report();
-  
+
   // scan for files that have disappeared
   sqlite_ps files (db, "check old files", "select s.mtime, s.file, f.name from "
                        BUILDIDS "_file_mtime_scanned s, " BUILDIDS "_files f "
@@ -3041,6 +3053,8 @@ void groom()
   files.reset();
   while(1)
     {
+      if (interrupted) break;
+
       int rc = files.step();
       if (rc != SQLITE_ROW)
         break;
@@ -3075,6 +3089,8 @@ void groom()
                           "and not exists (select 1 from " BUILDIDS "_r_de d where " BUILDIDS "_buildids.id = d.buildid)");
   buildids_del.reset().step_ok_done();
 
+  if (interrupted) return;
+
   // NB: "vacuum" is too heavy for even daily runs: it rewrites the entire db, so is done as maxigroom -G
   sqlite_ps g1 (db, "incremental vacuum", "pragma incremental_vacuum");
   g1.reset().step_ok_done();
@@ -3086,6 +3102,7 @@ void groom()
   database_stats_report();
 
   sqlite3_db_release_memory(db); // shrink the process if possible
+  sqlite3_db_release_memory(dbq); // ... for both connections
 
   fdcache.limit(0,0); // release the fdcache contents
   fdcache.limit(fdcache_fds,fdcache_mbs); // restore status quo parameters
@@ -3123,19 +3140,21 @@ thread_main_groom (void* /*arg*/)
           groom_now = true;
         }
       if (groom_now)
-        try
-          {
-            set_metric("thread_busy", "role", "groom", 1);
-            groom ();
-            last_groom = time(NULL); // NB: now was before grooming
-            // finished a grooming loop
-            inc_metric("thread_work_total", "role", "groom");
-            set_metric("thread_busy", "role", "groom", 0);
-          }
-        catch (const sqlite_exception& e)
-          {
-            obatched(cerr) << e.message << endl;
-          }
+        {
+          set_metric("thread_busy", "role", "groom", 1);
+          try
+            {
+              groom ();
+            }
+          catch (const sqlite_exception& e)
+            {
+              obatched(cerr) << e.message << endl;
+            }
+          last_groom = time(NULL); // NB: now was before grooming
+          // finished a grooming loop
+          inc_metric("thread_work_total", "role", "groom");
+          set_metric("thread_busy", "role", "groom", 0);
+        }
 
       scanq.done_idle();
     }
@@ -3154,6 +3173,8 @@ signal_handler (int /* sig */)
 
   if (db)
     sqlite3_interrupt (db);
+  if (dbq)
+    sqlite3_interrupt (dbq);
 
   // NB: don't do anything else in here
 }
@@ -3256,6 +3277,8 @@ main (int argc, char *argv[])
 
   /* Get database ready. */
   rc = sqlite3_open_v2 (db_path.c_str(), &db, (SQLITE_OPEN_READWRITE
+                                               |SQLITE_OPEN_URI
+                                               |SQLITE_OPEN_PRIVATECACHE
                                                |SQLITE_OPEN_CREATE
                                                |SQLITE_OPEN_FULLMUTEX), /* thread-safe */
                         NULL);
@@ -3271,15 +3294,30 @@ main (int argc, char *argv[])
              "cannot open %s, consider deleting database: %s", db_path.c_str(), sqlite3_errmsg(db));
     }
 
+  // open the readonly query variant
+  // NB: PRIVATECACHE allows web queries to operate in parallel with
+  // much other grooming/scanning operation.
+  rc = sqlite3_open_v2 (db_path.c_str(), &dbq, (SQLITE_OPEN_READONLY
+                                                |SQLITE_OPEN_URI
+                                                |SQLITE_OPEN_PRIVATECACHE
+                                                |SQLITE_OPEN_FULLMUTEX), /* thread-safe */
+                        NULL);
+  if (rc)
+    {
+      error (EXIT_FAILURE, 0,
+             "cannot open %s, consider deleting database: %s", db_path.c_str(), sqlite3_errmsg(dbq));
+    }
+
+  
   obatched(clog) << "opened database " << db_path << endl;
   obatched(clog) << "sqlite version " << sqlite3_version << endl;
 
   // add special string-prefix-similarity function used in rpm sref/sdef resolution
-  rc = sqlite3_create_function(db, "sharedprefix", 2, SQLITE_UTF8, NULL,
+  rc = sqlite3_create_function(dbq, "sharedprefix", 2, SQLITE_UTF8, NULL,
                                & sqlite3_sharedprefix_fn, NULL, NULL);
   if (rc != SQLITE_OK)
     error (EXIT_FAILURE, 0,
-           "cannot create sharedprefix( function: %s", sqlite3_errmsg(db));
+           "cannot create sharedprefix function: %s", sqlite3_errmsg(dbq));
 
   if (verbose > 3)
     obatched(clog) << "ddl: " << DEBUGINFOD_SQLITE_DDL << endl;
@@ -3319,7 +3357,9 @@ main (int argc, char *argv[])
   if (d4 == NULL && d6 == NULL) // neither ipv4 nor ipv6? boo
     {
       sqlite3 *database = db;
-      db = 0; // for signal_handler not to freak
+      sqlite3 *databaseq = dbq;
+      db = dbq = 0; // for signal_handler not to freak
+      sqlite3_close (databaseq);
       sqlite3_close (database);
       error (EXIT_FAILURE, 0, "cannot start http server at port %d", http_port);
     }
@@ -3436,7 +3476,9 @@ main (int argc, char *argv[])
   (void) regfree (& file_exclude_regex);
 
   sqlite3 *database = db;
-  db = 0; // for signal_handler not to freak
+  sqlite3 *databaseq = dbq;  
+  db = dbq = 0; // for signal_handler not to freak
+  (void) sqlite3_close (databaseq);
   (void) sqlite3_close (database);
 
   return 0;

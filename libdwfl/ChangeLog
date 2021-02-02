@@ -1,3 +1,7 @@
+2021-02-01  Érico Nogueira  <ericonr@disroot.org>
+
+	* dwfl_error.c (strerror_r): Only use the GNU version when available.
+
 2021-01-08  Timm Bäder  <tbaeder@redhat.com>
 
 	* elf-from-memory.c (elf_from_remote_memory): Add for loop over

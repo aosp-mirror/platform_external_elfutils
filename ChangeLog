@@ -1,3 +1,7 @@
+2021-02-01  Érico Nogueira  <ericonr@disroot.org>
+
+	* configure.ac: Check for GNU strerror_r.
+
 2021-01-12  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* configure.ac [--enable-gcov]: Check for gcov, lcov, and genhtml.

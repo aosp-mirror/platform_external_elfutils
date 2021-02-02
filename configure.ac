@@ -428,6 +428,11 @@ AC_CHECK_DECLS([mempcpy],[],[],
 
 AC_CHECK_FUNCS([process_vm_readv])
 
+old_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -D_GNU_SOURCE"
+AC_FUNC_STRERROR_R()
+CFLAGS="$old_CFLAGS"
+
 AC_CHECK_LIB([stdc++], [__cxa_demangle], [dnl
 AC_DEFINE([USE_DEMANGLE], [1], [Defined if demangling is enabled])])
 AM_CONDITIONAL(DEMANGLE, test "x$ac_cv_lib_stdcpp___cxa_demangle" = "xyes")

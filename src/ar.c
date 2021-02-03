@@ -436,6 +436,21 @@ copy_content (Elf *elf, int newfd, off_t off, size_t n)
   return write_retry (newfd, rawfile + off, n) != (ssize_t) n;
 }
 
+static inline bool
+should_truncate_fname (size_t *name_max)
+{
+  if (errno == ENAMETOOLONG && allow_truncate_fname)
+    {
+      if (*name_max == 0)
+	{
+	  long int len = pathconf (".", _PC_NAME_MAX);
+	  if (len > 0)
+	    *name_max = len;
+	}
+      return *name_max != 0;
+    }
+  return false;
+}
 
 static int
 do_oper_extract (int oper, const char *arfname, char **argv, int argc,
@@ -445,21 +460,6 @@ do_oper_extract (int oper, const char *arfname, char **argv, int argc,
   memset (found, '\0', sizeof (found));
 
   size_t name_max = 0;
-  inline bool should_truncate_fname (void)
-  {
-    if (errno == ENAMETOOLONG && allow_truncate_fname)
-      {
-	if (name_max == 0)
-	  {
-	    long int len = pathconf (".", _PC_NAME_MAX);
-	    if (len > 0)
-	      name_max = len;
-	  }
-	return name_max != 0;
-      }
-    return false;
-  }
-
   off_t index_off = -1;
   size_t index_size = 0;
   off_t cur_off = SARMAG;
@@ -615,7 +615,7 @@ do_oper_extract (int oper, const char *arfname, char **argv, int argc,
 		    {
 		      int printlen = INT_MAX;
 
-		      if (should_truncate_fname ())
+		      if (should_truncate_fname (&name_max))
 			{
 			  /* Try to truncate the name.  First find out by how
 			     much.  */
@@ -704,7 +704,7 @@ do_oper_extract (int oper, const char *arfname, char **argv, int argc,
 		    {
 		      int printlen = INT_MAX;
 
-		      if (should_truncate_fname ())
+		      if (should_truncate_fname (&name_max))
 			{
 			  /* Try to truncate the name.  First find out by how
 			     much.  */

@@ -1,3 +1,10 @@
+2021-02-03 Timm Bäder <tbaeder@redhat.com>
+
+	* ar.c (do_oper_extract): Extract should_truncate_fname function
+	to...
+	(should_truncate_fname): ...here. New file scope function taking
+	size_t pointer to be read and/or set.
+
 2021-02-02 Timm Bäder <tbaeder@redhat.com>
 
 	* readelf.c (print_debug_line_section): Remove unnecessary

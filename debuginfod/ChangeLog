@@ -1,3 +1,17 @@
+2021-02-04  Frank Ch. Eigler <fche@redhat.com>
+
+	PR27092 low-memory handling
+	* debuginfod.cxx (fdcache_mintmp): New parameter, with cmd-line option.
+	(parse_opt): Parse it.
+	(main): Default it.
+	(statfs_free_enough_p): New function.
+	(libarchive_fdcache::*): Call it to trigger emergency fdcache flush.
+	(thread_main_scanner): Call it to report filesystem fullness metrics.
+	(groom): Ditto.
+	(set/add_metric): Take double rather than int64_t values.
+	(archive_exception): Propagate suberror to metric label.
+	(main): Detect pthread creation fatal errors properly.
+
 2021-02-02  Frank Ch. Eigler <fche@redhat.com>
 
 	PR27323

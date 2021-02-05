@@ -1,3 +1,7 @@
+2021-02-04  Frank Ch. Eigler <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Smoke test --fdcache-mintmp option handling.
+
 2021-01-31  Sergei Trofimovich  <slyfox@gentoo.org>
 
 	* Makefile.am (TESTS_ENVIRONMENT): export CC variable

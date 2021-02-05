@@ -1,3 +1,7 @@
+2021-02-05  Mark Wielaard  <mark@klomp.org>
+
+	* *.po: Update for 0.183.
+
 2020-12-15  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* Makevars: Sync with Makevars.template.

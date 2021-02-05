@@ -1,3 +1,9 @@
+2021-02-05  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac (AC_INIT): Set version to 0.183.
+	(AC_COPYRIGHT): Update Copyright year.
+	* NEWS: Add 0.183 section.
+
 2021-02-01  Érico Nogueira  <ericonr@disroot.org>
 
 	* configure.ac: Check for GNU strerror_r.

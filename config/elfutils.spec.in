@@ -332,6 +332,18 @@ exit 0
 %systemd_postun_with_restart debuginfod.service
 
 %changelog
+* Fri Feb  5 2021 Mark Wielaard <mark@klomp.org> 0.183-1
+- debuginfod: New thread-busy metric and more detailed error metrics.
+  New --fdcache-mintmp and tracking of filesystem freespace.
+- debigonfod-client: DEBUGINFOD_SONAME macro added to debuginfod.h can
+  be used to dlopen the libdebuginfod.so library.
+  New function debuginfod_set_verbose_fd and DEBUGINFOD_VERBOSE
+  environment variable.
+- config: profile.sh and profile.csh won't export DEBUGINFOD_URLS
+  unless configured --enable-debuginfod-urls[=URLS]
+- elflint, readelf: Recognize SHF_GNU_RETAIN.
+  Handle SHT_X86_64_UNWIND as valid relocation target type.
+
 * Sat Oct 31 2020 Mark Wielaard <mark@klomp.org> 0.182-1
 - backends: Support for tilegx has been removed.
 - config: New /etc/profile.d files to provide default $DEBUGINFOD_URLS.

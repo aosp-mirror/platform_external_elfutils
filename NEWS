@@ -2,6 +2,7 @@ Version 0.183
 
 debuginfod: New thread-busy metric and more detailed error metrics.
             New --fdcache-mintmp and tracking of filesystem freespace.
+            New increased webapi concurrency while grooming.
 
 debuginfod-client: DEBUGINFOD_SONAME macro added to debuginfod.h which
                    can be used to dlopen the libdebuginfod.so library.

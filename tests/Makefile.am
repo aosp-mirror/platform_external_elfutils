@@ -511,36 +511,37 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 
 
 if USE_VALGRIND
-valgrind_cmd='valgrind -q --leak-check=full --error-exitcode=1'
+valgrind_cmd=valgrind -q --leak-check=full --error-exitcode=1
 endif
 
 
-installed_TESTS_ENVIRONMENT = libdir=$(DESTDIR)$(libdir); \
-			      bindir=$(DESTDIR)$(bindir); \
+installed_TESTS_ENVIRONMENT = libdir='$(DESTDIR)$(libdir)'; \
+			      bindir='$(DESTDIR)$(bindir)'; \
 			      LC_ALL=C; LANG=C; \
-			      VALGRIND_CMD=$(valgrind_cmd); \
-			      abs_srcdir=$(abs_srcdir); \
-			      abs_builddir=$(abs_builddir); \
-			      abs_top_builddir=$(abs_top_builddir); \
+			      VALGRIND_CMD='$(valgrind_cmd)'; \
+			      abs_srcdir='$(abs_srcdir)'; \
+			      abs_builddir='$(abs_builddir)'; \
+			      abs_top_builddir='$(abs_top_builddir)'; \
 			      export abs_srcdir; export abs_builddir; \
 			      export abs_top_builddir; \
 			      export libdir; export bindir; \
 			      export LC_ALL; export LANG; export VALGRIND_CMD; \
 			      unset DEBUGINFOD_URLS; \
-			      NM=$(NM); export NM; \
-			      CC=$(CC); export CC;
+			      NM='$(NM)'; export NM; \
+			      CC='$(CC)'; export CC;
 installed_LOG_COMPILER = $(abs_srcdir)/test-wrapper.sh \
 			 installed $(tests_rpath) \
 			 '$(program_transform_name)'
-TESTS_ENVIRONMENT = LC_ALL=C; LANG=C; VALGRIND_CMD=$(valgrind_cmd); \
-		    abs_srcdir=$(abs_srcdir);  abs_builddir=$(abs_builddir); \
-		    abs_top_builddir=$(abs_top_builddir); \
+TESTS_ENVIRONMENT = LC_ALL=C; LANG=C; VALGRIND_CMD='$(valgrind_cmd)'; \
+		    abs_srcdir='$(abs_srcdir)'; \
+		    abs_builddir='$(abs_builddir)'; \
+		    abs_top_builddir='$(abs_top_builddir)'; \
 		    export abs_srcdir; export abs_builddir; \
 		    export abs_top_builddir; \
 		    export LC_ALL; export LANG; export VALGRIND_CMD; \
 		    unset DEBUGINFOD_URLS; \
-		    NM=$(NM); export NM; \
-		    CC=$(CC); export CC;
+		    NM='$(NM)'; export NM; \
+		    CC='$(CC)'; export CC;
 LOG_COMPILER = $(abs_srcdir)/test-wrapper.sh \
 	       $(abs_top_builddir)/libdw:$(abs_top_builddir)/backends:$(abs_top_builddir)/libelf:$(abs_top_builddir)/libasm:$(abs_top_builddir)/debuginfod
 

@@ -1,3 +1,8 @@
+2021-02-07  Alexander Miller  <alex.miller@gmx.de>
+
+	* Makefile.am (TESTS_ENVIRONMENT): Quote variables.
+	(valgrind_cmd): Unquote variable.
+
 2021-02-08  Érico Nogueira  <ericonr@disroot.org>
 
 	* run-debuginfod-find.sh: Check for cpio availability.

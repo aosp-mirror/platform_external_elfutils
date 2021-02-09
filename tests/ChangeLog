@@ -1,3 +1,7 @@
+2021-02-08  Érico Nogueira  <ericonr@disroot.org>
+
+	* run-debuginfod-find.sh: Check for cpio availability.
+
 2021-02-04  Frank Ch. Eigler <fche@redhat.com>
 
 	* run-debuginfod-find.sh: Smoke test --fdcache-mintmp option handling.

@@ -1,3 +1,8 @@
+2021-02-12  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (attr_callback): Don't handle blocks as expression
+	blocks for DWARF version 4 or higher.
+
 2021-02-03 Timm Bäder <tbaeder@redhat.com>
 
 	* ar.c (do_oper_extract): Extract should_truncate_fname function

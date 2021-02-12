@@ -7599,7 +7599,9 @@ attr_callback (Dwarf_Attribute *attrp, void *arg)
 	case DW_AT_GNU_call_site_data_value:
 	case DW_AT_GNU_call_site_target:
 	case DW_AT_GNU_call_site_target_clobbered:
-	  if (form != DW_FORM_data16)
+	  if (form == DW_FORM_exprloc
+	      || (form != DW_FORM_data16
+		  && attrp->cu->version < 4)) /* blocks were expressions.  */
 	    {
 	      putchar ('\n');
 	      print_ops (cbargs->dwflmod, cbargs->dbg,

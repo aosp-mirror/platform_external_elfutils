@@ -1,3 +1,9 @@
+2021-02-12  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_getlocation.c (attr_ok): For DWARF version 4 or higher
+	block forms are not expression locations.
+	(is_constant_offset): DW_FORM_implicit_const is also a constant.
+
 2020-12-20  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* .gitignore: New file.

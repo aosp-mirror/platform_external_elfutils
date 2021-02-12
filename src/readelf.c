@@ -7794,7 +7794,8 @@ print_debug_units (Dwfl_Module *dwflmod,
 	{
 	  Dwarf_Die typedie;
 	  Dwarf_Off dieoffset;
-	  dieoffset = dwarf_dieoffset (dwarf_offdie_types (dbg, subdie_off,
+	  dieoffset = dwarf_dieoffset (dwarf_offdie_types (dbg, cu->start
+							   + subdie_off,
 							   &typedie));
 	  printf (_(" Type unit at offset %" PRIu64 ":\n"
 			   " Version: %" PRIu16

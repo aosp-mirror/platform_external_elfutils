@@ -1,5 +1,9 @@
 2021-02-12  Mark Wielaard  <mark@klomp.org>
 
+	* readelf.c (print_debug_units): Type DIE offset is from start CU.
+
+2021-02-12  Mark Wielaard  <mark@klomp.org>
+
 	* readelf.c (attr_callback): Don't handle blocks as expression
 	blocks for DWARF version 4 or higher.
 

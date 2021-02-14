@@ -1,3 +1,8 @@
+2021-02-14  Frank Ch. Eigler <fche@redhat.com>
+
+	* debuginfod.cxx (main -U): Use bsdtar unconditionally.  Also map
+	the debian-compatible .ipk (openembedded distro family) to same.
+
 2021-02-04  Frank Ch. Eigler <fche@redhat.com>
 
 	PR27092 low-memory handling

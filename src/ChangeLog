@@ -1,5 +1,11 @@
 2021-02-17  Timm Bäder  <tbaeder@redhat.com>
 
+	* unstrip.c (copy_elided_sections): Inline find_unalloc_section
+	function into calling location. The sec pointer is set to NULL
+	before the if-else statement and only set when match is found.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
 	* unstrip.c (find_alloc_sections_prelink): Move check_match to...
 	(check_match): Adjusted to return whether there was no match,
 	which indicates a failure. So callers are adjusted to or the

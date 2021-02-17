@@ -1452,29 +1452,6 @@ more sections in stripped file than debug file -- arguments reversed?"));
 	stripped_symtab = &sections[nalloc];
     }
 
-  /* Locate a matching unallocated section in SECTIONS.  */
-  inline struct section *find_unalloc_section (const GElf_Shdr *shdr,
-					       const char *name,
-					       const char *sig)
-    {
-      size_t l = nalloc, u = stripped_shnum - 1;
-      while (l < u)
-	{
-	  size_t i = (l + u) / 2;
-	  struct section *sec = &sections[i];
-	  int cmp = compare_unalloc_sections (shdr, &sec->shdr,
-					      name, sec->name,
-					      sig, sec->sig);
-	  if (cmp < 0)
-	    u = i;
-	  else if (cmp > 0)
-	    l = i + 1;
-	  else
-	    return sec;
-	}
-      return NULL;
-    }
-
   Elf_Data *shstrtab = elf_getdata (elf_getscn (unstripped,
 						unstripped_shstrndx), NULL);
   ELF_CHECK (shstrtab != NULL,
@@ -1536,9 +1513,27 @@ more sections in stripped file than debug file -- arguments reversed?"));
 	}
       else
 	{
-	  /* Look for the section that matches.  */
-	  sec = find_unalloc_section (shdr, name,
-				      get_group_sig (unstripped, shdr));
+	  /* Locate a matching unallocated section in SECTIONS.  */
+	  const char *sig = get_group_sig (unstripped, shdr);
+	  size_t l = nalloc, u = stripped_shnum - 1;
+	  while (l < u)
+	    {
+	      size_t i = (l + u) / 2;
+	      struct section *section = &sections[i];
+	      int cmp = compare_unalloc_sections (shdr, &section->shdr,
+						  name, section->name,
+						  sig, section->sig);
+	      if (cmp < 0)
+		u = i;
+	      else if (cmp > 0)
+		l = i + 1;
+	      else
+		{
+		  sec = section;
+		  break;
+		}
+	    }
+
 	  if (sec == NULL)
 	    {
 	      /* An additional unallocated section is fine if not SHT_NOBITS.

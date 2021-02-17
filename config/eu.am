@@ -64,7 +64,11 @@ endif
 if HAVE_IMPLICIT_FALLTHROUGH_WARNING
 # Use strict fallthrough. Only __attribute__((fallthrough)) will prevent the
 # warning
+if HAVE_IMPLICIT_FALLTHROUGH_5_WARNING
 IMPLICIT_FALLTHROUGH_WARNING=-Wimplicit-fallthrough=5
+else
+IMPLICIT_FALLTHROUGH_WARNING=-Wimplicit-fallthrough
+endif
 else
 IMPLICIT_FALLTHROUGH_WARNING=
 endif

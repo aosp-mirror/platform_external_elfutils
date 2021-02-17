@@ -519,6 +519,18 @@ CFLAGS="$old_CFLAGS"])
 AM_CONDITIONAL(HAVE_IMPLICIT_FALLTHROUGH_WARNING,
 	       [test "x$ac_cv_implicit_fallthrough" != "xno"])
 
+# Check whether the compiler additionally accepts -Wimplicit-fallthrough=5
+# GCC accepts this and 5 means "don't parse any fallthrough comments and
+# only accept the fallthrough attribute"
+AC_CACHE_CHECK([whether the compiler accepts -Wimplicit-fallthrough=5], ac_cv_implicit_fallthrough_5, [dnl
+old_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -Wimplicit-fallthrough=5 -Werror"
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([])],
+		  ac_cv_implicit_fallthrough_5=yes, ac_cv_implicit_fallthrough_5=no)
+CFLAGS="$old_CFLAGS"])
+AM_CONDITIONAL(HAVE_IMPLICIT_FALLTHROUGH_5_WARNING,
+	       [test "x$ac_cv_implicit_fallthrough_5" != "xno"])
+
 # Assume the fallthrough attribute is supported if -Wimplict-fallthrough is supported
 if test "$ac_cv_implicit_fallthrough" = "yes"; then
 	AC_DEFINE([HAVE_FALLTHROUGH], [1],

@@ -2,6 +2,11 @@
 
 	* run-readelf-types.sh: Add CU start to type offset reference.
 
+2021-02-17  Frank Ch. Eigler <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Tweak wait_ready() to also print -vvv log of
+	appropriate debuginfod if metric timeout occurs.
+
 2021-02-07  Alexander Miller  <alex.miller@gmx.de>
 
 	* Makefile.am (TESTS_ENVIRONMENT): Quote variables.

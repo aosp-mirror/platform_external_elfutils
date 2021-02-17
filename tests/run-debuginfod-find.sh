@@ -27,7 +27,7 @@ echo "zstd=$zstd bsdtar=`bsdtar --version`"
 
 # for test case debugging, uncomment:
 #set -x
-#VERBOSE=-vvvv
+VERBOSE=-vvv
 
 DB=${PWD}/.debuginfod_tmp.sqlite
 tempfiles $DB
@@ -92,6 +92,8 @@ wait_ready()
   if [ $timeout -eq 0 ]; then
       echo "metric $what never changed to $value on port $port"
       curl -s http://127.0.0.1:$port/metrics
+      echo "logs for debuginfod with port $port"
+      cat vlog$port
     exit 1;
   fi
 }
@@ -101,9 +103,9 @@ wait_ready()
 # would see an error (running the testsuite under root is NOT encouraged).
 ln -s R/nothing.rpm R/nothing.rpm
 
-env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -R -d $DB -p $PORT1 -t0 -g0 --fdcache-fds 1 --fdcache-mbs 2 --fdcache-mintmp 0 -Z .tar.xz -Z .tar.bz2=bzcat -v R F Z L > vlog4 2>&1 &
+env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -R -d $DB -p $PORT1 -t0 -g0 --fdcache-fds 1 --fdcache-mbs 2 --fdcache-mintmp 0 -Z .tar.xz -Z .tar.bz2=bzcat -v R F Z L > vlog$PORT1 2>&1 &
 PID1=$!
-tempfiles vlog4
+tempfiles vlog$PORT1
 # Server must become ready
 wait_ready $PORT1 'ready' 1
 export DEBUGINFOD_URLS=http://127.0.0.1:$PORT1/   # or without trailing /
@@ -349,7 +351,7 @@ kill -USR2 $PID1  # groom cycle
 # Expect 3 rpms to be deleted by the groom
 # 1 groom cycle already took place at/soon-after startup, so -USR2 makes 2
 wait_ready $PORT1 'thread_work_total{role="groom"}' 2
-wait_ready $PORT1 'groom{statistic="file d/e"}' 3
+wait_ready $PORT1 'groom{statistic="archive d/e"}' `expr $rpms - 3`
 
 rm -rf $DEBUGINFOD_CACHE_PATH # clean it from previous tests
 
@@ -387,7 +389,7 @@ wait_ready $PORT1 'thread_busy{role="scan"}' 0
 archive_test bc1febfd03ca05e030f0d205f7659db29f8a4b30 /usr/src/debug/hello-1.0/hello.c $SHA
 archive_test f0aa15b8aba4f3c28cac3c2a73801fefa644a9f2 /usr/src/debug/hello-1.0/hello.c $SHA
 
-egrep '(libc.error.*rhel7)|(bc1febfd03ca)|(f0aa15b8aba)' vlog4
+egrep '(libc.error.*rhel7)|(bc1febfd03ca)|(f0aa15b8aba)' vlog$PORT1
 
 ########################################################################
 
@@ -403,9 +405,9 @@ export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache2
 mkdir -p $DEBUGINFOD_CACHE_PATH
 # NB: inherits the DEBUGINFOD_URLS to the first server
 # NB: run in -L symlink-following mode for the L subdir
-env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -U -d ${DB}_2 -p $PORT2 -L L D > vlog3 2>&1 &
+env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -U -d ${DB}_2 -p $PORT2 -L L D > vlog$PORT2 2>&1 &
 PID2=$!
-tempfiles vlog3
+tempfiles vlog$PORT2
 tempfiles ${DB}_2
 wait_ready $PORT2 'ready' 1
 wait_ready $PORT2 'thread_work_total{role="traverse"}' 1
@@ -436,11 +438,11 @@ rm -rf $DEBUGINFOD_CACHE_PATH
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 
 # send a request to stress XFF and User-Agent federation relay;
-# we'll grep for the two patterns in vlog4
+# we'll grep for the two patterns in vlog$PORT1
 curl -s -H 'User-Agent: TESTCURL' -H 'X-Forwarded-For: TESTXFF' $DEBUGINFOD_URLS/buildid/deaddeadbeef00000000/debuginfo -o /dev/null || true
 
-grep UA:TESTCURL vlog4
-grep XFF:TESTXFF vlog4
+grep UA:TESTCURL vlog$PORT1
+grep XFF:TESTXFF vlog$PORT1
 
 
 # confirm that first server can't resolve symlinked info in L/ but second can
@@ -521,11 +523,11 @@ tempfiles .debuginfod_*
 testrun ${abs_builddir}/debuginfod_build_id_find -e F/prog2 1
 
 # check out the debuginfod logs for the new style status lines
-# cat vlog3
-grep -q 'UA:.*XFF:.*GET /buildid/.* 200 ' vlog3
-grep -q 'UA:.*XFF:.*GET /metrics 200 ' vlog3
-grep -q 'UA:.*XFF:.*GET /badapi 503 ' vlog3
-grep -q 'UA:.*XFF:.*GET /buildid/deadbeef.* 404 ' vlog3
+# cat vlog$PORT2
+grep -q 'UA:.*XFF:.*GET /buildid/.* 200 ' vlog$PORT2
+grep -q 'UA:.*XFF:.*GET /metrics 200 ' vlog$PORT2
+grep -q 'UA:.*XFF:.*GET /badapi 503 ' vlog$PORT2
+grep -q 'UA:.*XFF:.*GET /buildid/deadbeef.* 404 ' vlog$PORT2
 
 ########################################################################
 

@@ -174,6 +174,20 @@ newsecndx (size_t secndx, size_t shdrstrndx, size_t shdrnum,
   return secndx < shdrstrndx ? secndx : secndx - 1;
 }
 
+static void
+new_data_buf (Elf_Data *d, const char *fname,
+	      size_t ndx, size_t shdrstrndx, size_t shdrnum)
+{
+  size_t s = d->d_size;
+  if (s == 0)
+    fail_idx ("Expected data in section", fname, ndx);
+  void *b = malloc (d->d_size);
+  if (b == NULL)
+    fail_idx ("Couldn't allocated buffer for section", NULL, ndx);
+  newscnbufs[newsecndx (ndx, shdrstrndx, shdrnum, fname,
+			"section", ndx, "d_buf", 0)] = d->d_buf = b;
+}
+
 int
 main (int argc, char **argv)
 {
@@ -480,18 +494,6 @@ main (int argc, char **argv)
 	 manipulate the original data.  Allocate and check here, so we
 	 have a list of all data buffers we might need to release when
 	 done.  */
-      void new_data_buf (Elf_Data *d)
-      {
-	size_t s = d->d_size;
-	if (s == 0)
-	  fail_idx ("Expected data in section", fname, ndx);
-	void *b = malloc (d->d_size);
-	if (b == NULL)
-	  fail_idx ("Couldn't allocated buffer for section", NULL, ndx);
-	newscnbufs[newsecndx (ndx, shdrstrndx, shdrnum, fname,
-			      "section", ndx, "d_buf", 0)] = d->d_buf = b;
-      }
-
       Elf_Data *newdata = elf_newdata (newscn);
       if (newdata == NULL)
 	fail_elf_idx ("Couldn't create new data for section", fnew, ndx);
@@ -518,7 +520,7 @@ main (int argc, char **argv)
 		const bool update_name = shdr->sh_link == strtabndx;
 		if (update_name && ndx != symtabndx)
 		  fail ("Only one symbol table using strtab expected", fname);
-		new_data_buf (newdata);
+		new_data_buf (newdata, fname, ndx, shdrstrndx, shdrnum);
 		size_t syms = (data->d_size
 			       / gelf_fsize (elf, ELF_T_SYM, 1, EV_CURRENT));
 		for (size_t i = 0; i < syms; i++)
@@ -549,7 +551,7 @@ main (int argc, char **argv)
 
 	    case SHT_GROUP:
 	      {
-		new_data_buf (newdata);
+		new_data_buf (newdata, fname, ndx, shdrstrndx, shdrnum);
 		/* A section group contains Elf32_Words. The first
 		   word is a flag value, the rest of the words are
 		   indexes of the sections belonging to the group.  */
@@ -567,7 +569,7 @@ main (int argc, char **argv)
 
 	    case SHT_SYMTAB_SHNDX:
 	      {
-		new_data_buf (newdata);
+		new_data_buf (newdata, fname, ndx, shdrstrndx, shdrnum);
 		/* A SHNDX just contains an array of section indexes
 		   for the corresponding symbol table.  The entry is
 		   SHN_UNDEF unless the corresponding symbol is

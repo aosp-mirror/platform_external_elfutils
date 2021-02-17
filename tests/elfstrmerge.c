@@ -147,6 +147,33 @@ fail_elf_idx (const char *msg, const char *fname, size_t idx)
   abort();
 }
 
+/* section index mapping and sanity checking.  */
+static size_t
+newsecndx (size_t secndx, size_t shdrstrndx, size_t shdrnum,
+	   const char *fname,
+	   const char *what, size_t widx,
+	   const char *member, size_t midx)
+{
+  if (unlikely (secndx == 0 || secndx == shdrstrndx || secndx >= shdrnum))
+    {
+      /* Don't use fail... too specialized messages.  Call release
+	 outselves and then error.  Ignores midx if widx is
+	 zero.  */
+      release ();
+      if (widx == 0)
+	error (1, 0, "%s: bad section index %zd in %s for %s",
+	       fname, secndx, what, member);
+      else if (midx == 0)
+	error (1, 0, "%s: bad section index %zd in %s %zd for %s",
+	       fname, secndx, what, widx, member);
+      else
+	error (1, 0, "%s: bad section index %zd in %s %zd for %s %zd",
+	       fname, secndx, what, widx, member, midx);
+    }
+
+  return secndx < shdrstrndx ? secndx : secndx - 1;
+}
+
 int
 main (int argc, char **argv)
 {
@@ -325,30 +352,6 @@ main (int argc, char **argv)
   if (newstrtabdata.d_size >= shdrstrshdr->sh_size + strtabshdr->sh_size)
     fail ("Impossible, merged string table is larger", fname);
 
-  /* section index mapping and sanity checking.  */
-  size_t newsecndx (size_t secndx, const char *what, size_t widx,
-		    const char *member, size_t midx)
-  {
-    if (unlikely (secndx == 0 || secndx == shdrstrndx || secndx >= shdrnum))
-      {
-	/* Don't use fail... too specialized messages.  Call release
-	   ourselves and then error.  Ignores midx if widx is
-	   zero.  */
-	release ();
-	if (widx == 0)
-	  error (1, 0, "%s: bad section index %zd in %s for %s",
-		 fname, secndx, what, member);
-	else if (midx == 0)
-	  error (1, 0, "%s: bad section index %zd in %s %zd for %s",
-		 fname, secndx, what, widx, member);
-	else
-	  error (1, 0, "%s: bad section index %zd in %s %zd for %s %zd",
-		 fname, secndx, what, widx, member, midx);
-      }
-
-    return secndx < shdrstrndx ? secndx : secndx - 1;
-  }
-
   struct stat st;
   if (fstat (fd, &st) != 0)
     fail_errno("Couldn't fstat", fname);
@@ -392,7 +395,8 @@ main (int argc, char **argv)
   newehdr.e_flags = ehdr.e_flags;
 
   /* The new file uses the new strtab as shstrtab.  */
-  size_t newstrtabndx = newsecndx (strtabndx, "ehdr", 0, "e_shstrndx", 0);
+  size_t newstrtabndx = newsecndx (strtabndx, shdrstrndx, shdrnum,
+				   fname, "ehdr", 0, "e_shstrndx", 0);
   if (newstrtabndx < SHN_LORESERVE)
     newehdr.e_shstrndx = newstrtabndx;
   else
@@ -460,11 +464,14 @@ main (int argc, char **argv)
       newshdr.sh_addr = shdr->sh_addr;
       newshdr.sh_size = shdr->sh_size;
       if (shdr->sh_link != 0)
-	newshdr.sh_link = newsecndx (shdr->sh_link, "shdr", ndx, "sh_link", 0);
+	newshdr.sh_link = newsecndx (shdr->sh_link, shdrstrndx, shdrnum,
+				     fname, "shdr", ndx, "sh_link", 0);
       else
 	newshdr.sh_link = 0;
       if (SH_INFO_LINK_P (shdr) && shdr->sh_info != 0)
-	newshdr.sh_info = newsecndx (shdr->sh_info, "shdr", ndx, "sh_info", 0);
+	newshdr.sh_info = newsecndx (shdr->sh_info, shdrstrndx, shdrnum,
+				     fname, "shdr", ndx, "sh_info", 0);
+
       else
 	newshdr.sh_info = shdr->sh_info;
       newshdr.sh_entsize = shdr->sh_entsize;
@@ -481,7 +488,8 @@ main (int argc, char **argv)
 	void *b = malloc (d->d_size);
 	if (b == NULL)
 	  fail_idx ("Couldn't allocated buffer for section", NULL, ndx);
-	newscnbufs[newsecndx (ndx, "section", ndx, "d_buf", 0)] = d->d_buf = b;
+	newscnbufs[newsecndx (ndx, shdrstrndx, shdrnum, fname,
+			      "section", ndx, "d_buf", 0)] = d->d_buf = b;
       }
 
       Elf_Data *newdata = elf_newdata (newscn);
@@ -526,8 +534,8 @@ main (int argc, char **argv)
 			       " for old shdrstrndx %zd\n", ndx, i, shdrstrndx);
 		    else if (sym.st_shndx != SHN_UNDEF
 			     && sym.st_shndx < SHN_LORESERVE)
-		      sym.st_shndx = newsecndx (sym.st_shndx, "section", ndx,
-						"symbol", i);
+		      sym.st_shndx = newsecndx (sym.st_shndx, shdrstrndx, shdrnum,
+					 fname, "section", ndx, "symbol", i);
 		    if (update_name && sym.st_name != 0)
 		      sym.st_name = dwelf_strent_off (symstrents[i]);
 
@@ -552,8 +560,8 @@ main (int argc, char **argv)
 		  fail_idx ("Not enough data in group section", fname, ndx);
 		newgroup[0] = group[0];
 		for (size_t i = 1; i < words; i++)
-		  newgroup[i] = newsecndx (group[i], "section", ndx,
-					   "group", i);
+		  newgroup[i] = newsecndx (group[i], shdrstrndx, shdrnum,
+					   fname, "section", ndx, "group", i);
 	      }
 	      break;
 
@@ -571,8 +579,8 @@ main (int argc, char **argv)
 		  if (shndx[i] == SHN_UNDEF)
 		    newshndx[i] = SHN_UNDEF;
 		  else
-		    newshndx[i] = newsecndx (shndx[i], "section", ndx,
-					     "shndx", i);
+		    newshndx[i] = newsecndx (shndx[i], shdrstrndx, shdrnum,
+					     fname, "section", ndx, "shndx", i);
 	      }
 	      break;
 

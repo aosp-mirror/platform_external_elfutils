@@ -1,3 +1,9 @@
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
+	* elfstrmerge.c (main): Move newsecndx function to...
+	(newsecndx): ...top-level static function adding shdrstrndx,
+	shdrnum and fname as arguments.
+
 2021-02-25  Frank Ch. Eigler <fche@redhat.com>
 
 	* run-debuginfod-find.sh: Add bad webapi artifacttype test.

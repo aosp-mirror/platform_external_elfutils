@@ -1,5 +1,9 @@
 2021-02-17  Timm Bäder  <tbaeder@redhat.com>
 
+	* configure.ac: Add -Wno-packed-not-aligned check.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
 	* configure.ac: Add -Wtrampolines check.
 
 2021-02-05  Mark Wielaard  <mark@klomp.org>

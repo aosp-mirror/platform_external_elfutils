@@ -546,6 +546,15 @@ CFLAGS="$old_CFLAGS"])
 AM_CONDITIONAL(HAVE_TRAMPOLINES_WARNING,
 	       [test "x$ac_cv_trampolines" != "xno"])
 
+AC_CACHE_CHECK([whether the compiler accepts -Wno-packed-not-aligned], ac_cv_no_packed_not_aligned, [dnl
+old_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -Wno-packed-not-aligned -Werror"
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([])],
+		  ac_cv_no_packed_not_aligned=yes, ac_cv_no_packed_not_aligned=no)
+CFLAGS="$old_CFLAGS"])
+AM_CONDITIONAL(HAVE_NO_PACKED_NOT_ALIGNED_WARNING,
+	       [test "x$ac_cv_no_packed_not_aligned" != "xno"])
+
 saved_LIBS="$LIBS"
 AC_SEARCH_LIBS([argp_parse], [argp])
 LIBS="$saved_LIBS"

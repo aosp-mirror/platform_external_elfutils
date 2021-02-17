@@ -1,5 +1,11 @@
 2021-02-17  Timm Bäder  <tbaeder@redhat.com>
 
+	* eu.am (NO_PACKED_NOT_ALIGNED_WARNING): New variable.
+	(AM_CFLAGS): Use NO_PACKED_NOT_ALIGNED_WARNING.
+	(AM_CXXFLAGS): Likewise.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
 	* eu.am (TRAMPOLINES_WARNING): New variable.
 	(AM_CFLAGS): Use TRAMPOLINES_WARNING.
 	(AM_CXXFLAGS): Likewise.

@@ -1,5 +1,11 @@
 2021-02-17  Timm Bäder  <tbaeder@redhat.com>
 
+	* unstrip.c (adjust_relocs): Move adjust_reloc function to...
+	(adjust_reloc): ... here as static top-level function taking
+	a map array and size as extra arguments.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
 	* elflint.c (check_attributes): Rename and move left function...
 	(buffer_left): ...as static toplevel function taking both an
 	Elf_Data pointer argument and the unsigned char pointer p.

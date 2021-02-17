@@ -432,23 +432,25 @@ update_sh_size (Elf_Scn *outscn, const Elf_Data *data)
   update_shdr (outscn, newshdr);
 }
 
+static inline void
+adjust_reloc (GElf_Xword *info,
+	      size_t map[], size_t map_size)
+{
+  size_t ndx = GELF_R_SYM (*info);
+  if (ndx != STN_UNDEF)
+    {
+      if (ndx > map_size)
+	error (EXIT_FAILURE, 0, "bad symbol ndx section");
+      *info = GELF_R_INFO (map[ndx - 1], GELF_R_TYPE (*info));
+    }
+}
+
 /* Update relocation sections using the symbol table.  */
 static void
 adjust_relocs (Elf_Scn *outscn, Elf_Scn *inscn, const GElf_Shdr *shdr,
 	       size_t map[], size_t map_size, const GElf_Shdr *symshdr)
 {
   Elf_Data *data = elf_getdata (outscn, NULL);
-
-  inline void adjust_reloc (GElf_Xword *info)
-    {
-      size_t ndx = GELF_R_SYM (*info);
-      if (ndx != STN_UNDEF)
-	{
-	  if (ndx > map_size)
-	    error (EXIT_FAILURE, 0, "bad symbol ndx section");
-	  *info = GELF_R_INFO (map[ndx - 1], GELF_R_TYPE (*info));
-	}
-    }
 
   switch (shdr->sh_type)
     {
@@ -460,7 +462,7 @@ adjust_relocs (Elf_Scn *outscn, Elf_Scn *inscn, const GElf_Shdr *shdr,
 	{
 	  GElf_Rel rel_mem;
 	  GElf_Rel *rel = gelf_getrel (data, i, &rel_mem);
-	  adjust_reloc (&rel->r_info);
+	  adjust_reloc (&rel->r_info, map, map_size);
 	  ELF_CHECK (gelf_update_rel (data, i, rel),
 		     _("cannot update relocation: %s"));
 	}
@@ -474,7 +476,7 @@ adjust_relocs (Elf_Scn *outscn, Elf_Scn *inscn, const GElf_Shdr *shdr,
 	{
 	  GElf_Rela rela_mem;
 	  GElf_Rela *rela = gelf_getrela (data, i, &rela_mem);
-	  adjust_reloc (&rela->r_info);
+	  adjust_reloc (&rela->r_info, map, map_size);
 	  ELF_CHECK (gelf_update_rela (data, i, rela),
 		     _("cannot update relocation: %s"));
 	}

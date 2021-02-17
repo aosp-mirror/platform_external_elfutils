@@ -2225,22 +2225,23 @@ open_file (const char *file, bool writable)
   return fd;
 }
 
+/* Warn, and exit if not forced to continue, if some ELF header
+   sanity check for the stripped and unstripped files failed.  */
+static void
+warn (const char *msg, bool force,
+      const char *stripped_file, const char *unstripped_file)
+{
+  error (force ? 0 : EXIT_FAILURE, 0, "%s'%s' and '%s' %s%s.",
+	 force ? _("WARNING: ") : "",
+	 stripped_file, unstripped_file, msg,
+	 force ? "" : _(", use --force"));
+}
+
 /* Handle a pair of files we need to open by name.  */
 static void
 handle_explicit_files (const char *output_file, bool create_dirs, bool force,
 		       const char *stripped_file, const char *unstripped_file)
 {
-
-  /* Warn, and exit if not forced to continue, if some ELF header
-     sanity check for the stripped and unstripped files failed.  */
-  void warn (const char *msg)
-  {
-    error (force ? 0 : EXIT_FAILURE, 0, "%s'%s' and '%s' %s%s.",
-	   force ? _("WARNING: ") : "",
-	   stripped_file, unstripped_file, msg,
-	   force ? "" : _(", use --force"));
-  }
-
   int stripped_fd = open_file (stripped_file, false);
   Elf *stripped = elf_begin (stripped_fd, ELF_C_READ, NULL);
   GElf_Ehdr stripped_ehdr;
@@ -2261,16 +2262,20 @@ handle_explicit_files (const char *output_file, bool create_dirs, bool force,
 
       if (memcmp (stripped_ehdr.e_ident,
 		  unstripped_ehdr.e_ident, EI_NIDENT) != 0)
-	warn (_("ELF header identification (e_ident) different"));
+	warn (_("ELF header identification (e_ident) different"), force,
+	      stripped_file, unstripped_file);
 
       if (stripped_ehdr.e_type != unstripped_ehdr.e_type)
-	warn (_("ELF header type (e_type) different"));
+	warn (_("ELF header type (e_type) different"), force,
+	      stripped_file, unstripped_file);
 
       if (stripped_ehdr.e_machine != unstripped_ehdr.e_machine)
-	warn (_("ELF header machine type (e_machine) different"));
+	warn (_("ELF header machine type (e_machine) different"), force,
+	      stripped_file, unstripped_file);
 
       if (stripped_ehdr.e_phnum < unstripped_ehdr.e_phnum)
-	warn (_("stripped program header (e_phnum) smaller than unstripped"));
+	warn (_("stripped program header (e_phnum) smaller than unstripped"),
+	      force, stripped_file, unstripped_file);
     }
 
   handle_file (output_file, create_dirs, stripped, &stripped_ehdr, unstripped);

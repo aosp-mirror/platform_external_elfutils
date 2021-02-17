@@ -1,5 +1,11 @@
 2021-02-17  Timm Bäder  <tbaeder@redhat.com>
 
+	* unstrip.c (handle_explicit_files): Move warn function...
+	(warn): ...here as top-level static function taking stripped,
+	unstripped files and force flag as extra arguments.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
 	* unstrip.c (copy_elided_sections): Inline find_unalloc_section
 	function into calling location. The sec pointer is set to NULL
 	before the if-else statement and only set when match is found.

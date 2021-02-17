@@ -256,6 +256,16 @@ get_section (unsigned int *sections, size_t ndx)
   return (sections[ndx / WORD_BITS] & (1U << (ndx % WORD_BITS))) != 0;
 }
 
+/* How many sections are we going to change?  */
+static size_t
+get_sections (unsigned int *sections, size_t shnum)
+{
+  size_t s = 0;
+  for (size_t i = 0; i < shnum / WORD_BITS + 1; i++)
+    s += __builtin_popcount (sections[i]);
+  return s;
+}
+
 static int
 process_file (const char *fname)
 {
@@ -288,15 +298,6 @@ process_file (const char *fname)
 
   /* How many sections are we talking about?  */
   size_t shnum = 0;
-
-  /* How many sections are we going to change?  */
-  size_t get_sections (void)
-  {
-    size_t s = 0;
-    for (size_t i = 0; i < shnum / WORD_BITS + 1; i++)
-      s += __builtin_popcount (sections[i]);
-    return s;
-  }
 
   int cleanup (int res)
   {
@@ -552,7 +553,7 @@ process_file (const char *fname)
 	  }
     }
 
-  if (foutput == NULL && get_sections () == 0)
+  if (foutput == NULL && get_sections (sections, shnum) == 0)
     {
       if (verbose > 0)
 	printf ("Nothing to do.\n");

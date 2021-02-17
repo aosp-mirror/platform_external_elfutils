@@ -2498,21 +2498,18 @@ static void
 handle_implicit_modules (const struct arg_info *info)
 {
   struct match_module_info mmi = { info->args, NULL, info->match_files };
-  inline ptrdiff_t next (ptrdiff_t offset)
-    {
-      return dwfl_getmodules (info->dwfl, &match_module, &mmi, offset);
-    }
-  ptrdiff_t offset = next (0);
+  ptrdiff_t offset = dwfl_getmodules (info->dwfl, &match_module, &mmi, 0);
   if (offset == 0)
     error (EXIT_FAILURE, 0, _("no matching modules found"));
 
   if (info->list)
     do
       list_module (mmi.found);
-    while ((offset = next (offset)) > 0);
+    while ((offset = dwfl_getmodules (info->dwfl, &match_module, &mmi,
+				      offset)) > 0);
   else if (info->output_dir == NULL)
     {
-      if (next (offset) != 0)
+      if (dwfl_getmodules (info->dwfl, &match_module, &mmi, offset) != 0)
 	error (EXIT_FAILURE, 0, _("matched more than one module"));
       handle_dwfl_module (info->output_file, false, info->force, mmi.found,
 			  info->all, info->ignore, info->relocate);
@@ -2522,7 +2519,8 @@ handle_implicit_modules (const struct arg_info *info)
       handle_output_dir_module (info->output_dir, mmi.found, info->force,
 				info->all, info->ignore,
 				info->modnames, info->relocate);
-    while ((offset = next (offset)) > 0);
+    while ((offset = dwfl_getmodules (info->dwfl, &match_module, &mmi,
+				      offset)) > 0);
 }
 
 int

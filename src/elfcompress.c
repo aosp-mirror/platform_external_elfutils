@@ -52,6 +52,8 @@ static const char *foutput = NULL;
 #define T_DECOMPRESS 1    /* none */
 #define T_COMPRESS_ZLIB 2 /* zlib */
 #define T_COMPRESS_GNU  3 /* zlib-gnu */
+#define WORD_BITS (8U * sizeof (unsigned int))
+
 static int type = T_UNSET;
 
 struct section_pattern
@@ -242,6 +244,12 @@ compress_section (Elf_Scn *scn, size_t orig_size, const char *name,
   return res;
 }
 
+static void
+set_section (unsigned int *sections, size_t ndx)
+{
+  sections[ndx / WORD_BITS] |= (1U << (ndx % WORD_BITS));
+}
+
 static int
 process_file (const char *fname)
 {
@@ -274,12 +282,6 @@ process_file (const char *fname)
 
   /* How many sections are we talking about?  */
   size_t shnum = 0;
-
-#define WORD_BITS (8U * sizeof (unsigned int))
-  void set_section (size_t ndx)
-  {
-    sections[ndx / WORD_BITS] |= (1U << (ndx % WORD_BITS));
-  }
 
   bool get_section (size_t ndx)
   {
@@ -498,7 +500,7 @@ process_file (const char *fname)
 	  else if (shdr->sh_type != SHT_NOBITS
 	      && (shdr->sh_flags & SHF_ALLOC) == 0)
 	    {
-	      set_section (ndx);
+	      set_section (sections, ndx);
 	      /* Check if we might want to change this section name.  */
 	      if (! adjust_names
 		  && ((type != T_COMPRESS_GNU

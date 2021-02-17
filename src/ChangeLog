@@ -1,5 +1,11 @@
 2021-02-17  Timm Bäder  <tbaeder@redhat.com>
 
+	* elfcompress.c (process_file): Move set_section function...
+	(set_section): ...to top-level static function taking a
+	section array.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
 	* unstrip.c (handle_implicit_modules): Inline the next function
 	in three places. This is simply dwfl_getmodules with match_module
 	callback providing mmi.

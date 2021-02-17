@@ -1,3 +1,7 @@
+Version 0.184
+
+debuginfod: Use libarchive's bsdtar as the .deb-family file unpacker.
+
 Version 0.183
 
 debuginfod: New thread-busy metric and more detailed error metrics.

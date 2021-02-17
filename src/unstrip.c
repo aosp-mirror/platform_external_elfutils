@@ -1065,6 +1065,20 @@ get_group_sig (Elf *elf, GElf_Shdr *shdr)
   return sig;
 }
 
+static inline bool
+check_match (bool match, Elf_Scn *scn, const char *name)
+{
+  if (!match)
+    {
+      error (0, 0, _("cannot find matching section for [%zu] '%s'"),
+	     elf_ndxscn (scn), name);
+      return true;
+    }
+
+  return false;
+}
+
+
 /* Fix things up when prelink has moved some allocated sections around
    and the debuginfo file's section headers no longer match up.
    This fills in SECTIONS[0..NALLOC-1].outscn or exits.
@@ -1200,16 +1214,6 @@ find_alloc_sections_prelink (Elf *debug, Elf_Data *debug_shstrtab,
     }
 
   bool fail = false;
-  inline void check_match (bool match, Elf_Scn *scn, const char *name)
-    {
-      if (!match)
-	{
-	  fail = true;
-	  error (0, 0, _("cannot find matching section for [%zu] '%s'"),
-		 elf_ndxscn (scn), name);
-	}
-    }
-
   Elf_Scn *scn = NULL;
   while ((scn = elf_nextscn (debug, scn)) != NULL)
     {
@@ -1240,7 +1244,7 @@ find_alloc_sections_prelink (Elf *debug, Elf_Data *debug_shstrtab,
       for (size_t i = 0; shdr != NULL && i < nalloc; ++i)
 	if (sections[i].outscn == scn)
 	  shdr = NULL;
-      check_match (shdr == NULL, scn, name);
+      fail |= check_match (shdr == NULL, scn, name);
     }
 
   if (fail)
@@ -1296,7 +1300,7 @@ find_alloc_sections_prelink (Elf *debug, Elf_Data *debug_shstrtab,
 	    }
 	}
 
-      check_match (undo_sec == NULL, scn, name);
+      fail |= check_match (undo_sec == NULL, scn, name);
     }
 
   free (undo_sections);

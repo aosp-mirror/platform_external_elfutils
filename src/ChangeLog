@@ -1,5 +1,12 @@
 2021-02-17  Timm Bäder  <tbaeder@redhat.com>
 
+	* unstrip.c (find_alloc_sections_prelink): Move check_match to...
+	(check_match): Adjusted to return whether there was no match,
+	which indicates a failure. So callers are adjusted to or the
+	result into a local fail boolean.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
 	* unstrip.c (adjust_relocs): Move adjust_reloc function to...
 	(adjust_reloc): ... here as static top-level function taking
 	a map array and size as extra arguments.

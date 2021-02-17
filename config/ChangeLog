@@ -1,3 +1,9 @@
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
+	* eu.am (TRAMPOLINES_WARNING): New variable.
+	(AM_CFLAGS): Use TRAMPOLINES_WARNING.
+	(AM_CXXFLAGS): Likewise.
+
 2021-02-12  Mark Wielaard  <mark@klomp.org>
 
 	* elfutils.spec.in: Escape %%check in comment.

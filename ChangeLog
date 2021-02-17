@@ -1,3 +1,7 @@
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
+	* configure.ac: Add -Wtrampolines check.
+
 2021-02-05  Mark Wielaard  <mark@klomp.org>
 
 	* configure.ac (AC_INIT): Set version to 0.183.

@@ -537,6 +537,15 @@ if test "$ac_cv_implicit_fallthrough" = "yes"; then
 		  [Defined if __attribute__((fallthrough)) is supported])
 fi
 
+AC_CACHE_CHECK([whether the compiler accepts -Wtrampolines], ac_cv_trampolines, [dnl
+old_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -Wtrampolines -Werror"
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([])],
+		  ac_cv_trampolines=yes, ac_cv_trampolines=no)
+CFLAGS="$old_CFLAGS"])
+AM_CONDITIONAL(HAVE_TRAMPOLINES_WARNING,
+	       [test "x$ac_cv_trampolines" != "xno"])
+
 saved_LIBS="$LIBS"
 AC_SEARCH_LIBS([argp_parse], [argp])
 LIBS="$saved_LIBS"

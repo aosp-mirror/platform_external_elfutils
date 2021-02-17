@@ -3428,6 +3428,12 @@ section [%2d] '%s': unknown parent version '%s'\n"),
     }
 }
 
+static inline size_t
+buffer_pos (Elf_Data *data, const unsigned char *p)
+{
+  return p - (const unsigned char *) data->d_buf;
+}
+
 static void
 check_attributes (Ebl *ebl, GElf_Ehdr *ehdr, GElf_Shdr *shdr, int idx)
 {
@@ -3445,11 +3451,6 @@ check_attributes (Ebl *ebl, GElf_Ehdr *ehdr, GElf_Shdr *shdr, int idx)
 	     idx, section_name (ebl, idx));
       return;
     }
-
-  inline size_t pos (const unsigned char *p)
-  {
-    return p - (const unsigned char *) data->d_buf;
-  }
 
   const unsigned char *p = data->d_buf;
   if (*p++ != 'A')
@@ -3472,7 +3473,7 @@ check_attributes (Ebl *ebl, GElf_Ehdr *ehdr, GElf_Shdr *shdr, int idx)
       if (len == 0)
 	ERROR (_("\
 section [%2d] '%s': offset %zu: zero length field in attribute section\n"),
-	       idx, section_name (ebl, idx), pos (p));
+	       idx, section_name (ebl, idx), buffer_pos (data, p));
 
       if (MY_ELFDATA != ehdr->e_ident[EI_DATA])
 	CONVERT (len);
@@ -3481,7 +3482,7 @@ section [%2d] '%s': offset %zu: zero length field in attribute section\n"),
 	{
 	  ERROR (_("\
 section [%2d] '%s': offset %zu: invalid length in attribute section\n"),
-		 idx, section_name (ebl, idx), pos (p));
+		 idx, section_name (ebl, idx), buffer_pos (data, p));
 	  break;
 	}
 
@@ -3493,7 +3494,7 @@ section [%2d] '%s': offset %zu: invalid length in attribute section\n"),
 	{
 	  ERROR (_("\
 section [%2d] '%s': offset %zu: unterminated vendor name string\n"),
-		 idx, section_name (ebl, idx), pos (p));
+		 idx, section_name (ebl, idx), buffer_pos (data, p));
 	  break;
 	}
       ++q;
@@ -3510,7 +3511,7 @@ section [%2d] '%s': offset %zu: unterminated vendor name string\n"),
 	      {
 		ERROR (_("\
 section [%2d] '%s': offset %zu: endless ULEB128 in attribute subsection tag\n"),
-		       idx, section_name (ebl, idx), pos (chunk));
+		       idx, section_name (ebl, idx), buffer_pos (data, chunk));
 		break;
 	      }
 
@@ -3519,7 +3520,7 @@ section [%2d] '%s': offset %zu: endless ULEB128 in attribute subsection tag\n"),
 	      {
 		ERROR (_("\
 section [%2d] '%s': offset %zu: truncated attribute section\n"),
-		       idx, section_name (ebl, idx), pos (q));
+		       idx, section_name (ebl, idx), buffer_pos (data, q));
 		break;
 	      }
 
@@ -3528,7 +3529,7 @@ section [%2d] '%s': offset %zu: truncated attribute section\n"),
 	      {
 		ERROR (_("\
 section [%2d] '%s': offset %zu: zero length field in attribute subsection\n"),
-		       idx, section_name (ebl, idx), pos (q));
+		       idx, section_name (ebl, idx), buffer_pos (data, q));
 
 		q += sizeof subsection_len;
 		continue;
@@ -3543,7 +3544,7 @@ section [%2d] '%s': offset %zu: zero length field in attribute subsection\n"),
 	      {
 		ERROR (_("\
 section [%2d] '%s': offset %zu: invalid length in attribute subsection\n"),
-		       idx, section_name (ebl, idx), pos (q));
+		       idx, section_name (ebl, idx), buffer_pos (data, q));
 		break;
 	      }
 
@@ -3554,7 +3555,7 @@ section [%2d] '%s': offset %zu: invalid length in attribute subsection\n"),
 	    if (subsection_tag != 1) /* Tag_File */
 	      ERROR (_("\
 section [%2d] '%s': offset %zu: attribute subsection has unexpected tag %u\n"),
-		     idx, section_name (ebl, idx), pos (chunk), subsection_tag);
+		     idx, section_name (ebl, idx), buffer_pos (data, chunk), subsection_tag);
 	    else
 	      {
 		chunk += sizeof subsection_len;
@@ -3572,7 +3573,7 @@ section [%2d] '%s': offset %zu: attribute subsection has unexpected tag %u\n"),
 			  {
 			    ERROR (_("\
 section [%2d] '%s': offset %zu: endless ULEB128 in attribute tag\n"),
-				   idx, section_name (ebl, idx), pos (chunk));
+				   idx, section_name (ebl, idx), buffer_pos (data, chunk));
 			    break;
 			  }
 		      }
@@ -3583,7 +3584,7 @@ section [%2d] '%s': offset %zu: endless ULEB128 in attribute tag\n"),
 			  {
 			    ERROR (_("\
 section [%2d] '%s': offset %zu: unterminated string in attribute\n"),
-				   idx, section_name (ebl, idx), pos (chunk));
+				   idx, section_name (ebl, idx), buffer_pos (data, chunk));
 			    break;
 			  }
 			++r;
@@ -3596,11 +3597,11 @@ section [%2d] '%s': offset %zu: unterminated string in attribute\n"),
 						     &tag_name, &value_name))
 		      ERROR (_("\
 section [%2d] '%s': offset %zu: unrecognized attribute tag %u\n"),
-			     idx, section_name (ebl, idx), pos (chunk), tag);
+			     idx, section_name (ebl, idx), buffer_pos (data, chunk), tag);
 		    else if ((tag & 1) == 0 && value_name == NULL)
 		      ERROR (_("\
 section [%2d] '%s': offset %zu: unrecognized %s attribute value %" PRIu64 "\n"),
-			     idx, section_name (ebl, idx), pos (chunk),
+			     idx, section_name (ebl, idx), buffer_pos (data, chunk),
 			     tag_name, value);
 
 		    chunk = r;
@@ -3610,13 +3611,13 @@ section [%2d] '%s': offset %zu: unrecognized %s attribute value %" PRIu64 "\n"),
       else
 	ERROR (_("\
 section [%2d] '%s': offset %zu: vendor '%s' unknown\n"),
-	       idx, section_name (ebl, idx), pos (p), name);
+	       idx, section_name (ebl, idx), buffer_pos (data, p), name);
     }
 
   if (left () != 0)
     ERROR (_("\
 section [%2d] '%s': offset %zu: extra bytes after last attribute section\n"),
-	   idx, section_name (ebl, idx), pos (p));
+	   idx, section_name (ebl, idx), buffer_pos (data, p));
 }
 
 static bool has_loadable_segment;

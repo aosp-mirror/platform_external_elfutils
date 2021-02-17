@@ -1,3 +1,9 @@
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
+	* elflint.c (check_attributes): Rename and move pos function...
+	(buffer_pos): ...as static toplevel function taking an extra
+	Elf_Data pointer argument.
+
 2021-02-12  Mark Wielaard  <mark@klomp.org>
 
 	* readelf.c (print_debug_units): Type DIE offset is from start CU.

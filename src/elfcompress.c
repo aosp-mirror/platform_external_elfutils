@@ -250,6 +250,12 @@ set_section (unsigned int *sections, size_t ndx)
   sections[ndx / WORD_BITS] |= (1U << (ndx % WORD_BITS));
 }
 
+static bool
+get_section (unsigned int *sections, size_t ndx)
+{
+  return (sections[ndx / WORD_BITS] & (1U << (ndx % WORD_BITS))) != 0;
+}
+
 static int
 process_file (const char *fname)
 {
@@ -282,11 +288,6 @@ process_file (const char *fname)
 
   /* How many sections are we talking about?  */
   size_t shnum = 0;
-
-  bool get_section (size_t ndx)
-  {
-    return (sections[ndx / WORD_BITS] & (1U << (ndx % WORD_BITS))) != 0;
-  }
 
   /* How many sections are we going to change?  */
   size_t get_sections (void)
@@ -689,7 +690,7 @@ process_file (const char *fname)
       /* (de)compress if section matched.  */
       char *sname = NULL;
       char *newname = NULL;
-      if (get_section (ndx))
+      if (get_section (sections, ndx))
 	{
 	  GElf_Shdr shdr_mem;
 	  GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);

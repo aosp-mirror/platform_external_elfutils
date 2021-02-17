@@ -3434,6 +3434,12 @@ buffer_pos (Elf_Data *data, const unsigned char *p)
   return p - (const unsigned char *) data->d_buf;
 }
 
+inline size_t
+buffer_left (Elf_Data *data, const unsigned char *p)
+{
+  return (const unsigned char *) data->d_buf + data->d_size - p;
+}
+
 static void
 check_attributes (Ebl *ebl, GElf_Ehdr *ehdr, GElf_Shdr *shdr, int idx)
 {
@@ -3460,12 +3466,7 @@ check_attributes (Ebl *ebl, GElf_Ehdr *ehdr, GElf_Shdr *shdr, int idx)
       return;
     }
 
-  inline size_t left (void)
-  {
-    return (const unsigned char *) data->d_buf + data->d_size - p;
-  }
-
-  while (left () >= 4)
+  while (buffer_left (data, p) >= 4)
     {
       uint32_t len;
       memcpy (&len, p, sizeof len);
@@ -3478,7 +3479,7 @@ section [%2d] '%s': offset %zu: zero length field in attribute section\n"),
       if (MY_ELFDATA != ehdr->e_ident[EI_DATA])
 	CONVERT (len);
 
-      if (len > left ())
+      if (len > buffer_left (data, p))
 	{
 	  ERROR (_("\
 section [%2d] '%s': offset %zu: invalid length in attribute section\n"),
@@ -3614,7 +3615,7 @@ section [%2d] '%s': offset %zu: vendor '%s' unknown\n"),
 	       idx, section_name (ebl, idx), buffer_pos (data, p), name);
     }
 
-  if (left () != 0)
+  if (buffer_left (data, p) != 0)
     ERROR (_("\
 section [%2d] '%s': offset %zu: extra bytes after last attribute section\n"),
 	   idx, section_name (ebl, idx), buffer_pos (data, p));

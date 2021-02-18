@@ -241,6 +241,7 @@ aggregate_size (Dwarf_Die *die, Dwarf_Word *size,
   return -1;
 }
 
+NEW_VERSION (dwarf_aggregate_size, ELFUTILS_0.161)
 int
 dwarf_aggregate_size (Dwarf_Die *die, Dwarf_Word *size)
 {
@@ -251,6 +252,5 @@ dwarf_aggregate_size (Dwarf_Die *die, Dwarf_Word *size)
 
   return aggregate_size (&die_mem, size, &type_mem, 0);
 }
-INTDEF (dwarf_aggregate_size)
+NEW_INTDEF (dwarf_aggregate_size)
 OLD_VERSION (dwarf_aggregate_size, ELFUTILS_0.144)
-NEW_VERSION (dwarf_aggregate_size, ELFUTILS_0.161)

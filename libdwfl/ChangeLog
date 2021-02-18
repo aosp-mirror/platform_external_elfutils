@@ -1,3 +1,10 @@
+2021-02-14  Alexander Miller  <alex.miller@gmx.de>
+
+	* core-file.c (dwfl_core_file_report): Move NEW_VERSION before
+	definition.  Replace INTDEF with NEW_INTDEF.
+	* dwfl_module_build_id.c (dwfl_module_build_id): Likewise.
+	* dwfl_report_elf.c (dwfl_report_elf): Likewise.
+
 2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* linux-pid-attach.c (read_cached_memory): Remove cast of malloc

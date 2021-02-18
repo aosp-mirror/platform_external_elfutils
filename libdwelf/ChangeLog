@@ -1,3 +1,8 @@
+2021-02-14  Alexander Miller  <alex.miller@gmx.de>
+
+	* dwelf_elf_begin.c (dwelf_elf_begin): Move NEW_VERSION before
+	definition.
+
 2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* dwelf_strtab.c (dwelf_strtab_init): Remove cast of calloc return

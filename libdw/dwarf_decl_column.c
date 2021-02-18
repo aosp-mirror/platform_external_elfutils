@@ -35,10 +35,10 @@
 #include "libdwP.h"
 
 
+NEW_VERSION (dwarf_decl_column, ELFUTILS_0.143)
 int
 dwarf_decl_column (Dwarf_Die *decl, int *colp)
 {
   return __libdw_attr_intval (decl, colp, DW_AT_decl_column);
 }
 OLD_VERSION (dwarf_decl_column, ELFUTILS_0.122)
-NEW_VERSION (dwarf_decl_column, ELFUTILS_0.143)

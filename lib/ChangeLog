@@ -1,3 +1,16 @@
+2021-02-14  Alexander Miller  <alex.miller@gmx.de>
+
+	* eu-config.h (used_in_asm): New macro.
+	(NEW_INTDEF): New macro.
+	(NEW_VERSION): Mark symbol as used_in_asm.  Use @@ symver and change
+	asm name instead.  New variant using symver attribute if available.
+	(OLD_VERSION): Update new symbol name. Indent asm directives.  New
+	variant using symver attribute.
+	(COMPAT_VERSION_NEWPROTO): Mark symbol as used_in_asm.  Reorder
+	lines.  Replace asm with __asm__ in declaration.  New variant using
+	symver attribute.
+	(COMPAT_VERSION): Likewise.
+
 2021-09-10  Colin Cross <ccross@google.com>
 
 	* error.c (error): Call fflush on stdout and stderr. Setup errno and

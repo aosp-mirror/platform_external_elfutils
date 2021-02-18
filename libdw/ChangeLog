@@ -1,3 +1,14 @@
+2021-02-14  Alexander Miller  <alex.miller@gmx.de>
+
+	* dwarf_aggregate_size.c (dwarf_aggregate_size): Move NEW_VERSION
+	before definition.  Replace INTDEF with NEW_INTDEF.
+	* dwarf_srclang.c (dwarf_srclang): Likewise.
+	* dwarf_arrayorder.c (dwarf_arrayorder): Move NEW_VERSION.
+	* dwarf_bitoffset.c (dwarf_bitoffset): Likewise.
+	* dwarf_bitsize.c (dwarf_bitsize): Likewise.
+	* dwarf_bytesize.c (dwarf_bytesize): Likewise.
+	* dwarf_decl_column.c (dwarf_decl_column): Likewise.
+
 2021-10-18  Mark Wielaard  <mark@klomp.org>
 
 	* dwarf_aggregate_size.c (get_type): Don't pass NULL to

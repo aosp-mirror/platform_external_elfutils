@@ -348,15 +348,16 @@ RPM_BUILDID=d44d42cbd7d915bc938c81333a21e355a6022fb7 # in rhel6/ subdir, for a l
 
 rm -r R/debuginfod-rpms/rhel6/*
 kill -USR2 $PID1  # groom cycle
-# Expect 3 rpms to be deleted by the groom
 # 1 groom cycle already took place at/soon-after startup, so -USR2 makes 2
 wait_ready $PORT1 'thread_work_total{role="groom"}' 2
-wait_ready $PORT1 'groom{statistic="archive d/e"}' `expr $rpms - 3`
+# Expect 4 rpms containing 2 buildids to be deleted by the groom
+wait_ready $PORT1 'groomed_total{decision="stale"}' 4
 
 rm -rf $DEBUGINFOD_CACHE_PATH # clean it from previous tests
 
+# this is one of the buildids from the groom-deleted rpms
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find executable $RPM_BUILDID && false || true
-
+# but this one was not deleted so should be still around
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find executable $BUILDID2
 
 ########################################################################

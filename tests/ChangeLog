@@ -1,11 +1,12 @@
-2021-02-12  Mark Wielaard  <mark@klomp.org>
-
-	* run-readelf-types.sh: Add CU start to type offset reference.
-
 2021-02-17  Frank Ch. Eigler <fche@redhat.com>
 
 	* run-debuginfod-find.sh: Tweak wait_ready() to also print -vvv log of
-	appropriate debuginfod if metric timeout occurs.
+	appropriate debuginfod if metric timeout occurs.  Focus grooming
+	test carefully at a more deterministic metric.
+
+2021-02-12  Mark Wielaard  <mark@klomp.org>
+
+	* run-readelf-types.sh: Add CU start to type offset reference.
 
 2021-02-07  Alexander Miller  <alex.miller@gmx.de>
 

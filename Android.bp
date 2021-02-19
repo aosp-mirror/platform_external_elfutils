@@ -146,6 +146,7 @@ cc_library_host_static {
         // Those headers are incompatible with clang due to nested function
         // definitions.
         "libdwfl/dwfl_segment_report_module.c",
+        "libdwfl/debuginfod-client.c",
         "libdwfl/elf-from-memory.c",
         "libdwfl/link_map.c",
         // Those are common source files actually used as headers and not

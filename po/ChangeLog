@@ -1,3 +1,8 @@
+2021-02-21  Piotr Drąg  <piotrdrag@gmail.com>
+
+	* POTFILES.in: Add libcpu/i386_lex.l, libcpu/i386_parse.y,
+	src/elfclassify.c and debuginfod/debuginfod-find.c.
+
 2021-02-05  Mark Wielaard  <mark@klomp.org>
 
 	* *.po: Update for 0.183.

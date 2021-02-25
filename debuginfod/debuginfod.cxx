@@ -1587,6 +1587,8 @@ handle_buildid (MHD_Connection* conn,
   else if (artifacttype == "source") atype_code = "S";
   else throw reportable_exception("invalid artifacttype");
 
+  inc_metric("http_requests_total", "type", artifacttype);
+  
   if (atype_code == "S" && suffix == "")
      throw reportable_exception("invalid source suffix");
 
@@ -1936,7 +1938,6 @@ handler_cb (void * /*cls*/,
               suffix = url_copy.substr(slash3); // include the slash in the suffix
             }
 
-          inc_metric("http_requests_total", "type", artifacttype);
           // get the resulting fd so we can report its size
           int fd;
           r = handle_buildid(connection, buildid, artifacttype, suffix, &fd);

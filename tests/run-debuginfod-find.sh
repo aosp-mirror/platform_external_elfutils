@@ -493,6 +493,9 @@ curl -s http://127.0.0.1:$PORT1/metrics | grep 'scanned_bytes_total'
 curl -s http://127.0.0.1:$PORT2/badapi > /dev/null || true
 curl -s http://127.0.0.1:$PORT2/buildid/deadbeef/debuginfo > /dev/null || true
 
+# Confirm bad artifact types are rejected without leaving trace
+curl -s http://127.0.0.1:$PORT2/buildid/deadbeef/badtype > /dev/null || true
+(curl -s http://127.0.0.1:$PORT2/metrics | grep 'badtype') && false
 
 ########################################################################
 # Corrupt the sqlite database and get debuginfod to trip across its errors

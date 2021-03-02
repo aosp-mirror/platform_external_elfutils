@@ -298,47 +298,13 @@ process_file (const char *fname)
 
   /* How many sections are we talking about?  */
   size_t shnum = 0;
-
-  int cleanup (int res)
-  {
-    elf_end (elf);
-    close (fd);
-
-    elf_end (elfnew);
-    close (fdnew);
-
-    if (fnew != NULL)
-      {
-	unlink (fnew);
-	free (fnew);
-	fnew = NULL;
-      }
-
-    free (snamebuf);
-    if (names != NULL)
-      {
-	dwelf_strtab_free (names);
-	free (scnstrents);
-	free (symstrents);
-	free (namesbuf);
-	if (scnnames != NULL)
-	  {
-	    for (size_t n = 0; n < shnum; n++)
-	      free (scnnames[n]);
-	    free (scnnames);
-	  }
-      }
-
-    free (sections);
-
-    return res;
-  }
+  int res = -1;
 
   fd = open (fname, O_RDONLY);
   if (fd < 0)
     {
       error (0, errno, "Couldn't open %s\n", fname);
-      return cleanup (-1);
+      goto cleanup;
     }
 
   elf = elf_begin (fd, ELF_C_READ, NULL);
@@ -346,7 +312,7 @@ process_file (const char *fname)
     {
       error (0, 0, "Couldn't open ELF file %s for reading: %s",
 	     fname, elf_errmsg (-1));
-      return cleanup (-1);
+      goto cleanup;
     }
 
   /* We don't handle ar files (or anything else), we probably should.  */
@@ -357,21 +323,21 @@ process_file (const char *fname)
 	error (0, 0, "Cannot handle ar files: %s", fname);
       else
 	error (0, 0, "Unknown file type: %s", fname);
-      return cleanup (-1);
+      goto cleanup;
     }
 
   struct stat st;
   if (fstat (fd, &st) != 0)
     {
       error (0, errno, "Couldn't fstat %s", fname);
-      return cleanup (-1);
+      goto cleanup;
     }
 
   GElf_Ehdr ehdr;
   if (gelf_getehdr (elf, &ehdr) == NULL)
     {
       error (0, 0, "Couldn't get ehdr for %s: %s", fname, elf_errmsg (-1));
-      return cleanup (-1);
+      goto cleanup;
     }
 
   /* Get the section header string table.  */
@@ -380,7 +346,7 @@ process_file (const char *fname)
     {
       error (0, 0, "Couldn't get section header string table index in %s: %s",
 	     fname, elf_errmsg (-1));
-      return cleanup (-1);
+      goto cleanup;
     }
 
   /* How many sections are we talking about?  */
@@ -388,13 +354,13 @@ process_file (const char *fname)
     {
       error (0, 0, "Couldn't get number of sections in %s: %s",
 	     fname, elf_errmsg (1));
-      return cleanup (-1);
+      goto cleanup;
     }
 
   if (shnum == 0)
     {
       error (0, 0, "ELF file %s has no sections", fname);
-      return cleanup (-1);
+      goto cleanup;
     }
 
   sections = xcalloc (shnum / 8 + 1, sizeof (unsigned int));
@@ -403,7 +369,7 @@ process_file (const char *fname)
   if (elf_getphdrnum (elf, &phnum) != 0)
     {
       error (0, 0, "Couldn't get phdrnum: %s", elf_errmsg (-1));
-      return cleanup (-1);
+      goto cleanup;
     }
 
   /* Whether we need to adjust any section names (going to/from GNU
@@ -460,7 +426,7 @@ process_file (const char *fname)
 	{
 	  error (0, 0, "Unexpected section number %zd, expected only %zd",
 		 ndx, shnum);
-	  cleanup (-1);
+	  goto cleanup;
 	}
 
       GElf_Shdr shdr_mem;
@@ -468,14 +434,14 @@ process_file (const char *fname)
       if (shdr == NULL)
 	{
 	  error (0, 0, "Couldn't get shdr for section %zd", ndx);
-	  return cleanup (-1);
+	  goto cleanup;
 	}
 
       const char *sname = elf_strptr (elf, shdrstrndx, shdr->sh_name);
       if (sname == NULL)
 	{
 	  error (0, 0, "Couldn't get name for section %zd", ndx);
-	  return cleanup (-1);
+	  goto cleanup;
 	}
 
       if (section_name_matches (sname))
@@ -536,7 +502,7 @@ process_file (const char *fname)
 		{
 		  error (0, 0,
 			 "Multiple symbol tables (%zd, %zd) using the same string table unsupported", symtabndx, ndx);
-		  return cleanup (-1);
+		  goto cleanup;
 		}
 	      symtabndx = ndx;
 	    }
@@ -558,7 +524,7 @@ process_file (const char *fname)
       if (verbose > 0)
 	printf ("Nothing to do.\n");
       fnew = NULL;
-      return cleanup (0);
+      goto cleanup;
     }
 
   if (adjust_names)
@@ -567,7 +533,7 @@ process_file (const char *fname)
       if (names == NULL)
 	{
 	  error (0, 0, "Not enough memory for new strtab");
-	  return cleanup (-1);
+	  goto cleanup;
 	}
       scnstrents = xmalloc (shnum
 			    * sizeof (Dwelf_Strent *));
@@ -594,7 +560,7 @@ process_file (const char *fname)
       /* Since we didn't create it we don't want to try to unlink it.  */
       free (fnew);
       fnew = NULL;
-      return cleanup (-1);
+      goto cleanup;
     }
 
   elfnew = elf_begin (fdnew, ELF_C_WRITE, NULL);
@@ -602,21 +568,21 @@ process_file (const char *fname)
     {
       error (0, 0, "Couldn't open new ELF %s for writing: %s",
 	     fnew, elf_errmsg (-1));
-      return cleanup (-1);
+      goto cleanup;
     }
 
   /* Create the new ELF header and copy over all the data.  */
   if (gelf_newehdr (elfnew, gelf_getclass (elf)) == 0)
     {
       error (0, 0, "Couldn't create new ehdr: %s", elf_errmsg (-1));
-      return cleanup (-1);
+      goto cleanup;
     }
 
   GElf_Ehdr newehdr;
   if (gelf_getehdr (elfnew, &newehdr) == NULL)
     {
       error (0, 0, "Couldn't get new ehdr: %s", elf_errmsg (-1));
-      return cleanup (-1);
+      goto cleanup;
     }
 
   newehdr.e_ident[EI_DATA] = ehdr.e_ident[EI_DATA];
@@ -629,7 +595,7 @@ process_file (const char *fname)
   if (gelf_update_ehdr (elfnew, &newehdr) == 0)
     {
       error (0, 0, "Couldn't update ehdr: %s", elf_errmsg (-1));
-      return cleanup (-1);
+      goto cleanup;
     }
 
   /* Copy over the phdrs as is.  */
@@ -638,7 +604,7 @@ process_file (const char *fname)
       if (gelf_newphdr (elfnew, phnum) == 0)
 	{
 	  error (0, 0, "Couldn't create phdrs: %s", elf_errmsg (-1));
-	  return cleanup (-1);
+	  goto cleanup;
 	}
 
       for (size_t cnt = 0; cnt < phnum; ++cnt)
@@ -648,13 +614,13 @@ process_file (const char *fname)
 	  if (phdr == NULL)
 	    {
 	      error (0, 0, "Couldn't get phdr %zd: %s", cnt, elf_errmsg (-1));
-	      return cleanup (-1);
+	      goto cleanup;
 	    }
 	  if (gelf_update_phdr (elfnew, cnt, phdr) == 0)
 	    {
 	      error (0, 0, "Couldn't create phdr %zd: %s", cnt,
 		     elf_errmsg (-1));
-	      return cleanup (-1);
+	      goto cleanup;
 	    }
 	}
     }
@@ -698,7 +664,7 @@ process_file (const char *fname)
 	  if (shdr == NULL)
 	    {
 	      error (0, 0, "Couldn't get shdr for section %zd", ndx);
-	      return cleanup (-1);
+	      goto cleanup;
 	    }
 
 	  uint64_t size = shdr->sh_size;
@@ -706,7 +672,7 @@ process_file (const char *fname)
 	  if (sname == NULL)
 	    {
 	      error (0, 0, "Couldn't get name for section %zd", ndx);
-	      return cleanup (-1);
+	      goto cleanup;
 	    }
 
 	  /* strdup sname, the shdrstrndx section itself might be
@@ -728,7 +694,7 @@ process_file (const char *fname)
 		{
 		  if (compress_section (scn, size, sname, NULL, ndx,
 					false, false, verbose > 0) < 0)
-		    return cleanup (-1);
+		    goto cleanup;
 		}
 	      else if (strncmp (sname, ".zdebug", strlen (".zdebug")) == 0)
 		{
@@ -737,7 +703,7 @@ process_file (const char *fname)
 		  newname = snamebuf;
 		  if (compress_section (scn, size, sname, newname, ndx,
 					true, false, verbose > 0) < 0)
-		    return cleanup (-1);
+		    goto cleanup;
 		}
 	      else if (verbose > 0)
 		printf ("[%zd] %s already decompressed\n", ndx, sname);
@@ -752,7 +718,7 @@ process_file (const char *fname)
 			 Don't report even when verbose.  */
 		      if (compress_section (scn, size, sname, NULL, ndx,
 					    false, false, false) < 0)
-			return cleanup (-1);
+			goto cleanup;
 		    }
 
 		  snamebuf[0] = '.';
@@ -779,13 +745,13 @@ process_file (const char *fname)
 		    }
 		  else
 		    {
-		      int res = compress_section (scn, size, sname, newname,
-						  ndx, true, true,
-						  verbose > 0);
-		      if (res < 0)
-			return cleanup (-1);
+		      int result = compress_section (scn, size, sname, newname,
+						     ndx, true, true,
+						     verbose > 0);
+		      if (result < 0)
+			goto cleanup;
 
-		      if (res == 0)
+		      if (result == 0)
 			newname = NULL;
 		    }
 		}
@@ -809,7 +775,7 @@ process_file (const char *fname)
 			 Don't report even when verbose.  */
 		      if (compress_section (scn, size, sname, NULL, ndx,
 					    true, false, false) < 0)
-			return cleanup (-1);
+			goto cleanup;
 
 		      snamebuf[0] = '.';
 		      strcpy (&snamebuf[1], &sname[2]);
@@ -837,7 +803,7 @@ process_file (const char *fname)
 		    }
 		  else if (compress_section (scn, size, sname, newname, ndx,
 					     false, true, verbose > 0) < 0)
-		    return cleanup (-1);
+		    goto cleanup;
 		}
 	      else if (verbose > 0)
 		printf ("[%zd] %s already compressed\n", ndx, sname);
@@ -851,7 +817,7 @@ process_file (const char *fname)
       if (newscn == NULL)
 	{
 	  error (0, 0, "Couldn't create new section %zd", ndx);
-	  return cleanup (-1);
+	  goto cleanup;
 	}
 
       GElf_Shdr shdr_mem;
@@ -859,13 +825,13 @@ process_file (const char *fname)
       if (shdr == NULL)
 	{
 	  error (0, 0, "Couldn't get shdr for section %zd", ndx);
-	  return cleanup (-1);
+	  goto cleanup;
 	}
 
       if (gelf_update_shdr (newscn, shdr) == 0)
         {
 	  error (0, 0, "Couldn't update section header %zd", ndx);
-	  return cleanup (-1);
+	  goto cleanup;
 	}
 
       /* Except for the section header string table all data can be
@@ -878,14 +844,14 @@ process_file (const char *fname)
 	  if (data == NULL)
 	    {
 	      error (0, 0, "Couldn't get data from section %zd", ndx);
-	      return cleanup (-1);
+	      goto cleanup;
 	    }
 
 	  Elf_Data *newdata = elf_newdata (newscn);
 	  if (newdata == NULL)
 	    {
 	      error (0, 0, "Couldn't create new data for section %zd", ndx);
-	      return cleanup (-1);
+	      goto cleanup;
 	    }
 
 	  *newdata = *data;
@@ -903,7 +869,7 @@ process_file (const char *fname)
 	      if (name == NULL)
 		{
 		  error (0, 0, "Couldn't get name for section [%zd]", ndx);
-		  return cleanup (-1);
+		  goto cleanup;
 		}
 	    }
 
@@ -912,7 +878,7 @@ process_file (const char *fname)
 	  if ((scnstrents[ndx] = dwelf_strtab_add (names, name)) == NULL)
 	    {
 	      error (0, 0, "No memory to add section name string table");
-	      return cleanup (-1);
+	      goto cleanup;
 	    }
 
 	  /* If the symtab shares strings then add those too.  */
@@ -929,7 +895,7 @@ process_file (const char *fname)
 		      /* Don't report the (internal) uncompression.  */
 		      if (compress_section (newscn, size, sname, NULL, ndx,
 					    false, false, false) < 0)
-			return cleanup (-1);
+			goto cleanup;
 
 		      symtab_size = size;
 		      symtab_compressed = T_COMPRESS_ZLIB;
@@ -939,7 +905,7 @@ process_file (const char *fname)
 		      /* Don't report the (internal) uncompression.  */
 		      if (compress_section (newscn, size, sname, NULL, ndx,
 					    true, false, false) < 0)
-			return cleanup (-1);
+			goto cleanup;
 
 		      symtab_size = size;
 		      symtab_compressed = T_COMPRESS_GNU;
@@ -951,7 +917,7 @@ process_file (const char *fname)
 		{
 		  error (0, 0, "Couldn't get symtab data for section [%zd] %s",
 			 ndx, name);
-		  return cleanup (-1);
+		  goto cleanup;
 		}
 	      size_t elsize = gelf_fsize (elfnew, ELF_T_SYM, 1, EV_CURRENT);
 	      size_t syms = symd->d_size / elsize;
@@ -963,7 +929,7 @@ process_file (const char *fname)
 		  if (sym == NULL)
 		    {
 		      error (0, 0, "Couldn't get symbol %zd", i);
-		      return cleanup (-1);
+		      goto cleanup;
 		    }
 		  if (sym->st_name != 0)
 		    {
@@ -975,13 +941,13 @@ process_file (const char *fname)
 		      if (symname == NULL)
 			{
 			  error (0, 0, "Couldn't get symbol %zd name", i);
-			  return cleanup (-1);
+			  goto cleanup;
 			}
 		      symstrents[i] = dwelf_strtab_add (names, symname);
 		      if (symstrents[i] == NULL)
 			{
 			  error (0, 0, "No memory to add to symbol name");
-			  return cleanup (-1);
+			  goto cleanup;
 			}
 		    }
 		}
@@ -1000,19 +966,19 @@ process_file (const char *fname)
 	{
 	  error (0, 0, "Couldn't get new section header string table [%zd]",
 		 shdrstrndx);
-	  return cleanup (-1);
+	  goto cleanup;
 	}
 
       Elf_Data *data = elf_newdata (scn);
       if (data == NULL)
 	{
 	  error (0, 0, "Couldn't create new section header string table data");
-	  return cleanup (-1);
+	  goto cleanup;
 	}
       if (dwelf_strtab_finalize (names, data) == NULL)
 	{
 	  error (0, 0, "Not enough memory to create string table");
-	  return cleanup (-1);
+	  goto cleanup;
 	}
       namesbuf = data->d_buf;
 
@@ -1022,7 +988,7 @@ process_file (const char *fname)
 	{
 	  error (0, 0, "Couldn't get shdr for new section strings %zd",
 		 shdrstrndx);
-	  return cleanup (-1);
+	  goto cleanup;
 	}
 
       /* Note that we also might have to compress and possibly set
@@ -1042,7 +1008,7 @@ process_file (const char *fname)
 	{
 	  error (0, 0, "Couldn't update new section strings [%zd]",
 		 shdrstrndx);
-	  return cleanup (-1);
+	  goto cleanup;
 	}
 
       /* We might have to compress the data if the user asked us to,
@@ -1058,7 +1024,7 @@ process_file (const char *fname)
 	    {
 	      error (0, 0, "Couldn't get section header string table [%zd]",
 		     shdrstrndx);
-	      return cleanup (-1);
+	      goto cleanup;
 	    }
 
 	  shdr = gelf_getshdr (oldscn, &shdr_mem);
@@ -1066,7 +1032,7 @@ process_file (const char *fname)
 	    {
 	      error (0, 0, "Couldn't get shdr for old section strings [%zd]",
 		     shdrstrndx);
-	      return cleanup (-1);
+	      goto cleanup;
 	    }
 
 	  shstrtab_name = elf_strptr (elf, shdrstrndx, shdr->sh_name);
@@ -1074,7 +1040,7 @@ process_file (const char *fname)
 	    {
 	      error (0, 0, "Couldn't get name for old section strings [%zd]",
 		     shdrstrndx);
-	      return cleanup (-1);
+	      goto cleanup;
 	    }
 
 	  shstrtab_size = shdr->sh_size;
@@ -1091,7 +1057,7 @@ process_file (const char *fname)
 				shstrtab_newname, shdrstrndx,
 				shstrtab_compressed == T_COMPRESS_GNU,
 				true, verbose > 0) < 0)
-	    return cleanup (-1);
+	    goto cleanup;
 	}
     }
 
@@ -1100,7 +1066,7 @@ process_file (const char *fname)
   if (gelf_getehdr (elfnew, &newehdr) == NULL)
     {
       error (0, 0, "Couldn't re-get new ehdr: %s", elf_errmsg (-1));
-      return cleanup (-1);
+      goto cleanup;
     }
 
   /* Set this after the sections have been created, otherwise section
@@ -1108,7 +1074,7 @@ process_file (const char *fname)
   if (setshdrstrndx (elfnew, &newehdr, shdrstrndx) != 0)
     {
       error (0, 0, "Couldn't set new shdrstrndx: %s", elf_errmsg (-1));
-      return cleanup (-1);
+      goto cleanup;
     }
 
   /* Fixup pass.  Adjust string table references, symbol table and
@@ -1125,7 +1091,7 @@ process_file (const char *fname)
 	  if (shdr == NULL)
 	    {
 	      error (0, 0, "Couldn't get shdr for section %zd", ndx);
-	      return cleanup (-1);
+	      goto cleanup;
 	    }
 
 	  /* Keep the offset of allocated sections so they are at the
@@ -1147,7 +1113,7 @@ process_file (const char *fname)
 	  if (gelf_update_shdr (scn, shdr) == 0)
 	    {
 	      error (0, 0, "Couldn't update section header %zd", ndx);
-	      return cleanup (-1);
+	      goto cleanup;
 	    }
 
 	  if (adjust_names && ndx == symtabndx)
@@ -1160,7 +1126,7 @@ process_file (const char *fname)
 		{
 		  error (0, 0, "Couldn't get new symtab data section [%zd]",
 			 ndx);
-		  return cleanup (-1);
+		  goto cleanup;
 		}
 	      size_t elsize = gelf_fsize (elfnew, ELF_T_SYM, 1, EV_CURRENT);
 	      size_t syms = symd->d_size / elsize;
@@ -1171,7 +1137,7 @@ process_file (const char *fname)
 		  if (sym == NULL)
 		    {
 		      error (0, 0, "2 Couldn't get symbol %zd", i);
-		      return cleanup (-1);
+		      goto cleanup;
 		    }
 
 		  if (sym->st_name != 0)
@@ -1181,7 +1147,7 @@ process_file (const char *fname)
 		      if (gelf_update_sym (symd, i, sym) == 0)
 			{
 			  error (0, 0, "Couldn't update symbol %zd", i);
-			  return cleanup (-1);
+			  goto cleanup;
 			}
 		    }
 		}
@@ -1199,7 +1165,7 @@ process_file (const char *fname)
 		    {
 		      error (0, 0, "Couldn't get symbol table [%zd]",
 			     symtabndx);
-		      return cleanup (-1);
+		      goto cleanup;
 		    }
 
 		  shdr = gelf_getshdr (oldscn, &shdr_mem);
@@ -1207,7 +1173,7 @@ process_file (const char *fname)
 		    {
 		      error (0, 0, "Couldn't get old symbol table shdr [%zd]",
 			     symtabndx);
-		      return cleanup (-1);
+		      goto cleanup;
 		    }
 
 		  symtab_name = elf_strptr (elf, shdrstrndx, shdr->sh_name);
@@ -1215,7 +1181,7 @@ process_file (const char *fname)
 		    {
 		      error (0, 0, "Couldn't get old symbol table name [%zd]",
 			     symtabndx);
-		      return cleanup (-1);
+		      goto cleanup;
 		    }
 
 		  symtab_size = shdr->sh_size;
@@ -1233,7 +1199,7 @@ process_file (const char *fname)
 					symtab_newname, symtabndx,
 					symtab_compressed == T_COMPRESS_GNU,
 					true, verbose > 0) < 0)
-		    return cleanup (-1);
+		    goto cleanup;
 		}
 	    }
 	}
@@ -1247,7 +1213,7 @@ process_file (const char *fname)
       if (gelf_getehdr (elfnew, &newehdr) == NULL)
 	{
 	  error (0, 0, "Couldn't get ehdr: %s", elf_errmsg (-1));
-	  return cleanup (-1);
+	  goto cleanup;
 	}
 
       /* Position the shdrs after the last (unallocated) section.  */
@@ -1262,7 +1228,7 @@ process_file (const char *fname)
       if (gelf_update_ehdr (elfnew, &newehdr) == 0)
 	{
 	  error (0, 0, "Couldn't update ehdr: %s", elf_errmsg (-1));
-	  return cleanup (-1);
+	  goto cleanup;
 	}
     }
 
@@ -1272,7 +1238,7 @@ process_file (const char *fname)
   if (elf_update (elfnew, ELF_C_WRITE) < 0)
     {
       error (0, 0, "Couldn't write %s: %s", fnew, elf_errmsg (-1));
-      return cleanup (-1);
+      goto cleanup;
     }
 
   elf_end (elfnew);
@@ -1294,14 +1260,45 @@ process_file (const char *fname)
     if (rename (fnew, fname) != 0)
       {
 	error (0, errno, "Couldn't rename %s to %s", fnew, fname);
-	return cleanup (-1);
+	goto cleanup;
       }
 
   /* We are finally done with the new file, don't unlink it now.  */
   free (fnew);
   fnew = NULL;
+  res = 0;
 
-  return cleanup (0);
+cleanup:
+  elf_end (elf);
+  close (fd);
+
+  elf_end (elfnew);
+  close (fdnew);
+
+  if (fnew != NULL)
+    {
+      unlink (fnew);
+      free (fnew);
+      fnew = NULL;
+    }
+
+  free (snamebuf);
+  if (names != NULL)
+    {
+      dwelf_strtab_free (names);
+      free (scnstrents);
+      free (symstrents);
+      free (namesbuf);
+      if (scnnames != NULL)
+	{
+	  for (size_t n = 0; n < shnum; n++)
+	    free (scnnames[n]);
+	  free (scnnames);
+	}
+    }
+
+  free (sections);
+  return res;
 }
 
 int

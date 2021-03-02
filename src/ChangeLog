@@ -1,3 +1,9 @@
+2021-03-02  Timm Bäder  <tbaeder@redhat.com>
+
+	* elfcompress.c (process_file): Remove cleanup() function and
+	replace it with a cleanup label at the end of the function.
+	Initialize res to -1.
+
 2021-02-17  Timm Bäder  <tbaeder@redhat.com>
 
 	* elfcompress.c (process_file): Move get_sections function...

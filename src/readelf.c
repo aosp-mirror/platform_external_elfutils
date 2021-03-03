@@ -2554,7 +2554,9 @@ handle_symtab (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 						 &vernaux_mem);
 		      while (vernaux != NULL
 			     && vernaux->vna_other != *versym
-			     && vernaux->vna_next != 0)
+			     && vernaux->vna_next != 0
+			     && (verneed_data->d_size - vna_offset
+				 >= vernaux->vna_next))
 			{
 			  /* Update the offset.  */
 			  vna_offset += vernaux->vna_next;
@@ -2569,6 +2571,9 @@ handle_symtab (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 		      /* Check whether we found the version.  */
 		      if (vernaux != NULL && vernaux->vna_other == *versym)
 			/* Found it.  */
+			break;
+
+		      if (verneed_data->d_size - vn_offset < verneed->vn_next)
 			break;
 
 		      vn_offset += verneed->vn_next;
@@ -2604,6 +2609,9 @@ handle_symtab (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 		    {
 		      if (verdef->vd_ndx == (*versym & 0x7fff))
 			/* Found the definition.  */
+			break;
+
+		      if (verdef_data->d_size - vd_offset < verdef->vd_next)
 			break;
 
 		      vd_offset += verdef->vd_next;

@@ -1,3 +1,8 @@
+2021-03-03  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (handle_symtab): Sanity check verneed vna_next,
+	vn_next and verdef vd_next offsets.
+
 2021-03-02  Timm Bäder  <tbaeder@redhat.com>
 
 	* elfcompress.c (process_file): Remove cleanup() function and

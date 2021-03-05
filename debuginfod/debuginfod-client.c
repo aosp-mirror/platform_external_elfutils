@@ -901,7 +901,7 @@ debuginfod_query_server (debuginfod_client *c,
 
               /* NB: If going through deflate-compressing proxies, this
                  number is likely to be unavailable, so -1 may show. */
-#ifdef CURLINFO_CURLINFO_CONTENT_LENGTH_DOWNLOAD_T
+#ifdef CURLINFO_CONTENT_LENGTH_DOWNLOAD_T
               curl_off_t cl;
               curl_res = curl_easy_getinfo(target_handle,
                                            CURLINFO_CONTENT_LENGTH_DOWNLOAD_T,

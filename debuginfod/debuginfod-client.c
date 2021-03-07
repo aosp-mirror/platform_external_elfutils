@@ -896,7 +896,7 @@ debuginfod_query_server (debuginfod_client *c,
                                            CURLINFO_SIZE_DOWNLOAD,
                                            &dl);
               if (curl_res == 0)
-                pa = (dl > LONG_MAX ? LONG_MAX : (long)dl);
+                pa = (dl >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)dl);
 #endif
 
               /* NB: If going through deflate-compressing proxies, this
@@ -914,7 +914,7 @@ debuginfod_query_server (debuginfod_client *c,
                                            CURLINFO_CONTENT_LENGTH_DOWNLOAD,
                                            &cl);
               if (curl_res == 0)
-                pb = (cl > LONG_MAX ? LONG_MAX : (long)cl);
+                pb = (cl >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)cl);
 #endif
             }
 

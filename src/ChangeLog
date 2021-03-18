@@ -1,3 +1,10 @@
+2021-03-18  Timm Bäder  <tbaeder@redhat.com>
+
+	* readelf.c (run_advance_pc): New static inline function
+	lifted from...
+	(print_debug_line_section): ... here. Define advance_pc
+	using run_advance_pc.
+
 2021-07-03  Mark Wielaard  <mark@klomp.org>
 
 	* readelf.c (compare_listptr): Fix dwarf_attr_name argument.

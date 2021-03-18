@@ -8373,6 +8373,23 @@ print_form_data (Dwarf *dbg, int form, const unsigned char *readp,
   return readp;
 }
 
+/* Only used via run_advance_pc() macro */
+static inline void
+run_advance_pc (unsigned int op_advance,
+                unsigned int minimum_instr_len,
+                unsigned int max_ops_per_instr,
+                unsigned int *op_addr_advance,
+                Dwarf_Word *address,
+                unsigned int *op_index)
+{
+  const unsigned int advanced_op_index = (*op_index) + op_advance;
+
+  *op_addr_advance = minimum_instr_len * (advanced_op_index
+                                         / max_ops_per_instr);
+  *address = *address + *op_addr_advance;
+  *op_index = advanced_op_index % max_ops_per_instr;
+}
+
 static void
 print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 			  Elf_Scn *scn, GElf_Shdr *shdr, Dwarf *dbg)
@@ -8763,13 +8780,8 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
       /* Apply the "operation advance" from a special opcode
 	 or DW_LNS_advance_pc (as per DWARF4 6.2.5.1).  */
       unsigned int op_addr_advance;
-      inline void advance_pc (unsigned int op_advance)
-      {
-	op_addr_advance = minimum_instr_len * ((op_index + op_advance)
-					       / max_ops_per_instr);
-	address += op_addr_advance;
-	op_index = (op_index + op_advance) % max_ops_per_instr;
-      }
+#define advance_pc(op_advance) run_advance_pc(op_advance, minimum_instr_len, \
+                      max_ops_per_instr, &op_addr_advance, &address, &op_index)
 
       if (max_ops_per_instr == 0)
 	{

@@ -1,3 +1,7 @@
+2021-03-21  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* Makevars (XGETTEXT_OPTIONS): Update.
+
 2021-02-21  Piotr Drąg  <piotrdrag@gmail.com>
 
 	* pl.po: Updated.

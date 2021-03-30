@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (C) 2019-2020 Red Hat, Inc.
+# Copyright (C) 2019-2021 Red Hat, Inc.
 # This file is part of elfutils.
 #
 # This file is free software; you can redistribute it and/or modify
@@ -112,6 +112,11 @@ export DEBUGINFOD_URLS=http://127.0.0.1:$PORT1/   # or without trailing /
 
 # Be patient when run on a busy machine things might take a bit.
 export DEBUGINFOD_TIMEOUT=10
+
+# Check thread comm names
+ps -q $PID1 -e -L -o '%p %c %a' | grep groom
+ps -q $PID1 -e -L -o '%p %c %a' | grep scan
+ps -q $PID1 -e -L -o '%p %c %a' | grep traverse
 
 # We use -t0 and -g0 here to turn off time-based scanning & grooming.
 # For testing purposes, we just sic SIGUSR1 / SIGUSR2 at the process.

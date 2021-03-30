@@ -3473,23 +3473,35 @@ main (int argc, char *argv[])
   if (rc)
     error (EXIT_FAILURE, rc, "cannot spawn thread to groom database\n");
   else
-    all_threads.push_back(pt);
+    {
+#ifdef HAVE_PTHREAD_SETNAME_NP
+      (void) pthread_setname_np (pt, "groom");
+#endif
+      all_threads.push_back(pt);
+    }
 
   if (scan_files || scan_archives.size() > 0)
     {
       rc = pthread_create (& pt, NULL, thread_main_fts_source_paths, NULL);
       if (rc)
         error (EXIT_FAILURE, rc, "cannot spawn thread to traverse source paths\n");
+#ifdef HAVE_PTHREAD_SETNAME_NP
+      (void) pthread_setname_np (pt, "traverse");
+#endif
       all_threads.push_back(pt);
+
       for (unsigned i=0; i<concurrency; i++)
         {
           rc = pthread_create (& pt, NULL, thread_main_scanner, NULL);
           if (rc)
             error (EXIT_FAILURE, rc, "cannot spawn thread to scan source files / archives\n");
+#ifdef HAVE_PTHREAD_SETNAME_NP
+          (void) pthread_setname_np (pt, "scan");          
+#endif
           all_threads.push_back(pt);
         }
     }
-
+  
   /* Trivial main loop! */
   set_metric("ready", 1);
   while (! interrupted)

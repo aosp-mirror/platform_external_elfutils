@@ -747,6 +747,9 @@ AS_IF([test "x$enable_libdebuginfod" != "xno"], [
     fi
 ])
 
+AC_CHECK_LIB(pthread, pthread_setname_np, [
+                      AC_DEFINE([HAVE_PTHREAD_SETNAME_NP],[1],[Enable pthread_setname_np])])
+
 AS_IF([test "x$enable_libdebuginfod" = "xyes" || test "x$enable_libdebuginfod" = "xdummy"],
       [AC_DEFINE([ENABLE_LIBDEBUGINFOD], [1], [Enable libdebuginfod])])
 AS_IF([test "x$enable_libdebuginfod" = "xdummy"],

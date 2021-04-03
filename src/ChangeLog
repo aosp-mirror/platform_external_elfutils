@@ -1,5 +1,9 @@
 2021-04-03  Mark Wielaard  <mark@klomp.org>
 
+	* nm.c (show_symbols): close dwfl_fd if dwfl_begin fails.
+
+2021-04-03  Mark Wielaard  <mark@klomp.org>
+
 	* unstrip.c (handle_output_dir_module): Free output_file when done.
 
 2021-04-03  Mark Wielaard  <mark@klomp.org>

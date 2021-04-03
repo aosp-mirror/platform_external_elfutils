@@ -1308,6 +1308,8 @@ show_symbols (int fd, Ebl *ebl, GElf_Ehdr *ehdr,
 		      dwfl_getmodules (dwfl, &getdbg_dwflmod, &get, 0);
 		    }
 		}
+	      else
+		close (dwfl_fd);
 	    }
 	}
       if (dbg != NULL)

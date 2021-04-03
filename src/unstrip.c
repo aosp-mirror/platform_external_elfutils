@@ -2404,6 +2404,8 @@ handle_output_dir_module (const char *output_dir, Dwfl_Module *mod, bool force,
     error (EXIT_FAILURE, 0, _("memory exhausted"));
 
   handle_dwfl_module (output_file, true, force, mod, all, ignore, relocate);
+
+  free (output_file);
 }
 
 

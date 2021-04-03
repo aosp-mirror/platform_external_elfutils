@@ -1,5 +1,9 @@
 2021-04-03  Mark Wielaard  <mark@klomp.org>
 
+	* unstrip.c (handle_output_dir_module): Free output_file when done.
+
+2021-04-03  Mark Wielaard  <mark@klomp.org>
+
 	* ar.c (do_oper_insert): Always close newfd.
 
 2021-03-03  Mark Wielaard  <mark@klomp.org>

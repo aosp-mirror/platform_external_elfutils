@@ -1,3 +1,7 @@
+2021-04-03  Mark Wielaard  <mark@klomp.org>
+
+	* ar.c (do_oper_insert): Always close newfd.
+
 2021-03-03  Mark Wielaard  <mark@klomp.org>
 
 	* readelf.c (handle_symtab): Sanity check verneed vna_next,

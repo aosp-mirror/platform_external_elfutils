@@ -2255,6 +2255,8 @@ elf_classify (int fd, bool &executable_p, bool &debuginfo_p, string &buildid, se
         throw elfutils_exception(rc, "getshdrstrndx");
 
       Elf_Scn *scn = NULL;
+      bool symtab_p = false;
+      bool bits_alloc_p = false;
       while (true)
         {
           scn = elf_nextscn (elf, scn);
@@ -2280,7 +2282,24 @@ elf_classify (int fd, bool &executable_p, bool &debuginfo_p, string &buildid, se
               debuginfo_p = true;
               // NB: don't break; need to parse .debug_line for sources
             }
+          else if (shdr->sh_type == SHT_SYMTAB)
+            {
+              symtab_p = true;
+            }
+          else if (shdr->sh_type != SHT_NOBITS
+                   && shdr->sh_type != SHT_NOTE
+                   && (shdr->sh_flags & SHF_ALLOC) != 0)
+            {
+              bits_alloc_p = true;
+            }
         }
+
+      // For more expansive elf/split-debuginfo classification, we
+      // want to identify as debuginfo "strip -s"-produced files
+      // without .debug_info* (like libicudata), but we don't want to
+      // identify "strip -g" executables (with .symtab left there).
+      if (symtab_p && !bits_alloc_p)
+        debuginfo_p = true;
     }
   catch (const reportable_exception& e)
     {

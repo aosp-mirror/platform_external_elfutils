@@ -3100,8 +3100,6 @@ void groom()
   struct timespec ts_start, ts_end;
   clock_gettime (CLOCK_MONOTONIC, &ts_start);
 
-  database_stats_report();
-
   // scan for files that have disappeared
   sqlite_ps files (db, "check old files", "select s.mtime, s.file, f.name from "
                        BUILDIDS "_file_mtime_scanned s, " BUILDIDS "_files f "

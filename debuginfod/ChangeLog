@@ -1,5 +1,9 @@
 2021-04-15  Frank Ch. Eigler <fche@redhat.com>
 
+	* debuginfod.cxx (groom): Only update database stats once.
+
+2021-04-15  Frank Ch. Eigler <fche@redhat.com>
+
 	* debuginfod.cxx (elf_classify): Recognize symtab-only stripped files
 	like fedora's libicudata as debuginfo files.
 

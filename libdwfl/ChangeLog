@@ -1,3 +1,13 @@
+2021-04-19  Martin Liska  <mliska@suse.cz>
+
+	* dwfl_frame.c (dwfl_attach_state): Use startswith.
+	* dwfl_module_getdwarf.c (find_symtab): Likewise.
+	* linux-kernel-modules.c: Likewise.
+	* linux-pid-attach.c (linux_proc_pid_is_stopped): Likewise.
+	(dwfl_linux_proc_attach): Likewise.
+	* relocate.c (resolve_symbol): Likewise.
+	(relocate_section): Likewise.
+
 2021-02-01  Érico Nogueira  <ericonr@disroot.org>
 
 	* dwfl_error.c (strerror_r): Only use the GNU version when available.

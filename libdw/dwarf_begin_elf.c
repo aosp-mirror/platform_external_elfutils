@@ -30,6 +30,8 @@
 # include <config.h>
 #endif
 
+#include <system.h>
+
 #include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -138,7 +140,7 @@ check_section (Dwarf *result, size_t shstrndx, Elf_Scn *scn, bool inscngrp)
 	  break;
 	}
       else if (scnlen > 14 /* .gnu.debuglto_ prefix. */
-	       && strncmp (scnname, ".gnu.debuglto_", 14) == 0
+	       && startswith (scnname, ".gnu.debuglto_")
 	       && strcmp (&scnname[14], dwarf_scnnames[cnt]) == 0)
 	break;
     }

@@ -1054,7 +1054,7 @@ debuginfod_query_server (debuginfod_client *c,
                                                     &scheme);
                   if(ok3 == CURLE_OK && scheme)
                     {
-                      if (strncmp (scheme, "HTTP", 4) == 0)
+                      if (startswith (scheme, "HTTP"))
                         if (resp_code == 200)
                           {
                             verified_handle = msg->easy_handle;
@@ -1318,7 +1318,7 @@ int debuginfod_add_http_header (debuginfod_client *client, const char* header)
 
   /* Track if User-Agent: is being set.  If so, signal not to add the
      default one. */
-  if (strncmp (header, "User-Agent:", 11) == 0)
+  if (startswith (header, "User-Agent:"))
     client->user_agent_set_p = 1;
 
   client->headers = temp;

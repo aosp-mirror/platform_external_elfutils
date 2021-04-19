@@ -1,3 +1,8 @@
+2021-04-19  Martin Liska  <mliska@suse.cz>
+
+	* aarch64_symbol.c (aarch64_data_marker_symbol): Use startswith.
+	* arm_symbol.c (arm_data_marker_symbol): Likewise.
+
 2021-02-01  Érico Nogueira  <ericonr@disroot.org>
 
 	* ppc_initreg.c: Also include <asm/ptrace.h>.

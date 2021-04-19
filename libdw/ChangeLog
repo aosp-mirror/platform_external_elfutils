@@ -1,3 +1,7 @@
+2021-04-19  Martin Liska  <mliska@suse.cz>
+
+	* dwarf_begin_elf.c (check_section): Use startswith.
+
 2021-05-01  Mark Wielaard  <mark@klomp.org>
 
 	* libdw_form.c (__libdw_form_val_compute_len): Check indirect

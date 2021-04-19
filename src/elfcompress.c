@@ -448,7 +448,7 @@ process_file (const char *fname)
 	{
 	  if (!force && type == T_DECOMPRESS
 	      && (shdr->sh_flags & SHF_COMPRESSED) == 0
-	      && strncmp (sname, ".zdebug", strlen (".zdebug")) != 0)
+	      && !startswith (sname, ".zdebug"))
 	    {
 	      if (verbose > 0)
 		printf ("[%zd] %s already decompressed\n", ndx, sname);
@@ -460,7 +460,7 @@ process_file (const char *fname)
 		printf ("[%zd] %s already compressed\n", ndx, sname);
 	    }
 	  else if (!force && type == T_COMPRESS_GNU
-		   && strncmp (sname, ".zdebug", strlen (".zdebug")) == 0)
+		   && startswith (sname, ".zdebug"))
 	    {
 	      if (verbose > 0)
 		printf ("[%zd] %s already GNU compressed\n", ndx, sname);
@@ -472,11 +472,9 @@ process_file (const char *fname)
 	      /* Check if we might want to change this section name.  */
 	      if (! adjust_names
 		  && ((type != T_COMPRESS_GNU
-		       && strncmp (sname, ".zdebug",
-				   strlen (".zdebug")) == 0)
+		       && startswith (sname, ".zdebug"))
 		      || (type == T_COMPRESS_GNU
-			  && strncmp (sname, ".debug",
-				      strlen (".debug")) == 0)))
+			  && startswith (sname, ".debug"))))
 		adjust_names = true;
 
 	      /* We need a buffer this large if we change the names.  */
@@ -696,7 +694,7 @@ process_file (const char *fname)
 					false, false, verbose > 0) < 0)
 		    goto cleanup;
 		}
-	      else if (strncmp (sname, ".zdebug", strlen (".zdebug")) == 0)
+	      else if (startswith (sname, ".zdebug"))
 		{
 		  snamebuf[0] = '.';
 		  strcpy (&snamebuf[1], &sname[2]);
@@ -710,7 +708,7 @@ process_file (const char *fname)
 	      break;
 
 	    case T_COMPRESS_GNU:
-	      if (strncmp (sname, ".debug", strlen (".debug")) == 0)
+	      if (startswith (sname, ".debug"))
 		{
 		  if ((shdr->sh_flags & SHF_COMPRESSED) != 0)
 		    {
@@ -757,7 +755,7 @@ process_file (const char *fname)
 		}
 	      else if (verbose >= 0)
 		{
-		  if (strncmp (sname, ".zdebug", strlen (".zdebug")) == 0)
+		  if (startswith (sname, ".zdebug"))
 		    printf ("[%zd] %s unchanged, already GNU compressed",
 			    ndx, sname);
 		  else
@@ -769,7 +767,7 @@ process_file (const char *fname)
 	    case T_COMPRESS_ZLIB:
 	      if ((shdr->sh_flags & SHF_COMPRESSED) == 0)
 		{
-		  if (strncmp (sname, ".zdebug", strlen (".zdebug")) == 0)
+		  if (startswith (sname, ".zdebug"))
 		    {
 		      /* First decompress to recompress zlib style.
 			 Don't report even when verbose.  */
@@ -900,7 +898,7 @@ process_file (const char *fname)
 		      symtab_size = size;
 		      symtab_compressed = T_COMPRESS_ZLIB;
 		    }
-		  else if (strncmp (name, ".zdebug", strlen (".zdebug")) == 0)
+		  else if (startswith (name, ".zdebug"))
 		    {
 		      /* Don't report the (internal) uncompression.  */
 		      if (compress_section (newscn, size, sname, NULL, ndx,
@@ -1046,7 +1044,7 @@ process_file (const char *fname)
 	  shstrtab_size = shdr->sh_size;
 	  if ((shdr->sh_flags & SHF_COMPRESSED) != 0)
 	    shstrtab_compressed = T_COMPRESS_ZLIB;
-	  else if (strncmp (shstrtab_name, ".zdebug", strlen (".zdebug")) == 0)
+	  else if (startswith (shstrtab_name, ".zdebug"))
 	    shstrtab_compressed = T_COMPRESS_GNU;
 	}
 
@@ -1187,8 +1185,7 @@ process_file (const char *fname)
 		  symtab_size = shdr->sh_size;
 		  if ((shdr->sh_flags & SHF_COMPRESSED) != 0)
 		    symtab_compressed = T_COMPRESS_ZLIB;
-		  else if (strncmp (symtab_name, ".zdebug",
-				    strlen (".zdebug")) == 0)
+		  else if (startswith (symtab_name, ".zdebug"))
 		    symtab_compressed = T_COMPRESS_GNU;
 		}
 

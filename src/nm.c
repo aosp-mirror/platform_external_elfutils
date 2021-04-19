@@ -858,7 +858,7 @@ show_symbols_sysv (Ebl *ebl, GElf_Word strndx, const char *fullname,
       bind = ebl_symbol_binding_name (ebl,
 				      GELF_ST_BIND (syms[cnt].sym.st_info),
 				      symbindbuf, sizeof (symbindbuf));
-      if (bind != NULL && strncmp (bind, "GNU_", strlen ("GNU_")) == 0)
+      if (bind != NULL && startswith (bind, "GNU_"))
 	bind += strlen ("GNU_");
       printf ("%-*s|%s|%-6s|%-8s|%s|%*s|%s\n",
 	      longest_name, symstr, addressbuf, bind,

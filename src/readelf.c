@@ -1335,7 +1335,7 @@ There are %zd section headers, starting at offset %#" PRIx64 ":\n\
 		       _("bad compression header for section %zd: %s"),
 		       elf_ndxscn (scn), elf_errmsg (-1));
 	    }
-	  else if (strncmp(".zdebug", sname, strlen (".zdebug")) == 0)
+	  else if (startswith (sname, ".zdebug"))
 	    {
 	      ssize_t size;
 	      if ((size = dwelf_scn_gnu_compressed_size (scn)) >= 0)
@@ -11451,7 +11451,7 @@ print_debug (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr)
 			  || (scnlen == dbglen + 5
 			      && strstr (name, ".dwo") == name + dbglen + 1)))
 		  || (scnlen > 14 /* .gnu.debuglto_ prefix. */
-		      && strncmp (name, ".gnu.debuglto_", 14) == 0
+		      && startswith (name, ".gnu.debuglto_")
 		      && strcmp (&name[14], debug_sections[n].name) == 0)
 )
 		{
@@ -12455,8 +12455,7 @@ handle_notes_data (Ebl *ebl, const GElf_Ehdr *ehdr,
 	 into the owner name field.  Extract just the owner name
 	 prefix here, then use the rest later as data.  */
       bool is_gnu_build_attr
-	= strncmp (name, ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX,
-		   strlen (ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX)) == 0;
+	= startswith (name, ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX);
       const char *print_name = (is_gnu_build_attr
 				? ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX : name);
       size_t print_namesz = (is_gnu_build_attr
@@ -12636,7 +12635,7 @@ dump_data_section (Elf_Scn *scn, const GElf_Shdr *shdr, const char *name)
 			_("Couldn't uncompress section"),
 			elf_ndxscn (scn));
 	    }
-	  else if (strncmp (name, ".zdebug", strlen (".zdebug")) == 0)
+	  else if (startswith (name, ".zdebug"))
 	    {
 	      if (elf_compress_gnu (scn, 0, 0) < 0)
 		printf ("WARNING: %s [%zd]\n",
@@ -12687,7 +12686,7 @@ print_string_section (Elf_Scn *scn, const GElf_Shdr *shdr, const char *name)
 			_("Couldn't uncompress section"),
 			elf_ndxscn (scn));
 	    }
-	  else if (strncmp (name, ".zdebug", strlen (".zdebug")) == 0)
+	  else if (startswith (name, ".zdebug"))
 	    {
 	      if (elf_compress_gnu (scn, 0, 0) < 0)
 		printf ("WARNING: %s [%zd]\n",

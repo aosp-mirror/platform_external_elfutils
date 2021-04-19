@@ -1162,7 +1162,7 @@ find_symtab (Dwfl_Module *mod)
   if (sname == NULL)
     goto elferr;
 
-  if (strncmp (sname, ".zdebug", strlen (".zdebug")) == 0)
+  if (startswith (sname, ".zdebug"))
     /* Try to uncompress, but it might already have been, an error
        might just indicate, already uncompressed.  */
     elf_compress_gnu (symstrscn, 0, 0);
@@ -1245,7 +1245,7 @@ find_symtab (Dwfl_Module *mod)
       if (sname == NULL)
 	goto elferr;
 
-      if (strncmp (sname, ".zdebug", strlen (".zdebug")) == 0)
+      if (startswith (sname, ".zdebug"))
 	/* Try to uncompress, but it might already have been, an error
 	   might just indicate, already uncompressed.  */
 	elf_compress_gnu (aux_strscn, 0, 0);

@@ -1,3 +1,14 @@
+2021-04-19  Martin Liska  <mliska@suse.cz>
+
+	* elfclassify.c (run_classify): Use startswith.
+	* elfcompress.c (process_file): Likewise.
+	* nm.c (show_symbols_sysv): Likewise.
+	* readelf.c (print_debug): Likewise.
+	(handle_notes_data): Likewise.
+	(dump_data_section): Likewise.
+	(print_string_section): Likewise.
+	* strip.c (remove_debug_relocations): Likewise.
+
 2021-04-03  Mark Wielaard  <mark@klomp.org>
 
 	* nm.c (show_symbols): close dwfl_fd if dwfl_begin fails.

@@ -30,6 +30,8 @@
 # include <config.h>
 #endif
 
+#include <system.h>
+
 #include "libelfP.h"
 #include "libdwflP.h"
 #include <sys/types.h>
@@ -59,7 +61,7 @@ linux_proc_pid_is_stopped (pid_t pid)
 
   have_state = false;
   while (fgets (buffer, sizeof (buffer), procfile) != NULL)
-    if (strncmp (buffer, "State:", 6) == 0)
+    if (startswith (buffer, "State:"))
       {
 	have_state = true;
 	break;
@@ -407,7 +409,7 @@ dwfl_linux_proc_attach (Dwfl *dwfl, pid_t pid, bool assume_ptrace_stopped)
   char *line = NULL;
   size_t linelen = 0;
   while (getline (&line, &linelen, procfile) >= 0)
-    if (strncmp (line, "Tgid:", 5) == 0)
+    if (startswith (line, "Tgid:"))
       {
 	errno = 0;
 	char *endptr;

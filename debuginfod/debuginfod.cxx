@@ -37,6 +37,7 @@ extern "C" {
 
 #include "debuginfod.h"
 #include <dwarf.h>
+#include <system.h>
 
 #include <argp.h>
 #ifdef __GNUC__
@@ -2323,15 +2324,15 @@ elf_classify (int fd, bool &executable_p, bool &debuginfo_p, string &buildid, se
           const char *section_name = elf_strptr (elf, shstrndx, shdr->sh_name);
           if (section_name == NULL)
             break;
-          if (strncmp(section_name, ".debug_line", 11) == 0 ||
-              strncmp(section_name, ".zdebug_line", 12) == 0)
+          if (startswith (section_name, ".debug_line") ||
+              startswith (section_name, ".zdebug_line"))
             {
               debuginfo_p = true;
               dwarf_extract_source_paths (elf, debug_sourcefiles);
               break; // expecting only one .*debug_line, so no need to look for others
             }
-          else if (strncmp(section_name, ".debug_", 7) == 0 ||
-                   strncmp(section_name, ".zdebug_", 8) == 0)
+          else if (startswith (section_name, ".debug_") ||
+                   startswith (section_name, ".zdebug_"))
             {
               debuginfo_p = true;
               // NB: don't break; need to parse .debug_line for sources

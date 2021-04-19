@@ -607,7 +607,7 @@ remove_debug_relocations (Ebl *ebl, Elf *elf, GElf_Ehdr *ehdr,
 	  GElf_Chdr tchdr;
 	  int tcompress_type = 0;
 	  bool is_gnu_compressed = false;
-	  if (strncmp (tname, ".zdebug", strlen ("zdebug")) == 0)
+	  if (startswith (tname, ".zdebug"))
 	    {
 	      is_gnu_compressed = true;
 	      if (elf_compress_gnu (tscn, 0, 0) != 1)

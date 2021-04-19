@@ -1,3 +1,9 @@
+2021-04-19  Martin Liska  <mliska@suse.cz>
+
+	* debuginfod-client.c (debuginfod_query_server): Use startswith.
+	(debuginfod_add_http_header): Likewise.
+	* debuginfod.cxx: Likewise.
+
 2021-05-04  Alice Zhang <alizhang@redhat.com>
 
 	* debuginfod-client.c (cache_miss_default_s): New static time_t,

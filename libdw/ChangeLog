@@ -1,3 +1,8 @@
+2021-04-23  Omar Sandoval  <osandov@fb.com>
+
+	* dwarf_child.c (__libdw_find_attr): Handle DW_FORM_indirect.
+	* dwarf_getattrs.c (dwarf_getattrs): Handle DW_FORM_indirect.
+
 2021-02-12  Mark Wielaard  <mark@klomp.org>
 
 	* dwarf_getlocation.c (attr_ok): For DWARF version 4 or higher

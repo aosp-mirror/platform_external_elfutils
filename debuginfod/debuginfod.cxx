@@ -1573,6 +1573,46 @@ debuginfod_find_progress (debuginfod_client *, long a, long b)
 }
 
 
+// a little lru pool of debuginfod_client*s for reuse between query threads
+
+mutex dc_pool_lock;
+deque<debuginfod_client*> dc_pool;
+
+debuginfod_client* debuginfod_pool_begin()
+{
+  unique_lock<mutex> lock(dc_pool_lock);
+  if (dc_pool.size() > 0)
+    {
+      inc_metric("dc_pool_op_count","op","begin-reuse");
+      debuginfod_client *c = dc_pool.front();
+      dc_pool.pop_front();
+      return c;
+    }
+  inc_metric("dc_pool_op_count","op","begin-new");
+  return debuginfod_begin();
+}
+
+
+void debuginfod_pool_groom()
+{
+  unique_lock<mutex> lock(dc_pool_lock);
+  while (dc_pool.size() > 0)
+    {
+      inc_metric("dc_pool_op_count","op","end");
+      debuginfod_end(dc_pool.front());
+      dc_pool.pop_front();
+    }
+}
+
+
+void debuginfod_pool_end(debuginfod_client* c)
+{
+  unique_lock<mutex> lock(dc_pool_lock);
+  inc_metric("dc_pool_op_count","op","end-save");
+  dc_pool.push_front(c); // accelerate reuse, vs. push_back
+}
+
+
 static struct MHD_Response*
 handle_buildid (MHD_Connection* conn,
                 const string& buildid /* unsafe */,
@@ -1672,7 +1712,7 @@ handle_buildid (MHD_Connection* conn,
   // is to defer to other debuginfo servers.
 
   int fd = -1;
-  debuginfod_client *client = debuginfod_begin ();
+  debuginfod_client *client = debuginfod_pool_begin ();
   if (client != NULL)
     {
       debuginfod_set_progressfn (client, & debuginfod_find_progress);
@@ -1721,7 +1761,7 @@ handle_buildid (MHD_Connection* conn,
     }
   else
     fd = -errno; /* Set by debuginfod_begin.  */
-  debuginfod_end (client);
+  debuginfod_pool_end (client);
 
   if (fd >= 0)
     {
@@ -1892,11 +1932,25 @@ handler_cb (void * /*cls*/,
             const char * /*version*/,
             const char * /*upload_data*/,
             size_t * /*upload_data_size*/,
-            void ** /*con_cls*/)
+            void ** ptr)
 {
   struct MHD_Response *r = NULL;
   string url_copy = url;
 
+  /* libmicrohttpd always makes (at least) two callbacks: once just
+     past the headers, and one after the request body is finished
+     being received.  If we process things early (first callback) and
+     queue a response, libmicrohttpd would suppress http keep-alive
+     (via connection->read_closed = true). */
+  static int aptr; /* just some random object to use as a flag */
+  if (&aptr != *ptr)
+    {
+      /* do never respond on first call */
+      *ptr = &aptr;
+      return MHD_YES;
+    }
+  *ptr = NULL;                     /* reset when done */
+  
 #if MHD_VERSION >= 0x00097002
   enum MHD_Result rc;
 #else
@@ -3163,6 +3217,7 @@ void groom()
 
   sqlite3_db_release_memory(db); // shrink the process if possible
   sqlite3_db_release_memory(dbq); // ... for both connections
+  debuginfod_pool_groom(); // and release any debuginfod_client objects we've been holding onto
 
   fdcache.limit(0,0); // release the fdcache contents
   fdcache.limit(fdcache_fds,fdcache_mbs); // restore status quo parameters

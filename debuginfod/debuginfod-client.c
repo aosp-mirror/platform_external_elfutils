@@ -119,6 +119,11 @@ struct debuginfod_client
   /* File descriptor to output any verbose messages if > 0.  */
   int verbose_fd;
 
+  /* Count DEBUGINFOD_URLS elements and corresponding curl handles. */
+  int num_urls;
+  CURL **server_handles;
+  CURLM *server_mhandle;
+  
   /* Can contain all other context, like cache_path, server_urls,
      timeout or other info gotten from environment variables, the
      handle data, etc. So those don't have to be reparsed and
@@ -140,15 +145,12 @@ static const time_t cache_default_max_unused_age_s = 604800; /* 1 week */
    The default parent directory is $HOME, or '/' if $HOME doesn't exist.  */
 static const char *cache_default_name = ".debuginfod_client_cache";
 static const char *cache_xdg_name = "debuginfod_client";
-static const char *cache_path_envvar = DEBUGINFOD_CACHE_PATH_ENV_VAR;
 
 /* URLs of debuginfods, separated by url_delim. */
-static const char *server_urls_envvar = DEBUGINFOD_URLS_ENV_VAR;
 static const char *url_delim =  " ";
 static const char url_delim_char = ' ';
 
 /* Timeout for debuginfods, in seconds (to get at least 100K). */
-static const char *server_timeout_envvar = DEBUGINFOD_TIMEOUT_ENV_VAR;
 static const long default_timeout = 90;
 
 
@@ -523,7 +525,13 @@ debuginfod_query_server (debuginfod_client *c,
 
   /* Is there any server we can query?  If not, don't do any work,
      just return with ENOSYS.  Don't even access the cache.  */
-  urls_envvar = getenv(server_urls_envvar);
+  if (c->num_urls == 0)
+    {
+      rc = -ENOSYS;
+      goto out;
+    }
+  
+  urls_envvar = getenv(DEBUGINFOD_URLS_ENV_VAR);
   if (vfd >= 0)
     dprintf (vfd, "server urls \"%s\"\n",
 	     urls_envvar != NULL ? urls_envvar : "");
@@ -611,7 +619,7 @@ debuginfod_query_server (debuginfod_client *c,
 
   /* Determine location of the cache. The path specified by the debuginfod
      cache environment variable takes priority.  */
-  char *cache_var = getenv(cache_path_envvar);
+  char *cache_var = getenv(DEBUGINFOD_CACHE_PATH_ENV_VAR);
   if (cache_var != NULL && strlen (cache_var) > 0)
     xalloc_str (cache_path, "%s", cache_var);
   else
@@ -691,7 +699,7 @@ debuginfod_query_server (debuginfod_client *c,
     }
 
   long timeout = default_timeout;
-  const char* timeout_envvar = getenv(server_timeout_envvar);
+  const char* timeout_envvar = getenv(DEBUGINFOD_TIMEOUT_ENV_VAR);
   if (timeout_envvar != NULL)
     timeout = atoi (timeout_envvar);
 
@@ -725,24 +733,13 @@ debuginfod_query_server (debuginfod_client *c,
       goto out0;
     }
 
-  /* Count number of URLs.  */
-  int num_urls = 0;
-  for (int i = 0; server_urls[i] != '\0'; i++)
-    if (server_urls[i] != url_delim_char
-        && (i == 0 || server_urls[i - 1] == url_delim_char))
-      num_urls++;
-
-  CURLM *curlm = curl_multi_init();
-  if (curlm == NULL)
-    {
-      rc = -ENETUNREACH;
-      goto out0;
-    }
-
+  CURLM *curlm = c->server_mhandle;
+  assert (curlm != NULL);
+  
   /* Tracks which handle should write to fd. Set to the first
      handle that is ready to write the target file to the cache.  */
   CURL *target_handle = NULL;
-  struct handle_data *data = malloc(sizeof(struct handle_data) * num_urls);
+  struct handle_data *data = malloc(sizeof(struct handle_data) * c->num_urls);
   if (data == NULL)
     {
       rc = -ENOMEM;
@@ -752,7 +749,7 @@ debuginfod_query_server (debuginfod_client *c,
   /* thereafter, goto out1 on error.  */
 
   /* Initialize handle_data with default values. */
-  for (int i = 0; i < num_urls; i++)
+  for (int i = 0; i < c->num_urls; i++)
     {
       data[i].handle = NULL;
       data[i].fd = -1;
@@ -763,14 +760,16 @@ debuginfod_query_server (debuginfod_client *c,
   char *server_url = strtok_r(server_urls, url_delim, &strtok_saveptr);
 
   /* Initialize each handle.  */
-  for (int i = 0; i < num_urls && server_url != NULL; i++)
+  for (int i = 0; i < c->num_urls && server_url != NULL; i++)
     {
       if (vfd >= 0)
 	dprintf (vfd, "init server %d %s\n", i, server_url);
 
       data[i].fd = fd;
       data[i].target_handle = &target_handle;
-      data[i].handle = curl_easy_init();
+      data[i].handle = c->server_handles[i];
+      assert (data[i].handle != NULL);
+      curl_easy_reset(data[i].handle); // esp. previously sent http headers
       data[i].client = c;
 
       if (data[i].handle == NULL)
@@ -833,7 +832,7 @@ debuginfod_query_server (debuginfod_client *c,
 
   /* Query servers in parallel.  */
   if (vfd >= 0)
-    dprintf (vfd, "query %d urls in parallel\n", num_urls);
+    dprintf (vfd, "query %d urls in parallel\n", c->num_urls);
   int still_running;
   long loops = 0;
   int committed_to = -1;
@@ -846,7 +845,7 @@ debuginfod_query_server (debuginfod_client *c,
       /* If the target file has been found, abort the other queries.  */
       if (target_handle != NULL)
 	{
-	  for (int i = 0; i < num_urls; i++)
+	  for (int i = 0; i < c->num_urls; i++)
 	    if (data[i].handle != target_handle)
 	      curl_multi_remove_handle(curlm, data[i].handle);
 	    else
@@ -943,7 +942,7 @@ debuginfod_query_server (debuginfod_client *c,
 		       curl_easy_strerror (msg->data.result));
 	      if (pnl)
 		c->default_progressfn_printed_p = 0;
-	      for (int i = 0; i < num_urls; i++)
+	      for (int i = 0; i < c->num_urls; i++)
 		if (msg->easy_handle == data[i].handle)
 		  {
 		    if (strlen (data[i].errbuf) > 0)
@@ -1063,11 +1062,8 @@ debuginfod_query_server (debuginfod_client *c,
       /* Perhaps we need not give up right away; could retry or something ... */
     }
 
-  /* Success!!!! */
-  for (int i = 0; i < num_urls; i++)
-    curl_easy_cleanup(data[i].handle);
-
-  curl_multi_cleanup (curlm);
+  curl_multi_remove_handle(curlm, verified_handle);
+  assert (verified_handle == target_handle);
   free (data);
   free (server_urls);
 
@@ -1081,10 +1077,6 @@ debuginfod_query_server (debuginfod_client *c,
 
 /* error exits */
  out1:
-  for (int i = 0; i < num_urls; i++)
-    curl_easy_cleanup(data[i].handle);
-
-  curl_multi_cleanup(curlm);
   unlink (target_cache_tmppath);
   close (fd); /* before the rmdir, otherwise it'll fail */
   (void) rmdir (target_cache_dir); /* nop if not empty */
@@ -1095,6 +1087,11 @@ debuginfod_query_server (debuginfod_client *c,
 
 /* general purpose exit */
  out:
+  /* Reset sent headers */
+  curl_slist_free_all (c->headers);
+  c->headers = NULL;
+  c->user_agent_set_p = 0;
+  
   /* Conclude the last \r status line */
   /* Another possibility is to use the ANSI CSI n K EL "Erase in Line"
      code.  That way, the previously printed messages would be erased,
@@ -1127,7 +1124,9 @@ debuginfod_begin (void)
 {
   debuginfod_client *client;
   size_t size = sizeof (struct debuginfod_client);
+  const char* server_urls = NULL;
   client = (debuginfod_client *) calloc (1, size);
+
   if (client != NULL)
     {
       if (getenv(DEBUGINFOD_PROGRESS_ENV_VAR))
@@ -1137,6 +1136,51 @@ debuginfod_begin (void)
       else
 	client->verbose_fd = -1;
     }
+
+  /* Count the DEBUGINFOD_URLS and create the long-lived curl handles. */
+  client->num_urls = 0;
+  server_urls = getenv (DEBUGINFOD_URLS_ENV_VAR);
+  if (server_urls != NULL)
+    for (int i = 0; server_urls[i] != '\0'; i++)
+      if (server_urls[i] != url_delim_char
+          && (i == 0 || server_urls[i - 1] == url_delim_char))
+        client->num_urls++;
+
+  client->server_handles = calloc (client->num_urls, sizeof(CURL *));
+  if (client->server_handles == NULL)
+    goto out1;
+
+  // allocate N curl easy handles
+  for (int i=0; i<client->num_urls; i++)
+    {
+      client->server_handles[i] = curl_easy_init ();
+      if (client->server_handles[i] == NULL)
+        {
+          for (i--; i >= 0; i--)
+            curl_easy_cleanup (client->server_handles[i]);
+          goto out2;
+        }
+    }
+
+  // allocate 1 curl multi handle
+  client->server_mhandle = curl_multi_init ();
+  if (client->server_mhandle == NULL)
+    goto out3;
+  
+  goto out;
+
+ out3:
+  for (int i=0; i<client->num_urls; i++)
+    curl_easy_cleanup (client->server_handles[i]);
+  
+ out2:
+  free (client->server_handles);
+  
+ out1:
+  free (client);
+  client = NULL;
+
+ out:  
   return client;
 }
 
@@ -1165,6 +1209,11 @@ debuginfod_end (debuginfod_client *client)
   if (client == NULL)
     return;
 
+  // assume that all the easy handles have already been removed from the multi handle
+  for (int i=0; i<client->num_urls; i++)
+    curl_easy_cleanup (client->server_handles[i]);
+  free (client->server_handles);
+  curl_multi_cleanup (client->server_mhandle);
   curl_slist_free_all (client->headers);
   free (client->url);
   free (client);

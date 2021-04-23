@@ -50,6 +50,29 @@ cleanup()
 # clean up trash if we were aborted early
 trap cleanup 0 1 2 3 5 9 15
 
+errfiles_list=
+err() {
+    for ports in $PORT1 $PORT2
+    do
+        echo $port metrics
+        curl -s http://127.0.0.1:$port/metrics
+        echo
+    done
+    for x in $errfiles_list
+    do
+        echo "$x"
+        cat $x
+        echo
+    done
+}
+trap err ERR
+
+errfiles() {
+    errfiles_list="$errfiles_list $*"
+}
+
+
+
 # find an unused port number
 while true; do
     PORT1=`expr '(' $RANDOM % 1000 ')' + 9000`
@@ -90,10 +113,7 @@ wait_ready()
   done;
 
   if [ $timeout -eq 0 ]; then
-      echo "metric $what never changed to $value on port $port"
-      curl -s http://127.0.0.1:$port/metrics
-      echo "logs for debuginfod with port $port"
-      cat vlog$port
+    echo "metric $what never changed to $value on port $port"
     exit 1;
   fi
 }
@@ -106,6 +126,7 @@ ln -s R/nothing.rpm R/nothing.rpm
 env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -R -d $DB -p $PORT1 -t0 -g0 --fdcache-fds 1 --fdcache-mbs 2 --fdcache-mintmp 0 -Z .tar.xz -Z .tar.bz2=bzcat -v R F Z L > vlog$PORT1 2>&1 &
 PID1=$!
 tempfiles vlog$PORT1
+errfiles vlog$PORT1
 # Server must become ready
 wait_ready $PORT1 'ready' 1
 export DEBUGINFOD_URLS=http://127.0.0.1:$PORT1/   # or without trailing /
@@ -414,6 +435,7 @@ mkdir -p $DEBUGINFOD_CACHE_PATH
 env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -U -d ${DB}_2 -p $PORT2 -L L D > vlog$PORT2 2>&1 &
 PID2=$!
 tempfiles vlog$PORT2
+errfiles vlog$PORT2
 tempfiles ${DB}_2
 wait_ready $PORT2 'ready' 1
 wait_ready $PORT2 'thread_work_total{role="traverse"}' 1
@@ -501,6 +523,9 @@ curl -s http://127.0.0.1:$PORT2/buildid/deadbeef/debuginfo > /dev/null || true
 # Confirm bad artifact types are rejected without leaving trace
 curl -s http://127.0.0.1:$PORT2/buildid/deadbeef/badtype > /dev/null || true
 (curl -s http://127.0.0.1:$PORT2/metrics | grep 'badtype') && false
+
+# Confirm that some debuginfod client pools are being used
+curl -s http://127.0.0.1:$PORT2/metrics | grep 'dc_pool_op.*reuse'
 
 ########################################################################
 # Corrupt the sqlite database and get debuginfod to trip across its errors

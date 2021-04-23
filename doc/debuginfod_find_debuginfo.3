@@ -105,6 +105,8 @@ as a debuginfod server begins transferring the target file all of the
 connections to the other servers are closed.
 
 A \fBclient\fP handle should be used from only one thread at a time.
+A handle may be reused for a series of lookups, which can improve
+performance due to retention of connections and caches.
 
 .SH "RETURN VALUE"
 
@@ -175,8 +177,8 @@ of the client object.
 
 .SS "HTTP HEADER"
 
-Before a lookup function is initiated, a client application may
-add HTTP request headers to future downloads.
+Before each lookup function is initiated, a client application may
+add HTTP request headers.  These are reset after each lookup function.
 .BR \%debuginfod_add_http_header ()
 may be called with strings of the form
 .BR \%"Header:\~value" .

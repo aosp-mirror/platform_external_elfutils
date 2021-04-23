@@ -1,3 +1,19 @@
+2021-04-23  Frank Ch. Eigler <fche@redhat.com>
+
+	PR27701
+	* debuginfod-client.c (struct debuginfod_client): Add long-lived
+	CURL easy and multi handles.
+	(debuginfo_begin,debuginfod_end): ctor/dtor for these.
+	(debuginfod_query_server): Rework to reuse easy & multi handles.
+	(*_envvar): Just use the DEBUGINFOD_*_ENV_VAR directly instead.
+
+	* debuginfod.cxx (dc_pool): New pile of reusable debuginfod_client
+	objects for upstream federation connections.
+	(debuginfod_pool_{begin,end,groom}): New functions.
+	(handle_buildid): Use them.
+	(handler_cb): Fix keep-alive given libmicrohttpd convention of multiple
+	callbacks.
+
 2021-04-15  Frank Ch. Eigler <fche@redhat.com>
 
 	* debuginfod.cxx (groom): Only update database stats once.

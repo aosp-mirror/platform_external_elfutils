@@ -1,3 +1,9 @@
+2021-04-23  Frank Ch. Eigler <fche@redhat.com>
+
+	PR27701
+	* debuginfod_find_debuginfo.3: Specify sequential reuse policy of
+	debuginfod_client objects.
+
 2021-02-04  Frank Ch. Eigler <fche@redhat.com>
 
 	* debuginfod.8: Mention new --fdcache-mintmp option.

@@ -571,6 +571,10 @@ mkdir $DEBUGINFOD_CACHE_PATH/malformed
 touch $DEBUGINFOD_CACHE_PATH/malformed0
 touch $DEBUGINFOD_CACHE_PATH/malformed/malformed1
 
+# A valid format for an empty buildid subdirectory
+mkdir $DEBUGINFOD_CACHE_PATH/00000000
+touch -d '1970-01-01' $DEBUGINFOD_CACHE_PATH/00000000 # old enough to guarantee nukage
+
 # Trigger a cache clean and run the tests again. The clients should be unable to
 # find the target.
 echo 0 > $DEBUGINFOD_CACHE_PATH/cache_clean_interval_s
@@ -584,6 +588,11 @@ if [ ! -f $DEBUGINFOD_CACHE_PATH/malformed0 ] \
     || [ ! -f $DEBUGINFOD_CACHE_PATH/malformed/malformed1 ]; then
   echo "unrelated files did not survive cache cleaning"
   exit 1
+fi
+
+if [ -d $DEBUGINFOD_CACHE_PATH/00000000 ]; then
+    echo "failed to rmdir old cache dir"
+    exit 1
 fi
 
 # Test debuginfod without a path list; reuse $PORT1

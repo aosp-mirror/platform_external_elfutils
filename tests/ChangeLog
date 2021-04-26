@@ -8,6 +8,11 @@
 	(EXTRA_DIST): Add run-low_high_pc-dw-form-indirect.sh,
 	run-readelf-dw-form-indirect.sh, and testfile-dw-form-indirect.bz2.
 
+2021-04-26  Frank Ch. Eigler <fche@redhat.com>
+
+	PR26125
+	* run-debuginfod-find.sh: Add test case for cache cleanup rmdir.
+
 2021-04-23  Frank Ch. Eigler  <fche@redhat.com>
 
 	* run-debuginfod-find.sh: Add a tiny test for client object reuse.

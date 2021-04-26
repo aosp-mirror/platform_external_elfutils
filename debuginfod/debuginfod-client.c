@@ -307,12 +307,13 @@ debuginfod_clean_cache(debuginfod_client *c,
     return -errno;
 
   regex_t re;
-  const char * pattern = ".*/[a-f0-9]+/(debuginfo|executable|source.*)$";
+  const char * pattern = ".*/[a-f0-9]+(/debuginfo|/executable|/source.*|)$"; /* include dirs */
   if (regcomp (&re, pattern, REG_EXTENDED | REG_NOSUB) != 0)
     return -ENOMEM;
 
   FTSENT *f;
   long files = 0;
+  time_t now = time(NULL);
   while ((f = fts_read(fts)) != NULL)
     {
       /* ignore any files that do not match the pattern.  */
@@ -327,15 +328,16 @@ debuginfod_clean_cache(debuginfod_client *c,
       switch (f->fts_info)
         {
         case FTS_F:
-          /* delete file if max_unused_age has been met or exceeded.  */
-          /* XXX consider extra effort to clean up old tmp files */
-          if (time(NULL) - f->fts_statp->st_atime >= max_unused_age)
-            unlink (f->fts_path);
+          /* delete file if max_unused_age has been met or exceeded w.r.t. atime.  */
+          if (now - f->fts_statp->st_atime >= max_unused_age)
+            (void) unlink (f->fts_path);
           break;
 
         case FTS_DP:
-          /* Remove if empty. */
-          (void) rmdir (f->fts_path);
+          /* Remove if old & empty.  Weaken race against concurrent creation by 
+             checking mtime. */
+          if (now - f->fts_statp->st_mtime >= max_unused_age)
+            (void) rmdir (f->fts_path);
           break;
 
         default:
@@ -715,19 +717,18 @@ debuginfod_query_server (debuginfod_client *c,
     }
   /* thereafter, goto out0 on error*/
 
-  /* create target directory in cache if not found.  */
-  struct stat st;
-  if (stat(target_cache_dir, &st) == -1 && mkdir(target_cache_dir, 0700) < 0)
-    {
-      rc = -errno;
-      goto out0;
-    }
+  /* Because of a race with cache cleanup / rmdir, try to mkdir/mkstemp up to twice. */
+  for(int i=0; i<2; i++) {
+    /* (re)create target directory in cache */
+    (void) mkdir(target_cache_dir, 0700);
 
-  /* NB: write to a temporary file first, to avoid race condition of
-     multiple clients checking the cache, while a partially-written or empty
-     file is in there, being written from libcurl. */
-  fd = mkstemp (target_cache_tmppath);
-  if (fd < 0)
+    /* NB: write to a temporary file first, to avoid race condition of
+       multiple clients checking the cache, while a partially-written or empty
+       file is in there, being written from libcurl. */
+    fd = mkstemp (target_cache_tmppath);
+    if (fd >= 0) break;
+  }
+  if (fd < 0) /* Still failed after two iterations. */
     {
       rc = -errno;
       goto out0;

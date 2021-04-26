@@ -1,5 +1,11 @@
 2021-04-26  Frank Ch. Eigler <fche@redhat.com>
 
+	PR27571
+	* debuginfod-client.c (debuginfod_query_server): Chmod 0400 files
+	delivered into the cache to prevent accidental modification.
+
+2021-04-26  Frank Ch. Eigler <fche@redhat.com>
+
 	PR26125
 	* debuginfod-client.c (debuginfod_clean_cache): For directory
 	rmdir, check mtime first.

@@ -1,3 +1,8 @@
+2021-04-26  Frank Ch. Eigler <fche@redhat.com>
+
+	PR27571
+	* run-debuginfod-find.sh: Add test case for unwriteable cache files.
+
 2021-04-23  Omar Sandoval  <osandov@fb.com>
 
 	* run-low_high_pc-dw-form-indirect.sh: New file.

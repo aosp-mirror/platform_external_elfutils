@@ -720,7 +720,7 @@ debuginfod_query_server (debuginfod_client *c,
   /* Because of a race with cache cleanup / rmdir, try to mkdir/mkstemp up to twice. */
   for(int i=0; i<2; i++) {
     /* (re)create target directory in cache */
-    (void) mkdir(target_cache_dir, 0700);
+    (void) mkdir(target_cache_dir, 0700); /* files will be 0400 later */
 
     /* NB: write to a temporary file first, to avoid race condition of
        multiple clients checking the cache, while a partially-written or empty
@@ -1054,6 +1054,9 @@ debuginfod_query_server (debuginfod_client *c,
   tvs[0].tv_usec = tvs[1].tv_usec = 0;
   (void) futimes (fd, tvs);  /* best effort */
 
+  /* PR27571: make cache files casually unwriteable; dirs are already 0700 */
+  (void) fchmod(fd, 0400);
+                
   /* rename tmp->real */
   rc = rename (target_cache_tmppath, target_cache_path);
   if (rc < 0)

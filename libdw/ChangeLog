@@ -1,3 +1,8 @@
+2021-05-01  Mark Wielaard  <mark@klomp.org>
+
+	* libdw_form.c (__libdw_form_val_compute_len): Check indirect
+	form is not DW_FORM_indirect or DW_FORM_implicit_const.
+
 2021-04-23  Omar Sandoval  <osandov@fb.com>
 
 	* dwarf_child.c (__libdw_find_attr): Handle DW_FORM_indirect.

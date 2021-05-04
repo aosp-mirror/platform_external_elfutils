@@ -2,6 +2,11 @@ Version 0.184
 
 debuginfod: Use libarchive's bsdtar as the .deb-family file unpacker.
 
+debuginfod-client: Client caches negative results. If a query for a
+                   file failed with 404, an empty 000 permission
+                   file is created in the cache. This will prevent
+                   requesting the same file for the next 10 minutes.
+
 Version 0.183
 
 debuginfod: New thread-busy metric and more detailed error metrics.

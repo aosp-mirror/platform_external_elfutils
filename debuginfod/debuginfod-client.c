@@ -136,6 +136,11 @@ struct debuginfod_client
 static const char *cache_clean_interval_filename = "cache_clean_interval_s";
 static const time_t cache_clean_default_interval_s = 86400; /* 1 day */
 
+/* The cache_miss_default_s within the debuginfod cache specifies how
+   frequently the 000-permision file should be released.*/
+static const time_t cache_miss_default_s = 600; /* 10 min */
+static const char *cache_miss_filename = "cache_miss_s";
+
 /* The cache_max_unused_age_s file within the debuginfod cache specifies the
    the maximum time since last access that a file will remain in the cache.  */
 static const char *cache_max_unused_age_filename = "max_unused_age_s";
@@ -208,6 +213,38 @@ debuginfod_write_callback (char *ptr, size_t size, size_t nmemb, void *data)
   return (size_t) write(d->fd, (void*)ptr, count);
 }
 
+/* handle config file read and write */
+static int
+debuginfod_config_cache(char *config_path,
+			long cache_config_default_s,
+			struct stat *st)
+{
+  int fd;
+  /* if the config file doesn't exist, create one with DEFFILEMODE*/
+  if(stat(config_path, st) == -1)
+    {
+      fd = open(config_path, O_CREAT | O_RDWR, DEFFILEMODE);
+      if (fd < 0)
+        return -errno;
+
+      if (dprintf(fd, "%ld", cache_config_default_s) < 0)
+        return -errno;
+    }
+
+  long cache_config;
+  FILE *config_file = fopen(config_path, "r");
+  if (config_file)
+    {
+      if (fscanf(config_file, "%ld", &cache_config) != 1)
+        cache_config = cache_config_default_s;
+      fclose(config_file);
+    }
+  else
+    cache_config = cache_config_default_s;
+
+  return cache_config;
+}
+
 /* Create the cache and interval file if they do not already exist.
    Return 0 if cache and config file are initialized, otherwise return
    the appropriate error code.  */
@@ -253,52 +290,28 @@ debuginfod_clean_cache(debuginfod_client *c,
 		       char *cache_path, char *interval_path,
 		       char *max_unused_path)
 {
+  time_t clean_interval, max_unused_age;
+  int rc = -1;
   struct stat st;
-  FILE *interval_file;
-  FILE *max_unused_file;
 
-  if (stat(interval_path, &st) == -1)
-    {
-      /* Create new interval file.  */
-      interval_file = fopen(interval_path, "w");
-
-      if (interval_file == NULL)
-        return -errno;
-
-      int rc = fprintf(interval_file, "%ld", cache_clean_default_interval_s);
-      fclose(interval_file);
-
-      if (rc < 0)
-        return -errno;
-    }
+  /* Create new interval file.  */
+  rc = debuginfod_config_cache(interval_path,
+			       cache_clean_default_interval_s, &st);
+  if (rc < 0)
+    return rc;
+  clean_interval = (time_t)rc;
 
   /* Check timestamp of interval file to see whether cleaning is necessary.  */
-  time_t clean_interval;
-  interval_file = fopen(interval_path, "r");
-  if (interval_file)
-    {
-      if (fscanf(interval_file, "%ld", &clean_interval) != 1)
-        clean_interval = cache_clean_default_interval_s;
-      fclose(interval_file);
-    }
-  else
-    clean_interval = cache_clean_default_interval_s;
-
   if (time(NULL) - st.st_mtime < clean_interval)
     /* Interval has not passed, skip cleaning.  */
     return 0;
 
   /* Read max unused age value from config file.  */
-  time_t max_unused_age;
-  max_unused_file = fopen(max_unused_path, "r");
-  if (max_unused_file)
-    {
-      if (fscanf(max_unused_file, "%ld", &max_unused_age) != 1)
-        max_unused_age = cache_default_max_unused_age_s;
-      fclose(max_unused_file);
-    }
-  else
-    max_unused_age = cache_default_max_unused_age_s;
+  rc = debuginfod_config_cache(max_unused_path,
+			       cache_default_max_unused_age_s, &st);
+  if (rc < 0)
+    return rc;
+  max_unused_age = (time_t)rc;
 
   char * const dirs[] = { cache_path, NULL, };
 
@@ -504,6 +517,7 @@ debuginfod_query_server (debuginfod_client *c,
   char *cache_path = NULL;
   char *maxage_path = NULL;
   char *interval_path = NULL;
+  char *cache_miss_path = NULL;
   char *target_cache_dir = NULL;
   char *target_cache_path = NULL;
   char *target_cache_tmppath = NULL;
@@ -677,6 +691,7 @@ debuginfod_query_server (debuginfod_client *c,
 
   /* XXX combine these */
   xalloc_str (interval_path, "%s/%s", cache_path, cache_clean_interval_filename);
+  xalloc_str (cache_miss_path, "%s/%s", cache_path, cache_miss_filename);
   xalloc_str (maxage_path, "%s/%s", cache_path, cache_max_unused_age_filename);
 
   if (vfd >= 0)
@@ -698,6 +713,27 @@ debuginfod_query_server (debuginfod_client *c,
         *path = strdup(target_cache_path);
       rc = fd;
       goto out;
+    }
+
+  struct stat st;
+  time_t cache_miss;
+  /* Check if the file exists and it's of permission 000*/
+  if (errno == EACCES
+      && stat(target_cache_path, &st) == 0
+      && (st.st_mode & 0777) == 0)
+    {
+      rc = debuginfod_config_cache(cache_miss_path, cache_miss_default_s, &st);
+      if (rc < 0)
+        goto out;
+
+      cache_miss = (time_t)rc;
+      if (time(NULL) - st.st_mtime <= cache_miss)
+        {
+         rc = -ENOENT;
+         goto out;
+       }
+      else
+        unlink(target_cache_path);
     }
 
   long timeout = default_timeout;
@@ -1032,6 +1068,15 @@ debuginfod_query_server (debuginfod_client *c,
         }
     } while (num_msg > 0);
 
+  /* Create a 000-permission file named as $HOME/.cache if the query
+     fails with ENOENT.*/
+  if (rc == -ENOENT)
+    {
+      int efd = open (target_cache_path, O_CREAT|O_EXCL, 0000);
+      if (efd >= 0)
+        close(efd);
+    }
+
   if (verified_handle == NULL)
     goto out1;
 
@@ -1114,6 +1159,7 @@ debuginfod_query_server (debuginfod_client *c,
   free (cache_path);
   free (maxage_path);
   free (interval_path);
+  free (cache_miss_path);
   free (target_cache_dir);
   free (target_cache_path);
   free (target_cache_tmppath);

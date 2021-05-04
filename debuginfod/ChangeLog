@@ -1,3 +1,15 @@
+2021-05-04  Alice Zhang <alizhang@redhat.com>
+
+	* debuginfod-client.c (cache_miss_default_s): New static time_t,
+	defaults to 600 (10 minutes).
+	(cache_miss_filename): New static char pointer.
+	(debuginfod_config_cache): New static function.
+	(debuginfod_clean_cache): Use debuginfod_config_cache for
+	interval_path and max_unused_path.
+	(debuginfod_query_server): Check whether target_cache_path exists
+	as negative cache file and create target_cache_path when the server
+	returns ENOENT. Check cache_miss_path fir cache miss time.
+
 2021-04-26  Frank Ch. Eigler <fche@redhat.com>
 
 	PR27571

@@ -173,6 +173,41 @@ testrun ${abs_builddir}/debuginfod_build_id_find -e F/prog 1
 
 ########################################################################
 
+# PR25628
+rm -rf $DEBUGINFOD_CACHE_PATH # clean it from previous tests
+
+# The query is designed to fail, while the 000-permission file should be created.
+testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo 01234567 || true
+if [ ! -f $DEBUGINFOD_CACHE_PATH/01234567/debuginfo ]; then
+  echo "could not find cache in $DEBUGINFOD_CACHE_PATH"
+  exit 1
+fi
+
+if [ -r $DEBUGINFOD_CACHE_PATH/01234567/debuginfo ]; then
+  echo "The cache $DEBUGINFOD_CACHE_PATH/01234567/debuginfo is readable"
+  exit 1
+fi
+
+bytecount_before=`curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_transfer_bytes_count{code="404"}'`
+testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo 01234567 || true
+bytecount_after=`curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_transfer_bytes_count{code="404"}'`
+if [ "$bytecount_before" != "$bytecount_after" ]; then
+  echo "http_responses_transfer_bytes_count{code="404"} has changed."
+  exit 1
+fi
+
+# set cache_miss_s to 0 and sleep 1 to make the mtime expire.
+echo 0 > $DEBUGINFOD_CACHE_PATH/cache_miss_s
+sleep 1
+bytecount_before=`curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_transfer_bytes_count{code="404"}'`
+testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo 01234567 || true
+bytecount_after=`curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_transfer_bytes_count{code="404"}'`
+if [ "$bytecount_before" == "$bytecount_after" ]; then
+  echo "http_responses_transfer_bytes_count{code="404"} should be incremented."
+  exit 1
+fi
+########################################################################
+
 # Test whether debuginfod-find is able to fetch those files.
 rm -rf $DEBUGINFOD_CACHE_PATH # clean it from previous tests
 filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID`
@@ -485,6 +520,7 @@ file -L L/foo
 export DEBUGINFOD_URLS=http://127.0.0.1:$PORT1
 rm -rf $DEBUGINFOD_CACHE_PATH
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID && false || true
+rm -f $DEBUGINFOD_CACHE_PATH/$BUILDID/debuginfo # drop 000-perm negative-hit file
 export DEBUGINFOD_URLS=http://127.0.0.1:$PORT2
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 
@@ -492,6 +528,7 @@ testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 export DEBUGINFOD_URLS=127.0.0.1:$PORT1
 rm -rf $DEBUGINFOD_CACHE_PATH
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID && false || true
+rm -f $DEBUGINFOD_CACHE_PATH/$BUILDID/debuginfo # drop 000-perm negative-hit file
 export DEBUGINFOD_URLS=127.0.0.1:$PORT2
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 

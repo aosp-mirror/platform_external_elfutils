@@ -332,6 +332,20 @@ exit 0
 %systemd_postun_with_restart debuginfod.service
 
 %changelog
+* Mon May 10 2021  Mark Wielaard <mark@klomp.org> 0.184-1
+- debuginfod: Use libarchive's bsdtar as the .deb-family file unpacker.
+- debuginfod-client: Client caches negative results. If a query for a
+		   file failed with 404, an empty 000 permission
+		   file is created in the cache. This will prevent
+		   requesting the same file for the next 10 minutes.
+- 		   Client objects now carry long-lived curl handles
+		   for outgoing connections.  This makes it more
+		   efficient for multiple sequential queries, because
+		   the TCP connections and/or TLS state info are kept
+		   around awhile, avoiding O(100ms) setup latencies.
+- libdw: handle DW_FORM_indirect when reading attributes
+- translations: Update Polish translation.
+
 * Fri Feb  5 2021 Mark Wielaard <mark@klomp.org> 0.183-1
 - debuginfod: New thread-busy metric and more detailed error metrics.
   New --fdcache-mintmp and tracking of filesystem freespace.

@@ -1,3 +1,7 @@
+2021-05-11  Frank Ch. Eigler  <fche@redhat.com>
+
+	* elfutils.spec.in: Add procps to BuildRequires: for %check.
+
 2021-05-10  Mark Wielaard  <mark@klomp.org>
 
 	* elfutils.spec.in: Update for 0.184.

@@ -1,5 +1,8 @@
 2021-05-12  Dmitry V. Levin  <ldv@altlinux.org>
 
+	* elfcompress.c (process_file): Remove redundant assignment in case of
+	"Nothing to do".
+
 	* elfcompress.c (process_file): Set res to 0 in case of "Nothing to do".
 
 2021-04-19  Martin Liska  <mliska@suse.cz>

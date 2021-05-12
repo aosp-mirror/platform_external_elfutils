@@ -298,7 +298,7 @@ process_file (const char *fname)
 
   /* How many sections are we talking about?  */
   size_t shnum = 0;
-  int res = -1;
+  int res = 1;
 
   fd = open (fname, O_RDONLY);
   if (fd < 0)

@@ -1,5 +1,8 @@
 2021-05-12  Dmitry V. Levin  <ldv@altlinux.org>
 
+	* elfcompress.c (process_file): Return 1 instead of -1 in case of an
+	error.
+
 	* elfcompress.c (process_file): Remove redundant assignment in case of
 	"Nothing to do".
 

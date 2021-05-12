@@ -522,6 +522,7 @@ process_file (const char *fname)
       if (verbose > 0)
 	printf ("Nothing to do.\n");
       fnew = NULL;
+      res = 0;
       goto cleanup;
     }
 

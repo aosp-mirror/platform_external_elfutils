@@ -1,3 +1,11 @@
+2021-05-14  Frank Ch. Eigler <fche@redhat.com>
+
+	PR27859
+	* debuginfod-client.c (debuginfod_client): Retain only
+	long-lived multi handle from PR27701 work.
+	(debuginfo_begin,debuginfod_end): ctor/dtor for surviving field only.
+	(debuginfod_query_server): Rework to reuse multi handle only.
+
 2021-04-19  Martin Liska  <mliska@suse.cz>
 
 	* debuginfod-client.c (debuginfod_query_server): Use startswith.

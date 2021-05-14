@@ -559,11 +559,23 @@ curl -s http://127.0.0.1:$PORT1/metrics | grep 'scanned_bytes_total'
 
 # And generate a few errors into the second debuginfod's logs, for analysis just below
 curl -s http://127.0.0.1:$PORT2/badapi > /dev/null || true
-curl -s http://127.0.0.1:$PORT2/buildid/deadbeef/debuginfo > /dev/null || true
+curl -s http://127.0.0.1:$PORT2/buildid/deadbeef/debuginfo > /dev/null || true  
+# NB: this error is used to seed the 404 failure for the survive-404 tests
 
 # Confirm bad artifact types are rejected without leaving trace
 curl -s http://127.0.0.1:$PORT2/buildid/deadbeef/badtype > /dev/null || true
 (curl -s http://127.0.0.1:$PORT2/metrics | grep 'badtype') && false
+
+# Confirm that reused curl connections survive 404 errors.
+# The rm's force an uncached fetch
+rm -f $DEBUGINFOD_CACHE_PATH/$BUILDID/debuginfo .client_cache*/$BUILDID/debuginfo
+testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
+rm -f $DEBUGINFOD_CACHE_PATH/$BUILDID/debuginfo .client_cache*/$BUILDID/debuginfo
+testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
+testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
+testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
+rm -f $DEBUGINFOD_CACHE_PATH/$BUILDID/debuginfo .client_cache*/$BUILDID/debuginfo
+testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 
 # Confirm that some debuginfod client pools are being used
 curl -s http://127.0.0.1:$PORT2/metrics | grep 'dc_pool_op.*reuse'

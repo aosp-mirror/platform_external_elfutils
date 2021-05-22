@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: elfutils\n"
 "Report-Msgid-Bugs-To: https://sourceware.org/bugzilla/\n"
-"POT-Creation-Date: 2021-05-10 13:59+0200\n"
+"POT-Creation-Date: 2021-05-22 15:33+0200\n"
 "PO-Revision-Date: 2021-02-22 16:25+0100\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <trans-pl@lists.fedoraproject.org>\n"
@@ -533,8 +533,8 @@ msgstr "Nie jest plikiem ELF ET_CORE"
 msgid "No backend"
 msgstr "Brak zaplecza"
 
-#: libebl/eblcorenotetypename.c:100 libebl/eblobjnotetypename.c:77
-#: libebl/eblobjnotetypename.c:109 libebl/eblobjnotetypename.c:130
+#: libebl/eblcorenotetypename.c:100 libebl/eblobjnotetypename.c:79
+#: libebl/eblobjnotetypename.c:110 libebl/eblobjnotetypename.c:131
 #: libebl/eblosabiname.c:73 libebl/eblsectionname.c:83
 #: libebl/eblsectiontypename.c:115 libebl/eblsegmenttypename.c:81
 msgid "<unknown>"
@@ -1181,73 +1181,73 @@ msgstr "archiwum „%s” jest za duże"
 msgid "cannot read ELF header of %s(%s): %s"
 msgstr "nie można odczytać nagłówka ELF %s(%s): %s"
 
-#: src/elfclassify.c:91
+#: src/elfclassify.c:92
 msgid "opening"
 msgstr "otwieranie"
 
-#: src/elfclassify.c:98
+#: src/elfclassify.c:99
 msgid "reading"
 msgstr "odczytywanie"
 
-#: src/elfclassify.c:244
+#: src/elfclassify.c:245
 msgid "ELF header"
 msgstr "nagłówek ELF"
 
-#: src/elfclassify.c:255
+#: src/elfclassify.c:256
 msgid "program headers"
 msgstr "nagłówki programu"
 
-#: src/elfclassify.c:264
+#: src/elfclassify.c:265
 msgid "program header"
 msgstr "nagłówek programu"
 
-#: src/elfclassify.c:284
+#: src/elfclassify.c:285
 msgid "section headers"
 msgstr "nagłówki sekcji"
 
-#: src/elfclassify.c:295
+#: src/elfclassify.c:296
 msgid "section header string table index"
 msgstr "sekcja nagłówek ciąg tabela indeks"
 
-#: src/elfclassify.c:309
+#: src/elfclassify.c:310
 msgid "could not obtain section header"
 msgstr "nie można uzyskać nagłówka sekcji"
 
-#: src/elfclassify.c:315
+#: src/elfclassify.c:316
 msgid "could not obtain section name"
 msgstr "nie można uzyskać nazwy sekcji"
 
-#: src/elfclassify.c:831
+#: src/elfclassify.c:829
 msgid "writing to standard output"
 msgstr "zapisywanie do standardowego wyjścia"
 
-#: src/elfclassify.c:858
+#: src/elfclassify.c:856
 msgid "reading from standard input"
 msgstr "odczytywanie ze standardowego wejścia"
 
-#: src/elfclassify.c:879
+#: src/elfclassify.c:877
 msgid "Classification options"
 msgstr "Opcje klasyfikacji"
 
-#: src/elfclassify.c:881
+#: src/elfclassify.c:879
 msgid "File looks like an ELF object or archive/static library (default)"
 msgstr ""
 "Plik wygląda jak obiekt ELF lub archiwum/biblioteka statyczna (domyślnie)"
 
-#: src/elfclassify.c:884
+#: src/elfclassify.c:882
 msgid "File is an regular ELF object (not an archive/static library)"
 msgstr ""
 "Plik jest zwykłym obiektem ELF (nie jest archiwum/biblioteką statyczną)"
 
-#: src/elfclassify.c:887
+#: src/elfclassify.c:885
 msgid "File is an ELF archive or static library"
 msgstr "Plik jest archiwum lub biblioteką statyczną ELF"
 
-#: src/elfclassify.c:890
+#: src/elfclassify.c:888
 msgid "File is an ELF core dump file"
 msgstr "Plik jest plikiem zrzutu core ELF"
 
-#: src/elfclassify.c:893
+#: src/elfclassify.c:891
 msgid ""
 "File is an ELF file with symbol table or .debug_* sections and can be "
 "stripped further"
@@ -1255,60 +1255,60 @@ msgstr ""
 "Plik jest plikiem ELF z tabelą symboli lub sekcjami .debug_* i może być "
 "dalej okrojony"
 
-#: src/elfclassify.c:896
+#: src/elfclassify.c:894
 msgid "File is (primarily) an ELF program executable (not primarily a DSO)"
 msgstr "Plik jest (głównie) wykonywalnym programem ELF (nie jest głównie DSO)"
 
-#: src/elfclassify.c:899
+#: src/elfclassify.c:897
 msgid "File is an ELF program executable (might also be a DSO)"
 msgstr "Plik jest wykonywalnym programem ELF (może być także DSO)"
 
-#: src/elfclassify.c:902
+#: src/elfclassify.c:900
 msgid ""
 "File is (primarily) an ELF shared object (DSO) (not primarily an executable)"
 msgstr ""
 "Plik jest (głównie) obiektem współdzielonym ELF (DSO) (nie jest głównie "
 "plikiem wykonywalnym)"
 
-#: src/elfclassify.c:905
+#: src/elfclassify.c:903
 msgid "File is an ELF shared object (DSO) (might also be an executable)"
 msgstr ""
 "Plik jest obiektem współdzielonym ELF (DSO) (może być także plikiem "
 "wykonywalnym)"
 
-#: src/elfclassify.c:909
+#: src/elfclassify.c:907
 msgid "File is a linux kernel module"
 msgstr "Plik jest modułem jądra Linux"
 
-#: src/elfclassify.c:911
+#: src/elfclassify.c:909
 msgid "File is a debug only ELF file (separate .debug, .dwo or dwz multi-file)"
 msgstr ""
 "Plik jest wyłącznie plikiem debugowania ELF (oddzielne .debug, .dwo lub "
 "wieloplikowe dwz)"
 
-#: src/elfclassify.c:914
+#: src/elfclassify.c:912
 msgid "File is a loadable ELF object (program or shared object)"
 msgstr ""
 "Plik jest wczytywalnym obiektem ELF (programem lub obiektem współdzielonym)"
 
-#: src/elfclassify.c:943
+#: src/elfclassify.c:941
 msgid "Input flags"
 msgstr "Flagi wejścia"
 
-#: src/elfclassify.c:945
+#: src/elfclassify.c:943
 msgid "Only classify regular (not symlink nor special device) files"
 msgstr ""
 "Klasyfikuje tylko zwykłe (niebędące dowiązaniami symbolicznymi lub "
 "urządzeniami specjalnymi) pliki"
 
-#: src/elfclassify.c:947
+#: src/elfclassify.c:945
 msgid ""
 "Also read file names to process from standard input, separated by newlines"
 msgstr ""
 "Odczytuje także nazwy plików do przetworzenia ze standardowego wejścia, "
 "rozdzielone znakami nowego wiersza"
 
-#: src/elfclassify.c:950
+#: src/elfclassify.c:948
 msgid ""
 "Also read file names to process from standard input, separated by ASCII NUL "
 "bytes"
@@ -1316,57 +1316,57 @@ msgstr ""
 "Odczytuje także nazwy plików do przetworzenia ze standardowego wejścia, "
 "rozdzielone bajtami NUL ASCII"
 
-#: src/elfclassify.c:953
+#: src/elfclassify.c:951
 msgid "Do not read files from standard input (default)"
 msgstr "Bez odczytywania plików ze standardowego wejścia (domyślnie)"
 
-#: src/elfclassify.c:955
+#: src/elfclassify.c:953
 msgid "Try to open compressed files or embedded (kernel) ELF images"
 msgstr "Próbuje otwierać skompresowane pliki lub osadzone obrazy ELF (jądra)"
 
-#: src/elfclassify.c:958
+#: src/elfclassify.c:956
 msgid "Output flags"
 msgstr "Flagi wyjścia"
 
-#: src/elfclassify.c:960
+#: src/elfclassify.c:958
 msgid "Output names of files, separated by newline"
 msgstr "Wyświetla nazwy plików, rozdzielone znakami nowego wiersza"
 
-#: src/elfclassify.c:962
+#: src/elfclassify.c:960
 msgid "Output names of files, separated by ASCII NUL"
 msgstr "Wyświetla nazwy plików, rozdzielone znakami NUL ASCII"
 
-#: src/elfclassify.c:964
+#: src/elfclassify.c:962
 msgid "Do not output file names"
 msgstr "Bez wyświetlania nazw plików"
 
-#: src/elfclassify.c:966
+#: src/elfclassify.c:964
 msgid "If printing file names, print matching files (default)"
 msgstr "Podczas wyświetlana nazw plików wyświetla pasujące pliki (domyślnie)"
 
-#: src/elfclassify.c:968
+#: src/elfclassify.c:966
 msgid "If printing file names, print files that do not match"
 msgstr "Podczas wyświetlania nazw plików wyświetla niepasujące pliki"
 
-#: src/elfclassify.c:970
+#: src/elfclassify.c:968
 msgid "Additional flags"
 msgstr "Dodatkowe flagi"
 
-#: src/elfclassify.c:972
+#: src/elfclassify.c:970
 msgid "Output additional information (can be specified multiple times)"
 msgstr "Wyświetla dodatkowe informacje (można podać wiele razy)"
 
-#: src/elfclassify.c:974
+#: src/elfclassify.c:972
 msgid "Suppress some error output (counterpart to --verbose)"
 msgstr "Zmniejsza wyjście błędów (odpowiednik opcji --verbose)"
 
 #. Strings for arguments in help texts.
-#: src/elfclassify.c:982 src/elfcompress.c:1337 src/elflint.c:77
+#: src/elfclassify.c:980 src/elfcompress.c:1334 src/elflint.c:77
 #: src/readelf.c:158
 msgid "FILE..."
 msgstr "PLIK…"
 
-#: src/elfclassify.c:983
+#: src/elfclassify.c:981
 msgid ""
 "Determine the type of an ELF file.\n"
 "\n"
@@ -1681,21 +1681,21 @@ msgid "unknown compression type '%s'"
 msgstr "nieznany typ kompresji „%s”"
 
 #. We need at least one input file.
-#: src/elfcompress.c:145 src/elfcompress.c:1348
+#: src/elfcompress.c:145 src/elfcompress.c:1345
 #, c-format
 msgid "No input file given"
 msgstr "Nie podano pliku wejściowego"
 
-#: src/elfcompress.c:151 src/elfcompress.c:1353
+#: src/elfcompress.c:151 src/elfcompress.c:1350
 #, c-format
 msgid "Only one input file allowed together with '-o'"
 msgstr "Tylko jeden plik wejściowy jest dozwolony z „-o”"
 
-#: src/elfcompress.c:1310
+#: src/elfcompress.c:1307
 msgid "Place (de)compressed output into FILE"
 msgstr "Umieszcza zdekompresowane wyjście w PLIKU"
 
-#: src/elfcompress.c:1313
+#: src/elfcompress.c:1310
 msgid ""
 "What type of compression to apply. TYPE can be 'none' (decompress), "
 "'zlib' (ELF ZLIB compression, the default, 'zlib-gabi' is an alias) or 'zlib-"
@@ -1705,7 +1705,7 @@ msgstr ""
 "„zlib” (kompresja zlib ELF, domyślna, „zlib-gabi” to alias) lub „zlib-"
 "gnu” (kompresja .zdebug w stylu GNU, „gnu” to alias)"
 
-#: src/elfcompress.c:1316
+#: src/elfcompress.c:1313
 msgid ""
 "SECTION name to (de)compress, SECTION is an extended wildcard pattern "
 "(defaults to '.?(z)debug*')"
@@ -1713,11 +1713,11 @@ msgstr ""
 "Nazwa SEKCJI do (de)kompresowania, SEKCJA jest rozszerzonym wzorem "
 "(domyślnie „.?(z)debug*”)"
 
-#: src/elfcompress.c:1319
+#: src/elfcompress.c:1316
 msgid "Print a message for each section being (de)compressed"
 msgstr "Wyświetla komunikat dla każdej (de)kompresowanej sekcji"
 
-#: src/elfcompress.c:1322
+#: src/elfcompress.c:1319
 msgid ""
 "Force compression of section even if it would become larger or update/"
 "rewrite the file even if no section would be (de)compressed"
@@ -1726,15 +1726,15 @@ msgstr ""
 "zaktualizowanie/przepisanie pliku, nawet jeśli żadna sekcja nie zostałaby "
 "(zde)kompresowana"
 
-#: src/elfcompress.c:1325 src/strip.c:93
+#: src/elfcompress.c:1322 src/strip.c:93
 msgid "Relax a few rules to handle slightly broken ELF files"
 msgstr "Łagodzi kilka reguł, aby obsłużyć lekko uszkodzone pliki ELF"
 
-#: src/elfcompress.c:1328
+#: src/elfcompress.c:1325
 msgid "Be silent when a section cannot be compressed"
 msgstr "Bez zgłaszania, kiedy nie można zdekompresować sekcji"
 
-#: src/elfcompress.c:1338
+#: src/elfcompress.c:1335
 msgid "Compress or decompress sections in an ELF file."
 msgstr "Kompresuje lub dekompresuje sekcje w pliku ELF."
 
@@ -3984,8 +3984,8 @@ msgstr "nie można utworzyć drzewa wyszukiwania"
 #: src/readelf.c:1451 src/readelf.c:1602 src/readelf.c:1803 src/readelf.c:2009
 #: src/readelf.c:2199 src/readelf.c:2377 src/readelf.c:2453 src/readelf.c:2719
 #: src/readelf.c:2795 src/readelf.c:2882 src/readelf.c:3480 src/readelf.c:3530
-#: src/readelf.c:3600 src/readelf.c:11339 src/readelf.c:12534
-#: src/readelf.c:12745 src/readelf.c:12814 src/size.c:398 src/size.c:470
+#: src/readelf.c:3600 src/readelf.c:11339 src/readelf.c:12533
+#: src/readelf.c:12744 src/readelf.c:12813 src/size.c:398 src/size.c:470
 #: src/strip.c:1084
 #, c-format
 msgid "cannot get section header string table index"
@@ -4334,7 +4334,7 @@ msgstr "nie można określić liczby sekcji: %s"
 msgid "cannot get section: %s"
 msgstr "nie można uzyskać sekcji: %s"
 
-#: src/readelf.c:655 src/readelf.c:1272 src/readelf.c:1483 src/readelf.c:12765
+#: src/readelf.c:655 src/readelf.c:1272 src/readelf.c:1483 src/readelf.c:12764
 #: src/unstrip.c:397 src/unstrip.c:428 src/unstrip.c:489 src/unstrip.c:610
 #: src/unstrip.c:631 src/unstrip.c:671 src/unstrip.c:887 src/unstrip.c:1222
 #: src/unstrip.c:1349 src/unstrip.c:1373 src/unstrip.c:1429 src/unstrip.c:1470
@@ -4741,8 +4741,8 @@ msgstr "<NIEPRAWIDŁOWY SYMBOL>"
 msgid "<INVALID SECTION>"
 msgstr "<NIEPRAWIDŁOWY SEKCJA>"
 
-#: src/readelf.c:1660 src/readelf.c:2387 src/readelf.c:3496 src/readelf.c:12636
-#: src/readelf.c:12643 src/readelf.c:12687 src/readelf.c:12694
+#: src/readelf.c:1660 src/readelf.c:2387 src/readelf.c:3496 src/readelf.c:12635
+#: src/readelf.c:12642 src/readelf.c:12686 src/readelf.c:12693
 msgid "Couldn't uncompress section"
 msgstr "Nie można dekompresować sekcji"
 
@@ -6265,17 +6265,17 @@ msgstr ""
 msgid "  Owner          Data size  Type\n"
 msgstr "  Właściciel     Rozmiar danych  Typ\n"
 
-#: src/readelf.c:12467
+#: src/readelf.c:12466
 #, c-format
 msgid "  %-13.*s  %9<PRId32>  %s\n"
 msgstr "  %-13.*s  %9<PRId32>  %s\n"
 
-#: src/readelf.c:12519
+#: src/readelf.c:12518
 #, c-format
 msgid "cannot get content of note: %s"
 msgstr "nie można uzyskać zawartości notatki: %s"
 
-#: src/readelf.c:12553
+#: src/readelf.c:12552
 #, c-format
 msgid ""
 "\n"
@@ -6285,7 +6285,7 @@ msgstr ""
 "Segment notatki [%2zu] „%s” o długości %<PRIu64> B pod offsetem "
 "%#0<PRIx64>:\n"
 
-#: src/readelf.c:12576
+#: src/readelf.c:12575
 #, c-format
 msgid ""
 "\n"
@@ -6294,7 +6294,7 @@ msgstr ""
 "\n"
 "Segment notatki o długości %<PRIu64> B pod offsetem %#0<PRIx64>:\n"
 
-#: src/readelf.c:12623
+#: src/readelf.c:12622
 #, c-format
 msgid ""
 "\n"
@@ -6303,12 +6303,12 @@ msgstr ""
 "\n"
 "Sekcja [%zu] „%s” nie ma danych do zrzucenia.\n"
 
-#: src/readelf.c:12650 src/readelf.c:12701
+#: src/readelf.c:12649 src/readelf.c:12700
 #, c-format
 msgid "cannot get data for section [%zu] '%s': %s"
 msgstr "nie można uzyskać danych dla sekcji [%zu] „%s”: %s"
 
-#: src/readelf.c:12655
+#: src/readelf.c:12654
 #, c-format
 msgid ""
 "\n"
@@ -6318,7 +6318,7 @@ msgstr ""
 "Segment zrzutu szesnastkowego [%zu] „%s”, %<PRIu64> B pod offsetem "
 "%#0<PRIx64>:\n"
 
-#: src/readelf.c:12660
+#: src/readelf.c:12659
 #, c-format
 msgid ""
 "\n"
@@ -6329,7 +6329,7 @@ msgstr ""
 "Zrzut szesnastkowy sekcji [%zu] „%s”, %<PRIu64> B (%zd nieskompresowanych) "
 "pod offsetem %#0<PRIx64>:\n"
 
-#: src/readelf.c:12674
+#: src/readelf.c:12673
 #, c-format
 msgid ""
 "\n"
@@ -6338,7 +6338,7 @@ msgstr ""
 "\n"
 "Sekcja [%zu] „%s” nie ma ciągów do zrzucenia.\n"
 
-#: src/readelf.c:12706
+#: src/readelf.c:12705
 #, c-format
 msgid ""
 "\n"
@@ -6347,7 +6347,7 @@ msgstr ""
 "\n"
 "Sekcja ciągów [%zu] „%s” zawiera %<PRIu64> B pod offsetem %#0<PRIx64>:\n"
 
-#: src/readelf.c:12711
+#: src/readelf.c:12710
 #, c-format
 msgid ""
 "\n"
@@ -6358,7 +6358,7 @@ msgstr ""
 "Sekcja ciągów [%zu] „%s” zawiera %<PRIu64> B (%zd nieskompresowanych) pod "
 "offsetem %#0<PRIx64>:\n"
 
-#: src/readelf.c:12760
+#: src/readelf.c:12759
 #, c-format
 msgid ""
 "\n"
@@ -6367,7 +6367,7 @@ msgstr ""
 "\n"
 "sekcja [%lu] nie istnieje"
 
-#: src/readelf.c:12790
+#: src/readelf.c:12789
 #, c-format
 msgid ""
 "\n"
@@ -6376,12 +6376,12 @@ msgstr ""
 "\n"
 "sekcja „%s” nie istnieje"
 
-#: src/readelf.c:12847
+#: src/readelf.c:12846
 #, c-format
 msgid "cannot get symbol index of archive '%s': %s"
 msgstr "nie można uzyskać indeksu symboli archiwum „%s”: %s"
 
-#: src/readelf.c:12850
+#: src/readelf.c:12849
 #, c-format
 msgid ""
 "\n"
@@ -6390,7 +6390,7 @@ msgstr ""
 "\n"
 "Archiwum „%s” nie ma indeksu symboli\n"
 
-#: src/readelf.c:12854
+#: src/readelf.c:12853
 #, c-format
 msgid ""
 "\n"
@@ -6399,12 +6399,12 @@ msgstr ""
 "\n"
 "Indeks archiwum „%s” ma %zu wpisów:\n"
 
-#: src/readelf.c:12872
+#: src/readelf.c:12871
 #, c-format
 msgid "cannot extract member at offset %zu in '%s': %s"
 msgstr "nie można wydobyć elementów pod offsetem %zu w „%s”: %s"
 
-#: src/readelf.c:12877
+#: src/readelf.c:12876
 #, c-format
 msgid "Archive member '%s' contains:\n"
 msgstr "Element archiwum „%s” zawiera:\n"

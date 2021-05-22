@@ -1,3 +1,11 @@
+Version 0.185
+
+debuginfod-client: Simplify curl handle reuse so downloads which
+                   return an error are retried.
+
+elfcompress: Always exit with code 0 when the operation succeeds (even
+             when nothing was done). On error the exit code is now always 1.
+
 Version 0.184
 
 debuginfod: Use libarchive's bsdtar as the .deb-family file unpacker.

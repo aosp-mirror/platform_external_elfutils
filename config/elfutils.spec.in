@@ -333,6 +333,13 @@ exit 0
 %systemd_postun_with_restart debuginfod.service
 
 %changelog
+* Sat May 22 2021 Mark Wielaard <mark@klomp.org> 0.185-1
+- debuginfod-client: Simplify curl handle reuse so downloads which
+                     return an error are retried.
+- elfcompress: Always exit with code 0 when the operation succeeds
+               (even when nothing was done). On error the exit code is
+               now always 1.
+
 * Mon May 10 2021  Mark Wielaard <mark@klomp.org> 0.184-1
 - debuginfod: Use libarchive's bsdtar as the .deb-family file unpacker.
 - debuginfod-client: Client caches negative results. If a query for a

@@ -580,6 +580,20 @@ testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 # Confirm that some debuginfod client pools are being used
 curl -s http://127.0.0.1:$PORT2/metrics | grep 'dc_pool_op.*reuse'
 
+# Trigger a flood of requests against the same archive content file.
+# Use a file that hasn't been previously extracted in to make it
+# likely that even this test debuginfod will experience concurrency
+# and impose some "after-you" delays.
+(for i in `seq 100`; do
+    curl -s http://127.0.0.1:$PORT1/buildid/87c08d12c78174f1082b7c888b3238219b0eb265/executable >/dev/null &
+ done;
+ wait)
+curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_after_you.*'
+# If we could guarantee some minimum number of seconds of CPU time, we
+# could assert that the after_you metrics show some nonzero amount of
+# waiting.  A few hundred ms is typical on this developer's workstation.
+
+
 ########################################################################
 # Corrupt the sqlite database and get debuginfod to trip across its errors
 curl -s http://127.0.0.1:$PORT1/metrics | grep 'sqlite3.*reset'

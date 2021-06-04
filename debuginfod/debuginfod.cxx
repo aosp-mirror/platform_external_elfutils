@@ -705,6 +705,54 @@ static workq<scan_payload> scanq; // just a single one
 // idler: thread_main_groom()
 
 
+////////////////////////////////////////////////////////////////////////
+
+// Unique set is a thread-safe structure that lends 'ownership' of a value
+// to a thread.  Other threads requesting the same thing are made to wait.
+// It's like a semaphore-on-demand.
+template <typename T>
+class unique_set
+{
+private:
+  set<T> values;
+  mutex mtx;
+  condition_variable cv;
+public:
+  unique_set() {}
+  ~unique_set() {}
+
+  void acquire(const T& value)
+  {
+    unique_lock<mutex> lock(mtx);
+    while (values.find(value) != values.end())
+      cv.wait(lock);
+    values.insert(value);
+  }
+
+  void release(const T& value)
+  {
+    unique_lock<mutex> lock(mtx);
+    // assert (values.find(value) != values.end());
+    values.erase(value);
+    cv.notify_all();
+  }
+};
+
+
+// This is the object that's instantiate to uniquely hold a value in a
+// RAII-pattern way.
+template <typename T>
+class unique_set_reserver
+{
+private:
+  unique_set<T>& please_hold;
+  T mine;
+public:
+  unique_set_reserver(unique_set<T>& t, const T& value):
+    please_hold(t), mine(value)  { please_hold.acquire(mine); }
+  ~unique_set_reserver() { please_hold.release(mine); }
+};
+
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -1961,6 +2009,7 @@ handler_cb (void * /*cls*/,
   off_t http_size = -1;
   struct timespec ts_start, ts_end;
   clock_gettime (CLOCK_MONOTONIC, &ts_start);
+  double afteryou = 0.0;
 
   try
     {
@@ -1973,7 +2022,25 @@ handler_cb (void * /*cls*/,
 
       if (slash1 != string::npos && url1 == "/buildid")
         {
+          // PR27863: block this thread awhile if another thread is already busy
+          // fetching the exact same thing.  This is better for Everyone.
+          // The latecomer says "... after you!" and waits.
+          add_metric ("thread_busy", "role", "http-buildid-after-you", 1);
+#ifdef HAVE_PTHREAD_SETNAME_NP
+          (void) pthread_setname_np (pthread_self(), "mhd-buildid-after-you");
+#endif
+          struct timespec tsay_start, tsay_end;
+          clock_gettime (CLOCK_MONOTONIC, &tsay_start);
+          static unique_set<string> busy_urls;
+          unique_set_reserver<string> after_you(busy_urls, url1);
+          clock_gettime (CLOCK_MONOTONIC, &tsay_end);
+          afteryou = (tsay_end.tv_sec - tsay_start.tv_sec) + (tsay_end.tv_nsec - tsay_start.tv_nsec)/1.e9;
+          add_metric ("thread_busy", "role", "http-buildid-after-you", -1);
+          
           tmp_inc_metric m ("thread_busy", "role", "http-buildid");
+#ifdef HAVE_PTHREAD_SETNAME_NP
+          (void) pthread_setname_np (pthread_self(), "mhd-buildid");
+#endif
           size_t slash2 = url_copy.find('/', slash1+1);
           if (slash2 == string::npos)
             throw reportable_exception("/buildid/ webapi error, need buildid");
@@ -2036,10 +2103,12 @@ handler_cb (void * /*cls*/,
 
   clock_gettime (CLOCK_MONOTONIC, &ts_end);
   double deltas = (ts_end.tv_sec - ts_start.tv_sec) + (ts_end.tv_nsec - ts_start.tv_nsec)/1.e9;
+  // afteryou: delay waiting for other client's identical query to complete
+  // deltas: total latency, including afteryou waiting
   obatched(clog) << conninfo(connection)
                  << ' ' << method << ' ' << url
                  << ' ' << http_code << ' ' << http_size
-                 << ' ' << (int)(deltas*1000) << "ms"
+                 << ' ' << (int)(afteryou*1000) << '+' << (int)((deltas-afteryou)*1000) << "ms"
                  << endl;
 
   // related prometheus metrics
@@ -2053,6 +2122,10 @@ handler_cb (void * /*cls*/,
              deltas*1000); // prometheus prefers _seconds and floating point
   inc_metric("http_responses_duration_milliseconds_count","code",http_code_str);
 
+  add_metric("http_responses_after_you_milliseconds_sum","code",http_code_str,
+             afteryou*1000);
+  inc_metric("http_responses_after_you_milliseconds_count","code",http_code_str);
+  
   return rc;
 }
 

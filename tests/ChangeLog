@@ -1,3 +1,9 @@
+2021-06-03  Frank Ch. Eigler <fche@redhat.com>
+
+	PR27863
+	* run-debuginfod-find.sh: Test "after-you" queueing via flooding
+	with concurent curls.
+
 2021-05-14  Frank Ch. Eigler <fche@redhat.com>
 
 	PR27859

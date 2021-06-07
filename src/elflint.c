@@ -3434,7 +3434,7 @@ buffer_pos (Elf_Data *data, const unsigned char *p)
   return p - (const unsigned char *) data->d_buf;
 }
 
-inline size_t
+static inline size_t
 buffer_left (Elf_Data *data, const unsigned char *p)
 {
   return (const unsigned char *) data->d_buf + data->d_size - p;

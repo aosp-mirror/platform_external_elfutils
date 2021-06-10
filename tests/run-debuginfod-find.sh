@@ -120,12 +120,15 @@ wait_ready()
   fi
 }
 
+FDCACHE_FDS=50
+FDCACHE_MBS=190
+PREFETCH_FDS=10
+PREFETCH_MBS=120
 # create a bogus .rpm file to evoke a metric-visible error
 # Use a cyclic symlink instead of chmod 000 to make sure even root
 # would see an error (running the testsuite under root is NOT encouraged).
 ln -s R/nothing.rpm R/nothing.rpm
-
-env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -R -d $DB -p $PORT1 -t0 -g0 --fdcache-fds 1 --fdcache-mbs 2 --fdcache-mintmp 0 -Z .tar.xz -Z .tar.bz2=bzcat -v R F Z L > vlog$PORT1 2>&1 &
+env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -R -d $DB -p $PORT1 -t0 -g0 --fdcache-mbs=$FDCACHE_MBS --fdcache-fds=$FDCACHE_FDS --fdcache-prefetch-mbs=$PREFETCH_MBS --fdcache-prefetch-fds=$PREFETCH_FDS --fdcache-mintmp 0 -Z .tar.xz -Z .tar.bz2=bzcat -v R F Z L > vlog$PORT1 2>&1 &
 PID1=$!
 tempfiles vlog$PORT1
 errfiles vlog$PORT1
@@ -472,6 +475,19 @@ archive_test f0aa15b8aba4f3c28cac3c2a73801fefa644a9f2 /usr/src/debug/hello-1.0/h
 
 egrep '(libc.error.*rhel7)|(bc1febfd03ca)|(f0aa15b8aba)' vlog$PORT1
 
+########################################################################
+## PR25978
+# Ensure that the fdcache options are working.
+grep "prefetch fds" vlog$PORT1
+grep "prefetch mbs" vlog$PORT1
+grep "fdcache fds" vlog$PORT1
+grep "fdcache mbs" vlog$PORT1
+# search the vlog to find what metric counts should be and check the correct metrics
+# were incrimented
+wait_ready $PORT1 'fdcache_op_count{op="enqueue"}' $( grep -c 'interned.*front=1' vlog$PORT1 )
+wait_ready $PORT1 'fdcache_op_count{op="evict"}' $( grep -c 'evicted a=.*' vlog$PORT1 )
+wait_ready $PORT1 'fdcache_op_count{op="prefetch_enqueue"}' $( grep -c 'interned.*front=0' vlog$PORT1 )
+wait_ready $PORT1 'fdcache_op_count{op="prefetch_evict"}' $( grep -c 'evicted from prefetch a=.*front=0' vlog$PORT1 || true )
 ########################################################################
 
 # Federation mode

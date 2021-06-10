@@ -216,6 +216,16 @@ most recently used extracted files are kept.  Grooming cleans this
 cache.
 
 .TP
+.B "\-\-fdcache\-\-prefetch\-fds=NUM"  "\-\-fdcache\-\-prefetch\-mbs=MB"
+Configure how many file descriptors (fds) and megabytes (mbs) are
+allocated to the prefetch fdcache. If unspecified, values of
+\fB\-\-prefetch\-fds\fP and \fB\-\-prefetch\-mbs\fP depend
+on concurrency of the system and on the available disk space on
+the $TMPDIR. Allocating more to the prefetch cache will improve
+performance in environments where different parts of several large
+archives are being accessed.
+
+.TP
 .B "\-\-fdcache\-mintmp=NUM"
 Configure a disk space threshold for emergency flushing of the cache.
 The filesystem holding the cache is checked periodically.  If the

@@ -1,6 +1,21 @@
+2021-06-28 Noah Sanci <nsanci@redhat.com>
+
+	PR25978
+	* debuginfod.cxx (options): Added --fdcache-prefetch-fds/mbs options.
+	(set_metric): Added a condition for fdcache_mintmp to ensure no
+	negative percentages or percentages larger than 100% are given.
+	(globals): Added fdcache_prefetch_mbs/fdcache_prefetch_fds.
+	(set_metrics): Differentiate between lru and prefetch metrics.
+	(intern): Added prefetch functionality for nuking preexisting copies
+	and incrementing prefetch metrics.
+	(lookup): Search prefetch cache and increment associated metrics. Upon
+	finding in the prefetch cache move the element to the lru cache.
+	(limit): Arguments updated. Update size of prefetch cache.
+	(main): Log prefetch and cache fds/mbs
+
 2021-07-06  Alice Zhang  <alizhang@redhat.com>
 
-        PR27531
+	PR27531
 	* debuginfod-client.c (debuginfod_query_server): Retry failed queries
 	if error code is not ENOENT.
 	* debuginfod.h.in: Introduce DEBUGINFOD_RETRY_LIMIT_ENV_VAR.

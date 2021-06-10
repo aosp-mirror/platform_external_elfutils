@@ -1,3 +1,7 @@
+2021-06-09  Omar Sandoval  <osandov@fb.com>
+
+	* link_map.c (read_addrs): Fix potential NULL pointer dereference.
+
 2021-04-19  Martin Liska  <mliska@suse.cz>
 
 	* dwfl_frame.c (dwfl_attach_state): Use startswith.

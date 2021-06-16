@@ -260,7 +260,9 @@ fi
 
 # A cache at the old default location ($HOME/.debuginfod_client_cache) should take
 # priority over $HOME/.cache, $XDG_CACHE_HOME.
-cp -r $DEBUGINFOD_CACHE_PATH tmphome/.debuginfod_client_cache
+cp -vr $DEBUGINFOD_CACHE_PATH tmphome/.debuginfod_client_cache || true
+# ||true is for tolerating errors, such a valgrind or something else
+#        leaving 000-perm files in there
 
 # Add a file that doesn't exist in $HOME/.cache, $XDG_CACHE_HOME.
 mkdir tmphome/.debuginfod_client_cache/deadbeef

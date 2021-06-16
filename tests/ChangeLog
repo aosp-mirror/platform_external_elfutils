@@ -1,3 +1,8 @@
+2021-06-16  Frank Ch. Eigler <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Fix intermittent groom/stale failure,
+	due to SIGUSR1/SIGUSR2 races.  Trace more.
+
 2021-06-15  Frank Ch. Eigler <fche@redhat.com>
 
 	* run-debuginfod-find.sh (err): Elaborate.  Use as the reliable

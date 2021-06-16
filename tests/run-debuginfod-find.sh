@@ -26,7 +26,7 @@ bsdtar --version | grep -q zstd && zstd=true || zstd=false
 echo "zstd=$zstd bsdtar=`bsdtar --version`"
 
 # for test case debugging, uncomment:
-#set -x
+set -x
 VERBOSE=-vvv
 
 DB=${PWD}/.debuginfod_tmp.sqlite
@@ -72,7 +72,6 @@ trap err ERR
 errfiles() {
     errfiles_list="$errfiles_list $*"
 }
-
 
 
 # find an unused port number
@@ -317,6 +316,11 @@ fi
 
 cp -rvp ${abs_srcdir}/debuginfod-tars Z
 kill -USR1 $PID1
+# Wait till both files are in the index and scan/index fully finished
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 4
+wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
+wait_ready $PORT1 'thread_busy{role="scan"}' 0
+
 # All rpms need to be in the index, except the dummy permission-000 one
 rpms=$(find R -name \*rpm | grep -v nothing | wc -l)
 wait_ready $PORT1 'scanned_files_total{source=".rpm archive"}' $rpms
@@ -326,6 +330,11 @@ tb2=$(find Z -name \*tar.bz2 | wc -l)
 wait_ready $PORT1 'scanned_files_total{source=".tar.bz2 archive"}' $tb2
 
 kill -USR1 $PID1  # two hits of SIGUSR1 may be needed to resolve .debug->dwz->srefs
+# Wait till both files are in the index and scan/index fully finished
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 5
+wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
+wait_ready $PORT1 'thread_busy{role="scan"}' 0
+
 # Expect all source files found in the rpms (they are all called hello.c :)
 # We will need to extract all rpms (in their own directory) and could all
 # sources referenced in the .debug files.
@@ -495,6 +504,10 @@ if type bsdtar 2>/dev/null; then
     # copy in the deb files
     cp -rvp ${abs_srcdir}/debuginfod-debs/*deb D
     kill -USR1 $PID2
+    wait_ready $PORT2 'thread_work_total{role="traverse"}' 2
+    wait_ready $PORT2 'thread_work_pending{role="scan"}' 0
+    wait_ready $PORT2 'thread_busy{role="scan"}' 0
+
     # All debs need to be in the index
     debs=$(find D -name \*.deb | wc -l)
     wait_ready $PORT2 'scanned_files_total{source=".deb archive"}' `expr $debs`

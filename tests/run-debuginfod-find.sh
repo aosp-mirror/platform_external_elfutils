@@ -39,10 +39,10 @@ PID3=0
 
 cleanup()
 {
-  if [ $PID1 -ne 0 ]; then kill $PID1; wait $PID1; fi
-  if [ $PID2 -ne 0 ]; then kill $PID2; wait $PID2; fi
-  if [ $PID3 -ne 0 ]; then kill $PID3; wait $PID3; fi
-
+  if [ $PID1 -ne 0 ]; then kill $PID1 || true; wait $PID1; fi
+  if [ $PID2 -ne 0 ]; then kill $PID2 || true; wait $PID2; fi
+  if [ $PID3 -ne 0 ]; then kill $PID3 || true; wait $PID3; fi
+  
   rm -rf F R D L Z ${PWD}/foobar ${PWD}/mocktree ${PWD}/.client_cache* ${PWD}/tmp*
   exit_cleanup
 }
@@ -52,18 +52,20 @@ trap cleanup 0 1 2 3 5 9 15
 
 errfiles_list=
 err() {
+    echo ERROR REPORTS
     for ports in $PORT1 $PORT2
     do
-        echo $port metrics
+        echo ERROR REPORT $port metrics
         curl -s http://127.0.0.1:$port/metrics
         echo
     done
     for x in $errfiles_list
     do
-        echo "$x"
+        echo ERROR REPORT "$x"
         cat $x
         echo
     done
+    false # trigger set -e
 }
 trap err ERR
 
@@ -114,7 +116,7 @@ wait_ready()
 
   if [ $timeout -eq 0 ]; then
     echo "metric $what never changed to $value on port $port"
-    exit 1;
+    err
   fi
 }
 
@@ -180,12 +182,12 @@ rm -rf $DEBUGINFOD_CACHE_PATH # clean it from previous tests
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo 01234567 || true
 if [ ! -f $DEBUGINFOD_CACHE_PATH/01234567/debuginfo ]; then
   echo "could not find cache in $DEBUGINFOD_CACHE_PATH"
-  exit 1
+  err
 fi
 
 if [ -r $DEBUGINFOD_CACHE_PATH/01234567/debuginfo ]; then
   echo "The cache $DEBUGINFOD_CACHE_PATH/01234567/debuginfo is readable"
-  exit 1
+  err
 fi
 
 bytecount_before=`curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_transfer_bytes_count{code="404"}'`
@@ -193,7 +195,7 @@ testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo 01234567 || tru
 bytecount_after=`curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_transfer_bytes_count{code="404"}'`
 if [ "$bytecount_before" != "$bytecount_after" ]; then
   echo "http_responses_transfer_bytes_count{code="404"} has changed."
-  exit 1
+  err
 fi
 
 # set cache_miss_s to 0 and sleep 1 to make the mtime expire.
@@ -204,7 +206,7 @@ testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo 01234567 || tru
 bytecount_after=`curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_transfer_bytes_count{code="404"}'`
 if [ "$bytecount_before" == "$bytecount_after" ]; then
   echo "http_responses_transfer_bytes_count{code="404"} should be incremented."
-  exit 1
+  err
 fi
 ########################################################################
 
@@ -214,7 +216,7 @@ filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUIL
 cmp $filename F/prog.debug
 if [ -w $filename ]; then
     echo "cache file writable, boo"
-    exit 1
+    err
 fi
 
 filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find executable F/prog`
@@ -239,21 +241,21 @@ mkdir tmphome
 testrun env HOME=$PWD/tmphome XDG_CACHE_HOME= DEBUGINFOD_CACHE_PATH= ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 if [ ! -f $PWD/tmphome/.cache/debuginfod_client/$BUILDID/debuginfo ]; then
   echo "could not find cache in $PWD/tmphome/.cache"
-  exit 1
+  err
 fi
 
 # $HOME/.cache should be found.
 testrun env HOME=$PWD/tmphome XDG_CACHE_HOME= DEBUGINFOD_CACHE_PATH= ${abs_top_builddir}/debuginfod/debuginfod-find executable $BUILDID
 if [ ! -f $PWD/tmphome/.cache/debuginfod_client/$BUILDID/executable ]; then
   echo "could not find cache in $PWD/tmphome/.cache"
-  exit 1
+  err
 fi
 
 # $XDG_CACHE_HOME should take priority over $HOME.cache.
 testrun env HOME=$PWD/tmphome XDG_CACHE_HOME=$PWD/tmpxdg DEBUGINFOD_CACHE_PATH= ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 if [ ! -f $PWD/tmpxdg/debuginfod_client/$BUILDID/debuginfo ]; then
   echo "could not find cache in $PWD/tmpxdg/"
-  exit 1
+  err
 fi
 
 # A cache at the old default location ($HOME/.debuginfod_client_cache) should take
@@ -270,7 +272,7 @@ cmp $filename tmphome/.debuginfod_client_cache/deadbeef/debuginfo
 testrun env HOME=$PWD/tmphome XDG_CACHE_HOME=$PWD/tmpxdg DEBUGINFOD_CACHE_PATH=$PWD/tmpcache ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 if [ ! -f $PWD/tmpcache/$BUILDID/debuginfo ]; then
   echo "could not find cache in $PWD/tmpcache/"
-  exit 1
+  err
 fi
 
 ########################################################################
@@ -654,12 +656,12 @@ testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID2 && fa
 if [ ! -f $DEBUGINFOD_CACHE_PATH/malformed0 ] \
     || [ ! -f $DEBUGINFOD_CACHE_PATH/malformed/malformed1 ]; then
   echo "unrelated files did not survive cache cleaning"
-  exit 1
+  err
 fi
 
 if [ -d $DEBUGINFOD_CACHE_PATH/00000000 ]; then
     echo "failed to rmdir old cache dir"
-    exit 1
+    err
 fi
 
 # Test debuginfod without a path list; reuse $PORT1

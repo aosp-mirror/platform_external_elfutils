@@ -32,11 +32,9 @@
 #include <stdio.h>
 
 #include <libasm.h>
+#include "libebl.h"
 
 #include "libdwelf.h"
-
-/* gettext helper macros.  */
-#define _(Str) dgettext ("elfutils", Str)
 
 
 /* Known error codes.  */

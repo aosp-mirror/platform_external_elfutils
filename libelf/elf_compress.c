@@ -113,9 +113,8 @@ __libelf_compress (Elf_Scn *scn, size_t hsize, int ei_data,
   int zrc = deflateInit (&z, Z_BEST_COMPRESSION);
   if (zrc != Z_OK)
     {
-      free (out_buf);
       __libelf_seterrno (ELF_E_COMPRESS_ERROR);
-      return NULL;
+      return deflate_cleanup(NULL, NULL);
     }
 
   Elf_Data cdata;
@@ -125,7 +124,7 @@ __libelf_compress (Elf_Scn *scn, size_t hsize, int ei_data,
   int flush = Z_NO_FLUSH;
   do
     {
-      /* Convert to raw if different endianess.  */
+      /* Convert to raw if different endianness.  */
       cdata = *data;
       bool convert = ei_data != MY_ELFDATA && data->d_size > 0;
       if (convert)
@@ -197,13 +196,13 @@ __libelf_compress (Elf_Scn *scn, size_t hsize, int ei_data,
     }
   while (flush != Z_FINISH); /* More data blocks.  */
 
-  zrc = deflateEnd (&z);
-  if (zrc != Z_OK)
+  if (zrc != Z_STREAM_END)
     {
       __libelf_seterrno (ELF_E_COMPRESS_ERROR);
       return deflate_cleanup (NULL, NULL);
     }
 
+  deflateEnd (&z);
   *new_size = used;
   return out_buf;
 }
@@ -251,16 +250,15 @@ __libelf_decompress (void *buf_in, size_t size_in, size_t size_out)
 	}
       zrc = inflateReset (&z);
     }
-  if (likely (zrc == Z_OK))
-    zrc = inflateEnd (&z);
 
   if (unlikely (zrc != Z_OK) || unlikely (z.avail_out != 0))
     {
       free (buf_out);
+      buf_out = NULL;
       __libelf_seterrno (ELF_E_DECOMPRESS_ERROR);
-      return NULL;
     }
 
+  inflateEnd(&z);
   return buf_out;
 }
 
@@ -524,7 +522,7 @@ elf_compress (Elf_Scn *scn, int type, unsigned int flags)
 
       __libelf_reset_rawdata (scn, scn->zdata_base,
 			      scn->zdata_size, scn->zdata_align,
-			      __libelf_data_type (elf, sh_type,
+			      __libelf_data_type (&ehdr, sh_type,
 						  scn->zdata_align));
 
       return 1;

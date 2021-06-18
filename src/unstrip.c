@@ -462,6 +462,7 @@ adjust_relocs (Elf_Scn *outscn, Elf_Scn *inscn, const GElf_Shdr *shdr,
 	{
 	  GElf_Rel rel_mem;
 	  GElf_Rel *rel = gelf_getrel (data, i, &rel_mem);
+	  ELF_CHECK (rel != NULL, _("gelf_getrel failed: %s"));
 	  adjust_reloc (&rel->r_info, map, map_size);
 	  ELF_CHECK (gelf_update_rel (data, i, rel),
 		     _("cannot update relocation: %s"));
@@ -476,6 +477,7 @@ adjust_relocs (Elf_Scn *outscn, Elf_Scn *inscn, const GElf_Shdr *shdr,
 	{
 	  GElf_Rela rela_mem;
 	  GElf_Rela *rela = gelf_getrela (data, i, &rela_mem);
+	  ELF_CHECK (rela != NULL, _("gelf_getrela failed: %s"));
 	  adjust_reloc (&rela->r_info, map, map_size);
 	  ELF_CHECK (gelf_update_rela (data, i, rela),
 		     _("cannot update relocation: %s"));

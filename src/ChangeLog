@@ -1,3 +1,8 @@
+2021-06-18  Mark Wielaard  <mark@klomp.org>
+
+	* strip.c (remove_debug_relocations): Check gelf_update results.
+	(update_section_size): Likewise.
+
 2021-06-06  Sergei Trofimovich  <slyfox@gentoo.org>
 
 	* elflint.c (buffer_left): Mark as 'static' to avoid external linkage

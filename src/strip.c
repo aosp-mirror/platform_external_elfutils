@@ -705,17 +705,21 @@ remove_debug_relocations (Ebl *ebl, Elf *elf, GElf_Ehdr *ehdr,
 relocate_failed:
 	      if (relidx != next)
 		{
+		  int updated;
 		  if (is_rela)
-		    gelf_update_rela (reldata, next, rel_p);
+		    updated = gelf_update_rela (reldata, next, rel_p);
 		  else
-		    gelf_update_rel (reldata, next, rel_p);
+		    updated = gelf_update_rel (reldata, next, rel_p);
+		  if (updated == 0)
+		    INTERNAL_ERROR (fname);
 		}
 	      ++next;
 	    }
 
 	  nrels = next;
 	  shdr->sh_size = reldata->d_size = nrels * shdr->sh_entsize;
-	  gelf_update_shdr (scn, shdr);
+	  if (gelf_update_shdr (scn, shdr) == 0)
+	    INTERNAL_ERROR (fname);
 
 	  if (is_gnu_compressed)
 	    {
@@ -952,7 +956,8 @@ update_section_size (Elf_Scn *scn,
   GElf_Shdr shdr_mem;
   GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
   shdr->sh_size = newdata->d_size;
-  (void) gelf_update_shdr (scn, shdr);
+  if (gelf_update_shdr (scn, shdr) == 0)
+    INTERNAL_ERROR (fname);
   if (debugelf != NULL)
     {
       /* libelf will use d_size to set sh_size.  */

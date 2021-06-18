@@ -1193,12 +1193,12 @@ debuginfod_begin (void)
 	client->verbose_fd = STDERR_FILENO;
       else
 	client->verbose_fd = -1;
-    }
 
-  // allocate 1 curl multi handle
-  client->server_mhandle = curl_multi_init ();
-  if (client->server_mhandle == NULL)
-    goto out1;
+      // allocate 1 curl multi handle
+      client->server_mhandle = curl_multi_init ();
+      if (client->server_mhandle == NULL)
+	goto out1;
+    }
 
   // extra future initialization
   

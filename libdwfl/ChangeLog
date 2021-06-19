@@ -1,3 +1,234 @@
+2021-02-01  Érico Nogueira  <ericonr@disroot.org>
+
+	* dwfl_error.c (strerror_r): Only use the GNU version when available.
+
+2021-01-08  Timm Bäder  <tbaeder@redhat.com>
+
+	* elf-from-memory.c (elf_from_remote_memory): Add for loop over
+	switch. inline handle_segment call, set vaddr, offset and filesz
+	directly based on class.
+
+2021-01-08  Timm Bäder  <tbaeder@redhat.com>
+
+	* elf-from-memory.c (elf_from_remote_memory): Use if instead of
+	switch on class. Set new vaddr, memsz, offset and filesz
+	variables. Inline handle_segment function check and set loadbase,
+	found_base, segments_end and segments_end_mem directly.
+
+2020-12-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* argp-std.c (_): Remove.
+	* libdwflP.h (_): Likewise.
+
+2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* libdwfl.h: Fix spelling typos in comments.
+	* dwfl_module_getdwarf.c (open_elf, find_symtab): Likewise.
+	* dwfl_report_elf.c (__libdwfl_elf_address_range): Likewise.
+	* linux-pid-attach.c (read_cached_memory): Likewise.
+
+2020-12-07  Timm Bäder  <tbaeder@redhat.com>
+
+	* link_map.c (report_r_debug): Pull read_addrs() function into
+	file scope.
+
+2020-12-07  Timm Bäder  <tbaeder@redhat.com>
+
+	* link_map.c (report_r_debug): Pull release_buffer() function into
+	file scope. Add memory_closure struct.
+
+2020-12-08  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* debuginfod-client.c (__libdwfl_debuginfod_init): Replace
+	"libdebuginfod-" VERSION ".so" with DEBUGINFOD_SONAME in dlopen call.
+	Do not fall back to dlopen of "libdebuginfod.so".
+
+2020-12-01  Timm Bäder  <tbaeder@redhat.com>
+
+	* link_map.c (dwfl_link_map_report): Removed consider_phdr function
+	and inline code.
+
+2020-11-28  Mark Wielaard  <mark@klomp.org>
+
+	* dwfl_segment_report_module.c (dwfl_segment_report_module):
+	Use GElf_Addr to calculate note_vaddr instead of size_t.
+
+2020-11-26  Timm Bäder  <tbaeder@redhat.com>
+
+	* dwfl_segment_report_module.c (dwfl_segment_report_module):
+	Remove consider_notes function. Inline code for type == PT_NOTE.
+
+2020-11-26  Timm Bäder  <tbaeder@redhat.com>
+
+	* dwfl_segment_report_module.c (read_portion): New static function.
+	(dwfl_segment_report_module): Remove read_portion function.
+	Call static function with read_state, start and segment.
+
+2020-11-26  Timm Bäder  <tbaeder@redhat.com>
+
+	* dwfl_segment_report_module.c (struct read_state): New.
+	(finish_portion): New static function.
+	(dwfl_segment_report_module): Introduce read_state. Remove
+	finish_portion function. Call static function with read_state.
+
+2020-11-23  Timm Bäder  <tbaeder@redhat.com>
+
+	* segment_report_module.c (dwfl_segment_report_module): Remove
+	consider_phdr, do checks inline.
+
+2020-11-23  Timm Bäder  <tbaeder@redhat.com>
+
+	* segment_report_module.c (dwfl_segment_report_module): Remove
+	consider_dyn, do checks inline.
+
+2020-11-23  Timm Bäder  <tbaeder@redhat.com>
+
+	* segment_report_module.c (dwfl_segment_report_module): Do one
+	loop check for d32/d64 arrays.
+
+2020-11-23  Timm Bäder  <tbaeder@redhat.com>
+
+	* segment_report_module.c (dwfl_segment_report_module): Remove
+	read_phdr, do check and call memory_callback directly.
+
+2020-11-23  Timm Bäder  <tbaeder@redhat.com>
+
+	* segment_report_module.c (dwfl_segment_report_module): Do one
+	loop check for p32/p64 arrays.
+
+2020-11-23  Timm Bäder  <tbaeder@redhat.com>
+
+	* segment_report_module.c (dwfl_segment_report_module): Remove
+	final_read, call memory_callback directly.
+
+2020-11-23  Timm Bäder  <tbaeder@redhat.com>
+
+	* segment_report_module.c (struct elf_build_id): New.
+	(dwfl_segment_report_module): Pass build_id as struct.
+
+2020-11-23  Timm Bäder  <tbaeder@redhat.com>
+
+	* segment_report_module.c (dwfl_segment_report_module): Remove
+	release_buffer, call memory_callback directly.
+
+2020-11-23  Timm Bäder  <tbaeder@redhat.com>
+
+	* segment_report_module.c (dwfl_segment_report_module): Remove
+	segment_read, call memory_callback directly.
+
+2020-11-19  Andreas Krebbel  <krebbel@linux.ibm.com>
+
+	* linux-pid-attach.c (pid_memory_read): Shift the upper 4 bytes
+	down on big endian 64 bit targets.
+
+2020-11-12  Timm Bäder <tbaeder@redhat.com>
+
+	* dwfl_segment_report_module.c (dwfl_segment_report_module): Remove
+	finish function, replace with goto out.
+
+2020-11-12  Timm Bäder <tbaeder@redhat.com>
+
+	* dwfl_segment_report_module.c (dwfl_segment_report_module): Declare
+	p32 and p64 as pointers instead of arrays.
+
+2020-09-18  Mark Wielaard  <mark@klomp.org>
+
+	* zstd.c: New file.
+	* libdwflP.h: Add DWFL_E_ZSTD and __libdw_unzstd.
+	* Makefile.am (libdwfl_a_SOURCES): add zstd.c if ZSTD.
+	* gzip.c: Add defines and includes for ZSTD.
+	(zlib_fail): Don't define for ZSTD.
+	(unzip): Change pread_retry failure from zlib_fail to fail.
+	Add ZSTD support.
+	* open.c (decompress): Also try __libdw_unzstd.
+	* linux-kernel-modules.c (check_suffix): Also TRY ".ko.zst".
+
+2020-08-20  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* Makefile.am (libdwfl_a_SOURCES): Conditionalize
+	debuginfod-client.c on LIBDEBUGINFOD.
+	* dwfl_build_id_find_elf.c (dwfl_build_id_find_elf): Conditionalize
+	__libdwfl_debuginfod_find_executable invocation on
+	ENABLE_LIBDEBUGINFOD.
+	* dwfl_end.c (dwfl_end): Conditionalize __libdwfl_debuginfod_end
+	invocation on ENABLE_LIBDEBUGINFOD.
+	* find-debuginfo.c (dwfl_standard_find_debuginfo): Conditionalize
+	__libdwfl_debuginfod_find_debuginfo invocation on
+	ENABLE_LIBDEBUGINFOD.
+	* libdwflP.h: Guard debuginfod.h include with ENABLE_LIBDEBUGINFOD.
+	(struct Dwfl): Guard debuginfod field with ENABLE_LIBDEBUGINFOD.
+	(__libdwfl_debuginfod_find_executable,
+	__libdwfl_debuginfod_find_debuginfo, __libdwfl_debuginfod_end):
+	Guard declarations with ENABLE_LIBDEBUGINFOD.
+
+2020-07-05  Mark Wielaard  <mark@klomp.org>
+
+	* argp-std.c (parse_opt): Don't assert, but call fail when
+	dwfl_report_end fails.
+	* dwfl_build_id_find_elf.c (__libdwfl_open_by_build_id): Don't
+	assert, but goto bad_id when snprintf fails.
+	* frame_unwind.c (__libdwfl_frame_unwind): Don't assert, but
+	return when dwfl_frame_pc fails.
+	* linux-core-attach.c (core_set_initial_registers): Don't assert,
+	but return false when gelf_getnote fails or the core note is not
+	as expected.
+	* linux-pid-attach.c (dwfl_linux_proc_attach): Don't assert, but
+	goto fail when snprintf fails.
+
+2020-06-16  Mark Wielaard  <mark@klomp.org>
+
+	* frame_unwind.c (handle_cfi): Flag an error if
+	return_address_register is invalid.
+
+2020-06-16  Mark Wielaard  <mark@klomp.org>
+
+	* linux-kernel-modules.c (try_kernel_name): Don't try other
+	compressed kernels if we already found an compressed image.
+
+2020-05-09  Mark Wielaard  <mark@klomp.org>
+
+	* find-debuginfo.c (dwfl_standard_find_debuginfo): Return failure
+	when mod is NULL.
+
+2020-05-08  Mark Wielaard  <mark@klomp.org>
+
+	* libdwfl/core-file.c (dwfl_core_file_report): Keep track of
+	new bool cleanup_user_core and cleanup dwfl->user_core in error
+	case.
+
+2020-04-30  Mark Wielaard  <mark@klomp.org>
+
+	* find-debuginfo.c (dwfl_standard_find_debuginfo): When mod->dw
+	is already set then try fetching debugaltlink.
+
+2020-04-25  Mark Wielaard  <mark@klomp.org>
+
+	* gzip.c (open_stream): Return DWFL_E_NOMEM instead of calling
+	zlib_fail.
+
+2020-04-16  Mark Wielaard  <mark@klomp.org>
+
+	* find-debuginfo.c (dwfl_standard_find_debuginfo): Initialize bits
+	to NULL.
+
+2020-01-24  Mark Wielaard  <mark@klomp.org>
+
+	* linux-kernel-modules.c (find_kernel_elf): Check release isn't NULL.
+	(report_kernel): Check release and *release aren't NULL.
+	(report_kernel_archive): Likewise.
+
+2019-12-11  Omar Sandoval  <osandov@fb.com>
+
+	* libdwflP.h (Dwfl_Module): Remove coalescing state.
+	Rename lookup_tail_ndx to next_segndx.
+	* segment.c (dwfl_report_segment): Remove coalescing logic.
+	* libdwfl.h (dwfl_report_segment): Document that IDENT is ignored.
+
+2019-12-05  Mark Wielaard  <mark@klomp.org>
+
+	* linux-kernel-modules.c (find_kernel_elf): Also try to find
+	vmlinux image.
+
 2019-10-28  Aaron Merey  <amerey@redhat.com>
 
 	* dwfl_build_id_find_elf.c (dwfl_build_id_find_elf): Call debuginfod
@@ -614,7 +845,7 @@
 	* link_map.c (check32): Use read_4ubyte_unaligned_noncvt to read
 	type and value.
 	(read_addrs): Use read_(4|8)ubyte_unaligned_noncvt or to read
-	adresses.
+	addresses.
 
 2015-05-30  Mark Wielaard  <mjw@redhat.com>
 
@@ -1536,7 +1767,7 @@
 
 2013-01-23  Mark Wielaard  <mjw@redhat.com>
 
-	* dwfl_module_getdwarf.c (find_aux_sym): Don't substract one
+	* dwfl_module_getdwarf.c (find_aux_sym): Don't subtract one
 	from aux_syments by default.
 	(find_symtab): Also succeed when only aux_symdata is found.
 	When no symtab is found always try to load auxiliary table.
@@ -1544,7 +1775,7 @@
 	tables have symbols.
 	* dwfl_module_getsym.c (dwfl_module_getsym): Only skip auxiliary
 	zero entry when both tables have symbols.
-	* dwfl_module_addrsym.c (dwfl_module_addrsym): Only substract
+	* dwfl_module_addrsym.c (dwfl_module_addrsym): Only subtract
 	one from first_global when both tables have symbols.
 
 2013-01-16  Mark Wielaard  <mjw@redhat.com>

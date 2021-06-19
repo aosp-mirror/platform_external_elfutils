@@ -1,3 +1,100 @@
+Version 0.183
+
+debuginfod: New thread-busy metric and more detailed error metrics.
+            New --fdcache-mintmp and tracking of filesystem freespace.
+            New increased webapi concurrency while grooming.
+
+debuginfod-client: DEBUGINFOD_SONAME macro added to debuginfod.h which
+                   can be used to dlopen the libdebuginfod.so library.
+                   New function debuginfod_set_verbose_fd and
+                   DEBUGINFOD_VERBOSE environment variable.
+
+config: profile.sh and profile.csh won't export DEBUGINFOD_URLS unless
+        configured --enable-debuginfod-urls[=URLS]
+
+elflint, readelf: Recognize SHF_GNU_RETAIN.
+                  Handle SHT_X86_64_UNWIND as valid relocation target.
+
+Version 0.182
+
+backends: Support for tilegx has been removed.
+
+config: New /etc/profile.d files to provide default $DEBUGINFOD_URLS.
+
+debuginfod: More efficient package traversal, tolerate various errors
+            during scanning, grooming progress is more visible and
+            interruptible, more prometheus metrics.
+
+debuginfod-client: Now supports compressed (kernel) ELF images.
+
+libdwfl: Add ZSTD compression support.
+
+Version 0.181
+
+libelf: elf_update now compensates (fixes up) a bad sh_addralign for
+        SHF_COMPRESSED sections.
+
+libdebuginfod: configure now takes --enable-libdebuginfod=dummy or
+               --disable-libdebuginfod for bootstrapping.
+               DEBUGINFOD_URLS now accepts "scheme-free" urls
+               (guessing at what the user meant, either http:// or file://)
+
+readelf, elflint: Handle aarch64 bti, pac bits in dynamic table and gnu
+                  property notes.
+
+libdw, readelf: Recognize DW_CFA_AARCH64_negate_ra_state. Allows unwinding
+                on arm64 for code that is compiled for PAC (Pointer
+                Authentication Code) as long as it isn't enabled.
+
+Version 0.180
+
+elflint: Allow SHF_EXCLUDE as generic section flag when --gnu is given.
+
+libdw, readelf: Handle GCC LTO .gnu.debuglto_ prefix.
+
+libdw: Use correct CU to resolve file names in dwarf_decl_file.
+
+libdwfl: Handle debugaltlink in dwfl_standard_find_debuginfo.
+
+size: Also obey radix printing for bsd format.
+
+nm: Explicitly print weak 'V' or 'T' and common 'C' symbols.
+
+Version 0.179
+
+debuginfod-client: When DEBUGINFOD_PROGRESS is set and the program doesn't
+                   install its own debuginfod_progressfn_t show download
+                   progress on stderr.
+                   DEBUGINFOD_TIMEOUT is now defined as seconds to get at
+                   least 100K, defaults to 90 seconds.
+                   Default to $XDG_CACHE_HOME/debuginfod_client.
+                   New functions debuginfod_set_user_data,
+                   debuginfod_get_user_data, debuginfod_get_url and
+                   debuginfod_add_http_header.
+                   Support for file:// URLs.
+
+debuginfod: Uses libarchive directly for reading rpm archives.
+            Support for indexing .deb/.ddeb archives through dpkg-deb
+            or bsdtar.
+            Generic archive support through -Z EXT[=CMD]. Which can be
+            used for example for arch-linux pacman files by using
+            -Z '.tar.zst=zstdcat'.
+            Better logging using User-Agent and X-Forwarded-For headers.
+            More prometheus metrics.
+            Support for eliding dots or extraneous slashes in path names.
+
+debuginfod-find: Accept /path/names in place of buildid hex.
+
+libelf: Handle PN_XNUM in elf_getphdrnum before shdr 0 is cached
+        Ensure zlib resource cleanup on failure.
+
+libdwfl: dwfl_linux_kernel_find_elf and dwfl_linux_kernel_report_offline
+         now find and handle a compressed vmlinuz image.
+
+readelf, elflint: Handle PT_GNU_PROPERTY.
+
+translations: Updated Ukrainian translation.
+
 Version 0.178
 
 debuginfod: New server, client tool and library to index and fetch
@@ -48,7 +145,7 @@ Fixes CVE-2019-7146, CVE-2019-7148, CVE-2019-7149, CVE-2019-7150,
 
 Version 0.175
 
-readelf: Handle mutliple .debug_macro sections.
+readelf: Handle multiple .debug_macro sections.
          Recognize and parse GNU Property notes, NT_VERSION notes
          and GNU Build Attribute ELF Notes.
 
@@ -549,7 +646,7 @@ Version 0.140:
 
 libelf: Fix regression in creation of section header
 
-libdwfl: Less strict behavior if DWARF reader ist just used to display data
+libdwfl: Less strict behavior if DWARF reader is just used to display data
 
 Version 0.139:
 
@@ -859,7 +956,7 @@ strip: support Linux kernel modules
 Version 0.106:
 
 libdw: Updated dwarf.h from DWARF3 spec
-libdw: add new funtions dwarf_func_entrypc, dwarf_func_file, dwarf_func_line,
+libdw: add new functions dwarf_func_entrypc, dwarf_func_file, dwarf_func_line,
 dwarf_func_col, dwarf_getsrc_file
 
 Version 0.105:
@@ -969,7 +1066,7 @@ libelf: change to GPL from OSL1 for now.
 Version 0.90:
 
 libebl: Recognize a few more section types and dynamic tags and return
-approriate strings.
+appropriate strings.
 
 Version 0.89:
 
@@ -1071,11 +1168,11 @@ Version 0.73:
 
 Version 0.72:
 
-libelf: and yet more fun with endian tranformation at output time.
+libelf: and yet more fun with endian transformation at output time.
 
 Version 0.71:
 
-libelf: more fun with endian tranformation at output time.  Add test for it.
+libelf: more fun with endian transformation at output time.  Add test for it.
 
 Version 0.70:
 
@@ -1086,7 +1183,7 @@ libelf: add unlikely in some more places.
 
 Version 0.69:
 
-libelf: fix output routines to handle case where section indeces and
+libelf: fix output routines to handle case where section indices and
 ordre in the output file don't match correctly.  Patch by Jakub.
 
 elflint: fix test of note section content for 64-bit platforms and files
@@ -1261,7 +1358,7 @@ General: fix a few problem gcc 3.1 had with the code.
 
 libelf: implement {gelf,elf32,elf64}_checksum
 
-libelf: optimze DSO: fewer relocations, fewer PLTs
+libelf: optimize DSO: fewer relocations, fewer PLTs
 
 add msg_tst test
 
@@ -1506,7 +1603,7 @@ Version 0.16:
 
 more work on assigning input sections to output sections.
 
-Add gelf_xlatetof and gelf_xlatetom which were accidently left out.
+Add gelf_xlatetof and gelf_xlatetom which were accidentally left out.
 
 Fix memory handling of section headers.
 

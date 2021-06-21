@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Must be run in the source directory.
 # Should have passed make distcheck.
@@ -20,7 +20,7 @@ echo Make sure the git repo is tagged, signed and pushed
 echo git tag -s -m \"elfutils $VERSION release\" elfutils-$VERSION
 echo git push --tags
 
-# Create a temporary directoy and make sure it is cleaned up.
+# Create a temporary directory and make sure it is cleaned up.
 tempdir=$(mktemp -d) || exit
 trap "rm -rf -- ${tempdir}" EXIT
 
@@ -50,6 +50,8 @@ cp -r $VERSION $HOME/elfutils-$VERSION
 # Upload
 scp -r $VERSION sourceware.org:/sourceware/ftp/pub/elfutils/
 ssh sourceware.org "(cd /sourceware/ftp/pub/elfutils \
+  && chmod go+rx $VERSION \
+  && chmod go+r  $VERSION/elfutils-$VERSION.tar.bz2* \
   && ln -sf $VERSION/elfutils-$VERSION.tar.bz2 elfutils-latest.tar.bz2 \
   && ln -sf $VERSION/elfutils-$VERSION.tar.bz2.sig elfutils-latest.tar.bz2.sig \
   && ls -lah elfutils-latest*)"

@@ -99,7 +99,7 @@ main (int argc, char *argv[])
   /* There must at least be one more parameter specifying the archive.   */
   if (remaining == argc)
     {
-      error (0, 0, gettext ("Archive name required"));
+      error (0, 0, _("Archive name required"));
       argp_help (&argp, stderr, ARGP_HELP_SEE, "ranlib");
       exit (EXIT_FAILURE);
     }
@@ -138,14 +138,14 @@ handle_file (const char *fname)
   int fd = open (fname, O_RDONLY);
   if (fd == -1)
     {
-      error (0, errno, gettext ("cannot open '%s'"), fname);
+      error (0, errno, _("cannot open '%s'"), fname);
       return 1;
     }
 
   struct stat st;
   if (fstat (fd, &st) != 0)
     {
-      error (0, errno, gettext ("cannot stat '%s'"), fname);
+      error (0, errno, _("cannot stat '%s'"), fname);
       close (fd);
       return 1;
     }
@@ -155,7 +155,7 @@ handle_file (const char *fname)
   Elf *arelf = elf_begin (fd, ELF_C_READ_MMAP, NULL);
   if (arelf == NULL)
     {
-      error (0, 0, gettext ("cannot create ELF descriptor for '%s': %s"),
+      error (0, 0, _("cannot create ELF descriptor for '%s': %s"),
 	     fname, elf_errmsg (-1));
       close (fd);
       return 1;
@@ -163,7 +163,7 @@ handle_file (const char *fname)
 
   if (elf_kind (arelf) != ELF_K_AR)
     {
-      error (0, 0, gettext ("'%s' is no archive"), fname);
+      error (0, 0, _("'%s' is no archive"), fname);
       elf_end (arelf);
       close (fd);
       return 1;
@@ -198,7 +198,7 @@ handle_file (const char *fname)
       /* Get next archive element.  */
       cmd = elf_next (elf);
       if (elf_end (elf) != 0)
-	error (0, 0, gettext ("error while freeing sub-ELF descriptor: %s"),
+	error (0, 0, _("error while freeing sub-ELF descriptor: %s"),
 	       elf_errmsg (-1));
     }
 
@@ -219,7 +219,7 @@ handle_file (const char *fname)
       if (unlikely (newfd == -1))
 	{
 	nonew:
-	  error (0, errno, gettext ("cannot create new file"));
+	  error (0, errno, _("cannot create new file"));
 	  status = 1;
 	}
       else
@@ -245,25 +245,31 @@ handle_file (const char *fname)
 	  else
 	    rest_off = SARMAG;
 
-	  if ((symtab.symsnamelen != 0
-	       && ((write_retry (newfd, symtab.symsoff,
-				 symtab.symsofflen)
-		    != (ssize_t) symtab.symsofflen)
-		   || (write_retry (newfd, symtab.symsname,
-				    symtab.symsnamelen)
-		       != (ssize_t) symtab.symsnamelen)))
-	      /* Even if the original file had content before the
-		 symbol table, we write it in the correct order.  */
-	      || (index_off > SARMAG
-		  && copy_content (arelf, newfd, SARMAG, index_off - SARMAG))
-	      || copy_content (arelf, newfd, rest_off, st.st_size - rest_off)
-	      /* Set the mode of the new file to the same values the
-		 original file has.  */
-	      || fchmod (newfd, st.st_mode & ALLPERMS) != 0
-	      /* Never complain about fchown failing.  */
-	      || (({asm ("" :: "r" (fchown (newfd, st.st_uid, st.st_gid))); }),
-		  close (newfd) != 0)
-	      || (newfd = -1, rename (tmpfname, fname) != 0))
+	  if (symtab.symsnamelen != 0
+	      && ((write_retry (newfd, symtab.symsoff,
+				symtab.symsofflen)
+		   != (ssize_t) symtab.symsofflen)
+		  || (write_retry (newfd, symtab.symsname,
+				   symtab.symsnamelen)
+		      != (ssize_t) symtab.symsnamelen)))
+	    goto nonew_unlink;
+
+	  /* Even if the original file had content before the
+	     symbol table, we write it in the correct order.  */
+	  if ((index_off > SARMAG
+	       && copy_content (arelf, newfd, SARMAG, index_off - SARMAG))
+	      || copy_content (arelf, newfd, rest_off, st.st_size - rest_off))
+	    goto nonew_unlink;
+
+	  /* Never complain about fchown failing.  */
+	  if (fchown (newfd, st.st_uid, st.st_gid) != 0) { ; }
+	  /* Set the mode of the new file to the same values the
+	     original file has.  */
+	  if (fchmod (newfd, st.st_mode & ALLPERMS) != 0
+	      || close (newfd) != 0)
+	    goto nonew_unlink;
+	  newfd = -1;
+	  if (rename (tmpfname, fname) != 0)
 	    goto nonew_unlink;
 	}
     }

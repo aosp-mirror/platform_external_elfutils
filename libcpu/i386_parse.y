@@ -551,8 +551,8 @@ argcomp:	  kBITFIELD
 static void
 yyerror (const char *s)
 {
-  error (0, 0, gettext ("while reading i386 CPU description: %s at line %d"),
-         gettext (s), i386_lineno);
+  error (0, 0, _("while reading i386 CPU description: %s at line %d"),
+         _(s), i386_lineno);
 }
 
 
@@ -579,6 +579,7 @@ new_bitfield (char *name, unsigned long int num)
       error (0, 0, "%d: duplicated definition of bitfield '%s'",
 	     i386_lineno, name);
       free (name);
+      free (newp);
       return;
     }
 

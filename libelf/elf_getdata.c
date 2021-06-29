@@ -384,7 +384,18 @@ __libelf_set_rawdata_wrlock (Elf_Scn *scn)
      which should be uncommon.  */
   align = align ?: 1;
   if (type != SHT_NOBITS && align > offset)
-    align = offset;
+    {
+      /* Align the offset to the next power of two. Uses algorithm from
+         https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2 */
+      align = offset - 1;
+      align |= align >> 1;
+      align |= align >> 2;
+      align |= align >> 4;
+      align |= align >> 8;
+      align |= align >> 16;
+      align |= align >> 32;
+      align++;
+    }
   scn->rawdata.d.d_align = align;
   if (elf->class == ELFCLASS32
       || (offsetof (struct Elf, state.elf32.ehdr)

@@ -583,6 +583,11 @@ curl -s http://127.0.0.1:$PORT2/buildid/deadbeef/debuginfo > /dev/null || true
 curl -s http://127.0.0.1:$PORT2/buildid/deadbeef/badtype > /dev/null || true
 (curl -s http://127.0.0.1:$PORT2/metrics | grep 'badtype') && false
 
+# DISABLE VALGRIND checking because valgrind might use debuginfod client
+# requests itself, causing confusion about who put what in the cache.
+# It stays disabled till the end of this test.
+unset VALGRIND_CMD
+
 # Confirm that reused curl connections survive 404 errors.
 # The rm's force an uncached fetch
 rm -f $DEBUGINFOD_CACHE_PATH/$BUILDID/debuginfo .client_cache*/$BUILDID/debuginfo

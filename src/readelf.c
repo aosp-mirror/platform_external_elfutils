@@ -8751,7 +8751,7 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
       if (linep == lineendp)
 	{
 	  puts (_("\nNo line number statements."));
-	  return;
+	  continue;
 	}
 
       puts (_("\nLine number statements:"));

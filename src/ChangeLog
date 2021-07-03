@@ -1,3 +1,7 @@
+2021-07-03  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (compare_listptr): Fix dwarf_attr_name argument.
+
 2021-06-18  Mark Wielaard  <mark@klomp.org>
 
 	* unstrip.c (adjust_relocs): Check gelf_getrel and geld_getrela.

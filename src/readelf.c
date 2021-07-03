@@ -4887,7 +4887,7 @@ compare_listptr (const void *a, const void *b)
 	  error (0, 0,
 		 _("%s %#" PRIx64
 			  " used with different attribute %s and %s"),
-		 name, (uint64_t) p1->offset, dwarf_attr_name (p2->attr),
+		 name, (uint64_t) p1->offset, dwarf_attr_name (p1->attr),
 		 dwarf_attr_name (p2->attr));
 	}
     }

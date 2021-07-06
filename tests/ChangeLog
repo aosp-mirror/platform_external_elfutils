@@ -1,3 +1,8 @@
+2021-07-06  Alice Zhang  <alizhang@redhat.com>
+
+        PR27531
+	* run-debuginfod-find.sh: Add test case for retry mechanism.
+
 2021-07-01  Noah Sanci <nsanci@redhat.com>
 
 	PR2711

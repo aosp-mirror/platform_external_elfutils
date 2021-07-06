@@ -157,6 +157,8 @@ static const char url_delim_char = ' ';
 /* Timeout for debuginfods, in seconds (to get at least 100K). */
 static const long default_timeout = 90;
 
+/* Default retry count for download error. */
+static const long default_retry_limit = 2;
 
 /* Data associated with a particular CURL easy handle. Passed to
    the write callback.  */
@@ -770,9 +772,14 @@ debuginfod_query_server (debuginfod_client *c,
         && (i == 0 || server_urls[i - 1] == url_delim_char))
       num_urls++;
   
+  int retry_limit = default_retry_limit;
+  const char* retry_limit_envvar = getenv(DEBUGINFOD_RETRY_LIMIT_ENV_VAR);
+  if (retry_limit_envvar != NULL)
+    retry_limit = atoi (retry_limit_envvar);
+
   CURLM *curlm = c->server_mhandle;
   assert (curlm != NULL);
-  
+
   /* Tracks which handle should write to fd. Set to the first
      handle that is ready to write the target file to the cache.  */
   CURL *target_handle = NULL;
@@ -784,6 +791,10 @@ debuginfod_query_server (debuginfod_client *c,
     }
 
   /* thereafter, goto out1 on error.  */
+
+ /*The beginning of goto block query_in_parallel.*/
+ query_in_parallel:
+  rc = -ENOENT; /* Reset rc to default.*/
 
   /* Initialize handle_data with default values. */
   for (int i = 0; i < num_urls; i++)
@@ -1074,8 +1085,27 @@ debuginfod_query_server (debuginfod_client *c,
         close(efd);
     }
 
+  /* If the verified_handle is NULL and rc != -ENOENT, the query fails with
+   * an error code other than 404, then do several retry within the retry_limit.
+   * Clean up all old handles and jump back to the beginning of query_in_parallel,
+   * reinitialize handles and query again.*/
   if (verified_handle == NULL)
-    goto out1;
+    {
+      if (rc != -ENOENT && retry_limit-- > 0)
+        {
+	  if (vfd >= 0)
+            dprintf (vfd, "Retry failed query, %d attempt(s) remaining\n", retry_limit);
+	  /* remove all handles from multi */
+          for (int i = 0; i < num_urls; i++)
+            {
+              curl_multi_remove_handle(curlm, data[i].handle); /* ok to repeat */
+              curl_easy_cleanup (data[i].handle);
+            }
+	    goto query_in_parallel;
+	}
+      else
+	goto out1;
+    }
 
   if (vfd >= 0)
     {

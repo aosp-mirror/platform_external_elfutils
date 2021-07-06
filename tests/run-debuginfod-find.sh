@@ -620,6 +620,7 @@ curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_after_you.*'
 
 ########################################################################
 # Corrupt the sqlite database and get debuginfod to trip across its errors
+
 curl -s http://127.0.0.1:$PORT1/metrics | grep 'sqlite3.*reset'
 ls -al $DB
 dd if=/dev/zero of=$DB bs=1 count=1
@@ -737,4 +738,15 @@ wait_ready $PORT3 'groom{statistic="files scanned (#)"}' 0
 wait_ready $PORT3 'groom{statistic="files scanned (mb)"}' 0
 
 kill $PID4
-exit 0;
+
+########################################################################
+# set up tests for retrying failed queries.
+retry_attempts=`(testrun env DEBUGINFOD_URLS=http://255.255.255.255/JUNKJUNK DEBUGINFOD_RETRY_LIMIT=10 DEBUGINFOD_VERBOSE=1 \
+	${abs_top_builddir}/debuginfod/debuginfod-find debuginfo /bin/ls || true) 2>&1 >/dev/null \
+	| grep -c 'Retry failed query'`
+if [ $retry_attempts -ne 10 ]; then
+    echo "retry mechanism failed."
+    exit 1;
+  fi
+
+exit 0

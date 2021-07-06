@@ -1,3 +1,10 @@
+2021-07-06  Alice Zhang  <alizhang@redhat.com>
+
+        PR27531
+	* debuginfod-client.c (debuginfod_query_server): Retry failed queries
+	if error code is not ENOENT.
+	* debuginfod.h.in: Introduce DEBUGINFOD_RETRY_LIMIT_ENV_VAR.
+
 2021-07-01  Noah Sanci <nsanci@redhat.com>
 
 	PR27711

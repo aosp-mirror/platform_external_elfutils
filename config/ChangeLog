@@ -1,3 +1,7 @@
+2021-07-06  Alice Zhang  <alizhang@redhat.com>
+
+        * debuginfod.sysconfig: Introduce default retry limit.
+
 2021-05-10  Mark Wielaard  <mark@klomp.org>
 
 	* elfutils.spec.in: Update for 0.185.

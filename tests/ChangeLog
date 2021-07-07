@@ -1,3 +1,9 @@
+2021-07-01  Noah Sanci <nsanci@redhat.com>
+
+	PR2711
+	* run-debuginfod-find.sh: Added test case for grooming the database
+	using regexes. 
+
 2021-07-08  Mark Wielaard  <mark@klomp.org>
 
 	* Makefile.am (EXTRA_DIST): Fix typo testfile-largealign.bz2 was

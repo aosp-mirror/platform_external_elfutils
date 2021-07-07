@@ -36,13 +36,14 @@ export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
 PID1=0
 PID2=0
 PID3=0
+PID4=0
 
 cleanup()
 {
-  if [ $PID1 -ne 0 ]; then kill $PID1 || true; wait $PID1; fi
-  if [ $PID2 -ne 0 ]; then kill $PID2 || true; wait $PID2; fi
-  if [ $PID3 -ne 0 ]; then kill $PID3 || true; wait $PID3; fi
-  
+  if [ $PID1 -ne 0 ]; then kill $PID1; wait $PID1; fi
+  if [ $PID2 -ne 0 ]; then kill $PID2; wait $PID2; fi
+  if [ $PID3 -ne 0 ]; then kill $PID3; wait $PID3; fi
+  if [ $PID4 -ne 0 ]; then kill $PID4; wait $PID4; fi
   rm -rf F R D L Z ${PWD}/foobar ${PWD}/mocktree ${PWD}/.client_cache* ${PWD}/tmp*
   exit_cleanup
 }
@@ -293,7 +294,8 @@ kill -USR1 $PID1
 wait_ready $PORT1 'thread_work_total{role="traverse"}' 3
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
-
+cp $DB $DB.backup
+tempfiles $DB.backup
 # Rerun same tests for the prog2 binary
 filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find -v debuginfo $BUILDID2 2>vlog`
 cmp $filename F/prog2
@@ -710,4 +712,29 @@ DEBUGINFOD_URLS="file://${PWD}/mocktree/"
 filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find source aaaaaaaaaabbbbbbbbbbccccccccccdddddddddd /my/path/main.c`
 cmp $filename ${local_dir}/main.c
 
-exit 0
+########################################################################
+## PR27711
+# Test to ensure that the --include="^$" --exclude=".*" options remove all files from a database backup
+while true; do
+    PORT3=`expr '(' $RANDOM % 1000 ')' + 9000`
+    ss -atn | fgrep ":$PORT3" || break
+done
+env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS="http://127.0.0.1:$PORT3/" ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -p $PORT3 -t0 -g0 --regex-groom --include="^$" --exclude=".*"  -d $DB.backup > vlog$PORT3 2>&1 &
+PID4=$!
+wait_ready $PORT3 'ready' 1
+tempfiles vlog$PORT3
+errfiles vlog$PORT3
+
+kill -USR2 $PID4
+wait_ready $PORT3 'thread_work_total{role="groom"}' 1
+wait_ready $PORT3 'groom{statistic="archive d/e"}'  0
+wait_ready $PORT3 'groom{statistic="archive sdef"}' 0
+wait_ready $PORT3 'groom{statistic="archive sref"}' 0
+wait_ready $PORT3 'groom{statistic="buildids"}' 0
+wait_ready $PORT3 'groom{statistic="file d/e"}' 0
+wait_ready $PORT3 'groom{statistic="file s"}' 0
+wait_ready $PORT3 'groom{statistic="files scanned (#)"}' 0
+wait_ready $PORT3 'groom{statistic="files scanned (mb)"}' 0
+
+kill $PID4
+exit 0;

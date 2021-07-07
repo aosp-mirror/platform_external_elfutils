@@ -360,6 +360,7 @@ static const struct argp_option options[] =
    { "database", 'd', "FILE", 0, "Path to sqlite database.", 0 },
    { "ddl", 'D', "SQL", 0, "Apply extra sqlite ddl/pragma to connection.", 0 },
    { "verbose", 'v', NULL, 0, "Increase verbosity.", 0 },
+   { "regex-groom", 'r', NULL, 0,"Uses regexes from -I and -X arguments to groom the database.",0},
 #define ARGP_KEY_FDCACHE_FDS 0x1001
    { "fdcache-fds", ARGP_KEY_FDCACHE_FDS, "NUM", 0, "Maximum number of archive files to keep in fdcache.", 0 },
 #define ARGP_KEY_FDCACHE_MBS 0x1002
@@ -407,6 +408,7 @@ static map<string,string> scan_archives;
 static vector<string> extra_ddl;
 static regex_t file_include_regex;
 static regex_t file_exclude_regex;
+static bool regex_groom = false;
 static bool traverse_logical;
 static long fdcache_fds;
 static long fdcache_mbs;
@@ -526,6 +528,9 @@ parse_opt (int key, char *arg,
       rc = regcomp (&file_exclude_regex, arg, REG_EXTENDED|REG_NOSUB);
       if (rc != 0)
         argp_failure(state, 1, EINVAL, "regular expression");
+      break;
+    case 'r':
+      regex_groom = true;
       break;
     case ARGP_KEY_FDCACHE_FDS:
       fdcache_fds = atol (arg);
@@ -3249,8 +3254,11 @@ void groom()
       int64_t fileid = sqlite3_column_int64 (files, 1);
       const char* filename = ((const char*) sqlite3_column_text (files, 2) ?: "");
       struct stat s;
+      bool reg_include = !regexec (&file_include_regex, filename, 0, 0, 0);
+      bool reg_exclude = !regexec (&file_exclude_regex, filename, 0, 0, 0);
+
       rc = stat(filename, &s);
-      if (rc < 0 || (mtime != (int64_t) s.st_mtime))
+      if ( (regex_groom && reg_exclude && !reg_include) ||  rc < 0 || (mtime != (int64_t) s.st_mtime) )
         {
           if (verbose > 2)
             obatched(clog) << "groom: forgetting file=" << filename << " mtime=" << mtime << endl;
@@ -3261,7 +3269,6 @@ void groom()
         }
       else
         inc_metric("groomed_total", "decision", "fresh");
-
       if (sigusr1 != forced_rescan_count) // stop early if scan triggered
         break;
     }

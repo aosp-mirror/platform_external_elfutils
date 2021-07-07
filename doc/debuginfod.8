@@ -159,6 +159,9 @@ scan, independent of the rescan time (including if it was zero),
 interrupting a groom pass (if any).
 
 .TP
+.B "\-r"
+Apply the -I and -X during groom cycles, so that files excluded by the regexes are removed from the index. These parameters are in addition to what normally qualifies a file for grooming, not a replacement.
+
 .B "\-g SECONDS" "\-\-groom\-time=SECONDS"
 Set the groom time for the index database.  This is the amount of time
 the grooming thread will wait after finishing a grooming pass before

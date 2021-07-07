@@ -1,3 +1,11 @@
+2021-07-01  Noah Sanci <nsanci@redhat.com>
+
+	PR27711
+	* debuginfod.cxx (options): Add --regex-groom, -r option.
+	(regex_groom): New static bool defaults to false.
+	(parse_opt): Handle 'r' option by setting regex_groom to true.
+	(groom): Introduce and use reg_include and reg_exclude.
+
 2021-06-18  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod-client.c (debuginfod_begin): Don't use client if

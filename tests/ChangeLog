@@ -1,3 +1,8 @@
+2021-07-08  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (EXTRA_DIST): Fix typo testfile-largealign.bz2 was
+	was missing .o.
+
 2021-06-09  Andrei Homescu  <ah@immunant.com>
 
 	* testfile-largealign.o.bz2: New test file.

@@ -512,7 +512,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-getphdrnum.sh testfile-phdrs.elf.bz2 \
 	     run-test-includes.sh run-low_high_pc-dw-form-indirect.sh \
 	     run-readelf-dw-form-indirect.sh testfile-dw-form-indirect.bz2 \
-	     testfile-largealign.bz2 run-strip-largealign.sh
+	     testfile-largealign.o.bz2 run-strip-largealign.sh
 
 
 if USE_VALGRIND

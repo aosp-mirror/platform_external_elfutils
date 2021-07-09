@@ -30,6 +30,12 @@
 	* run-debuginfod-find.sh: Added test case for grooming the database
 	using regexes. 
 
+2021-07-09  Noah Sanci  <nsanci@redhat.com>
+
+	PR27983
+	* run-debuginfod-find.sh: Wrote test to ensure duplicate urls are in
+	fact not checked.
+
 2021-07-08  Mark Wielaard  <mark@klomp.org>
 
 	* Makefile.am (EXTRA_DIST): Fix typo testfile-largealign.bz2 was

@@ -34,6 +34,15 @@
 	(parse_opt): Handle 'r' option by setting regex_groom to true.
 	(groom): Introduce and use reg_include and reg_exclude.
 
+2021-07-09  Noah Sanci  <nsanci@redhat.com>
+
+	PR27983
+	* debuginfod-client.c (debuginfod_query_server): As full-length
+	urls are generated with standardized formats, ignore duplicates.
+	Created out1 and changed out2 error gotos. Updated url creation print
+	statements.
+	(globals): Removed url_delim_char, as it was no longer used.
+
 2021-06-18  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod-client.c (debuginfod_begin): Don't use client if

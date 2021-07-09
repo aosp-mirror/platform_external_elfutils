@@ -152,7 +152,6 @@ static const char *cache_xdg_name = "debuginfod_client";
 
 /* URLs of debuginfods, separated by url_delim. */
 static const char *url_delim =  " ";
-static const char url_delim_char = ' ';
 
 /* Timeout for debuginfods, in seconds (to get at least 100K). */
 static const long default_timeout = 90;
@@ -765,13 +764,60 @@ debuginfod_query_server (debuginfod_client *c,
       goto out0;
     }
 
+  /* Initialize the memory to zero */
+  char *strtok_saveptr;
+  char **server_url_list = NULL;
+  char *server_url = strtok_r(server_urls, url_delim, &strtok_saveptr);
   /* Count number of URLs.  */
   int num_urls = 0;
-  for (int i = 0; server_urls[i] != '\0'; i++)
-    if (server_urls[i] != url_delim_char
-        && (i == 0 || server_urls[i - 1] == url_delim_char))
-      num_urls++;
-  
+
+  while (server_url != NULL)
+    {
+      /* PR 27983: If the url is already set to be used use, skip it */
+      char *slashbuildid;
+      if (strlen(server_url) > 1 && server_url[strlen(server_url)-1] == '/')
+        slashbuildid = "buildid";
+      else
+        slashbuildid = "/buildid";
+
+      char *tmp_url;
+      if (asprintf(&tmp_url, "%s%s", server_url, slashbuildid) == -1)
+        {
+          rc = -ENOMEM;
+          goto out1;
+        }
+      int url_index;
+      for (url_index = 0; url_index < num_urls; ++url_index)
+        {
+          if(strcmp(tmp_url, server_url_list[url_index]) == 0)
+            {
+              url_index = -1;
+              break;
+            }
+        }
+      if (url_index == -1)
+        {
+          if (vfd >= 0)
+            dprintf(vfd, "duplicate url: %s, skipping\n", tmp_url);
+          free(tmp_url);
+        }
+      else
+        {
+          num_urls++;
+          char ** realloc_ptr;
+          realloc_ptr = reallocarray(server_url_list, num_urls,
+                                         sizeof(char*));
+          if (realloc_ptr == NULL)
+            {
+              rc = -ENOMEM;
+              goto out1;
+            }
+          server_url_list = realloc_ptr;
+          server_url_list[num_urls-1] = tmp_url;
+        }
+      server_url = strtok_r(NULL, url_delim, &strtok_saveptr);
+    }
+
   int retry_limit = default_retry_limit;
   const char* retry_limit_envvar = getenv(DEBUGINFOD_RETRY_LIMIT_ENV_VAR);
   if (retry_limit_envvar != NULL)
@@ -804,12 +850,11 @@ debuginfod_query_server (debuginfod_client *c,
       data[i].errbuf[0] = '\0';
     }
 
-  char *strtok_saveptr;
-  char *server_url = strtok_r(server_urls, url_delim, &strtok_saveptr);
-
   /* Initialize each handle.  */
-  for (int i = 0; i < num_urls && server_url != NULL; i++)
+  for (int i = 0; i < num_urls; i++)
     {
+      if ((server_url = server_url_list[i]) == NULL)
+        break;
       if (vfd >= 0)
 	dprintf (vfd, "init server %d %s\n", i, server_url);
 
@@ -819,17 +864,9 @@ debuginfod_query_server (debuginfod_client *c,
       if (data[i].handle == NULL)
         {
           rc = -ENETUNREACH;
-          goto out1;
+          goto out2;
         }
       data[i].client = c;
-
-      /* Build handle url. Tolerate both  http://foo:999  and
-         http://foo:999/  forms */
-      char *slashbuildid;
-      if (strlen(server_url) > 1 && server_url[strlen(server_url)-1] == '/')
-        slashbuildid = "buildid";
-      else
-        slashbuildid = "/buildid";
 
       if (filename) /* must start with / */
         {
@@ -841,14 +878,12 @@ debuginfod_query_server (debuginfod_client *c,
               rc = -ENOMEM;
               goto out1;
             }
-          snprintf(data[i].url, PATH_MAX, "%s%s/%s/%s%s", server_url,
-                   slashbuildid, build_id_bytes, type, escaped_string);
+          snprintf(data[i].url, PATH_MAX, "%s/%s/%s/%s", server_url,
+                   build_id_bytes, type, escaped_string);
           curl_free(escaped_string);
         }
       else
-        snprintf(data[i].url, PATH_MAX, "%s%s/%s/%s", server_url,
-                 slashbuildid, build_id_bytes, type);
-
+        snprintf(data[i].url, PATH_MAX, "%s/%s/%s", server_url, build_id_bytes, type);
       if (vfd >= 0)
 	dprintf (vfd, "url %d %s\n", i, data[i].url);
 
@@ -883,7 +918,6 @@ debuginfod_query_server (debuginfod_client *c,
       curl_easy_setopt(data[i].handle, CURLOPT_HTTPHEADER, c->headers);
 
       curl_multi_add_handle(curlm, data[i].handle);
-      server_url = strtok_r(NULL, url_delim, &strtok_saveptr);
     }
 
   /* Query servers in parallel.  */
@@ -927,7 +961,7 @@ debuginfod_query_server (debuginfod_client *c,
             case CURLM_OUT_OF_MEMORY: rc = -ENOMEM; break;
             default: rc = -ENETUNREACH; break;
             }
-          goto out1;
+          goto out2;
         }
 
       if (c->progressfn) /* inform/check progress callback */
@@ -1115,7 +1149,7 @@ debuginfod_query_server (debuginfod_client *c,
 	    goto query_in_parallel;
 	}
       else
-	goto out1;
+	goto out2;
     }
 
   if (vfd >= 0)
@@ -1145,7 +1179,7 @@ debuginfod_query_server (debuginfod_client *c,
   if (rc < 0)
     {
       rc = -errno;
-      goto out1;
+      goto out2;
       /* Perhaps we need not give up right away; could retry or something ... */
     }
 
@@ -1156,6 +1190,9 @@ debuginfod_query_server (debuginfod_client *c,
       curl_easy_cleanup (data[i].handle);
     }
 
+  for (int i = 0; i < num_urls; ++i)
+    free(server_url_list[i]);
+  free(server_url_list);
   free (data);
   free (server_urls);
 
@@ -1168,7 +1205,7 @@ debuginfod_query_server (debuginfod_client *c,
   goto out;
 
 /* error exits */
- out1:
+ out2:
   /* remove all handles from multi */
   for (int i = 0; i < num_urls; i++)
     {
@@ -1180,6 +1217,11 @@ debuginfod_query_server (debuginfod_client *c,
   close (fd); /* before the rmdir, otherwise it'll fail */
   (void) rmdir (target_cache_dir); /* nop if not empty */
   free(data);
+
+ out1:
+  for (int i = 0; i < num_urls; ++i)
+    free(server_url_list[i]);
+  free(server_url_list);
 
  out0:
   free (server_urls);

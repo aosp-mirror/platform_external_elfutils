@@ -364,6 +364,17 @@ rm -rf extracted
 
 wait_ready $PORT1 'found_sourcerefs_total{source=".rpm archive"}' $sourcefiles
 
+########################################################################
+# PR27983 ensure no duplicate urls are used in when querying servers for files
+rm -rf $DEBUGINFOD_CACHE_PATH # clean it from previous tests
+env DEBUGINFOD_URLS="http://127.0.0.1:$PORT1 http://127.0.0.1:$PORT1 http://127.0.0.1:$PORT1 http:127.0.0.1:7999" \
+ LD_LIBRARY_PATH=$ldpath ${abs_top_builddir}/debuginfod/debuginfod-find -v executable $BUILDID2 > vlog4 2>&1 || true
+tempfiles vlog4
+if [ $( grep -c 'duplicate url: http://127.0.0.1:'$PORT1'.*' vlog4 ) -ne 2 ]; then
+  echo "Duplicated servers remain";
+  err
+fi
+########################################################################
 # Run a bank of queries against the debuginfod-rpms / debuginfod-debs test cases
 
 archive_test() {

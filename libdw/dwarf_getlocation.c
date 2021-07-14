@@ -50,7 +50,7 @@ attr_ok (Dwarf_Attribute *attr)
 
   /* Otherwise must be one of the attributes listed below.  Older
      DWARF versions might have encoded the exprloc as block, and we
-     cannot easily distinquish attributes in the loclist class because
+     cannot easily distinguish attributes in the loclist class because
      the same forms are used for different classes.  */
   switch (attr->code)
     {
@@ -130,9 +130,8 @@ store_implicit_value (Dwarf *dbg, void **cache, Dwarf_Op *op)
   struct loc_block_s *block = libdw_alloc (dbg, struct loc_block_s,
 					   sizeof (struct loc_block_s), 1);
   const unsigned char *data = (const unsigned char *) (uintptr_t) op->number2;
-  uint64_t len = __libdw_get_uleb128 (&data, data + len_leb128 (Dwarf_Word));
-  if (unlikely (len != op->number))
-    return -1;
+  /* Skip the block length.  */
+  __libdw_get_uleb128_unchecked (&data);
   block->addr = op;
   block->data = (unsigned char *) data;
   block->length = op->number;
@@ -161,11 +160,14 @@ dwarf_getlocation_implicit_value (Dwarf_Attribute *attr, const Dwarf_Op *op,
   return 0;
 }
 
-/* DW_AT_data_member_location can be a constant as well as a loclistptr.
-   Only data[48] indicate a loclistptr.  */
+/* If the given attribute is DW_AT_data_member_location and it has constant
+   form then create a fake location using DW_OP_plus_uconst and the offset
+   value.  On success returns zero and fills in llbuf (when not NULL) and
+   sets listlen to 1.  Returns 1 when this isn't a DW_AT_data_member_location
+   offset.  Returns -1 and sets dwarf_errno on failure (bad DWARF data).  */
 static int
-check_constant_offset (Dwarf_Attribute *attr,
-		       Dwarf_Op **llbuf, size_t *listlen)
+is_constant_offset (Dwarf_Attribute *attr,
+		    Dwarf_Op **llbuf, size_t *listlen)
 {
   if (attr->code != DW_AT_data_member_location)
     return 1;
@@ -386,7 +388,7 @@ __libdw_intern_expression (Dwarf *dbg, bool other_byte_order,
 	    invalid:
 	      __libdw_seterrno (DWARF_E_INVALID_DWARF);
 	    returnmem:
-	      /* Free any dynamicly allocated loclists, if any.  */
+	      /* Free any dynamically allocated loclists, if any.  */
 	      while (n > MAX_STACK_LOCS)
 		{
 		  struct loclist *loc = loclist;
@@ -665,9 +667,9 @@ dwarf_getlocation (Dwarf_Attribute *attr, Dwarf_Op **llbuf, size_t *listlen)
   if (! attr_ok (attr))
     return -1;
 
-  int result = check_constant_offset (attr, llbuf, listlen);
+  int result = is_constant_offset (attr, llbuf, listlen);
   if (result != 1)
-    return result;
+    return result; /* Either success 0, or -1 to indicate error.  */
 
   /* If it has a block form, it's a single location expression.
      Except for DW_FORM_data16, which is a 128bit constant.  */
@@ -898,7 +900,8 @@ dwarf_getlocation_addr (Dwarf_Attribute *attr, Dwarf_Addr address,
 	}
     }
 
-  int result = check_constant_offset (attr, llbufs, listlens);
+  /* If is_constant_offset is successful, we are done with 1 result.  */
+  int result = is_constant_offset (attr, llbufs, listlens);
   if (result != 1)
     return result ?: 1;
 
@@ -979,7 +982,7 @@ dwarf_getlocations (Dwarf_Attribute *attr, ptrdiff_t offset, Dwarf_Addr *basep,
 	    }
 	}
 
-      int result = check_constant_offset (attr, expr, exprlen);
+      int result = is_constant_offset (attr, expr, exprlen);
       if (result != 1)
 	{
 	  if (result == 0)
@@ -989,7 +992,7 @@ dwarf_getlocations (Dwarf_Attribute *attr, ptrdiff_t offset, Dwarf_Addr *basep,
 	      *endp = -1;
 	      return 1;
 	    }
-	  return result;
+	  return result; /* Something bad, dwarf_errno has been set.  */
 	}
 
       /* We must be looking at a true loclistptr, fetch the initial

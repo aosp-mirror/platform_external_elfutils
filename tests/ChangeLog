@@ -1,3 +1,440 @@
+2021-02-04  Frank Ch. Eigler <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Smoke test --fdcache-mintmp option handling.
+
+2021-01-31  Sergei Trofimovich  <slyfox@gentoo.org>
+
+	* Makefile.am (TESTS_ENVIRONMENT): export CC variable
+	to tests for use instead of 'gcc'.
+	* run-disasm-x86-64.sh: use ${CC} instead of 'gcc'.
+	* run-disasm-x86.sh: Likewise.
+	* run-strip-g.sh: Likewise.
+	* run-strip-nothing.sh: Likewise.
+	* run-test-includes.sh: Likewise.
+
+2021-01-06  Timm Bäder  <tbaeder@redhat.com>
+
+	* zstrptr.c (main): Lift print_strings function up to ...
+	(print_strings): ... here. New file scope function taking
+	Elf_Scn*, Elf* and ndx as arguments.
+
+2020-12-20  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* .gitignore: New file.
+
+2020-12-12  Mark Wielaard  <mark@klomp.org>
+
+	* testfile-retain.o.bz2: New test file.
+	* run-retain.sh: New test.
+	* Makefile.am (TESTS): Add run-retain.sh.
+	(EXTRA_DIST): Add run-retain.sh and testfile-retain.o.bz2
+
+2020-12-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* dwflmodtest.c (N_): Remove.
+
+2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* dwarf-die-addr-die.c (main): Fix spelling typo in error diagnostics.
+	* run-lfs-symbols.sh: Likewise.
+	* elfstrmerge.c (main): Fix spelling typos in comments.
+	* dwfl-bug-fd-leak.c: Likewise.
+	* run-readelf-line.sh: Likewise.
+	* run-stack-demangled-test.sh: Likewise.
+	* sectiondump.c (main): Likewise.
+	* varlocs.c (handle_die): Likewise.
+
+2020-12-11  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* configure.ac: Remove.
+	* Makefile.am [STANDALONE]: Remove.
+	(check_PROGRAMS): Add msg_tst, system-elf-libelf-test, and $(asm_TESTS)
+	unconditionally.
+	(TESTS): Add msg_tst, system-elf-libelf-test, $(asm_TESTS), and
+	run-disasm-bpf.sh unconditionally.
+
+2020-11-23  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Add sqlite error injection & stats.
+
+2020-11-02  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfod-find.sh: Create bogus R/nothing.rpm with cyclic
+	symlink instead of chmod 000.
+
+2020-11-19  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Look for http-* metrics.
+
+2020-11-01  Érico N. Rolim  <erico.erc@gmail.com>
+	    Mark Wielaard  <mark@klomp.org>
+
+	* alldts.c (main): Use DEFFILEMODE for open with O_CREAT.
+	* arextract.c (main): Likewise.
+	* ecp.c (main): Likewise for creat.
+	* elfstrtab.c (check_elf): Use DEFFILEMODE for open with O_CREAT,
+	remove mode from open calls without O_CREAT.
+	* emptyfile.c (check_elf): Likewise.
+	* fillfile.c (check_elf): Likewise.
+	* vendorelf.c (check_elf): Likewise.
+	* newdata.c (checkelf): Use DEFFILEMODE for open with O_CREAT.
+	* update{1,2,3,4}.c (main): Likewise.
+	*
+
+2020-10-31  Mark Wielaard  <mark@klomp.org>
+
+	* dwfl-proc-attach.c (dlopen): New external function override.
+
+2020-10-31  Mark Wielaard  <mark@klomp.org>
+
+	* test-wrapper.sh: Use =, not == for string compare.
+
+2020-10-29  Mark Wielaard  <mark@klomp.org>
+
+	* test-wrapper.sh: Determine whether the test is a script or not
+	and run binaries directly under valgrind.
+	* dwfl-bug-fd-leak.c (main): Call getrlimit before calling setrlimit.
+	* dwfl-proc-attach.c (main): Call dwfl_end, pthread_cancel and
+	pthread_join.
+	* vdsosyms.c (main): Call dwfl_end.
+
+2020-10-31  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Modify for tweaked/new metrics.
+
+2020-10-30  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR26775
+	* run-debuginfod-find.sh: Modify test for restored
+	thread_work_total semantics for grooming.
+
+2020-10-29  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR26775
+	* run-debuginfod-find.sh: Modify test for different
+	thread_work_total semantics for grooming.
+
+2020-10-29  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR26810
+	* run-debuginfod-find.sh: Add tests for successful archive fetches across
+	renamed RPMs, even without grooming.
+
+2020-10-25  Mark Wielaard  <mark@klomp.org>
+
+	* read_unaligned.c: New test.
+	* Makefile.am (check_PROGRAMS, TESTS): Add read_unaligned.
+	(read_unaligned_LDADD): New variable.
+
+2020-10-28  Tom Tromey  <tom@tromey.com>
+
+	PR26773
+	* Makefile.am (check_PROGRAMS, TESTS): Add leb128.
+	(leb128_LDADD): New variable.
+	* leb128.c: New file.
+
+2020-10-19  Mark Wielaard  <mark@klomp.org>
+
+	* addrcfi.c (print_register): Make ops_mem 3 elements.
+
+2020-10-19  Mark Wielaard  <mark@klomp.org>
+
+	* testfile60.bz2: Removed.
+	* Makefile.am (EXTRA_DIST): Remove testfile60.bz2.
+	* run-allregs.sh: Remove tilegx testfile60 testcase.
+
+2020-10-20  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR26756: more prometheus metrics
+	* run-debuginfod-find.sh: Trigger some errors with dummy "nothing.rpm"
+	and check for new metrics.
+
+2020-09-18  Mark Wielaard  <mark@klomp.org>
+
+	* run-readelf-compressed-zstd.sh: New test.
+	* Makefile.am (EXTRA_DISTS): Add run-readelf-compressed-zstd.sh.
+	(TESTS): Add run-readelf-compressed-zstd.sh if HAVE_ZSTD.
+
+2020-09-03  Mark Wielaard  <mark@klomp.org>
+
+	* run-readelf-frames.sh: New test.
+	* Makefile.am (TESTS): Add run-readelf-frames.sh.
+	(EXTRA_DIST): Likewise.
+
+2020-09-03  Mark Wielaard  <mark@klomp.org>
+
+	* testfile-gnu-property-note-aarch64.bz2: New file.
+	* run-readelf-n.sh: Handle testfile-gnu-property-note-aarch64.
+	* Makefile.am (EXTRA_DIST): Add
+	testfile-gnu-property-note-aarch64.bz2.
+
+2020-07-19  Mark Wielaard  <mark@klomp.org>
+
+	* asm-tst1.c: Include libebl.h after libasm.h.
+	* asm-tst2.c: Likewise.
+	* asm-tst3.c: Likewise.
+	* asm-tst4.c: Likewise.
+	* asm-tst5.c: Likewise.
+	* asm-tst6.c: Likewise.
+	* asm-tst7.c: Likewise.
+	* asm-tst8.c: Likewise.
+	* asm-tst9.c: Likewise.
+
+2020-07-05  Mark Wielaard  <mark@klomp.org>
+
+	* run-test-includes.sh: New test.
+	* Makefile.am (TESTS): Add run-test-includes.sh.
+	(EXTRA_DIST): Likewise.
+
+2020-07-03  Alice Zhang  <alizhang@redhat.com>
+
+	* run-debuginfod-find.sh: Add scheme free url testcase.
+
+2020-06-19  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (TESTS): Don't add run-debuginfod-find.sh when
+	DUMMY_LIBDEBUGINFOD.
+
+2020-06-16  Mark Wielaard  <mark@klomp.org>
+
+	* coverage.sh: Use /usr/bin/env bash.
+	* run-ar.sh: Likewise.
+	* run-backtrace-core-aarch64.sh: Likewise.
+	* run-backtrace-core-i386.sh: Likewise.
+	* run-backtrace-core-ppc.sh: Likewise.
+	* run-backtrace-core-s390.sh: Likewise.
+	* run-backtrace-core-s390x.sh: Likewise.
+	* run-backtrace-core-sparc.sh: Likewise.
+	* run-backtrace-core-x32.sh: Likewise.
+	* run-backtrace-core-x86_64.sh: Likewise.
+	* run-backtrace-data.sh: Likewise.
+	* run-backtrace-demangle.sh: Likewise.
+	* run-backtrace-dwarf.sh: Likewise.
+	* run-backtrace-fp-core-aarch64.sh: Likewise.
+	* run-backtrace-fp-core-i386.sh: Likewise.
+	* run-backtrace-fp-core-ppc64le.sh: Likewise.
+	* run-backtrace-fp-core-x86_64.sh: Likewise.
+	* run-backtrace-native-biarch.sh: Likewise.
+	* run-backtrace-native-core-biarch.sh: Likewise.
+	* run-backtrace-native-core.sh: Likewise.
+	* run-backtrace-native.sh: Likewise.
+	* run-debuginfod-find.sh: Likewise.
+	* run-deleted.sh: Likewise.
+	* run-dwelf_elf_e_machine_string.sh: Likewise.
+	* run-large-elf-file.sh: Likewise.
+	* run-lfs-symbols.sh: Likewise.
+	* run-linkmap-cut.sh: Likewise.
+
+2020-06-11  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (nlist-test): Add GCOV flags when necessary.
+
+2020-06-06  Mark Wielaard  <mark@klomp.org>
+
+	* testfilesyms32.bz2: New test file.
+	* testfilesyms64.bz2: Likewise.
+	* run-nm-syms.sh: New test.
+	* Makefile.am (TESTS): Add run-nm-syms.sh.
+	(EXTRA_DIST): run-nm-syms.sh, testfilesyms32.bz2 and
+	testfilesyms64.bz2
+
+2020-05-08  Mark Wielaard  <mark@klomp.org>
+
+	* elfputzdata.c (main): Explicitly check orig_buf is not NULL
+	before calling memcmp.
+
+2020-05-05  Mark Wielaard  <mark@klomp.org>
+
+	* testfile-lto-gcc8.bz2: New test file.
+	* testfile-lto-gcc9.bz2: Likewise.
+	* Makefile.am (EXTRA_DIST): Add testfile-lto-gcc8.bz2 and
+	testfile-lto-gcc9.bz2.
+	* run-allfcts.sh: Add testfile-lto-gcc9 and testfile-lto-gcc8
+	tests.
+
+2020-05-05  Mark Wielaard  <mark@klomp.org>
+
+	* testfile-lto-gcc10.bz2: New test file.
+	* Makefile.am (EXTRA_DIST): Add testfile-lto-gcc10.bz2.
+	* run-allfcts.sh: Add testfile-lto-gcc10 test.
+
+2020-04-17  Mark Wielaard  <mark@klomp.org>
+
+	* test-subr.sh (testrun_on_self_obj): New function.
+	* run-varlocs-self.sh: Run testrun_on_self_exe and
+	testrun_on_self_lib with -e, run testrun_on_self_obj with
+	--exprlocs -e.
+
+2020-04-17  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (test-nlist$): New goal with minimal CFLAGS.
+	(test_nlist_CFLAGS): New variable.
+
+2020-03-28  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Test timestamps of archive-origin files.
+
+2020-03-27  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Test /path/-based debuginfod-find.
+
+2020-03-24  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Test relay of UA and XFF headers across
+	federating debuginfods.
+
+2020-03-26  Frank Ch. Eigler <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Look for debuginfod's new
+	http_responses_* metrics.
+
+2020-03-26  Frank Ch. Eigler <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Look for bsdtar instead of dpkg.
+
+2020-03-26  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Check for bsdtar zstd capability
+	for running tests against zstd-compressed fedora31 rpms.
+
+2020-03-26  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (EXTRA_DIST): Add
+	debuginfod-rpms/fedora31/hello3-1.0-2.src.rpm,
+	debuginfod-rpms/fedora31/hello3-1.0-2.x86_64.rpm,
+	debuginfod-rpms/fedora31/hello3-debuginfo-1.0-2.x86_64.rpm,
+	debuginfod-rpms/fedora31/hello3-debugsource-1.0-2.x86_64.rpm,
+	debuginfod-rpms/fedora31/hello3-two-1.0-2.x86_64.rpm,
+	debuginfod-rpms/fedora31/hello3-two-debuginfo-1.0-2.x86_64.rpm
+
+2020-03-24  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod-rpms/hello3.spec., /fedora31/*: New files with
+	uncanonicalized source paths.
+	* run-debuginfod-find.sh: Test them.
+
+2020-03-24  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Test the more detailed debuginfod
+	webapi log format.
+
+2020-03-23  Mark Wielaard  <mark@klomp.org>
+
+	* getphdrnum.c: Include config.h.
+	* run-lfs-symbols.sh: Also check that file exists. Add more logs.
+	Remove ebl modules check.
+
+2020-03-22  Omar Sandoval  <osandov@fb.com>
+	    Mark Wielaard  <mark@klomp.org>
+
+	* getphdrnum.c: New file.
+	* run-getphdrnum.sh: New test.
+	* testfile-phdrs.elf.bz2: New test file.
+	* Makefile.am (check_PROGRAMS): Add getphdrnum.
+	(TESTS): Add run-getphdrnum.sh.
+	(EXTRA_DIST): Add run-getphdrnum.sh and testfile-phdrs.elf.bz2.
+	(getphdrnum_LDADD): New variable.
+
+2020-03-22  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Look for URL in default progressfn
+	and from debuginfod-find -v.
+
+2020-02-19  Aaron Merey  <amerey@redhat.com>
+
+	* run-debuginfod-find.sh: Run tests for	verifying default
+	client cache locations.
+
+2020-02-26  Konrad Kleine <kkleine@redhat.com>
+
+	* run-debuginfod-find.sh: added tests for DEBUGINFOD_URLS beginning
+	with "file://"
+
+2020-02-21  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (TESTS_ENVIRONMENT): Explicitly unset DEBUGINFOD_URLS.
+	(installed_TESTS_ENVIRONMENT): Likewise.
+
+2020-02-19  Aaron Merey  <amerey@redhat.com>
+
+	* run-debuginfod-find.sh: Test that files unrelated to debuginfod
+	survive cache cleaning.
+
+2020-02-08  Mark Wielaard  <mark@klomp.org>
+
+	* run-pt_gnu_prop-tests.sh: New test.
+	* testfile_pt_gnu_prop.bz2: New test file.
+	* testfile_pt_gnu_prop32.bz2: Likewise.
+	* Makefile.am (TESTS): Add run-pt_gnu_prop-tests.sh
+	(EXTRA_DISTS): Likewise. Add testfile_pt_gnu_prop.bz2 and
+	testfile_pt_gnu_prop32.bz2.
+
+2020-02-05  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfo-tars/*: New test files from Eli Schwartz of ArchLinux.
+	* Makefile.am (EXTRA_DIST): Package them.
+	* run-debuginfod-find.sh: Run basic archive extraction tests.
+
+2020-02-03  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Protect against missing curl & rpm2cpio.
+
+2020-01-19  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Check for proper groom completion count.
+
+2020-01-18  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Test empty source_paths[].
+
+2020-01-08  Mark Wielaard  <mark@klomp.org>
+
+	* asm-test?.c: include libebl.h.
+
+2020-01-11  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Test --fdcache* options.
+
+2020-01-11  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Adjust to new work-queue metrics.
+
+2020-01-02  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfod-find.sh: Set DEBUGINFOD_TIMEOUT to 10.
+
+2019-12-22  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod-debs/*: New test files, based on
+	https://wiki.debian.org/Packaging/Intro.
+	* run-debuginfod-find.sh: Test deb file processing (if dpkg
+	installed).
+
+2019-12-04  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuinfod-find.sh: Test $DEBUGINFOD_PROGRESS.
+
+2019-12-11  Omar Sandoval  <osandov@fb.com>
+
+	* dwfl-report-segment-coalesce.c: New test.
+	* Makefile.am: Add dwfl-report-segment-coalesce
+
+2019-12-06  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfod-find.sh: Force -Wl,--build-id.
+
+2019-12-05  Mark Wielaard  <mark@klomp.org>
+
+	* run-findinfod-find.sh: Run strip under testrun.
+
+2019-12-06  Mark Wielaard  <mark@klomp.org>
+
+	* backtrace-data.c (main): Add break after assert.
+
+2019-12-05  Mark Wielaard  <mark@klomp.org>
+
+	* run-elfclassify.sh: Run elfcompress under testrun.
+
 2019-11-26  Mark Wielaard  <mark@klomp.org>
 
 	* Makefile.am (BUILD_STATIC): Add libraries needed for libdw.

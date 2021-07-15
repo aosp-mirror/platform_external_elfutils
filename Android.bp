@@ -1,3 +1,104 @@
+// Copyright (C) 2013 The Android Open Source Project
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// *** THIS PACKAGE HAS SPECIAL LICENSING CONDITIONS.  PLEASE
+//     CONSULT THE OWNERS AND opensource-licensing@google.com BEFORE
+//     DEPENDING ON IT IN YOUR PROJECT. ***
+package {
+    default_applicable_licenses: ["external_elfutils_license"],
+}
+
+// http://go/android-license-faq
+license {
+    name: "external_elfutils_license",
+    visibility: [":__subpackages__"],
+    license_kinds: [
+        "SPDX-license-identifier-Apache-2.0",
+        "SPDX-license-identifier-BSD",
+        "SPDX-license-identifier-GFDL", // by exception only
+        "SPDX-license-identifier-GPL-2.0-or-later",
+        "SPDX-license-identifier-GPL-3.0-or-later",
+        "SPDX-license-identifier-LGPL-3.0-or-later",
+    ],
+    license_text: [
+        "COPYING",
+        "COPYING-GPLV2",
+        "COPYING-LGPLV3",
+        "NOTICE",
+    ],
+}
+
+cc_defaults {
+    name: "elfutils_defaults",
+    cflags: [
+        "-DHAVE_CONFIG_H",
+        "-D_GNU_SOURCE",
+        // upper bound for the number of lines of the resulting mnemonic files
+        "-DNMNES=1000",
+        "-std=gnu99",
+        "-Werror",
+        // to suppress the "pointer of type ‘void *’ used in arithmetic" warning
+        "-Wno-pointer-arith",
+        "-Wno-typedef-redefinition",
+    ],
+    header_libs: [
+         "elfutils_headers",
+    ],
+    export_header_lib_headers: ["elfutils_headers"],
+
+    visibility: [
+        "//external/dwarves:__subpackages__",
+        "//external/elfutils:__subpackages__",
+        "//external/libabigail:__subpackages__",
+        "//external/libbpf:__subpackages__",
+    ],
+}
+
+cc_library {
+    name: "libelf",
+    host_supported: true,
+    vendor_available: true,
+    defaults: ["elfutils_defaults"],
+
+    srcs:  ["libelf/*.c",],
+
+    static_libs: ["libz"],
+
+    export_include_dirs: ["libelf"],
+
+    target: {
+        darwin: {
+            enabled: false,
+        },
+        android: {
+            cflags: [
+                "-D_FILE_OFFSET_BITS=64",
+                "-include AndroidFixup.h",
+            ],
+            shared: {
+                enabled: false,
+            },
+        },
+    },
+
+    visibility: [
+        "//device/google/contexthub/util/nanoapp_postprocess",
+        "//external/igt-gpu-tools",
+        "//external/mesa3d",
+    ],
+}
+
 cc_library_headers {
     name: "elfutils_headers",
     host_supported: true,
@@ -15,4 +116,57 @@ cc_library_headers {
     visibility: [":__subpackages__"],
 }
 
-subdirs = ["libelf"]
+cc_library_host_static {
+    name: "libdw",
+    defaults: ["elfutils_defaults"],
+    target: {
+        darwin: {
+            enabled: false,
+        },
+    },
+    srcs: [
+        "backends/*.c",
+        "libcpu/*_disasm.c",
+        "libdw/*.c",
+        "libdwelf/*.c",
+        "libdwfl/*.c",
+        "libebl/*.c",
+    ],
+    generated_headers: [
+        "i386_dis",
+        "i386_mnemonics",
+        "x86_64_dis",
+        "x86_64_mnemonics",
+    ],
+    exclude_srcs: [
+        // Do not enabled compression support
+        "libdwfl/bzip2.c",
+        "libdwfl/lzma.c",
+        "libdwfl/zstd.c",
+        // Those headers are incompatible with clang due to nested function
+        // definitions.
+        "libdwfl/dwfl_segment_report_module.c",
+        "libdwfl/debuginfod-client.c",
+        "libdwfl/elf-from-memory.c",
+        "libdwfl/link_map.c",
+        // Those are common source files actually used as headers and not
+        // compiled standalone.
+        "backends/common-reloc.c",
+        "backends/linux-core-note.c",
+        "backends/x86_corenote.c",
+    ],
+    local_include_dirs: [
+        "libcpu",
+        "libasm",
+        "libdwelf",
+        "libdwfl",
+        "libebl",
+    ],
+    export_include_dirs: [
+        "libdw",
+    ],
+    static_libs: [
+        "libelf"
+    ],
+    compile_multilib: "64",
+}

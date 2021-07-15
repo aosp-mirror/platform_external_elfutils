@@ -143,7 +143,12 @@ module_callback (Dwfl_Module *mod, void **userdata __attribute__((unused)),
   const char *debugfile;
   const char *modname = dwfl_module_info (mod, NULL, NULL, &end, NULL,
                                           NULL, &mainfile, &debugfile);
-  assert (strcmp (modname, name) == 0);
+  if (modname == NULL || strcmp (modname, name) != 0)
+    {
+      end = start + 1;
+      mainfile = NULL;
+      debugfile = NULL;
+    }
 
   int width = get_addr_width (mod);
   printf ("0x%0*" PRIx64 "-0x%0*" PRIx64 " %s\n",
@@ -683,7 +688,7 @@ Program exits with return code 0 if all frames were shown without \
 any errors.  If some frames were shown, but there were some non-fatal \
 errors, possibly causing an incomplete backtrace, the program exits \
 with return code 1.  If no frames could be shown, or a fatal error \
-occured the program exits with return code 2.  If the program was \
+occurred the program exits with return code 2.  If the program was \
 invoked with bad or missing arguments it will exit with return code 64.")
     };
 

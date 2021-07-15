@@ -41,16 +41,11 @@
 
 extern __typeof (EBLHOOK (core_note)) x32_core_note attribute_hidden;
 
-const char *
+Ebl *
 x86_64_init (Elf *elf __attribute__ ((unused)),
 	     GElf_Half machine __attribute__ ((unused)),
-	     Ebl *eh,
-	     size_t ehlen)
+	     Ebl *eh)
 {
-  /* Check whether the Elf_BH object has a sufficent size.  */
-  if (ehlen < sizeof (Ebl))
-    return NULL;
-
   /* We handle it.  */
   x86_64_init_reloc (eh);
   HOOK (eh, reloc_simple_type);
@@ -61,7 +56,6 @@ x86_64_init (Elf *elf __attribute__ ((unused)),
     HOOK (eh, core_note);
   HOOK (eh, return_value_location);
   HOOK (eh, register_info);
-  HOOK (eh, syscall_abi);
   HOOK (eh, auxv_info);
   HOOK (eh, disasm);
   HOOK (eh, abi_cfi);
@@ -69,6 +63,7 @@ x86_64_init (Elf *elf __attribute__ ((unused)),
   eh->frame_nregs = 17;
   HOOK (eh, set_initial_registers_tid);
   HOOK (eh, unwind);
+  HOOK (eh, check_reloc_target_type);
 
-  return MODVERSION;
+  return eh;
 }

@@ -38,16 +38,11 @@
 #include "common-reloc.c"
 
 
-const char *
+Ebl *
 aarch64_init (Elf *elf __attribute__ ((unused)),
 	      GElf_Half machine __attribute__ ((unused)),
-	      Ebl *eh,
-	      size_t ehlen)
+	      Ebl *eh)
 {
-  /* Check whether the Elf_BH object has a sufficent size.  */
-  if (ehlen < sizeof (Ebl))
-    return NULL;
-
   /* We handle it.  */
   aarch64_init_reloc (eh);
   HOOK (eh, register_info);
@@ -55,6 +50,8 @@ aarch64_init (Elf *elf __attribute__ ((unused)),
   HOOK (eh, reloc_simple_type);
   HOOK (eh, return_value_location);
   HOOK (eh, check_special_symbol);
+  HOOK (eh, dynamic_tag_name);
+  HOOK (eh, dynamic_tag_check);
   HOOK (eh, data_marker_symbol);
   HOOK (eh, abi_cfi);
 
@@ -65,5 +62,5 @@ aarch64_init (Elf *elf __attribute__ ((unused)),
   HOOK (eh, set_initial_registers_tid);
   HOOK (eh, unwind);
 
-  return MODVERSION;
+  return eh;
 }

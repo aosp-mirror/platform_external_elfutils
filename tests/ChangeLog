@@ -1,3 +1,12 @@
+2021-07-16  Noah Sanci  <nsanci@redhat.com>
+
+	PR28034
+	* run-debuginfod-find.sh: Added a test ensuring files with %
+	escapable characters in their paths are accessible. The test
+	itself is changing the name of a binary known previously as prog to
+	p+r%o$g. General operations such as accessing p+r%o$g acts as the
+	test for %-escape checking.
+
 2021-07-21  Noah Sanci <nsanci@redhat.com>
 
 	* run-debuginfod-find.sh: Properly kill $PID4 by waiting for it to

@@ -152,18 +152,18 @@ ps -q $PID1 -e -L -o '%p %c %a' | grep traverse
 # Compile a simple program, strip its debuginfo and save the build-id.
 # Also move the debuginfo into another directory so that elfutils
 # cannot find it without debuginfod.
-echo "int main() { return 0; }" > ${PWD}/prog.c
-tempfiles prog.c
+echo "int main() { return 0; }" > ${PWD}/p+r%o\$g.c
+tempfiles p+r%o\$g.c
 # Create a subdirectory to confound source path names
 mkdir foobar
-gcc -Wl,--build-id -g -o prog ${PWD}/foobar///./../prog.c
-testrun ${abs_top_builddir}/src/strip -g -f prog.debug ${PWD}/prog
+gcc -Wl,--build-id -g -o p+r%o\$g ${PWD}/foobar///./../p+r%o\$g.c
+testrun ${abs_top_builddir}/src/strip -g -f p+r%o\$g.debug ${PWD}/p+r%o\$g
 BUILDID=`env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../src/readelf \
-          -a prog | grep 'Build ID' | cut -d ' ' -f 7`
+          -a p+r%o\\$g | grep 'Build ID' | cut -d ' ' -f 7`
 
 wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
-mv prog F
-mv prog.debug F
+mv p+r%o\$g F
+mv p+r%o\$g.debug F
 kill -USR1 $PID1
 # Wait till both files are in the index.
 wait_ready $PORT1 'thread_work_total{role="traverse"}' 2
@@ -174,7 +174,7 @@ wait_ready $PORT1 'thread_busy{role="scan"}' 0
 
 # Test whether elfutils, via the debuginfod client library dlopen hooks,
 # is able to fetch debuginfo from the local debuginfod.
-testrun ${abs_builddir}/debuginfod_build_id_find -e F/prog 1
+testrun ${abs_builddir}/debuginfod_build_id_find -e F/p+r%o\$g 1
 
 ########################################################################
 
@@ -216,22 +216,22 @@ fi
 # Test whether debuginfod-find is able to fetch those files.
 rm -rf $DEBUGINFOD_CACHE_PATH # clean it from previous tests
 filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID`
-cmp $filename F/prog.debug
+cmp $filename F/p+r%o\$g.debug
 if [ -w $filename ]; then
     echo "cache file writable, boo"
     err
 fi
 
-filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find executable F/prog`
-cmp $filename F/prog
+filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find executable F/p+r%o\\$g`
+cmp $filename F/p+r%o\$g
 
 # raw source filename
-filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find source $BUILDID ${PWD}/foobar///./../prog.c`
-cmp $filename  ${PWD}/prog.c
+filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find source $BUILDID ${PWD}/foobar///./../p+r%o\\$g.c`
+cmp $filename  ${PWD}/p+r%o\$g.c
 
 # and also the canonicalized one
-filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find source $BUILDID ${PWD}/prog.c`
-cmp $filename  ${PWD}/prog.c
+filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find source $BUILDID ${PWD}/p+r%o\\$g.c`
+cmp $filename  ${PWD}/p+r%o\$g.c
 
 
 ########################################################################
@@ -688,7 +688,7 @@ touch -d '1970-01-01' $DEBUGINFOD_CACHE_PATH/00000000 # old enough to guarantee 
 echo 0 > $DEBUGINFOD_CACHE_PATH/cache_clean_interval_s
 echo 0 > $DEBUGINFOD_CACHE_PATH/max_unused_age_s
 
-testrun ${abs_builddir}/debuginfod_build_id_find -e F/prog 1
+testrun ${abs_builddir}/debuginfod_build_id_find -e F/p+r%o\$g 1
 
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID2 && false || true
 

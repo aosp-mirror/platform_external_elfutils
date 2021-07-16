@@ -1,3 +1,9 @@
+2021-07-16  Noah Sanci  <nsanci@redhat.com>
+
+	PR28034
+	* debuginfod-client.c (debuginfod_query_server): % escape filename
+	so the completed url is processed properly.
+
 2021-06-28 Noah Sanci <nsanci@redhat.com>
 
 	PR25978

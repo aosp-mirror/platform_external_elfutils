@@ -309,6 +309,10 @@ l l.
 \../bar/foo.c AT_comp_dir=/zoo/	/buildid/BUILDID/source/zoo//../bar/foo.c
 .TE
 
+Note: the client should %-escape characters in /SOURCE/FILE that are
+not shown as "unreserved" in section 2.3 of RFC3986. Some characters
+that will be escaped include "+", "\\", "$", "!", the 'space' character,
+and ";". RFC3986 includes a more comprehensive list of these characters.
 .SS /metrics
 
 This endpoint returns a Prometheus formatted text/plain dump of a

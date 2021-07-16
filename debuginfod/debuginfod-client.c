@@ -832,8 +832,19 @@ debuginfod_query_server (debuginfod_client *c,
         slashbuildid = "/buildid";
 
       if (filename) /* must start with / */
-        snprintf(data[i].url, PATH_MAX, "%s%s/%s/%s%s", server_url,
-                 slashbuildid, build_id_bytes, type, filename);
+        {
+          /* PR28034 escape characters in completed url to %hh format. */
+          char *escaped_string;
+          escaped_string = curl_easy_escape(data[i].handle, filename, 0);
+          if (!escaped_string)
+            {
+              rc = -ENOMEM;
+              goto out1;
+            }
+          snprintf(data[i].url, PATH_MAX, "%s%s/%s/%s%s", server_url,
+                   slashbuildid, build_id_bytes, type, escaped_string);
+          curl_free(escaped_string);
+        }
       else
         snprintf(data[i].url, PATH_MAX, "%s%s/%s/%s", server_url,
                  slashbuildid, build_id_bytes, type);

@@ -1,3 +1,8 @@
+2021-07-19  Mark Wielaard  <mark@klomp.org>
+
+	* elf_strptr.c (validate_str): Check last char is zero first before
+	calling memrchr on the whole block.
+
 2021-06-09  Andrei Homescu  <ah@immunant.com>
 
 	* elf_getdata.c: Fix d_align for sections where alignment is larger

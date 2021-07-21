@@ -54,7 +54,7 @@ trap cleanup 0 1 2 3 5 9 15
 errfiles_list=
 err() {
     echo ERROR REPORTS
-    for ports in $PORT1 $PORT2
+    for ports in $PORT1 $PORT2 $PORT3
     do
         echo ERROR REPORT $port metrics
         curl -s http://127.0.0.1:$port/metrics
@@ -754,6 +754,8 @@ wait_ready $PORT3 'groom{statistic="files scanned (#)"}' 0
 wait_ready $PORT3 'groom{statistic="files scanned (mb)"}' 0
 
 kill $PID4
+wait $PID4
+PID4=0
 
 ########################################################################
 # set up tests for retrying failed queries.

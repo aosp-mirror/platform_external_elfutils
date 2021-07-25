@@ -35,26 +35,21 @@ msgid ""
 msgstr ""
 
 #: lib/color.c:194 src/objdump.c:728
-#, fuzzy, c-format
 msgid "cannot allocate memory"
-msgstr "PLT セクションを割り当てられません: %s"
+msgstr "メモリーを割り当てられません"
 
 #: lib/printversion.c:40
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Copyright (C) %s The elfutils developers <%s>.\n"
 "This is free software; see the source for copying conditions.  There is NO\n"
 "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n"
 msgstr ""
-"Copyright (C) %s Red Hat, Inc.\n"
-"This is free software; see the source for copying conditions.  There is NO\n"
-"warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n"
 
 #: lib/xmalloc.c:48 lib/xmalloc.c:61 lib/xmalloc.c:73 src/readelf.c:3461
 #: src/readelf.c:11512 src/unstrip.c:312 src/unstrip.c:2404 src/unstrip.c:2609
-#, c-format
 msgid "memory exhausted"
-msgstr "メモリー消費済み"
+msgstr "メモリー枯渇"
 
 #: libasm/asm_error.c:65 libdw/dwarf_error.c:57 libdwfl/libdwflP.h:51
 #: libelf/elf_error.c:60
@@ -64,7 +59,7 @@ msgstr "エラー無し"
 #: libasm/asm_error.c:66 libdw/dwarf_error.c:67 libdwfl/libdwflP.h:53
 #: libelf/elf_error.c:91
 msgid "out of memory"
-msgstr "メモリー不足"
+msgstr "メモリー不足です"
 
 #: libasm/asm_error.c:67
 msgid "cannot create output file"
@@ -72,7 +67,7 @@ msgstr "出力ファイルを作成できません"
 
 #: libasm/asm_error.c:68
 msgid "invalid parameter"
-msgstr "不当なパラメーター"
+msgstr "不当なパラメーターです"
 
 #: libasm/asm_error.c:69
 msgid "cannot change mode of output file"
@@ -84,46 +79,43 @@ msgstr "出力ファイルの名前を変更できません"
 
 #: libasm/asm_error.c:71
 msgid "duplicate symbol"
-msgstr "重複シンボル"
+msgstr "重複シンボルです"
 
 #: libasm/asm_error.c:72
 msgid "invalid section type for operation"
-msgstr "操作に不当なセクションタイプ"
+msgstr "操作に不当なセクションタイプです"
 
 #: libasm/asm_error.c:73
 msgid "error during output of data"
-msgstr "データの出力中にエラー"
+msgstr "データ出力中のエラーです"
 
 #: libasm/asm_error.c:74
 msgid "no backend support available"
-msgstr "バックエンドサポートが利用できません"
+msgstr "バックエンドサポートを利用できません"
 
 #: libasm/asm_error.c:83 libdw/dwarf_error.c:58 libdwfl/libdwflP.h:52
 #: libelf/elf_error.c:63
 msgid "unknown error"
-msgstr "不明なエラー"
+msgstr "不明なエラーです"
 
 #: libcpu/i386_lex.l:122
-#, fuzzy, c-format
-#| msgid "invalid page size value '%s': ignored"
+#, c-format
 msgid "invalid character '%c' at line %d; ignored"
-msgstr "不当なページサイズ値 '%s': 無視しました"
+msgstr "不当な文字 '%c' が %d 行目にあります; 無視しました"
 
 #: libcpu/i386_lex.l:123
-#, fuzzy, c-format
-#| msgid "invalid page size value '%s': ignored"
+#, c-format
 msgid "invalid character '\\%o' at line %d; ignored"
-msgstr "不当なページサイズ値 '%s': 無視しました"
+msgstr "不当な文字 '\\%o' が %d 行目にあります; 無視しました"
 
 #: libcpu/i386_parse.y:554
-#, fuzzy, c-format
-#| msgid "while reading linker script '%s': %s at line %d"
+#, c-format
 msgid "while reading i386 CPU description: %s at line %d"
-msgstr "リンカースクリプト '%1$s' 読込み中: %3$d 行目の %2$s"
+msgstr "i386 CPU description の読み込み中: %2$d 行目の %1$s"
 
 #: libdw/dwarf_error.c:59
 msgid "invalid access"
-msgstr "不当なアクセス"
+msgstr "不当なアクセスです"
 
 #: libdw/dwarf_error.c:60
 msgid "no regular file"
@@ -131,11 +123,11 @@ msgstr "一般ファイルではありません"
 
 #: libdw/dwarf_error.c:61
 msgid "I/O error"
-msgstr "I/O エラー"
+msgstr "I/O エラーです"
 
 #: libdw/dwarf_error.c:62
 msgid "invalid ELF file"
-msgstr "不当な ELF ファイル"
+msgstr "不当な ELF ファイルです"
 
 #: libdw/dwarf_error.c:63
 msgid "no DWARF information"
@@ -143,31 +135,31 @@ msgstr "DWARF 情報がありません"
 
 #: libdw/dwarf_error.c:64
 msgid "cannot decompress DWARF"
-msgstr ""
+msgstr "DWARF を展開できません"
 
 #: libdw/dwarf_error.c:65
 msgid "no ELF file"
-msgstr "ELF ファイルがありません"
+msgstr "ELF ファイルではありません"
 
 #: libdw/dwarf_error.c:66
 msgid "cannot get ELF header"
-msgstr "ELF ヘッダーを得られません"
+msgstr "ELF ヘッダーを取得できません"
 
 #: libdw/dwarf_error.c:68
 msgid "not implemented"
-msgstr "未実装"
+msgstr "未実装です"
 
 #: libdw/dwarf_error.c:69 libelf/elf_error.c:111 libelf/elf_error.c:159
 msgid "invalid command"
-msgstr "不当なコマンド"
+msgstr "不当なコマンドです"
 
 #: libdw/dwarf_error.c:70
 msgid "invalid version"
-msgstr "不当なバージョン"
+msgstr "不当なバージョンです"
 
 #: libdw/dwarf_error.c:71
 msgid "invalid file"
-msgstr "不当なファイル"
+msgstr "不当なファイルです"
 
 #: libdw/dwarf_error.c:72
 msgid "no entries found"
@@ -175,26 +167,23 @@ msgstr "項目が見つかりません"
 
 #: libdw/dwarf_error.c:73
 msgid "invalid DWARF"
-msgstr "不当な DWARF"
+msgstr "不当な DWARFです"
 
 #: libdw/dwarf_error.c:74
 msgid "no string data"
-msgstr "文字データがありません"
+msgstr "文字列データではありません"
 
 #: libdw/dwarf_error.c:75
-#, fuzzy
 msgid ".debug_str section missing"
-msgstr ".debug_ranges セクションがありません"
+msgstr ".debug_str セクションが見つかりません"
 
 #: libdw/dwarf_error.c:76
-#, fuzzy
 msgid ".debug_line_str section missing"
-msgstr ".debug_line セクションがありません"
+msgstr ".debug_line_str セクションが見つかりません"
 
 #: libdw/dwarf_error.c:77
-#, fuzzy
 msgid ".debug_str_offsets section missing"
-msgstr ".debug_ranges セクションがありません"
+msgstr ".debug_str_offsets セクションが見つかりません"
 
 #: libdw/dwarf_error.c:78
 msgid "no address value"
@@ -202,23 +191,23 @@ msgstr "アドレス値ではありません"
 
 #: libdw/dwarf_error.c:79
 msgid "no constant value"
-msgstr "固定値ではありません"
+msgstr "定数値ではありません"
 
 #: libdw/dwarf_error.c:80
 msgid "no reference value"
-msgstr "参照値がありません"
+msgstr "参照値ではありません"
 
 #: libdw/dwarf_error.c:81
 msgid "invalid reference value"
-msgstr "不当な参照値"
+msgstr "不当な参照値です"
 
 #: libdw/dwarf_error.c:82
 msgid ".debug_line section missing"
-msgstr ".debug_line セクションがありません"
+msgstr ".debug_line セクションが見つかりません"
 
 #: libdw/dwarf_error.c:83
 msgid "invalid .debug_line section"
-msgstr "不当な .debug_line セクション"
+msgstr "不当な .debug_line セクションです"
 
 #: libdw/dwarf_error.c:84
 msgid "debug information too big"
@@ -226,28 +215,25 @@ msgstr "デバッグ情報が大きすぎます"
 
 #: libdw/dwarf_error.c:85
 msgid "invalid DWARF version"
-msgstr "不当な DWARF バージョン"
+msgstr "不当な DWARF バージョンです"
 
 #: libdw/dwarf_error.c:86
 msgid "invalid directory index"
-msgstr "不当なディレクトリー索引"
+msgstr "不当なディレクトリー索引です"
 
 #: libdw/dwarf_error.c:87 libdwfl/libdwflP.h:73
 msgid "address out of range"
 msgstr "アドレスが範囲外です"
 
 #: libdw/dwarf_error.c:88
-#, fuzzy
 msgid ".debug_loc section missing"
-msgstr ".debug_line セクションがありません"
+msgstr ".debug_loc セクションが見つかりません"
 
 #: libdw/dwarf_error.c:89
-#, fuzzy
 msgid ".debug_loclists section missing"
-msgstr ".debug_line セクションがありません"
+msgstr ".debug_loclists セクション見つかりません"
 
 #: libdw/dwarf_error.c:90
-#, fuzzy
 msgid "not a location list value"
 msgstr "ロケーションリスト値ではありません"
 
@@ -257,95 +243,91 @@ msgstr "ブロックデータではありません"
 
 #: libdw/dwarf_error.c:92
 msgid "invalid line index"
-msgstr "不当な行索引"
+msgstr "不当な行索引です"
 
 #: libdw/dwarf_error.c:93
 msgid "invalid address range index"
-msgstr "不当なアドレス範囲索引"
+msgstr "不当なアドレス範囲索引です"
 
 #: libdw/dwarf_error.c:94 libdwfl/libdwflP.h:74
 msgid "no matching address range"
-msgstr "アドレス範囲に対応しません"
+msgstr "一致するアドレス範囲がありません"
 
 #: libdw/dwarf_error.c:95
 msgid "no flag value"
-msgstr "フラグ値がありません"
+msgstr "フラグ値ではありません"
 
 #: libdw/dwarf_error.c:96 libelf/elf_error.c:236
 msgid "invalid offset"
-msgstr "不当なオフセット"
+msgstr "不当なオフセットです"
 
 #: libdw/dwarf_error.c:97
 msgid ".debug_ranges section missing"
-msgstr ".debug_ranges セクションがありません"
+msgstr ".debug_ranges セクションが見つかりません"
 
 #: libdw/dwarf_error.c:98
-#, fuzzy
 msgid ".debug_rnglists section missing"
-msgstr ".debug_ranges セクションがありません"
+msgstr ".debug_rnglists セクションが見つかりません"
 
 #: libdw/dwarf_error.c:99
 msgid "invalid CFI section"
-msgstr "不当な CFI セクション"
+msgstr "不当な CFI セクションです"
 
 #: libdw/dwarf_error.c:100
 msgid "no alternative debug link found"
-msgstr ""
+msgstr "代替デバッグリンクが見つかりません"
 
 #: libdw/dwarf_error.c:101
-#, fuzzy
 msgid "invalid opcode"
-msgstr "不当なオペランド"
+msgstr "不当なオペコードです"
 
 #: libdw/dwarf_error.c:102
 msgid "not a CU (unit) DIE"
-msgstr ""
+msgstr "CU (unit) DIE ではありません"
 
 #: libdw/dwarf_error.c:103
-#, fuzzy
 msgid "unknown language code"
-msgstr "不明な命令コード"
+msgstr "不明な言語コードです"
 
 #: libdw/dwarf_error.c:104
-#, fuzzy
 msgid ".debug_addr section missing"
-msgstr ".debug_ranges セクションがありません"
+msgstr ".debug_addr セクションが見つかりません"
 
 #: libdwfl/argp-std.c:47 src/stack.c:643 src/unstrip.c:2550
 msgid "Input selection options:"
-msgstr "選択オプションを入力してください:"
+msgstr "入力選択オプション："
 
 #: libdwfl/argp-std.c:48
 msgid "Find addresses in FILE"
-msgstr "ふぁいる 中のアドレスを探す"
+msgstr "FILE の中から アドレスを探す"
 
 #: libdwfl/argp-std.c:50
 msgid "Find addresses from signatures found in COREFILE"
-msgstr "COREFILE 中で見つかった署名からアドレスを探す"
+msgstr "COREFILE 中で 見つかった 署名から アドレスを 探す"
 
 #: libdwfl/argp-std.c:52
 msgid "Find addresses in files mapped into process PID"
-msgstr "プロセス PID に対応するファイル中のアドレスを探す"
+msgstr "プロセス PID に 対応する ファイル中の アドレスを 探す"
 
 #: libdwfl/argp-std.c:54
 msgid ""
 "Find addresses in files mapped as read from FILE in Linux /proc/PID/maps "
 "format"
 msgstr ""
-"Linux の /proc/PID/maps 形式の ふぁいる から読み込んだものに対応するファイル"
-"のアドレスを探す"
+"Linux の /proc/PID/maps 形式の FILE から 読み込んだ マッピング された ファイル"
+" から アドレスを 探す"
 
 #: libdwfl/argp-std.c:56
 msgid "Find addresses in the running kernel"
-msgstr "実行中のカーネルのアドレスを探す"
+msgstr "実行中の カーネルから アドレスを 探す"
 
 #: libdwfl/argp-std.c:58
 msgid "Kernel with all modules"
-msgstr "全てのモジュール付きのカーネル"
+msgstr "全ての モジュール付きの カーネル"
 
 #: libdwfl/argp-std.c:60 src/stack.c:650
 msgid "Search path for separate debuginfo files"
-msgstr "分離した debuginfo ファイルべきパスを探す"
+msgstr "分離された debuginfo ファイルを 探索する パス"
 
 #: libdwfl/argp-std.c:161
 msgid "only one of -e, -p, -k, -K, or --core allowed"
@@ -358,21 +340,20 @@ msgstr "カーネルシンボルをロードできません"
 #. Non-fatal to have no modules since we do have the kernel.
 #: libdwfl/argp-std.c:238
 msgid "cannot find kernel modules"
-msgstr "カーネルモジュールを見つけられません"
+msgstr "カーネルモジュールが見つかりません"
 
 #: libdwfl/argp-std.c:255
 msgid "cannot find kernel or modules"
-msgstr "カーネルかモジュールを見つけられません"
+msgstr "カーネルまたはモジュールが見つかりません"
 
 #: libdwfl/argp-std.c:294
 #, c-format
 msgid "cannot read ELF core file: %s"
-msgstr "ELF コアファイルを読めません: %s"
+msgstr "ELF コアファイルを読み込めません: %s"
 
 #: libdwfl/argp-std.c:317
-#, fuzzy
 msgid "Not enough memory"
-msgstr "メモリー不足"
+msgstr "メモリーが十分ではありません"
 
 #: libdwfl/argp-std.c:327
 msgid "No modules recognized in core file"
@@ -380,170 +361,159 @@ msgstr "コアファイルの中にモジュールを認識できません"
 
 #: libdwfl/libdwflP.h:54
 msgid "See errno"
-msgstr ""
+msgstr "errno を参照してください"
 
 #: libdwfl/libdwflP.h:55
 msgid "See elf_errno"
-msgstr ""
+msgstr "elf_errno を参照してください"
 
 #: libdwfl/libdwflP.h:56
 msgid "See dwarf_errno"
-msgstr ""
+msgstr "dwarf_errno を参照してください"
 
 #: libdwfl/libdwflP.h:57
 msgid "See ebl_errno (XXX missing)"
-msgstr ""
+msgstr "ebl_errno を参照してください（XXX が見つかりません）"
 
 #: libdwfl/libdwflP.h:58
 msgid "gzip decompression failed"
-msgstr ""
+msgstr "gzip の展開に失敗しました"
 
 #: libdwfl/libdwflP.h:59
 msgid "bzip2 decompression failed"
-msgstr ""
+msgstr "bzip2 の展開に失敗しました"
 
 #: libdwfl/libdwflP.h:60
 msgid "LZMA decompression failed"
-msgstr ""
+msgstr "LZMA の展開に失敗しました"
 
 #: libdwfl/libdwflP.h:61
 msgid "zstd decompression failed"
-msgstr ""
+msgstr "zstd の展開に失敗しました"
 
 #: libdwfl/libdwflP.h:62
 msgid "no support library found for machine"
-msgstr ""
+msgstr "マシン用のサポートライブラリが見つかりません"
 
 #: libdwfl/libdwflP.h:63
 msgid "Callbacks missing for ET_REL file"
-msgstr ""
+msgstr "ET_REL ファイル用のコールバックが見つかりません"
 
 #: libdwfl/libdwflP.h:64
 msgid "Unsupported relocation type"
-msgstr ""
+msgstr "未対応のリロケーションタイプです"
 
 #: libdwfl/libdwflP.h:65
 msgid "r_offset is bogus"
-msgstr ""
+msgstr "r_offset が偽物です"
 
 #: libdwfl/libdwflP.h:66 libelf/elf_error.c:115 libelf/elf_error.c:175
 msgid "offset out of range"
-msgstr "オフセットが範囲を越えている"
+msgstr "オフセットが範囲外です"
 
 #: libdwfl/libdwflP.h:67
-#, fuzzy
 msgid "relocation refers to undefined symbol"
-msgstr "定義されたシンボルの印刷サイズ"
+msgstr "リロケーションが未定義シンボルを参照しています"
 
 #: libdwfl/libdwflP.h:68
 msgid "Callback returned failure"
-msgstr ""
+msgstr "コールバックが失敗を返しました"
 
 #: libdwfl/libdwflP.h:69
-#, fuzzy
 msgid "No DWARF information found"
-msgstr "DWARF 情報がありません"
+msgstr "DWARF 情報が見つかりません"
 
 #: libdwfl/libdwflP.h:70
 msgid "No symbol table found"
-msgstr ""
+msgstr "シンボルテーブルが見つかりません"
 
 #: libdwfl/libdwflP.h:71
-#, fuzzy
 msgid "No ELF program headers"
-msgstr "プログラムヘッダーを得られません: %s"
+msgstr "ELF プログラムヘッダーではありません"
 
 #: libdwfl/libdwflP.h:72
 msgid "address range overlaps an existing module"
-msgstr ""
+msgstr "アドレス範囲が既存モジュールと重なります"
 
 #: libdwfl/libdwflP.h:75
 msgid "image truncated"
-msgstr ""
+msgstr "イメージが切り詰められています"
 
 #: libdwfl/libdwflP.h:76
-#, fuzzy
 msgid "ELF file opened"
-msgstr "ファイルのオープンを追跡します。"
+msgstr "既に ELF ファイルを開いています"
 
 #: libdwfl/libdwflP.h:77
-#, fuzzy
 msgid "not a valid ELF file"
-msgstr "不当な ELF ファイル"
+msgstr "不当な ELF ファイルです"
 
 #: libdwfl/libdwflP.h:78
-#, fuzzy
 msgid "cannot handle DWARF type description"
-msgstr "Elf 記述子を生成できません: %s"
+msgstr "DWARF type description を操作できません"
 
 #: libdwfl/libdwflP.h:79
 msgid "ELF file does not match build ID"
-msgstr ""
+msgstr "ELF ファイルがビルド ID と一致しません"
 
 #: libdwfl/libdwflP.h:80
-#, fuzzy
 msgid "corrupt .gnu.prelink_undo section data"
-msgstr "ラインデータセクションデータを得られません: %s"
+msgstr ".gnu.prelink_undo セクションデータが壊れています"
 
 #: libdwfl/libdwflP.h:81
 msgid "Internal error due to ebl"
-msgstr ""
+msgstr "ebl に起因する内部エラー"
 
 #: libdwfl/libdwflP.h:82
 msgid "Missing data in core file"
-msgstr ""
+msgstr "コアファイルの中にデータが見つかりません"
 
 #: libdwfl/libdwflP.h:83
-#, fuzzy
 msgid "Invalid register"
-msgstr "不当なパラメーター"
+msgstr "不当なレジスターです"
 
 #: libdwfl/libdwflP.h:84
 msgid "Error reading process memory"
-msgstr ""
+msgstr "プロセスメモリーの読み込みエラーです"
 
 #: libdwfl/libdwflP.h:85
 msgid "Couldn't find architecture of any ELF"
-msgstr ""
+msgstr "ELF のアーキテクチャが１つも見つかりませんでした"
 
 #: libdwfl/libdwflP.h:86
 msgid "Error parsing /proc filesystem"
-msgstr ""
+msgstr "/proc ファイルシステムのパースエラーです"
 
 #: libdwfl/libdwflP.h:87
-#, fuzzy
 msgid "Invalid DWARF"
-msgstr "不当な DWARF"
+msgstr "不当な DWARF です"
 
 #: libdwfl/libdwflP.h:88
 msgid "Unsupported DWARF"
-msgstr ""
+msgstr "未対応の DWARF です"
 
 #: libdwfl/libdwflP.h:89
 msgid "Unable to find more threads"
-msgstr ""
+msgstr "これ以上スレッドが見つかりません"
 
 #: libdwfl/libdwflP.h:90
 msgid "Dwfl already has attached state"
-msgstr ""
+msgstr "Dwfl は既にアタッチ状態です"
 
 #: libdwfl/libdwflP.h:91
 msgid "Dwfl has no attached state"
-msgstr ""
+msgstr "Dwfl はアタッチ状態ではありません"
 
 #: libdwfl/libdwflP.h:92
 msgid "Unwinding not supported for this architecture"
-msgstr ""
+msgstr "このアーキテクチャに対応していない巻き戻しです"
 
 #: libdwfl/libdwflP.h:93
-#, fuzzy
 msgid "Invalid argument"
-msgstr "不当なパラメーター"
+msgstr "不当な引数です"
 
 #: libdwfl/libdwflP.h:94
-#, fuzzy
 msgid "Not an ET_CORE ELF file"
-msgstr "不当な ELF ファイル"
+msgstr "ET_CORE ELF ファイルではありません"
 
 #: libebl/eblbackendname.c:41
 msgid "No backend"
@@ -562,14 +532,14 @@ msgid "<unknown>: %#<PRIx64>"
 msgstr "<不明>: %#<PRIx64>"
 
 #: libebl/eblobjnote.c:58
-#, fuzzy, c-format
+#, c-format
 msgid "unknown SDT version %u\n"
-msgstr "不明なバージョン"
+msgstr "不明な SDT バージョン %u です\n"
 
 #: libebl/eblobjnote.c:76
-#, fuzzy, c-format
+#, c-format
 msgid "invalid SDT probe descriptor\n"
-msgstr "不当なファイル記述子"
+msgstr "不当な SDT probe 記述子です\n"
 
 #: libebl/eblobjnote.c:126
 #, c-format
@@ -602,9 +572,8 @@ msgid " Args: "
 msgstr ""
 
 #: libebl/eblobjnote.c:300
-#, c-format
 msgid "    Build ID: "
-msgstr "   ビルト ID: "
+msgstr "   ビルド ID: "
 
 #. A non-null terminated version string.
 #: libebl/eblobjnote.c:311
@@ -615,7 +584,7 @@ msgstr ""
 #: libebl/eblobjnote.c:638
 #, c-format
 msgid "    OS: %s, ABI: "
-msgstr "    OS: %s、ABI: "
+msgstr ""
 
 #: libebl/eblosabiname.c:70
 msgid "Stand alone"
@@ -628,98 +597,95 @@ msgstr "<不明>: %d"
 
 #: libelf/elf_error.c:67
 msgid "unknown version"
-msgstr "不明なバージョン"
+msgstr "不明なバージョンです"
 
 #: libelf/elf_error.c:71
 msgid "unknown type"
-msgstr "不明なタイプ"
+msgstr "不明なタイプです"
 
 #: libelf/elf_error.c:75
 msgid "invalid `Elf' handle"
-msgstr "無効な `Elf' の処理"
+msgstr "無効な `Elf' のハンドルです"
 
 #: libelf/elf_error.c:79
 msgid "invalid size of source operand"
-msgstr "ソース演算子の大きさが無効"
+msgstr "ソース演算子の大きさが無効です"
 
 #: libelf/elf_error.c:83
 msgid "invalid size of destination operand"
-msgstr "宛先演算子の大きさが無効"
+msgstr "宛先演算子の大きさが無効です"
 
 #: libelf/elf_error.c:87 src/readelf.c:6217
-#, c-format
 msgid "invalid encoding"
-msgstr "無効なエンコード"
+msgstr "無効なエンコードです"
 
 #: libelf/elf_error.c:95
 msgid "invalid file descriptor"
-msgstr "不当なファイル記述子"
+msgstr "不当なファイル記述子です"
 
 #: libelf/elf_error.c:99
-#, fuzzy
 msgid "invalid ELF file data"
-msgstr "不当な ELF ファイル"
+msgstr "不当な ELF ファイルデータです"
 
 #: libelf/elf_error.c:103
 msgid "invalid operation"
-msgstr "不当な操作"
+msgstr "不当な操作です"
 
 #: libelf/elf_error.c:107
 msgid "ELF version not set"
-msgstr "ELF のバージョンが設定されていない"
+msgstr "ELF のバージョンが設定されていません"
 
 #: libelf/elf_error.c:119
 msgid "invalid fmag field in archive header"
-msgstr "アーカイブヘッダーの不当な fmag 領域"
+msgstr "アーカイブヘッダーの不当な fmag 領域です"
 
 #: libelf/elf_error.c:123
 msgid "invalid archive file"
-msgstr "不当なアーカイブファイル"
+msgstr "不当なアーカイブファイルです"
 
 #: libelf/elf_error.c:127
 msgid "descriptor is not for an archive"
-msgstr "記述子はアーカイブ用ではありません"
+msgstr "記述子がアーカイブ用ではありません"
 
 #: libelf/elf_error.c:131
 msgid "no index available"
-msgstr "索引が使えません"
+msgstr "利用できる索引がありません"
 
 #: libelf/elf_error.c:135
 msgid "cannot read data from file"
-msgstr "ファイルからデータを読みません"
+msgstr "ファイルからデータを読み込めません"
 
 #: libelf/elf_error.c:139
 msgid "cannot write data to file"
-msgstr "ファイルへデータを書けません"
+msgstr "ファイルへデータを書き込めません"
 
 #: libelf/elf_error.c:143
 msgid "invalid binary class"
-msgstr "不当なバイナリークラス"
+msgstr "不当なバイナリークラスです"
 
 #: libelf/elf_error.c:147
 msgid "invalid section index"
-msgstr "不当なセクション索引"
+msgstr "不当なセクション索引です"
 
 #: libelf/elf_error.c:151
 msgid "invalid operand"
-msgstr "不当なオペランド"
+msgstr "不当なオペランドです"
 
 #: libelf/elf_error.c:155
 msgid "invalid section"
-msgstr "不当なセクション"
+msgstr "不当なセクションです"
 
 #: libelf/elf_error.c:163
 msgid "executable header not created first"
-msgstr "エクゼキュータブルヘッダーが最初に作られていません"
+msgstr "実行可能ヘッダーが最初に作られていません"
 
 #: libelf/elf_error.c:167
 msgid "file descriptor disabled"
-msgstr "ファイル記述子が機能しません"
+msgstr "ファイル記述子が無効化されています"
 
 #: libelf/elf_error.c:171
-#, fuzzy
 msgid "archive/member file descriptor mismatch"
-msgstr "アーカイブ/メンバー領域が不整合です"
+msgstr "アーカイブ/メンバーのファイル記述子の不整合です"
 
 #: libelf/elf_error.c:179
 msgid "cannot manipulate null section"
@@ -727,21 +693,20 @@ msgstr "null セクションを操作できません"
 
 #: libelf/elf_error.c:183
 msgid "data/scn mismatch"
-msgstr "データ/scnが不整合です"
+msgstr "データ/scnの不整合です"
 
 #: libelf/elf_error.c:187
 msgid "invalid section header"
-msgstr "不当なセクションヘッダー"
+msgstr "不当なセクションヘッダーです"
 
 #: libelf/elf_error.c:191 src/readelf.c:10023 src/readelf.c:10623
 #: src/readelf.c:10724 src/readelf.c:10906
-#, c-format
 msgid "invalid data"
-msgstr "不当なデータ"
+msgstr "不当なデータです"
 
 #: libelf/elf_error.c:195
 msgid "unknown data encoding"
-msgstr "不明なデータエンコード"
+msgstr "不明なデータエンコードです"
 
 #: libelf/elf_error.c:199
 msgid "section `sh_size' too small for data"
@@ -749,15 +714,15 @@ msgstr "`sh_size' セクションがデータには小さすぎます"
 
 #: libelf/elf_error.c:203
 msgid "invalid section alignment"
-msgstr "不当なセクション調整"
+msgstr "不当なセクションアラインメントです"
 
 #: libelf/elf_error.c:207
 msgid "invalid section entry size"
-msgstr "不当なセクション項目の大きさ"
+msgstr "不当なセクション項目の大きさです"
 
 #: libelf/elf_error.c:211
 msgid "update() for write on read-only file"
-msgstr "読込み専用ファイルでの書込みのための update()"
+msgstr "読み込み専用ファイルへの書き込みの update() です"
 
 #: libelf/elf_error.c:215
 msgid "no such file"
@@ -765,13 +730,13 @@ msgstr "そのようなファイルはありません"
 
 #: libelf/elf_error.c:219
 msgid "only relocatable files can contain section groups"
-msgstr "リロケータブルファイルのみセクショングループを含むことができます"
+msgstr "リロケータブルファイルのみがセクショングループを含むことができます"
 
 #: libelf/elf_error.c:224
 msgid ""
 "program header only allowed in executables, shared objects, and core files"
 msgstr ""
-"プログラムヘッダーはエクゼキュータブルか、共用オブジェクト、コアファイルにの"
+"プログラムヘッダーは、実行可能ファイル、共有オブジェクト、コアファイルにの"
 "み認められています"
 
 #: libelf/elf_error.c:231
@@ -779,105 +744,98 @@ msgid "file has no program header"
 msgstr "ファイルにプログラムヘッダーがありません"
 
 #: libelf/elf_error.c:241
-#, fuzzy
 msgid "invalid section type"
-msgstr "不当なセクション"
+msgstr "不当なセクションタイプです"
 
 #: libelf/elf_error.c:246
-#, fuzzy
 msgid "invalid section flags"
-msgstr "不当なセクション"
+msgstr "不当なセクションフラグです"
 
 #: libelf/elf_error.c:251
-#, fuzzy
 msgid "section does not contain compressed data"
-msgstr "セクション [%2d] '%s': セクションデータを得られません\n"
+msgstr "セクションが圧縮データを含んでいません"
 
 #: libelf/elf_error.c:256
 msgid "section contains compressed data"
-msgstr ""
+msgstr "セクションが圧縮データを含んでいます"
 
 #: libelf/elf_error.c:261
-#, fuzzy
 msgid "unknown compression type"
-msgstr "不明なタイプ"
+msgstr "不明な圧縮タイプです"
 
 #: libelf/elf_error.c:266
-#, fuzzy
 msgid "cannot compress data"
-msgstr "セクションデータを割り当てられません: %s"
+msgstr "データを圧縮できません"
 
 #: libelf/elf_error.c:271
-#, fuzzy
 msgid "cannot decompress data"
-msgstr "セクションデータを割り当てられません: %s"
+msgstr "データを展開できません"
 
 #: src/addr2line.c:57
-#, fuzzy
 msgid "Input format options:"
-msgstr "選択オプションを入力してください:"
+msgstr "入力フォーマットオプション："
 
 #: src/addr2line.c:59
 msgid "Treat addresses as offsets relative to NAME section."
-msgstr ""
+msgstr "アドレスを NAME セクションに 対する 相対 オフセット として 扱う"
 
 #: src/addr2line.c:61
-#, fuzzy
 msgid "Output format options:"
-msgstr "出力形式:"
+msgstr "出力フォーマットオプション："
 
 #: src/addr2line.c:62
 msgid "Print address before each entry"
-msgstr ""
+msgstr "各項目の前にアドレスを表示"
 
 #: src/addr2line.c:63
 msgid "Show only base names of source files"
-msgstr ""
+msgstr "ソースファイルの ベースネーム のみ 表示"
 
 #: src/addr2line.c:65
 msgid "Show absolute file names using compilation directory"
-msgstr ""
+msgstr "コンパイルディレクトリを 使用して 絶対ファイル名を 表示"
 
 #: src/addr2line.c:66
 msgid "Also show function names"
-msgstr ""
+msgstr "関数名も表示"
 
 #: src/addr2line.c:67
 msgid "Also show symbol or section names"
-msgstr ""
+msgstr "シンボル名 または セクション名も 表示"
 
 #: src/addr2line.c:68
 msgid "Also show symbol and the section names"
-msgstr ""
+msgstr "シンボル名と セクション名も 表示"
 
 #: src/addr2line.c:69
 msgid "Also show line table flags"
-msgstr ""
+msgstr "行テーブルフラグも表示"
 
 #: src/addr2line.c:71
 msgid ""
 "Show all source locations that caused inline expansion of subroutines at the "
 "address."
 msgstr ""
+"アドレスの サブルーチンの インライン展開を 引き起こした 全ての ソース位置を 表示"
 
 #: src/addr2line.c:74
 msgid "Show demangled symbols (ARG is always ignored)"
-msgstr ""
+msgstr "デマングルされた シンボルを 表示 （ARGは常に無視される）"
 
 #: src/addr2line.c:76
 msgid "Print all information on one line, and indent inlines"
-msgstr ""
+msgstr "全ての 情報を 一行で 表示し、 字下げする"
 
 #: src/addr2line.c:78 src/elfcmp.c:70 src/findtextrel.c:65 src/nm.c:100
 #: src/strings.c:78
 msgid "Miscellaneous:"
-msgstr "雑則:"
+msgstr "Misc:"
 
 #. Short description of program.
 #: src/addr2line.c:86
 msgid ""
 "Locate source files and line information for ADDRs (in a.out by default)."
-msgstr ""
+msgstr "ADDR のソースファイルと行の情報を 検索する （デフォルトでは a.out から）"
 
 #. Strings for arguments in help texts.
 #: src/addr2line.c:90
@@ -897,7 +855,7 @@ msgstr ""
 #: src/addr2line.c:652
 #, c-format
 msgid "cannot find symbol '%s'"
-msgstr ""
+msgstr "シンボル '%s' が見つかりません"
 
 #: src/addr2line.c:657
 #, c-format
@@ -906,7 +864,7 @@ msgstr ""
 
 #: src/ar.c:67
 msgid "Commands:"
-msgstr "コマンド:"
+msgstr "コマンド："
 
 #: src/ar.c:68
 msgid "Delete files from archive."
@@ -922,23 +880,23 @@ msgstr "アーカイブ内のファイルを印刷。"
 
 #: src/ar.c:71
 msgid "Quick append files to archive."
-msgstr "アーカイブへの即座のファイル追加。"
+msgstr "アーカイブへ ファイルを 素早く 追加。"
 
 #: src/ar.c:73
 msgid "Replace existing or insert new file into archive."
-msgstr "アーカイブへの既存のファイルの置き換えか、新しいファイルの挿入。"
+msgstr "アーカイブの既存ファイルの置き換えまたは新しいファイルの挿入。"
 
 #: src/ar.c:74
 msgid "Display content of archive."
-msgstr "アーカイブの内容の表示"
+msgstr "アーカイブの内容の表示。"
 
 #: src/ar.c:75
 msgid "Extract files from archive."
-msgstr "アーカイブからのファイルの取出し"
+msgstr "アーカイブからのファイルの取出し。"
 
 #: src/ar.c:77
 msgid "Command Modifiers:"
-msgstr "コマンド修飾子:"
+msgstr "コマンド修飾子："
 
 #: src/ar.c:78
 msgid "Preserve original dates."
@@ -950,11 +908,11 @@ msgstr "名前のインスタンス [COUNT] の使用。"
 
 #: src/ar.c:81
 msgid "Do not replace existing files with extracted files."
-msgstr "既存のファイルを抽出したファイルで置き換えない。"
+msgstr "抽出したファイルで既存のファイルを置き換えない。"
 
 #: src/ar.c:82
 msgid "Allow filename to be truncated if necessary."
-msgstr "必要ならばファイル名の切り捨てを認める。"
+msgstr "必要ならば ファイル名の 切り詰めを 認める。"
 
 #: src/ar.c:84
 msgid "Provide verbose output."
@@ -978,7 +936,7 @@ msgstr "-b と同じ。"
 
 #: src/ar.c:89
 msgid "Suppress message when library has to be created."
-msgstr "ライブラリーを生成しなければならない時にメッセージを抑止する。"
+msgstr "ライブラリーを 生作成なければ ならない時に メッセージを 抑止する。"
 
 #: src/ar.c:91
 msgid "Use full path for file matching."
@@ -986,17 +944,17 @@ msgstr "ファイル照合にフルパスを使う。"
 
 #: src/ar.c:92
 msgid "Update only older files in archive."
-msgstr "アーカイブの古いファイルのみ更新する。"
+msgstr "アーカイブの 古い ファイルのみ 更新する。"
 
 #. Short description of program.
 #: src/ar.c:98
 msgid "Create, modify, and extract from archives."
-msgstr "アーカイブから作成や、修正、抽出する。"
+msgstr "アーカイブの作成や修正、アーカイブからの抽出を行う。"
 
 #. Strings for arguments in help texts.
 #: src/ar.c:101
 msgid "[MEMBER] [COUNT] ARCHIVE [FILE...]"
-msgstr "[メンバー] [合計] アーカイブ [ファイル...]"
+msgstr ""
 
 #: src/ar.c:180
 #, c-format
@@ -1021,7 +979,7 @@ msgstr "COUNT パラメーターが必要です"
 #: src/ar.c:218
 #, c-format
 msgid "invalid COUNT parameter %s"
-msgstr "不当な COUNT パラメーター %s"
+msgstr "不当な COUNT パラメーター %s です"
 
 #: src/ar.c:225
 #, c-format
@@ -1036,7 +994,7 @@ msgstr "アーカイブ名が必要です"
 #: src/ar.c:244
 #, c-format
 msgid "command option required"
-msgstr ""
+msgstr "コマンドオプションが必要です"
 
 #: src/ar.c:295
 #, c-format
@@ -1046,7 +1004,7 @@ msgstr "1つを越える操作が指定されました"
 #: src/ar.c:389
 #, c-format
 msgid "cannot open archive '%s'"
-msgstr "アーカイブ '%s' を開くことができません"
+msgstr "アーカイブ '%s' を開けません"
 
 #: src/ar.c:399
 #, c-format
@@ -1061,7 +1019,7 @@ msgstr "%s: アーカイブファイルではありません"
 #: src/ar.c:407
 #, c-format
 msgid "cannot stat archive '%s'"
-msgstr "アーカイブに stat できません: '%s'"
+msgstr "アーカイブ '%s' を stat できません"
 
 #: src/ar.c:419
 #, c-format
@@ -1069,24 +1027,22 @@ msgid "no entry %s in archive\n"
 msgstr "アーカイブに項目 %s がありません\n"
 
 #: src/ar.c:472 src/ar.c:927 src/ar.c:1134
-#, c-format
 msgid "cannot create hash table"
-msgstr "ハッシュテーブルを生成できません"
+msgstr "ハッシュテーブルを作成できません"
 
 #: src/ar.c:479 src/ar.c:934 src/ar.c:1143
-#, c-format
 msgid "cannot insert into hash table"
-msgstr "ハッシュに挿入できません"
+msgstr "ハッシュテーブルに挿入できません"
 
 #: src/ar.c:487 src/ranlib.c:148
 #, c-format
 msgid "cannot stat '%s'"
-msgstr "'%s' に stat できません"
+msgstr "'%s' を stat できません"
 
 #: src/ar.c:589
 #, c-format
 msgid "cannot read content of %s: %s"
-msgstr "%s の内容を読むことができません: %s"
+msgstr "%s の内容を読み込めません: %s"
 
 #: src/ar.c:632
 #, c-format
@@ -1096,7 +1052,7 @@ msgstr "%.*s を開けません"
 #: src/ar.c:654
 #, c-format
 msgid "failed to write %s"
-msgstr "%s への書込みに失敗しました"
+msgstr "%s への書き込みに失敗しました"
 
 #: src/ar.c:666
 #, c-format
@@ -1114,9 +1070,8 @@ msgid "cannot rename temporary file to %.*s"
 msgstr "一時ファイルを %.*s に名前変更できません"
 
 #: src/ar.c:764 src/ar.c:1019 src/ar.c:1423 src/ranlib.c:222
-#, c-format
 msgid "cannot create new file"
-msgstr "新しいファイルを生成できません"
+msgstr "新しいファイルを作成できません"
 
 #: src/ar.c:1225
 #, c-format
@@ -1146,50 +1101,45 @@ msgstr "%s は一般ファイルではありません"
 #: src/ar.c:1288
 #, c-format
 msgid "cannot get ELF descriptor for %s: %s\n"
-msgstr "%s の ELF 記述子を得られません: %s\n"
+msgstr "%s の ELF 記述子を取得できません: %s\n"
 
 #: src/ar.c:1308
 #, c-format
 msgid "cannot read %s: %s"
-msgstr "%s を読みません: %s"
+msgstr "%s を読み込めません: %s"
 
 #: src/ar.c:1483
-#, fuzzy, c-format
 msgid "cannot represent ar_date"
-msgstr "セクションデータを割り当てられません: %s"
+msgstr "ar_date を表現できません"
 
 #: src/ar.c:1489
-#, fuzzy, c-format
 msgid "cannot represent ar_uid"
-msgstr "セクションデータを割り当てられません: %s"
+msgstr "ar_uid を表現できません"
 
 #: src/ar.c:1495
-#, fuzzy, c-format
 msgid "cannot represent ar_gid"
-msgstr "セクションデータを割り当てられません: %s"
+msgstr "ar_gid を表現できません"
 
 #: src/ar.c:1501
-#, fuzzy, c-format
 msgid "cannot represent ar_mode"
-msgstr "セクションを得られません: %s"
+msgstr "ar_mode を表現できません"
 
 #: src/ar.c:1507
-#, fuzzy, c-format
 msgid "cannot represent ar_size"
-msgstr "%s を開けません"
+msgstr "ar_size を表現できません"
 
 #: src/arlib-argp.c:32
 msgid "Use zero for uid, gid, and date in archive members."
-msgstr ""
+msgstr "アーカイブメンバの uid、 gid、 日付に ゼロを 使用する。"
 
 #: src/arlib-argp.c:34
 msgid "Use actual uid, gid, and date in archive members."
-msgstr ""
+msgstr "アーカイブメンバに 実際のuid、 gid、 日付を 使用する。"
 
 #: src/arlib-argp.c:63
 #, c-format
 msgid "%s (default)"
-msgstr ""
+msgstr "%s （デフォルト）"
 
 #. The archive is too big.
 #: src/arlib.c:213
@@ -1200,7 +1150,7 @@ msgstr "アーカイブ '%s' は大きすぎます"
 #: src/arlib.c:226
 #, c-format
 msgid "cannot read ELF header of %s(%s): %s"
-msgstr "%s(%s) の  ELF ヘッダーを読めません: %s"
+msgstr "%s(%s) の  ELF ヘッダーを読み込めません: %s"
 
 #: src/elfclassify.c:92
 msgid "opening"
@@ -1211,44 +1161,32 @@ msgid "reading"
 msgstr ""
 
 #: src/elfclassify.c:245
-#, fuzzy
-#| msgid "cannot get ELF header"
 msgid "ELF header"
-msgstr "ELF ヘッダーを得られません"
+msgstr ""
 
 #: src/elfclassify.c:256
-#, fuzzy
-#| msgid "Program Headers:"
 msgid "program headers"
-msgstr "プログラムヘッダー:"
+msgstr ""
 
 #: src/elfclassify.c:265
-#, fuzzy
-#| msgid "Program Headers:"
 msgid "program header"
-msgstr "プログラムヘッダー:"
+msgstr ""
 
 #: src/elfclassify.c:285
-#, fuzzy
-#| msgid "Section Headers:"
 msgid "section headers"
-msgstr "セクションヘッダー:"
+msgstr ""
 
 #: src/elfclassify.c:296
-#, fuzzy
-#| msgid "cannot get section header string table index"
 msgid "section header string table index"
-msgstr "セクションヘッダー文字列テーブル索引が得られません"
+msgstr ""
 
 #: src/elfclassify.c:310
-#, fuzzy
 msgid "could not obtain section header"
-msgstr "セクションヘッダーを得られません: %s"
+msgstr "セクションヘッダーを取得できませんでした"
 
 #: src/elfclassify.c:316
-#, fuzzy
 msgid "could not obtain section name"
-msgstr "セクションを得られません: %s"
+msgstr "セクション名を取得できませんでした"
 
 #: src/elfclassify.c:829
 msgid "writing to standard output"
@@ -1259,136 +1197,129 @@ msgid "reading from standard input"
 msgstr ""
 
 #: src/elfclassify.c:877
-#, fuzzy
-#| msgid "Input selection options:"
 msgid "Classification options"
-msgstr "選択オプションを入力してください:"
+msgstr "分類オプション"
 
 #: src/elfclassify.c:879
 msgid "File looks like an ELF object or archive/static library (default)"
-msgstr ""
+msgstr "ELF オブジェクト または アーカイブ/静的ライブラリに 見えるファイル （デフォルト）"
 
 #: src/elfclassify.c:882
 msgid "File is an regular ELF object (not an archive/static library)"
-msgstr ""
+msgstr "ファイルは 通常の ELF オブジェクト （アーカイブ/静的ライブラリ でない）"
 
 #: src/elfclassify.c:885
 msgid "File is an ELF archive or static library"
-msgstr ""
+msgstr "ファイルは ELF アーカイブ または 静的ライブラリ"
 
 #: src/elfclassify.c:888
 msgid "File is an ELF core dump file"
-msgstr ""
+msgstr "ファイルは ELF コアダンプファイル"
 
 #: src/elfclassify.c:891
 msgid ""
 "File is an ELF file with symbol table or .debug_* sections and can be "
 "stripped further"
 msgstr ""
+"ファイルは シンボルテーブル または .debug_* セクション付きの さらにストリップ可能な ELF ファイル"
 
 #: src/elfclassify.c:894
 msgid "File is (primarily) an ELF program executable (not primarily a DSO)"
-msgstr ""
+msgstr "ファイルは （主に） ELF 実行可能プログラム （主として DSO ではない）"
 
 #: src/elfclassify.c:897
 msgid "File is an ELF program executable (might also be a DSO)"
-msgstr ""
+msgstr "ファイルは ELF 実行可能プログラム （DSO かもしれない）"
 
 #: src/elfclassify.c:900
 msgid ""
 "File is (primarily) an ELF shared object (DSO) (not primarily an executable)"
-msgstr ""
+msgstr "ファイルは （主に） ELF 共有オブジェクト（DSO） （主として 実行可能プログラムでない）"
 
 #: src/elfclassify.c:903
 msgid "File is an ELF shared object (DSO) (might also be an executable)"
-msgstr ""
+msgstr "ファイルは ELF 共有オブジェクト（DSO） （実行可能プログラム かもしれない）"
 
 #: src/elfclassify.c:907
-#, fuzzy
-#| msgid "cannot find kernel modules"
 msgid "File is a linux kernel module"
-msgstr "カーネルモジュールを見つけられません"
+msgstr "ファイルは linux カーネル モジュール"
 
 #: src/elfclassify.c:909
 msgid "File is a debug only ELF file (separate .debug, .dwo or dwz multi-file)"
-msgstr ""
+msgstr "ファイルは デバッグ専用 ELF ファイル （分離した .debug、 .dwo または dwz マルチファイル）"
 
 #: src/elfclassify.c:912
 msgid "File is a loadable ELF object (program or shared object)"
-msgstr ""
+msgstr "ファイルは ロード可能な ELF オブジェクト （プログラム または 共有オブジェクト）"
 
 #: src/elfclassify.c:941
 msgid "Input flags"
-msgstr ""
+msgstr "入力フラグ"
 
 #: src/elfclassify.c:943
 msgid "Only classify regular (not symlink nor special device) files"
-msgstr ""
+msgstr "通常 （シンボリックリンク や 特別デバイス でない） ファイルのみを 分類する"
 
 #: src/elfclassify.c:945
 msgid ""
 "Also read file names to process from standard input, separated by newlines"
-msgstr ""
+msgstr "処理するファイル名を 標準入力から 改行区切りで 読み込む"
 
 #: src/elfclassify.c:948
 msgid ""
 "Also read file names to process from standard input, separated by ASCII NUL "
 "bytes"
-msgstr ""
+msgstr "処理するファイル名を 標準入力から ASCII ヌル文字区切りで 読み込む"
 
 #: src/elfclassify.c:951
 msgid "Do not read files from standard input (default)"
-msgstr ""
+msgstr "標準入力から ファイルを 読み込まない （デフォルト）"
 
 #: src/elfclassify.c:953
 msgid "Try to open compressed files or embedded (kernel) ELF images"
-msgstr ""
+msgstr "圧縮ファイル または 組み込み（カーネル） ELF イメージ のオープンを 試みる"
 
 #: src/elfclassify.c:956
-#, fuzzy
-#| msgid "Output format:"
 msgid "Output flags"
-msgstr "出力形式:"
+msgstr "出力フラグ"
 
 #: src/elfclassify.c:958
 msgid "Output names of files, separated by newline"
-msgstr ""
+msgstr "改行区切りで ファイル名を 出力する"
 
 #: src/elfclassify.c:960
 msgid "Output names of files, separated by ASCII NUL"
-msgstr ""
+msgstr "ASCII ヌル文字区切りで ファイル名を 出力する"
 
 #: src/elfclassify.c:962
-#, fuzzy
-#| msgid "More than one output file name given."
 msgid "Do not output file names"
-msgstr "ひとつを越える出力ファイル名が与えられました。"
+msgstr "ファイル名を出力しない"
 
 #: src/elfclassify.c:964
 msgid "If printing file names, print matching files (default)"
-msgstr ""
+msgstr "ファイル名を 表示するならば、 一致するファイルを 表示する （デフォルト）"
 
 #: src/elfclassify.c:966
 msgid "If printing file names, print files that do not match"
-msgstr ""
+msgstr "ファイル名を 表示するならば、 一致しないファイルを 表示する"
 
 #: src/elfclassify.c:968
 msgid "Additional flags"
-msgstr ""
+msgstr "追加のフラグ"
 
 #: src/elfclassify.c:970
 msgid "Output additional information (can be specified multiple times)"
-msgstr ""
+msgstr "追加の情報を 出力する （複数回指定されうる）"
 
 #: src/elfclassify.c:972
 msgid "Suppress some error output (counterpart to --verbose)"
-msgstr ""
+msgstr "いくつかのエラー出力を 抑制する （ --verbose の反対）"
 
 #. Strings for arguments in help texts.
 #: src/elfclassify.c:980 src/elfcompress.c:1334 src/elflint.c:77
 #: src/readelf.c:158
 msgid "FILE..."
-msgstr "ふぁいる..."
+msgstr ""
 
 #: src/elfclassify.c:981
 msgid ""
@@ -1431,34 +1362,34 @@ msgstr ""
 
 #: src/elfcmp.c:60
 msgid "Control options:"
-msgstr ""
+msgstr "制御オプション："
 
 #: src/elfcmp.c:62
 msgid "Output all differences, not just the first"
-msgstr ""
+msgstr "最初のものに限らず、 全ての差異を 出力する"
 
 #: src/elfcmp.c:63
 msgid ""
 "Control treatment of gaps in loadable segments [ignore|match] (default: "
 "ignore)"
-msgstr ""
+msgstr "ロード可能セグメントの gap の 扱いを 制御する [ignore|match] （デフォルト： ignore）"
 
 #: src/elfcmp.c:65
 msgid "Ignore permutation of buckets in SHT_HASH section"
-msgstr ""
+msgstr "SHT_HASH セクションの バケットの 並べ替えを 無視"
 
 #: src/elfcmp.c:67
 msgid "Ignore differences in build ID"
-msgstr ""
+msgstr "ビルド ID の差異を 無視"
 
 #: src/elfcmp.c:68
 msgid "Output nothing; yield exit status only"
-msgstr ""
+msgstr "何も出力しない。 終了ステータスのみを生じさせる"
 
 #. Short description of program.
 #: src/elfcmp.c:75
 msgid "Compare relevant parts of two ELF files for equality."
-msgstr ""
+msgstr "２つの ELF ファイルの 関連のある部分の 等価性を 比較する。"
 
 #. Strings for arguments in help texts.
 #: src/elfcmp.c:79
@@ -1467,12 +1398,12 @@ msgstr ""
 
 #: src/elfcmp.c:141
 msgid "Invalid number of parameters.\n"
-msgstr ""
+msgstr "不当なパラメータ数です\n"
 
 #: src/elfcmp.c:172 src/elfcmp.c:177
 #, c-format
 msgid "cannot get ELF header of '%s': %s"
-msgstr ""
+msgstr "'%s' の ELF ヘッダーを取得できません: %s"
 
 #: src/elfcmp.c:203
 #, c-format
@@ -1480,9 +1411,9 @@ msgid "%s %s diff: ELF header"
 msgstr ""
 
 #: src/elfcmp.c:210 src/elfcmp.c:213
-#, fuzzy, c-format
+#, c-format
 msgid "cannot get section count of '%s': %s"
-msgstr "セクションを得られません: %s"
+msgstr "'%s' のセクションヘッダー数を取得できません: %s"
 
 #: src/elfcmp.c:218
 #, c-format
@@ -1490,19 +1421,19 @@ msgid "%s %s diff: section count"
 msgstr ""
 
 #: src/elfcmp.c:225 src/elfcmp.c:228
-#, fuzzy, c-format
+#, c-format
 msgid "cannot get program header count of '%s': %s"
-msgstr "プログラムヘッダーを得られません: %s"
+msgstr "'%s' のプログラムヘッダー数を取得できません: %s"
 
 #: src/elfcmp.c:233
-#, fuzzy, c-format
+#, c-format
 msgid "%s %s diff: program header count"
-msgstr "ファイルにプログラムヘッダーがありません"
+msgstr ""
 
 #: src/elfcmp.c:241 src/elfcmp.c:244
-#, fuzzy, c-format
+#, c-format
 msgid "cannot get hdrstrndx of '%s': %s"
-msgstr "セクションを得られません: %s"
+msgstr "'%s' の hdrstrndx を取得できません: %s"
 
 #: src/elfcmp.c:249
 #, c-format
@@ -1515,9 +1446,9 @@ msgid "%s %s differ: section [%zu], [%zu] name"
 msgstr ""
 
 #: src/elfcmp.c:330
-#, fuzzy, c-format
+#, c-format
 msgid "%s %s differ: section [%zu] '%s' header"
-msgstr "セクション [%zu] '%s' の不当なデータ"
+msgstr ""
 
 #: src/elfcmp.c:338 src/elfcmp.c:344
 #, c-format
@@ -1525,16 +1456,14 @@ msgid "cannot get content of section %zu in '%s': %s"
 msgstr ""
 
 #: src/elfcmp.c:353
-#, fuzzy, c-format
+#, c-format
 msgid "symbol table [%zu] in '%s' has zero sh_entsize"
 msgstr ""
-"\n"
-"シンボルテーブル [%2u] '%s' には %u 個の項目があります:\n"
 
 #: src/elfcmp.c:365 src/elfcmp.c:371
 #, c-format
 msgid "cannot get symbol in '%s': %s"
-msgstr ""
+msgstr "'%s' のシンボルを取得できません: %s"
 
 #: src/elfcmp.c:393
 #, c-format
@@ -1552,9 +1481,9 @@ msgid "%s %s differ: section [%zu] '%s' number of notes"
 msgstr ""
 
 #: src/elfcmp.c:451
-#, fuzzy, c-format
+#, c-format
 msgid "cannot read note section [%zu] '%s' in '%s': %s"
-msgstr "セクション [%Zu] '%s' からデータが得られません: %s"
+msgstr ""
 
 #: src/elfcmp.c:462
 #, c-format
@@ -1599,7 +1528,7 @@ msgstr ""
 #: src/elfcmp.c:595 src/elfcmp.c:600
 #, c-format
 msgid "cannot load data of '%s': %s"
-msgstr ""
+msgstr "'%s' のデータをロードできません: %s"
 
 #: src/elfcmp.c:619 src/elfcmp.c:625
 #, c-format
@@ -1619,7 +1548,7 @@ msgstr ""
 #: src/elfcmp.c:706
 #, c-format
 msgid "Invalid value '%s' for --gaps parameter."
-msgstr ""
+msgstr "--gaps パラメータ に対する不当な値 '%s' です"
 
 #: src/elfcmp.c:734 src/findtextrel.c:205 src/nm.c:364 src/ranlib.c:141
 #: src/size.c:272 src/strings.c:185 src/strip.c:1030 src/strip.c:1067
@@ -1631,27 +1560,27 @@ msgstr "'%s' を開けません"
 #: src/elfcmp.c:738 src/findtextrel.c:212 src/ranlib.c:158
 #, c-format
 msgid "cannot create ELF descriptor for '%s': %s"
-msgstr ""
+msgstr "'%s' の ELF 記述子を作成できません: %s"
 
 #: src/elfcmp.c:743
 #, c-format
 msgid "cannot create EBL descriptor for '%s'"
-msgstr ""
+msgstr "'%s' の EBL 記述子を作成できません"
 
 #: src/elfcmp.c:761 src/findtextrel.c:394
 #, c-format
 msgid "cannot get section header of section %zu: %s"
-msgstr ""
+msgstr "セクション %zu のセクションヘッダーを取得できません: %s"
 
 #: src/elfcmp.c:771
 #, c-format
 msgid "cannot get content of section %zu: %s"
-msgstr ""
+msgstr "セクション %zu の内容を取得できません: %s"
 
 #: src/elfcmp.c:781 src/elfcmp.c:795
 #, c-format
 msgid "cannot get relocation: %s"
-msgstr ""
+msgstr "リロケーションを取得できません: %s"
 
 #: src/elfcompress.c:117 src/strip.c:308 src/unstrip.c:117
 #, c-format
@@ -1659,30 +1588,26 @@ msgid "-o option specified twice"
 msgstr "-o オプションが 2 回指定されています"
 
 #: src/elfcompress.c:124
-#, fuzzy, c-format
 msgid "-t option specified twice"
-msgstr "-f オプションが 2 回指定されています"
+msgstr "-t オプションが 2 回指定されています"
 
 #: src/elfcompress.c:133
-#, fuzzy, c-format
+#, c-format
 msgid "unknown compression type '%s'"
-msgstr "不明なタイプ"
+msgstr "不明な圧縮タイプ '%s'"
 
 #. We need at least one input file.
 #: src/elfcompress.c:145 src/elfcompress.c:1345
-#, fuzzy, c-format
 msgid "No input file given"
-msgstr "入力ファイルが空です"
+msgstr "入力ファイルが与えられていません"
 
 #: src/elfcompress.c:151 src/elfcompress.c:1350
-#, fuzzy, c-format
 msgid "Only one input file allowed together with '-o'"
-msgstr "'-o' と '-f' と一緒の場合は入力ファイルは 1 つしか認められません"
+msgstr "'-o' と一緒の場合は入力ファイルは 1 つしか認められません"
 
 #: src/elfcompress.c:1307
-#, fuzzy
 msgid "Place (de)compressed output into FILE"
-msgstr "はぎ取った出力を ふぁいる に置く"
+msgstr "圧縮（展開）した出力を FILE に置く"
 
 #: src/elfcompress.c:1310
 msgid ""
@@ -1695,11 +1620,12 @@ msgstr ""
 msgid ""
 "SECTION name to (de)compress, SECTION is an extended wildcard pattern "
 "(defaults to '.?(z)debug*')"
-msgstr ""
+msgstr "圧縮（展開）する セクション名。 SECTION は 拡張 ワイルドカード パターン"
+"（デフォルトで  '.?(z)debug*'）"
 
 #: src/elfcompress.c:1316
 msgid "Print a message for each section being (de)compressed"
-msgstr ""
+msgstr "圧縮（展開） されている 各セクション に対する メッセージを 表示"
 
 #: src/elfcompress.c:1319
 msgid ""
@@ -1712,21 +1638,20 @@ msgid "Relax a few rules to handle slightly broken ELF files"
 msgstr "少し壊れた ELF ファイルを取り扱うためにルールを少し緩和する"
 
 #: src/elfcompress.c:1325
-#, fuzzy
 msgid "Be silent when a section cannot be compressed"
-msgstr "セクション [%2d] '%s': セクションデータを得られません\n"
+msgstr "セクションを圧縮できないときに静かにする"
 
 #: src/elfcompress.c:1335
 msgid "Compress or decompress sections in an ELF file."
-msgstr ""
+msgstr "ELF ファイルの セクションを 圧縮 または 展開する"
 
 #: src/elflint.c:63
 msgid "Be extremely strict, flag level 2 features."
-msgstr "非常に厳密にやってください、フラグレベル 2 機能。"
+msgstr "非常に厳格にする。 フラグレベル 2 機能。"
 
 #: src/elflint.c:64
 msgid "Do not print anything if successful"
-msgstr "成功したら何も印刷しない"
+msgstr "成功した場合は何も表示しない"
 
 #: src/elflint.c:65
 msgid "Binary is a separate debuginfo file"
@@ -1737,7 +1662,7 @@ msgid ""
 "Binary has been created with GNU ld and is therefore known to be broken in "
 "certain ways"
 msgstr ""
-"バイナリーは GNU ld で作成され、従ってある方法で壊れているのが知られている"
+"バイナリーは GNU ld で作成され、 従って、 ある方法で 壊れることが 知られている"
 
 #. Short description of program.
 #: src/elflint.c:73
@@ -1745,14 +1670,14 @@ msgid "Pedantic checking of ELF files compliance with gABI/psABI spec."
 msgstr "ELF ファイルが gABI/psABI 仕様へ準拠しているかの厳密なチェック。"
 
 #: src/elflint.c:154 src/readelf.c:368
-#, fuzzy, c-format
+#, c-format
 msgid "cannot open input file '%s'"
-msgstr "入力ファイルを開けません"
+msgstr "入力ファイル '%s' を開けません"
 
 #: src/elflint.c:161
-#, fuzzy, c-format
+#, c-format
 msgid "cannot generate Elf descriptor for '%s': %s\n"
-msgstr "Elf 記述子を生成できません: %s\n"
+msgstr "'%s' に対する Elf 記述子を生成できません: %s\n"
 
 #: src/elflint.c:180
 #, c-format
@@ -1770,7 +1695,7 @@ msgstr "ファイル名がありません。\n"
 #: src/elflint.c:284
 #, c-format
 msgid " error while freeing sub-ELF descriptor: %s\n"
-msgstr "副-ELF 記述子を解放している時にエラー: %s\n"
+msgstr "sub-ELF 記述子を解放している時にエラー: %s\n"
 
 #. We cannot do anything.
 #: src/elflint.c:292
@@ -1799,7 +1724,7 @@ msgid "unsupported OS ABI e_ident[%d] == '%s'\n"
 msgstr "不明な OS ABI e_ident[%d] == '%s'\n"
 
 #: src/elflint.c:380
-#, fuzzy, c-format
+#, c-format
 msgid "unsupported ABI version e_ident[%d] == %d\n"
 msgstr "不明な ABI バージョン e_ident[%d] == %d\n"
 
@@ -1865,7 +1790,7 @@ msgid "Can only check %u headers, shnum was %u\n"
 msgstr ""
 
 #: src/elflint.c:487
-#, fuzzy, c-format
+#, c-format
 msgid "invalid number of program header table entries\n"
 msgstr "プログラムヘッダー項目数として不当な数\n"
 
@@ -1914,12 +1839,11 @@ msgstr ""
 "一部分が設定されていません\n"
 
 #: src/elflint.c:594
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "section [%2d] '%s': section group [%2zu] '%s' does not precede group member\n"
 msgstr ""
-"セクション [%2d] '%s': セクショングループ [%2zu] '%s' がグループメンバーを継"
-"続していません\n"
+"セクション [%2d] '%s': セクショングループ [%2zu] '%s' がグループメンバーより前にありません\n"
 
 #: src/elflint.c:610 src/elflint.c:1498 src/elflint.c:1549 src/elflint.c:1655
 #: src/elflint.c:1991 src/elflint.c:2317 src/elflint.c:2943 src/elflint.c:3106
@@ -3564,36 +3488,36 @@ msgstr ""
 
 #: src/findtextrel.c:60
 msgid "Input Selection:"
-msgstr ""
+msgstr "入力選択："
 
 #: src/findtextrel.c:61
 msgid "Prepend PATH to all file names"
-msgstr ""
+msgstr "全ての ファイル名に対して PATH を先頭に 付け加える"
 
 #: src/findtextrel.c:63
 msgid "Use PATH as root of debuginfo hierarchy"
-msgstr ""
+msgstr "debuginfo 階層の ルートとして PATH を使用する"
 
 #. Short description of program.
 #: src/findtextrel.c:70
 msgid "Locate source of text relocations in FILEs (a.out by default)."
-msgstr ""
+msgstr "FILE （デフォルトでは a.out）の テキスト リロケーションの ソースを 検索する"
 
 #. Strings for arguments in help texts.
 #: src/findtextrel.c:74 src/nm.c:108 src/objdump.c:71 src/size.c:80
 #: src/strings.c:87 src/strip.c:101
 msgid "[FILE...]"
-msgstr "[ふぁいる...]"
+msgstr ""
 
 #: src/findtextrel.c:222
 #, c-format
 msgid "cannot get ELF header '%s': %s"
-msgstr ""
+msgstr "ELF ヘッダー '%s' を取得できません: %s"
 
 #: src/findtextrel.c:233
 #, c-format
 msgid "'%s' is not a DSO or PIE"
-msgstr ""
+msgstr "'%s' は DSO または PIE ではありません"
 
 #: src/findtextrel.c:253
 #, c-format
@@ -3603,7 +3527,7 @@ msgstr ""
 #: src/findtextrel.c:277
 #, c-format
 msgid "cannot read dynamic section: %s"
-msgstr ""
+msgstr "dynamic セクションを読み込めません: %s"
 
 #: src/findtextrel.c:298
 #, c-format
@@ -3613,17 +3537,17 @@ msgstr ""
 #: src/findtextrel.c:310
 #, c-format
 msgid "while reading ELF file"
-msgstr ""
+msgstr "ELF ファイルの読み込み中"
 
 #: src/findtextrel.c:314
-#, fuzzy, c-format
+#, c-format
 msgid "cannot get program header count: %s"
-msgstr "プログラムヘッダーを得られません: %s"
+msgstr "プログラムヘッダー数を取得できません: %s"
 
 #: src/findtextrel.c:325 src/findtextrel.c:342
-#, fuzzy, c-format
+#, c-format
 msgid "cannot get program header index at offset %zd: %s"
-msgstr "プログラムヘッダーを得られません: %s"
+msgstr "オフセット %zd に位置するプログラムヘッダー索引を取得できません: %s"
 
 #: src/findtextrel.c:406
 #, c-format
@@ -3638,13 +3562,14 @@ msgstr ""
 #: src/findtextrel.c:516
 #, c-format
 msgid "%s not compiled with -fpic/-fPIC\n"
-msgstr ""
+msgstr "%s は -fpic/-fPIC 付きでコンパイルされていません\n"
 
 #: src/findtextrel.c:570
 #, c-format
 msgid ""
 "the file containing the function '%s' is not compiled with -fpic/-fPIC\n"
 msgstr ""
+"関数 '%s' を含むファイルは -fpic/-fPIC 付きでコンパイルされていません\n"
 
 #: src/findtextrel.c:577 src/findtextrel.c:597
 #, c-format
@@ -3652,6 +3577,7 @@ msgid ""
 "the file containing the function '%s' might not be compiled with -fpic/-"
 "fPIC\n"
 msgstr ""
+"関数 '%s' を含むファイルは -fpic/-fPIC 付きでコンパイルされていないかもしれません\n"
 
 #: src/findtextrel.c:585
 #, c-format
@@ -3659,28 +3585,30 @@ msgid ""
 "either the file containing the function '%s' or the file containing the "
 "function '%s' is not compiled with -fpic/-fPIC\n"
 msgstr ""
+"関数 '%s' を含むファイル または 関数 '%s' を含むファイルは -fpic/-fPIC 付きでコンパイルされていません\n"
 
 #: src/findtextrel.c:605
 #, c-format
 msgid ""
 "a relocation modifies memory at offset %llu in a write-protected segment\n"
 msgstr ""
+"リロケーションは 書き込み禁止セグメントの オフセット %llu に位置するメモリを 修正します\n"
 
 #: src/nm.c:66 src/strip.c:70
 msgid "Output selection:"
-msgstr "出力選択:"
+msgstr "出力選択："
 
 #: src/nm.c:67
 msgid "Display debugger-only symbols"
-msgstr "デバッガー専用シンボルを表示"
+msgstr "デバッガ専用シンボルを表示"
 
 #: src/nm.c:68
 msgid "Display only defined symbols"
-msgstr "定義されたシンボルのみを表示"
+msgstr "定義済みシンボルのみを表示"
 
 #: src/nm.c:71
 msgid "Display dynamic symbols instead of normal symbols"
-msgstr "通常シンボルの代わりに動的シンボルを表示"
+msgstr "通常シンボルの 代わりに 動的シンボルを 表示"
 
 #: src/nm.c:72
 msgid "Display only external symbols"
@@ -3692,23 +3620,23 @@ msgstr "未定義シンボルのみを表示"
 
 #: src/nm.c:75
 msgid "Include index for symbols from archive members"
-msgstr "アーカイブメンバーからのシンボルの索引を含める"
+msgstr "アーカイブメンバからの シンボルの 索引を 含める"
 
 #: src/nm.c:77 src/size.c:54
 msgid "Output format:"
-msgstr "出力形式:"
+msgstr "出力形式："
 
 #: src/nm.c:79
 msgid "Print name of the input file before every symbol"
-msgstr "全てのシンボルの前に入力ファイル名を印刷"
+msgstr "各シンボルの 前に 入力ファイル名を 表示"
 
 #: src/nm.c:82
 msgid ""
 "Use the output format FORMAT.  FORMAT can be `bsd', `sysv' or `posix'.  The "
 "default is `sysv'"
 msgstr ""
-"出力形式として FORMATを使う。FORMAT は `bsd'か、`sysv'、`posix' のどれか。省"
-"略値は `sysv'"
+"出力形式として FORMAT を使う。 FORMAT は `bsd'、`sysv'、`posix' のいずれか。"
+"デフォルトは `sysv'"
 
 #: src/nm.c:84
 msgid "Same as --format=bsd"
@@ -3720,24 +3648,23 @@ msgstr "--format=posix と同じ"
 
 #: src/nm.c:86 src/size.c:60
 msgid "Use RADIX for printing symbol values"
-msgstr "シンボル値を印刷するために RADIX を使う"
+msgstr "シンボル値の 表示に RADIX を使う"
 
 #: src/nm.c:87
-#, fuzzy
 msgid "Mark special symbols"
-msgstr "弱いシンボルに印を点ける"
+msgstr "特別なシンボルに印を点ける"
 
 #: src/nm.c:89
 msgid "Print size of defined symbols"
-msgstr "定義されたシンボルの印刷サイズ"
+msgstr "定義済みシンボルのサイズを表示"
 
 #: src/nm.c:91 src/size.c:68 src/strip.c:75 src/unstrip.c:69
 msgid "Output options:"
-msgstr "出力オプション:"
+msgstr "出力オプション："
 
 #: src/nm.c:92
 msgid "Sort symbols numerically by address"
-msgstr "シンボルをアドレスにより数値的に並べ替える"
+msgstr "シンボルを アドレスにより 数値的に 並べ替える"
 
 #: src/nm.c:94
 msgid "Do not sort the symbols"
@@ -3749,17 +3676,16 @@ msgstr "並べ替えの意味を逆にする"
 
 #: src/nm.c:98
 msgid "Decode low-level symbol names into source code names"
-msgstr ""
+msgstr "低水準の シンボル名を ソースコード上の 名前に デコードする"
 
 #. Short description of program.
 #: src/nm.c:105
 msgid "List symbols from FILEs (a.out by default)."
-msgstr "ふぁいる からシンボルを表示 (デフォルトではa.out)。"
+msgstr "FILE のシンボルを一覧表示 (デフォルトではa.out)。"
 
 #: src/nm.c:116 src/objdump.c:79
-#, fuzzy
 msgid "Output formatting"
-msgstr "出力形式:"
+msgstr "出力形式："
 
 #: src/nm.c:140 src/objdump.c:103 src/size.c:105 src/strip.c:133
 #, fuzzy, c-format
@@ -3898,33 +3824,32 @@ msgstr "%s%s%s: シンボルがありません"
 
 #: src/objdump.c:52
 msgid "Mode selection:"
-msgstr ""
+msgstr "モード選択："
 
 #: src/objdump.c:53
 msgid "Display relocation information."
-msgstr ""
+msgstr "リロケーション 情報の 表示"
 
 #: src/objdump.c:55
 msgid "Display the full contents of all sections requested"
-msgstr ""
+msgstr "要求された 全ての セクションの 最大限の 内容を 表示"
 
 #: src/objdump.c:57
 msgid "Display assembler code of executable sections"
-msgstr ""
+msgstr "実行可能 セクションの アセンブラコードを 表示"
 
 #: src/objdump.c:59
-#, fuzzy
 msgid "Output content selection:"
-msgstr "出力選択:"
+msgstr "出力内容選択:"
 
 #: src/objdump.c:61
 msgid "Only display information for section NAME."
-msgstr ""
+msgstr "NAME セクションの情報のみを表示"
 
 #. Short description of program.
 #: src/objdump.c:67
 msgid "Show information from FILEs (a.out by default)."
-msgstr ""
+msgstr "FILE から情報を表示する （デフォルトでは a.out）"
 
 #: src/objdump.c:218 src/readelf.c:582
 msgid "No operation specified.\n"
@@ -3961,19 +3886,17 @@ msgid "Contents of section %s:\n"
 msgstr ""
 
 #: src/objdump.c:687
-#, c-format
 msgid "cannot disassemble"
-msgstr ""
+msgstr "逆アセンブルできません"
 
 #: src/objdump.c:760
-#, fuzzy, c-format
 msgid "cannot create backend for elf file"
-msgstr "新しいファイルを生成できません"
+msgstr "elf ファイル用にバックエンドを作成できません"
 
 #. Short description of program.
 #: src/ranlib.c:63
 msgid "Generate an index to speed access to archives."
-msgstr ""
+msgstr "アーカイブへのアクセス加速のための索引生成"
 
 #. Strings for arguments in help texts.
 #: src/ranlib.c:66
@@ -3981,14 +3904,13 @@ msgid "ARCHIVE"
 msgstr ""
 
 #: src/ranlib.c:102
-#, c-format
 msgid "Archive name required"
-msgstr ""
+msgstr "アーカイブ名が必要です"
 
 #: src/ranlib.c:166
 #, c-format
 msgid "'%s' is no archive"
-msgstr ""
+msgstr "'%s' はアーカイブではありません"
 
 #: src/ranlib.c:201
 #, c-format
@@ -3996,14 +3918,13 @@ msgid "error while freeing sub-ELF descriptor: %s"
 msgstr ""
 
 #: src/readelf.c:97
-#, fuzzy
 msgid "ELF input selection:"
-msgstr "出力選択:"
+msgstr "ELF入力選択："
 
 #: src/readelf.c:99
 msgid ""
 "Use the named SECTION (default .gnu_debugdata) as (compressed) ELF input data"
-msgstr ""
+msgstr "ELF 入力データとして SECTION （デフォルトでは .gnu_debugdata） を使用する"
 
 #: src/readelf.c:102
 msgid ""
@@ -4012,9 +3933,8 @@ msgid ""
 msgstr ""
 
 #: src/readelf.c:104
-#, fuzzy
 msgid "ELF output selection:"
-msgstr "出力選択:"
+msgstr "ELF出力選択："
 
 #: src/readelf.c:106
 msgid "All these plus -p .strtab -p .dynstr -p .comment"
@@ -4030,7 +3950,7 @@ msgstr "ELF ファイルヘッダーを表示"
 
 #: src/readelf.c:110
 msgid "Display histogram of bucket list lengths"
-msgstr "バケットリスト長の柱状図を表示"
+msgstr "バケットリスト長のヒストグラムを表示"
 
 #: src/readelf.c:111
 msgid "Display the program headers"
@@ -4041,47 +3961,40 @@ msgid "Display relocations"
 msgstr "リロケーションを表示"
 
 #: src/readelf.c:114
-#, fuzzy
 msgid "Display the section groups"
-msgstr "セクションのヘッダーを表示"
+msgstr "セクショングループを表示"
 
 #: src/readelf.c:115
-#, fuzzy
 msgid "Display the sections' headers"
-msgstr "セクションのヘッダーを表示"
+msgstr "セクションヘッダーを表示"
 
 #: src/readelf.c:118
-#, fuzzy
 msgid "Display the symbol table sections"
-msgstr "シンボルテーブルを表示"
+msgstr "シンボルテーブルセクションを表示"
 
 #: src/readelf.c:120
-#, fuzzy
 msgid "Display (only) the dynamic symbol table"
-msgstr "外部シンボルのみを表示"
+msgstr "動的シンボルテーブル（のみ）を表示"
 
 #: src/readelf.c:121
 msgid "Display versioning information"
-msgstr "バージョニング情報の表示"
+msgstr "バージョニング情報を表示"
 
 #: src/readelf.c:122
-#, fuzzy
 msgid "Display the ELF notes"
-msgstr "コアノートを表示"
+msgstr "ELF notes を表示"
 
 #: src/readelf.c:124
-#, fuzzy
 msgid "Display architecture specific information, if any"
 msgstr "(もしあれば)アーキテクチャー固有の情報を表示"
 
 #: src/readelf.c:126
 msgid "Display sections for exception handling"
-msgstr "例外を取り扱うためのセクションを表示"
+msgstr "例外ハンドリングのセクションを表示"
 
 #: src/readelf.c:128
-#, fuzzy
 msgid "Additional output selection:"
-msgstr "出力選択:"
+msgstr "追加の出力選択："
 
 #: src/readelf.c:130
 #, fuzzy
@@ -4095,11 +4008,11 @@ msgstr ""
 
 #: src/readelf.c:134
 msgid "Dump the uninterpreted contents of SECTION, by number or name"
-msgstr "数字か名前で解釈できないセクションの内容をダンプする"
+msgstr "SECTION の 未解釈の 内容を ダンプする。 番号 または 名前で指定する"
 
 #: src/readelf.c:136
 msgid "Print string contents of sections"
-msgstr "セクションの文字列内容を印刷する"
+msgstr "セクションの文字列内容を表示"
 
 #: src/readelf.c:139
 msgid "Display the symbol index of an archive"
@@ -4107,7 +4020,7 @@ msgstr "アーカイブのシンボル索引を表示"
 
 #: src/readelf.c:141
 msgid "Output control:"
-msgstr "出力制御:"
+msgstr "出力制御："
 
 #: src/readelf.c:143
 msgid "Do not find symbol names for addresses in DWARF data"
@@ -4132,7 +4045,7 @@ msgstr ""
 #. Short description of program.
 #: src/readelf.c:154
 msgid "Print information from ELF file in human-readable form."
-msgstr "ELF ファイルから人間が読める形で情報を印刷する。"
+msgstr "ELF ファイルから人間が読める形で情報を表示する。"
 
 #. Look up once.
 #: src/readelf.c:350
@@ -4161,7 +4074,7 @@ msgstr "セクション数を決定できません: %s"
 #: src/readelf.c:646 src/readelf.c:1265 src/readelf.c:1475
 #, c-format
 msgid "cannot get section: %s"
-msgstr "セクションを得られません: %s"
+msgstr "セクションを取得できません: %s"
 
 #: src/readelf.c:655 src/readelf.c:1272 src/readelf.c:1483 src/readelf.c:12764
 #: src/unstrip.c:397 src/unstrip.c:428 src/unstrip.c:489 src/unstrip.c:610
@@ -4170,28 +4083,26 @@ msgstr "セクションを得られません: %s"
 #: src/unstrip.c:1663 src/unstrip.c:1814 src/unstrip.c:1957 src/unstrip.c:2056
 #, c-format
 msgid "cannot get section header: %s"
-msgstr "セクションヘッダーを得られません: %s"
+msgstr "セクションヘッダーを取得できません: %s"
 
 #: src/readelf.c:663
-#, fuzzy, c-format
 msgid "cannot get section name"
-msgstr "セクションを得られません: %s"
+msgstr "セクション名を取得できません"
 
 #: src/readelf.c:672 src/readelf.c:6636 src/readelf.c:10611 src/readelf.c:10713
 #: src/readelf.c:10891
 #, c-format
 msgid "cannot get %s content: %s"
-msgstr "%s の内容を得られません: %s"
+msgstr "%s の内容を取得できません: %s"
 
 #: src/readelf.c:688
-#, fuzzy, c-format
+#, c-format
 msgid "cannot create temp file '%s'"
-msgstr "新しいファイル '%s' を生成できません: %s"
+msgstr "一時ファイル '%s' を作成できません"
 
 #: src/readelf.c:697
-#, fuzzy, c-format
 msgid "cannot write section data"
-msgstr "セクションデータを割り当てられません: %s"
+msgstr "セクションデータを書き込みできません"
 
 #: src/readelf.c:703 src/readelf.c:720 src/readelf.c:749
 #, c-format
@@ -4199,14 +4110,13 @@ msgid "error while closing Elf descriptor: %s"
 msgstr "Elf 記述子を閉じている時にエラー: %s"
 
 #: src/readelf.c:710
-#, fuzzy, c-format
 msgid "error while rewinding file descriptor"
-msgstr "Elf 記述子を閉じている時にエラー: %s"
+msgstr "ファイル記述子を巻き戻している時にエラー"
 
 #: src/readelf.c:744
 #, c-format
 msgid "'%s' is not an archive, cannot print archive index"
-msgstr "'%s' はアーカイブではなく、アーカイブ索引を印刷できません"
+msgstr "'%s' はアーカイブではなく、アーカイブ索引を表示できません"
 
 #: src/readelf.c:848
 #, c-format
@@ -4231,22 +4141,21 @@ msgstr "セクション [%Zu] '%s' からデータが得られません: %s"
 #: src/readelf.c:940
 #, c-format
 msgid "cannot read ELF header: %s"
-msgstr "ELF ヘッダーが読めません: %s"
+msgstr "ELF ヘッダーを読み込めません: %s"
 
 #: src/readelf.c:948
-#, c-format
 msgid "cannot create EBL handle"
-msgstr "EBL ヘッダーを生成できません"
+msgstr "EBL ハンドルを作成できません"
 
 #: src/readelf.c:961
-#, fuzzy, c-format
+#, c-format
 msgid "cannot determine number of program headers: %s"
-msgstr "セクション数を決定できません: %s"
+msgstr "プログラムヘッダの数を決定できません: %s"
 
 #: src/readelf.c:993
-#, fuzzy, c-format
+#, c-format
 msgid "cannot read ELF: %s"
-msgstr "%s を読みません: %s"
+msgstr "ELFを読み込めません: %s"
 
 #: src/readelf.c:1054
 msgid "NONE (None)"
@@ -5491,19 +5400,19 @@ msgstr ""
 "命令コード:\n"
 
 #: src/readelf.c:8524
-#, fuzzy, c-format
+#, c-format
 msgid "cannot handle .debug_line version: %u\n"
-msgstr ".degub_ranges の内容を得られません: %s"
+msgstr ".debug_line バージョンを扱えません: %u\n"
 
 #: src/readelf.c:8532
-#, fuzzy, c-format
+#, c-format
 msgid "cannot handle address size: %u\n"
-msgstr "アドレス値ではありません"
+msgstr "アドレスサイズを扱えません: %u\n"
 
 #: src/readelf.c:8540
-#, fuzzy, c-format
+#, c-format
 msgid "cannot handle segment selector size: %u\n"
-msgstr "セクションを得られません: %s"
+msgstr "セグメントセレクタサイズを扱えません: %u\n"
 
 #: src/readelf.c:8550
 #, c-format
@@ -5611,9 +5520,8 @@ msgstr "カラムを %<PRIu64> に設定する\n"
 
 #. Unknown, ignore it.
 #: src/readelf.c:8906
-#, fuzzy
 msgid " unknown opcode"
-msgstr "不明な命令コード"
+msgstr "不明なオペコード"
 
 #. Takes no argument.
 #: src/readelf.c:8918
@@ -5690,9 +5598,9 @@ msgid_plural " unknown opcode with %<PRIu8> parameters:"
 msgstr[0] " %<PRIu8> 個のパラメーターのある不明な命令コード:"
 
 #: src/readelf.c:9084
-#, fuzzy, c-format
+#, c-format
 msgid "cannot get .debug_loclists content: %s"
-msgstr ".debug_loc の内容を得られません: %s"
+msgstr ".debug_loclists の内容を取得できません: %s"
 
 #: src/readelf.c:9250
 #, fuzzy, c-format
@@ -6002,9 +5910,9 @@ msgid "  %-13.*s  %9<PRId32>  %s\n"
 msgstr "  %-13.*s  %9<PRId32>  %s\n"
 
 #: src/readelf.c:12518
-#, fuzzy, c-format
+#, c-format
 msgid "cannot get content of note: %s"
-msgstr "ノートセクションの内容を得られません: %s"
+msgstr "ノートセクションの内容を取得できません: %s"
 
 #: src/readelf.c:12552
 #, c-format
@@ -6123,18 +6031,18 @@ msgstr ""
 "アーカイブ '%s' にはシンボル索引がありません\n"
 
 #: src/readelf.c:12853
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "\n"
 "Index of archive '%s' has %zu entries:\n"
 msgstr ""
 "\n"
-"アーカイブ '%s' の索引には %Zu 項目あります:\n"
+"アーカイブ '%s' の索引は %zu 個の項目を持ちます:\n"
 
 #: src/readelf.c:12871
-#, fuzzy, c-format
+#, c-format
 msgid "cannot extract member at offset %zu in '%s': %s"
-msgstr "'%2$s' の オフセット %1$Zu のメンバーを抽出できません: %3$s"
+msgstr "'%2$s' の オフセット %1$zu のメンバーを抽出できません: %3$s"
 
 #: src/readelf.c:12876
 #, c-format
@@ -6146,8 +6054,8 @@ msgid ""
 "Use the output format FORMAT.  FORMAT can be `bsd' or `sysv'.  The default "
 "is `bsd'"
 msgstr ""
-"出力形式として FORMAT を使ってください。FORMAT は `bsd'か、`sysv' のどちらか"
-"です。省略値は `bsd'です"
+"出力形式として FORMAT を使ってください。 FORMAT は `bsd'、 `sysv' のどちらか"
+"です。 デフォルトは `bsd'です"
 
 #: src/size.c:58
 msgid "Same as `--format=sysv'"
@@ -6171,11 +6079,11 @@ msgstr "`--radix=16' と同じ"
 
 #: src/size.c:66
 msgid "Similar to `--format=sysv' output but in one line"
-msgstr "`--format=sysv' の出力と似ていますが、1行です"
+msgstr "`--format=sysv' の出力と 似ていますが、 1行です"
 
 #: src/size.c:70
 msgid "Print size and permission flags for loadable segments"
-msgstr "ロード可能セグメントのための印刷の大きさと許可フラグ"
+msgstr "ロード可能セグメント の大きさと 許可フラグの 表示"
 
 #: src/size.c:71
 msgid "Display the total sizes (bsd only)"
@@ -6184,7 +6092,7 @@ msgstr "合計の大きさを表示 (bsd のみ)"
 #. Short description of program.
 #: src/size.c:76
 msgid "List section sizes of FILEs (a.out by default)."
-msgstr "ふぁいる のセクションの大きさの一覧 (省略値は a.out)"
+msgstr "FILE のセクションの 大きさの 一覧表示 (デフォルトでは a.out)"
 
 #: src/size.c:240
 #, c-format
@@ -6237,11 +6145,9 @@ msgid " (ex %s)"
 msgstr " (ex %s)"
 
 #: src/size.c:420
-#, fuzzy
-#| msgid "invalid section"
 msgctxt "sysv"
 msgid "section"
-msgstr "不当なセクション"
+msgstr ""
 
 #: src/size.c:421
 msgctxt "sysv"
@@ -6259,9 +6165,8 @@ msgid "Total"
 msgstr ""
 
 #: src/size.c:482
-#, fuzzy, c-format
 msgid "cannot get section header"
-msgstr "セクションヘッダーを得られません: %s"
+msgstr "セクションヘッダーを取得できません"
 
 #: src/size.c:585
 msgid "(TOTALS)\n"
@@ -6273,9 +6178,9 @@ msgid "-p PID should be a positive process id."
 msgstr ""
 
 #: src/stack.c:493
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot open core file '%s'"
-msgstr "アーカイブ '%s' を開くことができません"
+msgstr "コアファイル'%s' を開くことができません"
 
 #: src/stack.c:553
 #, c-format
@@ -6298,68 +6203,64 @@ msgid "One of -p PID or --core COREFILE should be given."
 msgstr ""
 
 #: src/stack.c:645
-#, fuzzy
 msgid "Show stack of process PID"
-msgstr "検索ツリーを生成できません"
+msgstr "process PID のスタックを表示"
 
 #: src/stack.c:647
 msgid "Show stack found in COREFILE"
-msgstr ""
+msgstr "COREFILE で見つかったスタックを表示"
 
 #: src/stack.c:648
 msgid "(optional) EXECUTABLE that produced COREFILE"
-msgstr ""
+msgstr "(optional) COREFILE を生成した EXECUTABLE"
 
 #: src/stack.c:652
-#, fuzzy
 msgid "Output selection options:"
-msgstr "選択オプションを入力してください:"
+msgstr "出力選択オプション："
 
 #: src/stack.c:654
-#, fuzzy
 msgid "Additionally show frame activation"
-msgstr "出力選択:"
+msgstr "frame activation を さらに 表示"
 
 #: src/stack.c:656
 msgid "Additionally try to lookup DWARF debuginfo name for frame address"
-msgstr ""
+msgstr "フレーム アドレスに 対する DWARF debuginfo name の検索を さらに試みる"
 
 #: src/stack.c:659
 msgid ""
 "Additionally show inlined function frames using DWARF debuginfo if available "
 "(implies -d)"
-msgstr ""
+msgstr "可能であれば DWARF debuginfo を使って インライン 関数の フレームを表示 （暗黙的に -d を伴う）"
 
 #: src/stack.c:661
 msgid "Additionally show module file information"
-msgstr ""
+msgstr "モジュール ファイル情報を さらに 表示"
 
 #: src/stack.c:663
-#, fuzzy
 msgid "Additionally show source file information"
-msgstr "出力選択:"
+msgstr "ソース ファイル情報を さらに 表示"
 
 #: src/stack.c:665
 msgid ""
 "Show all additional information (activation, debugname, inlines, module and "
 "source)"
-msgstr ""
+msgstr "全ての 追加情報を 表示 （activation, debugname, inlines, module, source）"
 
 #: src/stack.c:667
 msgid "Do not resolve address to function symbol name"
-msgstr ""
+msgstr "アドレスを 関数シンボル名に 解決しない"
 
 #: src/stack.c:669
 msgid "Show raw function symbol names, do not try to demangle names"
-msgstr ""
+msgstr "生の 関数シンボル名を 表示し、 デマングルを 試みない"
 
 #: src/stack.c:671
 msgid "Show module build-id, load address and pc offset"
-msgstr ""
+msgstr "モジュールの ビルド ID、ロードアドレスと PC オフセット を表示"
 
 #: src/stack.c:673
 msgid "Show the backtrace of only one thread"
-msgstr ""
+msgstr "１つのスレッドだけのバックトレースを表示"
 
 #: src/stack.c:675
 msgid "Show at most MAXFRAMES per thread (default 256, use 0 for unlimited)"
@@ -6367,7 +6268,7 @@ msgstr ""
 
 #: src/stack.c:677
 msgid "Show module memory map with build-id, elf and debug files detected"
-msgstr ""
+msgstr "検出された ビルド ID、 elf、 debug ファイル付きで モジュールの メモリマップを 表示"
 
 #: src/stack.c:685
 msgid ""
@@ -6382,44 +6283,45 @@ msgid ""
 msgstr ""
 
 #: src/stack.c:760
-#, c-format
 msgid "Couldn't show any frames."
-msgstr ""
+msgstr "フレームを表示できません"
 
 #: src/strings.c:65
 msgid "Output Selection:"
-msgstr ""
+msgstr "出力選択："
 
 #: src/strings.c:66
 msgid "Scan entire file, not only loaded sections"
-msgstr ""
+msgstr "ロードされる セクションだけ でなく ファイル全体を スキャンする"
 
 #: src/strings.c:68
 msgid "Only NUL-terminated sequences of MIN-LEN characters or more are printed"
-msgstr ""
+msgstr "ヌル終端された MIN-LEN 文字以上の シーケンス のみを 表示"
 
 #: src/strings.c:69
 msgid ""
 "Select character size and endianness: s = 7-bit, S = 8-bit, {b,l} = 16-bit, "
 "{B,L} = 32-bit"
 msgstr ""
+"文字サイズと エンディアンを 選択： s = 7-bit, S = 8-bit, {b,l} = 16-bit, "
+"{B,L} = 32-bit"
 
 #: src/strings.c:73
 msgid "Print name of the file before each string."
-msgstr ""
+msgstr "各文字列の 前に ファイル名を表示"
 
 #: src/strings.c:75
 msgid "Print location of the string in base 8, 10, or 16 respectively."
-msgstr ""
+msgstr "文字列の 位置を 基数 8、 10、 16 で 各々表示"
 
 #: src/strings.c:76
 msgid "Alias for --radix=o"
-msgstr ""
+msgstr "--radix=o と同じ"
 
 #. Short description of program.
 #: src/strings.c:83
 msgid "Print the strings of printable characters in files."
-msgstr ""
+msgstr "ファイル中の表示可能文字からなる文字列を表示する。"
 
 #: src/strings.c:256 src/strings.c:291
 #, c-format
@@ -6453,27 +6355,27 @@ msgstr ""
 
 #: src/strip.c:71
 msgid "Place stripped output into FILE"
-msgstr "はぎ取った出力を ふぁいる に置く"
+msgstr "ストリップした 出力を FILE に置く"
 
 #: src/strip.c:72
 msgid "Extract the removed sections into FILE"
-msgstr "抽出した取り除いたセクションを ふぁいる に置く"
+msgstr "抽出して 取り除いた セクションを FILE に置く"
 
 #: src/strip.c:73
 msgid "Embed name FILE instead of -f argument"
-msgstr "-f パラメーターの代わりに 名前 ふぁいる を有効にする"
+msgstr "-f 引数の 代わりに 名前 FILE を有効にする"
 
 #: src/strip.c:77
 msgid "Remove all debugging symbols"
-msgstr "デバッグ用のシンボルを全て取り除く"
+msgstr "デバッグ用 シンボルを 全て 取り除く"
 
 #: src/strip.c:81
 msgid "Remove section headers (not recommended)"
-msgstr ""
+msgstr "セクションヘッダーを 取り除く （非推奨）"
 
 #: src/strip.c:83
 msgid "Copy modified/access timestamps to the output"
-msgstr "修正/アクセスタイムスタンプを出力へ複写する"
+msgstr "修正/アクセス タイムスタンプを 出力へ 複製する"
 
 #: src/strip.c:85
 msgid ""
@@ -6499,17 +6401,20 @@ msgid ""
 "Remove the named section.  SECTION is an extended wildcard pattern.  May be "
 "given more than once.  Only non-allocated sections can be removed."
 msgstr ""
+"指定された セクションを 取り除く。 SECTION は 拡張 ワイルド カード パターン。 ２回以上 与え られても よい。"
+"割り当て されない セクション のみ 取り除ける。"
 
 #: src/strip.c:91
 msgid ""
 "Keep the named section.  SECTION is an extended wildcard pattern.  May be "
 "given more than once."
 msgstr ""
+"指定された セクションを 保持する。 SECTION は 拡張 ワイルド カード パターン。 ２回以上 与え られても よい。"
 
 #. Short description of program.
 #: src/strip.c:98
 msgid "Discard symbols from object files."
-msgstr "オブジェクトファイルからシンボルを破棄する"
+msgstr "オブジェクトファイルからシンボルを捨て去る"
 
 #: src/strip.c:247
 #, c-format
@@ -6539,14 +6444,12 @@ msgid "-F option specified twice"
 msgstr "-F オプションが 2 回指定されています"
 
 #: src/strip.c:362
-#, fuzzy, c-format
 msgid "cannot both keep and remove .comment section"
-msgstr ".comment セクションを取り除く"
+msgstr ".comment セクションを保持しつつ取り除くことはできません"
 
 #: src/strip.c:481
-#, fuzzy, c-format
 msgid "bad relocation"
-msgstr "リロケーションを表示"
+msgstr ""
 
 #: src/strip.c:747 src/strip.c:771
 #, c-format
@@ -6570,9 +6473,9 @@ msgstr "%s: アーカイブから抜き出している時は -o や -f は使え
 #. preserve_dates ? tv : NULL);
 #.
 #: src/strip.c:811
-#, fuzzy, c-format
+#, c-format
 msgid "%s: no support for stripping archive"
-msgstr "%s: アーカイブから抜き出している時は -o や -f は使えません"
+msgstr "%s: アーカイブのストリップには対応していません"
 
 #: src/strip.c:1047
 #, c-format
@@ -6580,19 +6483,18 @@ msgid "cannot open EBL backend"
 msgstr "EBL バックエンドを開けません"
 
 #: src/strip.c:1092
-#, fuzzy, c-format
 msgid "cannot get number of phdrs"
-msgstr "セクション数を決定できません: %s"
+msgstr "phdrs の数を取得できません"
 
 #: src/strip.c:1106 src/strip.c:1149
-#, fuzzy, c-format
+#, c-format
 msgid "cannot create new ehdr for file '%s': %s"
-msgstr "新しいファイル '%s' を生成できません: %s"
+msgstr "ファイル '%s' の新しい ehdr を作成できません: %s"
 
 #: src/strip.c:1116 src/strip.c:1159
-#, fuzzy, c-format
+#, c-format
 msgid "cannot create new phdr for file '%s': %s"
-msgstr "新しいファイル '%s' を生成できません: %s"
+msgstr "ファイル '%s' の新しい phdr を作成できません: %s"
 
 #: src/strip.c:1240
 #, c-format
@@ -6600,14 +6502,14 @@ msgid "illformed file '%s'"
 msgstr "不適格なファイル '%s'"
 
 #: src/strip.c:1250
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot remove allocated section '%s'"
-msgstr "PLT セクションを割り当てられません: %s"
+msgstr "割り当てされるセクション '%s' は取り除けません"
 
 #: src/strip.c:1259
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot both keep and remove section '%s'"
-msgstr "0番目のセクションのヘッダーを得られません: %s"
+msgstr "セクション '%s' を保持しつつ取り除くことはできません"
 
 #: src/strip.c:1624 src/strip.c:1739
 #, c-format
@@ -6615,19 +6517,19 @@ msgid "while generating output file: %s"
 msgstr "出力ファイルを生成している間: %s"
 
 #: src/strip.c:1688
-#, fuzzy, c-format
+#, c-format
 msgid "%s: error while updating ELF header: %s"
-msgstr "%s: ELF ヘッダーを生成している間にエラー: %s"
+msgstr "%s: ELF ヘッダーの更新中にエラー: %s"
 
 #: src/strip.c:1697
-#, fuzzy, c-format
+#, c-format
 msgid "%s: error while getting shdrstrndx: %s"
-msgstr "%s: ELF ヘッダーを生成している間にエラー: %s"
+msgstr "%s: shdrstrndx の取得中にエラー: %s"
 
 #: src/strip.c:1705 src/strip.c:2550
-#, fuzzy, c-format
+#, c-format
 msgid "%s: error updating shdrstrndx: %s"
-msgstr "%s: ELF ヘッダーを生成している間にエラー: %s"
+msgstr "%s: shdrstrndx の更新中にエラー: %s"
 
 #: src/strip.c:1722
 #, c-format
@@ -6650,9 +6552,8 @@ msgid "while create section header string table: %s"
 msgstr "セクションヘッダー文字列テーブルを生成中: %s"
 
 #: src/strip.c:1866
-#, fuzzy, c-format
 msgid "no memory to create section header string table"
-msgstr "セクションヘッダー文字列テーブルを生成中: %s"
+msgstr "セクションヘッダー文字列テーブルを作成するメモリがありません"
 
 #: src/strip.c:2079
 #, c-format
@@ -6685,9 +6586,9 @@ msgid "%s: error while reading the file: %s"
 msgstr "%s: ファイルを読込み中にエラー: %s"
 
 #: src/strip.c:2599 src/strip.c:2619
-#, fuzzy, c-format
+#, c-format
 msgid "while writing '%s'"
-msgstr "'%s' を書込み中: %s"
+msgstr "書き込み中 '%s'"
 
 #: src/strip.c:2656 src/strip.c:2663
 #, c-format
@@ -6701,39 +6602,39 @@ msgstr "'%s' のアクセスと変更日付を設定できません"
 
 #: src/unstrip.c:66
 msgid "Match MODULE against file names, not module names"
-msgstr ""
+msgstr "モジュール名ではなく ファイル名で MODULE を一致させる"
 
 #: src/unstrip.c:67
 msgid "Silently skip unfindable files"
-msgstr ""
+msgstr "見つからない ファイルを 静かに スキップ"
 
 #: src/unstrip.c:70
 msgid "Place output into FILE"
-msgstr ""
+msgstr "出力を FILE に置く"
 
 #: src/unstrip.c:72
 msgid "Create multiple output files under DIRECTORY"
-msgstr ""
+msgstr "複数の 出力ファイルを DIRECTORY の下に 作成"
 
 #: src/unstrip.c:73
 msgid "Use module rather than file names"
-msgstr ""
+msgstr "ファイル名ではなく モジュール名を 使用"
 
 #: src/unstrip.c:75
 msgid "Create output for modules that have no separate debug information"
-msgstr ""
+msgstr "分離された デバッグ情報を 持たない モジュール用に 出力を 作成"
 
 #: src/unstrip.c:78
 msgid "Apply relocations to section contents in ET_REL files"
-msgstr ""
+msgstr "ET_REL ファイルの セクション内容に リロケーションを 適用"
 
 #: src/unstrip.c:80
 msgid "Only list module and file names, build IDs"
-msgstr ""
+msgstr "モジュール名、 ファイル名、 ビルドIDの リスト表示のみ"
 
 #: src/unstrip.c:82
 msgid "Force combining files even if some ELF headers don't seem to match"
-msgstr ""
+msgstr "いくつかの ELF ヘッダー が 一致しない ように 見えた としても ファイルの 結合を 強制"
 
 #: src/unstrip.c:126
 #, c-format
@@ -6753,114 +6654,113 @@ msgstr ""
 #: src/unstrip.c:185
 #, c-format
 msgid "output directory '%s'"
-msgstr ""
+msgstr "出力ディレクトリ '%s'"
 
 #: src/unstrip.c:194
 #, c-format
 msgid "exactly two file arguments are required"
-msgstr ""
+msgstr "ちょうど２つの引数が必要です"
 
 #: src/unstrip.c:200
 #, c-format
 msgid "-m, -a, -R, and -i options not allowed with explicit files"
-msgstr ""
+msgstr "明示的なファイルを使用する際は -m, -a, -R, -i オプションは認められていません"
 
 #: src/unstrip.c:213
-#, c-format
 msgid "-o or -d is required when using implicit files"
-msgstr ""
+msgstr "暗黙的なファイルを使用する際は -o または -d が必要です"
 
 #: src/unstrip.c:236
 #, c-format
 msgid "cannot create ELF header: %s"
-msgstr ""
+msgstr "ELF ヘッダーを作成できません: %s"
 
 #: src/unstrip.c:240
-#, fuzzy, c-format
+#, c-format
 msgid "cannot get shdrstrndx:%s"
-msgstr "セクションを得られません: %s"
+msgstr "shdrstrndx を取得できません: %s"
 
 #: src/unstrip.c:244 src/unstrip.c:2086
 #, c-format
 msgid "cannot get ELF header: %s"
-msgstr ""
+msgstr "ELF ヘッダーを取得できません: %s"
 
 #: src/unstrip.c:254
-#, fuzzy, c-format
+#, c-format
 msgid "cannot get new zero section: %s"
-msgstr "セクションを得られません: %s"
+msgstr "新しい zero セクションを取得できません: %s"
 
 #: src/unstrip.c:257
-#, fuzzy, c-format
+#, c-format
 msgid "cannot update new zero section: %s"
-msgstr "セクション数を決定できません: %s"
+msgstr "新しい zero セクションを更新できません: %s"
 
 #: src/unstrip.c:261
 #, c-format
 msgid "cannot copy ELF header: %s"
-msgstr ""
+msgstr "ELF ヘッダーを複製できません: %s"
 
 #: src/unstrip.c:265 src/unstrip.c:2104 src/unstrip.c:2147
-#, fuzzy, c-format
+#, c-format
 msgid "cannot get number of program headers: %s"
-msgstr "セクション数を決定できません: %s"
+msgstr "プログラムヘッダ数を取得できません: %s"
 
 #: src/unstrip.c:270 src/unstrip.c:2108
 #, c-format
 msgid "cannot create program headers: %s"
-msgstr ""
+msgstr "プログラムヘッダーを作成できません: %s"
 
 #: src/unstrip.c:276
 #, c-format
 msgid "cannot copy program header: %s"
-msgstr ""
+msgstr "プログラムヘッダーを複製できません: %s"
 
 #: src/unstrip.c:286
 #, c-format
 msgid "cannot copy section header: %s"
-msgstr ""
+msgstr "セクションヘッダーを複製できません: %s"
 
 #: src/unstrip.c:289 src/unstrip.c:1708
 #, c-format
 msgid "cannot get section data: %s"
-msgstr ""
+msgstr "セクションデータを取得できません: %s"
 
 #: src/unstrip.c:291 src/unstrip.c:1710
 #, c-format
 msgid "cannot copy section data: %s"
-msgstr ""
+msgstr "セクションデータを複製できません: %s"
 
 #: src/unstrip.c:319
 #, c-format
 msgid "cannot create directory '%s'"
-msgstr ""
+msgstr "ディレクトリ '%s' を作成できません"
 
 #: src/unstrip.c:393 src/unstrip.c:657 src/unstrip.c:691 src/unstrip.c:859
 #: src/unstrip.c:1750
 #, c-format
 msgid "cannot get symbol table entry: %s"
-msgstr ""
+msgstr "シンボルテーブル項目を取得できません: %s"
 
 #: src/unstrip.c:409 src/unstrip.c:660 src/unstrip.c:681 src/unstrip.c:694
 #: src/unstrip.c:1771 src/unstrip.c:1966 src/unstrip.c:1990
 #, c-format
 msgid "cannot update symbol table: %s"
-msgstr ""
+msgstr "シンボルテーブルを更新できません: %s"
 
 #: src/unstrip.c:419
 #, c-format
 msgid "cannot update section header: %s"
-msgstr ""
+msgstr "セクションヘッダーを更新できません: %s"
 
 #: src/unstrip.c:467 src/unstrip.c:481
 #, c-format
 msgid "cannot update relocation: %s"
-msgstr ""
+msgstr "リロケーションを更新できません: %s"
 
 #: src/unstrip.c:580
 #, c-format
 msgid "cannot get symbol version: %s"
-msgstr ""
+msgstr "シンボルバージョンを取得できません: %s"
 
 #: src/unstrip.c:593
 #, c-format
@@ -6868,49 +6768,49 @@ msgid "unexpected section type in [%zu] with sh_link to symtab"
 msgstr ""
 
 #: src/unstrip.c:848
-#, fuzzy, c-format
+#, c-format
 msgid "cannot get symbol section data: %s"
-msgstr "ラインデータセクションデータを得られません: %s"
+msgstr "シンボルセクションデータを取得できません: %s"
 
 #: src/unstrip.c:850
-#, fuzzy, c-format
+#, c-format
 msgid "cannot get string section data: %s"
-msgstr "ラインデータセクションデータを得られません: %s"
+msgstr "文字列セクションデータを取得できません: %s"
 
 #: src/unstrip.c:867
-#, fuzzy, c-format
+#, c-format
 msgid "invalid string offset in symbol [%zu]"
-msgstr "シンボル %2$sの不正なオフセット %1$zu "
+msgstr "シンボル [%zu] の中に不当な文字列オフセットがあります"
 
 #: src/unstrip.c:1025 src/unstrip.c:1433
-#, fuzzy, c-format
+#, c-format
 msgid "cannot read section [%zu] name: %s"
-msgstr "セクションデータを割り当てられません: %s"
+msgstr "セクション [%zu] の名前を読み込めません: %s"
 
 #: src/unstrip.c:1040
-#, fuzzy, c-format
+#, c-format
 msgid "bad sh_link for group section: %s"
-msgstr "不当な .debug_line セクション"
+msgstr "グループセクションに対する誤った sh_link です: %s"
 
 #: src/unstrip.c:1046
-#, fuzzy, c-format
+#, c-format
 msgid "couldn't get shdr for group section: %s"
-msgstr "セクションからデータを得られません %d: %s"
+msgstr "グループセクションに対する shdr を取得できませんでした: %s"
 
 #: src/unstrip.c:1051
-#, fuzzy, c-format
+#, c-format
 msgid "bad data for group symbol section: %s"
-msgstr "セクションからデータを得られません %d: %s"
+msgstr "グループシンボルセクションに対する誤ったデータです: %s"
 
 #: src/unstrip.c:1057
-#, fuzzy, c-format
+#, c-format
 msgid "couldn't get symbol for group section: %s"
-msgstr "セクション数を決定できません: %s"
+msgstr "グループセクションに対するシンボルを取得できませんでした: %s"
 
 #: src/unstrip.c:1062
-#, fuzzy, c-format
+#, c-format
 msgid "bad symbol name for group section: %s"
-msgstr "セクションヘッダー文字列セクションを生成できません: %s"
+msgstr "グループセクションに対する誤ったシンボル名です: %s"
 
 #: src/unstrip.c:1073 src/unstrip.c:1554
 #, fuzzy, c-format
@@ -6973,19 +6873,19 @@ msgid "cannot add new section: %s"
 msgstr ""
 
 #: src/unstrip.c:1758
-#, fuzzy, c-format
+#, c-format
 msgid "symbol [%zu] has invalid section index"
-msgstr "不当なセクション索引"
+msgstr "シンボル [%zu] が不当なセクション索引を持っています"
 
 #: src/unstrip.c:1790
-#, fuzzy, c-format
+#, c-format
 msgid "group has invalid section index [%zd]"
-msgstr "不当なセクション索引"
+msgstr "グループが不当なセクション索引 [%zd] を持っています"
 
 #: src/unstrip.c:2065
-#, fuzzy, c-format
+#, c-format
 msgid "cannot read section data: %s"
-msgstr "セクションデータを割り当てられません: %s"
+msgstr "セクションデータを読み込めません: %s"
 
 #: src/unstrip.c:2094
 #, c-format
@@ -7137,13 +7037,12 @@ msgid "Run executable"
 msgstr ""
 
 #: tests/dwflmodtest.c:209
-#, fuzzy
 msgid "Additionally show function names"
-msgstr "出力選択:"
+msgstr "関数名を さらに 表示"
 
 #: tests/dwflmodtest.c:210
 msgid "Show instances of inlined functions"
-msgstr ""
+msgstr "インライン関数の実体を表示"
 
 #, fuzzy
 #~ msgid ""

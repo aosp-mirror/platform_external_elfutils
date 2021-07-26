@@ -1,3 +1,10 @@
+2021-07-26  Noah Sanci  <nsanci@redhat.com>
+
+	PR27982
+	* run-debuginfod-find.sh: Added a test to ensure that
+	DEBUGINFOD_MAXSIZE and DEBUGINFOD_MAXTIME work properly
+	by searching server and client logs for prompts.
+
 2021-07-16  Noah Sanci  <nsanci@redhat.com>
 
 	PR28034

@@ -177,7 +177,33 @@ wait_ready $PORT1 'thread_busy{role="scan"}' 0
 testrun ${abs_builddir}/debuginfod_build_id_find -e F/p+r%o\$g 1
 
 ########################################################################
+## PR27892
+# Ensure DEBUGINFOD_MAXSIZE is functional and sends back the correct http
+# code
+env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_RETRY_LIMIT=1 DEBUGINFOD_URLS="http://127.0.0.1:$PORT1/" DEBUGINFOD_MAXSIZE=1 \
+    ${abs_top_builddir}/debuginfod/debuginfod-find -v debuginfo F/p+r%o\$g.debug 2> find-vlog$PORT1 || true
+tempfiles find-vlog$PORT1
+# wait for the server to fail the same number of times the query is retried.
+wait_ready $PORT1 'http_responses_after_you_milliseconds_count{code="406"}' 1
+# ensure all reporting is functional
+grep 'serving file '$(realpath ${PWD})'/F/p+r%o\$g.debug' vlog$PORT1
+grep 'File too large' vlog$PORT1
+grep 'using max size 1B' find-vlog$PORT1
+if [ -f ${DEBUGINFOD_CACHE_PATH}/${BUILDID} ]; then
+  echo "File cached after maxsize check"
+  err
+fi
 
+# Ensure DEBUGINFOD_MAXTIME is functional
+env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS="http://127.0.0.1:8002/" DEBUGINFOD_MAXTIME=1 \
+    ${abs_top_builddir}/debuginfod/debuginfod-find -v debuginfo F/p+r%o\$g.debug 2> find-vlog$PORT1 || true
+grep 'using max time' find-vlog$PORT1
+# Ensure p+r%o\$g.debug is NOT cached
+if [ -f ${DEBUGINFOD_CACHE_PATH}/${BUILDID} ]; then
+  echo "File cached after maxtime check"
+  err
+fi
+########################################################################
 # PR25628
 rm -rf $DEBUGINFOD_CACHE_PATH # clean it from previous tests
 

@@ -555,6 +555,39 @@ debuginfod_query_server (debuginfod_client *c,
   free (c->url);
   c->url = NULL;
 
+  /* PR 27982: Add max size if DEBUGINFOD_MAXSIZE is set. */
+  long maxsize = 0;
+  const char *maxsize_envvar;
+  maxsize_envvar = getenv(DEBUGINFOD_MAXSIZE_ENV_VAR);
+  if (maxsize_envvar != NULL)
+    maxsize = atol (maxsize_envvar);
+
+  /* PR 27982: Add max time if DEBUGINFOD_MAXTIME is set. */
+  long maxtime = 0;
+  const char *maxtime_envvar;
+  maxtime_envvar = getenv(DEBUGINFOD_MAXTIME_ENV_VAR);
+  if (maxtime_envvar != NULL)
+    maxtime = atol (maxtime_envvar);
+  if (maxtime && vfd >= 0)
+    dprintf(vfd, "using max time %lds\n", maxtime);
+
+  /* Maxsize is valid*/
+  if (maxsize > 0)
+    {
+      if (vfd)
+        dprintf (vfd, "using max size %ldB\n", maxsize);
+      char *size_header = NULL;
+      rc = asprintf (&size_header, "X-DEBUGINFOD-MAXSIZE: %ld", maxsize);
+      if (rc < 0)
+        {
+          rc = -ENOMEM;
+          goto out;
+        }
+      rc = debuginfod_add_http_header(c, size_header);
+      free(size_header);
+      if (rc < 0)
+        goto out;
+    }
   add_default_headers(c);
 
   /* Copy lowercase hex representation of build_id into buf.  */
@@ -833,7 +866,7 @@ debuginfod_query_server (debuginfod_client *c,
   if (data == NULL)
     {
       rc = -ENOMEM;
-      goto out0;
+      goto out1;
     }
 
   /* thereafter, goto out1 on error.  */
@@ -864,7 +897,7 @@ debuginfod_query_server (debuginfod_client *c,
       if (data[i].handle == NULL)
         {
           rc = -ENETUNREACH;
-          goto out2;
+          goto out1;
         }
       data[i].client = c;
 
@@ -876,7 +909,7 @@ debuginfod_query_server (debuginfod_client *c,
           if (!escaped_string)
             {
               rc = -ENOMEM;
-              goto out1;
+              goto out2;
             }
           snprintf(data[i].url, PATH_MAX, "%s/%s/%s/%s", server_url,
                    build_id_bytes, type, escaped_string);
@@ -927,8 +960,31 @@ debuginfod_query_server (debuginfod_client *c,
   long loops = 0;
   int committed_to = -1;
   bool verbose_reported = false;
+  struct timespec start_time, cur_time;
+  if ( maxtime > 0 && clock_gettime(CLOCK_MONOTONIC_RAW, &start_time) == -1)
+    {
+      rc = errno;
+      goto out2;
+    }
+  long delta = 0;
   do
     {
+      /* Check to see how long querying is taking. */
+      if (maxtime > 0)
+        {
+          if (clock_gettime(CLOCK_MONOTONIC_RAW, &cur_time) == -1)
+            {
+              rc = errno;
+              goto out2;
+            }
+          delta = cur_time.tv_sec - start_time.tv_sec;
+          if ( delta >  maxtime)
+            {
+              dprintf(vfd, "Timeout with max time=%lds and transfer time=%lds\n", maxtime, delta );
+              rc = -ETIME;
+              goto out2;
+            }
+        }
       /* Wait 1 second, the minimum DEBUGINFOD_TIMEOUT.  */
       curl_multi_wait(curlm, NULL, 0, 1000, NULL);
 
@@ -1010,6 +1066,29 @@ debuginfod_query_server (debuginfod_client *c,
           if ((*c->progressfn) (c, pa, pb))
             break;
         }
+      /* Check to see if we are downloading something which exceeds maxsize, if set.*/
+      if (maxsize > 0 && target_handle)
+        {
+          long dl_size = 0;
+#ifdef CURLINFO_SIZE_DOWNLOAD_T
+          curl_off_t download_size_t;
+          if (curl_easy_getinfo(target_handle, CURLINFO_CONTENT_LENGTH_DOWNLOAD_T,
+                                                    &download_size_t) == CURLE_OK)
+            dl_size = download_size_t >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)download_size_t;
+#else
+          double download_size;
+          if (curl_easy_getinfo(target_handle, CURLINFO_CONTENT_LENGTH_DOWNLOAD,
+                                                    &download_size) == CURLE_OK)
+            dl_size = download_size >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)download_size;
+#endif
+            if (dl_size > maxsize)
+              {
+                if (vfd >=0)
+                  dprintf(vfd, "Content-Length too large.\n");
+                rc = -EFBIG;
+                goto out2;
+              }
+        }
     } while (still_running);
 
   /* Check whether a query was successful. If so, assign its handle
@@ -1043,6 +1122,8 @@ debuginfod_query_server (debuginfod_client *c,
 
           if (msg->data.result != CURLE_OK)
             {
+              long resp_code;
+              CURLcode ok0;
               /* Unsuccessful query, determine error code.  */
               switch (msg->data.result)
                 {
@@ -1057,6 +1138,16 @@ debuginfod_query_server (debuginfod_client *c,
                 case CURLE_SEND_ERROR: rc = -ECONNRESET; break;
                 case CURLE_RECV_ERROR: rc = -ECONNRESET; break;
                 case CURLE_OPERATION_TIMEDOUT: rc = -ETIME; break;
+                case CURLE_HTTP_RETURNED_ERROR:
+                  ok0 = curl_easy_getinfo (msg->easy_handle,
+                                          CURLINFO_RESPONSE_CODE,
+				          &resp_code);
+                  /* 406 signals that the requested file was too large */
+                  if ( ok0 == CURLE_OK && resp_code == 406)
+                    rc = -EFBIG;
+                  else
+                    rc = -ENOENT;
+                  break;
                 default: rc = -ENOENT; break;
                 }
             }
@@ -1129,6 +1220,8 @@ debuginfod_query_server (debuginfod_client *c,
       if (efd >= 0)
         close(efd);
     }
+  else if (rc == -EFBIG)
+    goto out2;
 
   /* If the verified_handle is NULL and rc != -ENOENT, the query fails with
    * an error code other than 404, then do several retry within the retry_limit.

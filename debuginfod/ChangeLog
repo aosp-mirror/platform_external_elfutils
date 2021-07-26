@@ -1,3 +1,15 @@
+2021-07-26  Noah Sanci  <nsanci@redhat.com>
+
+	PR27982
+	* debuginfod-client.c (globals): added default_maxsize and
+	default_maxtime.
+	(debuginfod_query_server): Added DEBUGINFOD_MAXSIZE and
+	DEBUGINFOD_MAXTIME envvar processing.
+	* debuginfod.cxx (handler_cb): If the requested file exceeds
+	maxsize return code 406.
+	* debuginfod.h.in: Added DEBUGINFOD_MAXSIZE_ENV_VAR and
+	DEBUGINFOD_MAXTIME_ENV_VAR.
+
 2021-07-16  Noah Sanci  <nsanci@redhat.com>
 
 	PR28034

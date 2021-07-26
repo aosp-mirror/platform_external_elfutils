@@ -1,3 +1,9 @@
+2021-07-26  Noah Sanci <nsanci@redhat.com>
+
+	PR27982
+	* debuginfod-find.1: Document DEBUGINFOD_MAXTIME
+	and DEBUGINFOD_MAXSIZE.
+
 2021-04-23  Frank Ch. Eigler <fche@redhat.com>
 
 	PR27701

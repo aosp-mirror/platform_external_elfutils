@@ -425,6 +425,9 @@ AC_CHECK_DECLS([powerof2],[],[],[#include <sys/param.h>])
 AC_CHECK_DECLS([mempcpy],[],[],
                [#define _GNU_SOURCE
                 #include <string.h>])
+AC_CHECK_DECLS([reallocarray],[],[],
+               [#define _GNU_SOURCE
+                #include <stdlib.h>])
 
 AC_CHECK_FUNCS([process_vm_readv])
 

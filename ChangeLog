@@ -1,3 +1,7 @@
+2021-07-28  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac (AC_CHECK_DECLS): Add reallocarray check.
+
 2021-05-22  Mark Wielaard  <mark@klomp.org>
 
 	* configure.ac (AC_INIT): Set version to 0.185.

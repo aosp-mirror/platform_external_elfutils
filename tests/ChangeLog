@@ -1,3 +1,9 @@
+2021-08-04  Mark Wielaard  <mark@klomp.org>
+
+	PR28190
+	* backtrace.c (callback_verify): Check for pthread_kill as first
+	frame. Change asserts to fprintf plus abort.
+
 2021-07-26  Noah Sanci  <nsanci@redhat.com>
 
 	PR27982

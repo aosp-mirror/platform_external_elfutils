@@ -125,50 +125,8 @@ for the basic plaintext \%\fIhttp[s]://userid:password@hostname/\fP style.
 (The debuginfod server does not perform authentication, but a front-end
 proxy server could.)
 
-.SH "ENVIRONMENT VARIABLES"
-
-.TP 21
-.B DEBUGINFOD_URLS
-This environment variable contains a list of URL prefixes for trusted
-debuginfod instances.  Alternate URL prefixes are separated by space.
-
-.TP 21
-.B DEBUGINFOD_TIMEOUT
-This environment variable governs the timeout for each debuginfod HTTP
-connection.  A server that fails to provide at least 100K of data
-within this many seconds is skipped. The default is 90 seconds.  (Zero
-or negative means "no timeout".)
-
-.TP 21
-.B DEBUGINFOD_CACHE_PATH
-This environment variable governs the location of the cache where
-downloaded files are kept.  It is cleaned periodically as this program
-is reexecuted.  Cache management parameters may be set by files under
-this directory: see the \fBdebuginfod_find_debuginfo(3)\fP man page
-for details.  The default is $HOME/.debuginfod_client_cache.
-
-.TP 21
-.B DEBUGINFOD_MAXTIME
-This environment variable dictates how long the client will wait to
-download a file found on a server in seconds. It is best used to ensure
-that a file is downloaded quickly or be rejected. The default is
-0 (infinite time).
-
-.TP 21
-.B DEBUGINFOD_MAXSIZE
-This environment variable dictates the maximum size of a file to
-download in bytes. This is best used if the user would like to ensure
-only small files are downloaded. A value of 0 causes no consideration
-for size, and the client may attempt to download a file of any size.
-The default is 0 (infinite size).
-
-.SH "FILES"
-.LP
-.PD .1v
-.TP 20
-.B $HOME/.debuginfod_client_cache
-Default cache directory.
-.PD
+.nr zZ 1
+.so man7/debuginfod-client-config.7
 
 .SH "SEE ALSO"
 .I "debuginfod(8)"

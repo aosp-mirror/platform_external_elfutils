@@ -1,3 +1,15 @@
+2021-07-28  Alice Zhang <alizhang@redhat.com>
+
+	PR27950
+	* debuginfod-client-config.7: New file to store all cache config
+	infos.
+	* debuginfod-find.1: Removed redundant occurrences of environment
+	variables & cache control files.
+	* debuginfod.8: Likewise.
+	* debuginfod_find_debuginfo.3: Likewise.
+	* Makefile.am: Updated to include debuginfod-client-config.7
+	* man3, man7: Symlinks for source tree man page testing.
+
 2021-07-26  Noah Sanci <nsanci@redhat.com>
 
 	PR27982

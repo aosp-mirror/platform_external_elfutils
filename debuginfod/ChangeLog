@@ -43,6 +43,22 @@
 	* debuginfod.cxx (handler_cb): Fix after_you unique_set key
 	to the entire incoming URL.
 
+2021-08-02  Noah Sanci  <nsanci@redhat.com>
+
+	PR27277
+	* debuginfod-client.c (struct debuginfod_client): New field
+	winning_headers.
+	(struct handle_data): New field response_data, response_data_size.
+	(header_callback): Store received headers in response_data.
+	(debuginfod_query_server): Activate CURLOPT_HEADERFUNCTION.
+	Save winning response_data.
+	(debuginfod_end): free client winning headers.
+	* debuginfod.cxx (handle_buildid_f_match): remove X-DEBUGINFOD-FILE
+	path. Add X-DEBUGINFOD-FILE and X-DEBUGINFOD-SIZE headers.
+	(handle_buildid_r_match): remove X-DEBUGINFOD-FILE path. Add
+	X-DEBUGINFOD-FILE, X-DEBUGINFOD-SIZE
+	headers, and X-ARCHIVE headers.
+
 2021-07-26  Noah Sanci  <nsanci@redhat.com>
 
 	PR27982

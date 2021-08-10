@@ -111,6 +111,12 @@
 
 	* debuginfod-subr.sh (EXTRA_DIST): Add debuginfod-subr.sh.
 
+2021-08-20  Noah Sanci  <nsanci@redhat.com>
+
+	* run-debuginfod-response-headers.sh: Ensures custom http response
+	headers are used and functional
+	* Makefile.am: Added the above new file to TESTS and EXTRA_DIST
+
 2021-08-28  Mark Wielaard  <mark@klomp.org>
 
 	* run-debuginfod-find.sh: Use ":memory:" for the

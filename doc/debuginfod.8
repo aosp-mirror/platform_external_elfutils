@@ -258,6 +258,15 @@ Unknown buildid / request combinations result in HTTP error codes.
 This file service resemblance is intentional, so that an installation
 can take advantage of standard HTTP management infrastructure.
 
+Upon finding a file in an archive or simply in the database, some
+custom http headers are added to the response. For files in the
+database X-DEBUGINFOD-FILE and X-DEBUGINFOD-SIZE are added.
+X-DEBUGINFOD-FILE is simply the unescaped filename and
+X-DEBUGINFOD-SIZE is the size of the file. For files found in archives,
+in addition to X-DEBUGINFOD-FILE and X-DEBUGINFOD-SIZE,
+X-DEBUGINFOD-ARCHIVE is added.  X-DEBUGINFOD-ARCHIVE is the name of the
+archive the file was found in.
+
 There are three requests.  In each case, the buildid is encoded as a
 lowercase hexadecimal string.  For example, for a program \fI/bin/ls\fP,
 look at the ELF note GNU_BUILD_ID:

@@ -18,6 +18,14 @@
 	* Makefile.am: Updated to include debuginfod-client-config.7
 	* man3, man7: Symlinks for source tree man page testing.
 
+2021-08-04  Noah Sanci  <nsanci@redhat.com>
+
+	PR27277
+	* debuginfod-find.1: Increasing verbosity describes the downloaded
+	file.
+	* debuginfod.8: Describe X-DEBUGINFOD-FILE, X-DEBUGINFOD-SIZE, and
+	X-DEBUGINFOD-ARCHIVE.
+
 2021-07-26  Noah Sanci <nsanci@redhat.com>
 
 	PR27982

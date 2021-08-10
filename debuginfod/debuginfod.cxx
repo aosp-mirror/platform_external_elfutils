@@ -1087,6 +1087,9 @@ handle_buildid_f_match (bool internal_req_t,
   else
     {
       MHD_add_response_header (r, "Content-Type", "application/octet-stream");
+      std::string file = b_source0.substr(b_source0.find_last_of("/")+1, b_source0.length());
+      MHD_add_response_header (r, "X-DEBUGINFOD-SIZE", to_string(s.st_size).c_str() );
+      MHD_add_response_header (r, "X-DEBUGINFOD-FILE", file.c_str() );
       add_mhd_last_modified (r, s.st_mtime);
       if (verbose > 1)
         obatched(clog) << "serving file " << b_source0 << endl;
@@ -1556,6 +1559,9 @@ handle_buildid_r_match (bool internal_req_p,
       inc_metric ("http_responses_total","result","archive fdcache");
 
       MHD_add_response_header (r, "Content-Type", "application/octet-stream");
+      MHD_add_response_header (r, "X-DEBUGINFOD-SIZE", to_string(fs.st_size).c_str());
+      MHD_add_response_header (r, "X-DEBUGINFOD-ARCHIVE", b_source0.c_str());
+      MHD_add_response_header (r, "X-DEBUGINFOD-FILE", b_source1.c_str());
       add_mhd_last_modified (r, fs.st_mtime);
       if (verbose > 1)
         obatched(clog) << "serving fdcache archive " << b_source0 << " file " << b_source1 << endl;
@@ -1697,6 +1703,11 @@ handle_buildid_r_match (bool internal_req_p,
       else
         {
           MHD_add_response_header (r, "Content-Type", "application/octet-stream");
+          std::string file = b_source1.substr(b_source1.find_last_of("/")+1, b_source1.length());
+          MHD_add_response_header (r, "X-DEBUGINFOD-SIZE", to_string(fs.st_size).c_str());
+          MHD_add_response_header (r, "X-DEBUGINFOD-ARCHIVE", b_source0.c_str());
+          MHD_add_response_header (r, "X-DEBUGINFOD-FILE", file.c_str());
+
           add_mhd_last_modified (r, archive_entry_mtime(e));
           if (verbose > 1)
             obatched(clog) << "serving archive " << b_source0 << " file " << b_source1 << endl;

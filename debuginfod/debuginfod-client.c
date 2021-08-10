@@ -127,6 +127,7 @@ struct debuginfod_client
      timeout or other info gotten from environment variables, the
      handle data, etc. So those don't have to be reparsed and
      recreated on each request.  */
+  char * winning_headers;
 };
 
 /* The cache_clean_interval_s file within the debuginfod cache specifies
@@ -183,6 +184,9 @@ struct handle_data
      to the cache. Used to ensure that a file is not downloaded from
      multiple servers unnecessarily.  */
   CURL **target_handle;
+  /* Response http headers for this client handle, sent from the server */
+  char *response_data;
+  size_t response_data_size;
 };
 
 static size_t
@@ -498,6 +502,37 @@ default_progressfn (debuginfod_client *c, long a, long b)
   return 0;
 }
 
+/* This is a callback function that receives http response headers in buffer for use
+ * in this program. https://curl.se/libcurl/c/CURLOPT_HEADERFUNCTION.html is the
+ * online documentation.
+ */
+static size_t
+header_callback (char * buffer, size_t size, size_t numitems, void * userdata)
+{
+  if (size != 1)
+    return 0;
+  /* Temporary buffer for realloc */
+  char *temp = NULL;
+  struct handle_data *data = (struct handle_data *) userdata;
+  if (data->response_data == NULL)
+    {
+      temp = malloc(numitems+1);
+      if (temp == NULL)
+        return 0;
+    }
+  else
+    {
+      temp = realloc(data->response_data, data->response_data_size + numitems + 1);
+      if (temp == NULL)
+        return 0;
+    }
+
+  memcpy(temp + data->response_data_size, buffer, numitems);
+  data->response_data = temp;
+  data->response_data_size += numitems;
+  data->response_data[data->response_data_size] = '\0';
+  return numitems;
+}
 
 /* Query each of the server URLs found in $DEBUGINFOD_URLS for the file
    with the specified build-id, type (debuginfo, executable or source)
@@ -954,10 +989,14 @@ debuginfod_query_server (debuginfod_client *c,
 	  curl_easy_setopt (data[i].handle, CURLOPT_LOW_SPEED_LIMIT,
 			    100 * 1024L);
 	}
+      data[i].response_data = NULL;
+      data[i].response_data_size = 0;
       curl_easy_setopt(data[i].handle, CURLOPT_FILETIME, (long) 1);
       curl_easy_setopt(data[i].handle, CURLOPT_FOLLOWLOCATION, (long) 1);
       curl_easy_setopt(data[i].handle, CURLOPT_FAILONERROR, (long) 1);
       curl_easy_setopt(data[i].handle, CURLOPT_NOSIGNAL, (long) 1);
+      curl_easy_setopt(data[i].handle, CURLOPT_HEADERFUNCTION, header_callback);
+      curl_easy_setopt(data[i].handle, CURLOPT_HEADERDATA, (void *) &(data[i]));
 #if LIBCURL_VERSION_NUM >= 0x072a00 /* 7.42.0 */
       curl_easy_setopt(data[i].handle, CURLOPT_PATH_AS_IS, (long) 1);
 #else
@@ -980,6 +1019,7 @@ debuginfod_query_server (debuginfod_client *c,
   int committed_to = -1;
   bool verbose_reported = false;
   struct timespec start_time, cur_time;
+  c->winning_headers = NULL;
   if ( maxtime > 0 && clock_gettime(CLOCK_MONOTONIC_RAW, &start_time) == -1)
     {
       rc = errno;
@@ -1014,7 +1054,17 @@ debuginfod_query_server (debuginfod_client *c,
 	    if (data[i].handle != target_handle)
 	      curl_multi_remove_handle(curlm, data[i].handle);
 	    else
-	      committed_to = i;
+              {
+	        committed_to = i;
+                if (c->winning_headers == NULL)
+                  {
+                    c->winning_headers = data[committed_to].response_data;
+                    if (vfd >= 0 && c->winning_headers != NULL)
+                      dprintf(vfd, "\n%s", c->winning_headers);
+                    data[committed_to].response_data = NULL;
+                  }
+
+              }
 	}
 
       if (vfd >= 0 && !verbose_reported && committed_to >= 0)
@@ -1257,7 +1307,10 @@ debuginfod_query_server (debuginfod_client *c,
             {
               curl_multi_remove_handle(curlm, data[i].handle); /* ok to repeat */
               curl_easy_cleanup (data[i].handle);
+              free(data[i].response_data);
             }
+            free(c->winning_headers);
+            c->winning_headers = NULL;
 	    goto query_in_parallel;
 	}
       else
@@ -1300,6 +1353,7 @@ debuginfod_query_server (debuginfod_client *c,
     {
       curl_multi_remove_handle(curlm, data[i].handle); /* ok to repeat */
       curl_easy_cleanup (data[i].handle);
+      free (data[i].response_data);
     }
 
   for (int i = 0; i < num_urls; ++i)
@@ -1323,6 +1377,7 @@ debuginfod_query_server (debuginfod_client *c,
     {
       curl_multi_remove_handle(curlm, data[i].handle); /* ok to repeat */
       curl_easy_cleanup (data[i].handle);
+      free (data[i].response_data);
     }
 
   unlink (target_cache_tmppath);
@@ -1434,6 +1489,7 @@ debuginfod_end (debuginfod_client *client)
 
   curl_multi_cleanup (client->server_mhandle);
   curl_slist_free_all (client->headers);
+  free (client->winning_headers);
   free (client->url);
   free (client);
 }

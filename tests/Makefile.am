@@ -232,7 +232,8 @@ TESTS += run-debuginfod-dlopen.sh \
 	 run-debuginfod-federation-link.sh \
 	 run-debuginfod-federation-metrics.sh \
          run-debuginfod-percent-escape.sh \
-	 run-debuginfod-x-forwarded-for.sh
+         run-debuginfod-x-forwarded-for.sh \
+         run-debuginfod-response-headers.sh
 endif
 endif
 
@@ -526,6 +527,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-debuginfod-archive-rename.sh \
              run-debuginfod-archive-test.sh \
              run-debuginfod-percent-escape.sh \
+	     run-debuginfod-response-headers.sh \
 	     debuginfod-rpms/fedora30/hello2-1.0-2.src.rpm \
 	     debuginfod-rpms/fedora30/hello2-1.0-2.x86_64.rpm \
 	     debuginfod-rpms/fedora30/hello2-debuginfo-1.0-2.x86_64.rpm \

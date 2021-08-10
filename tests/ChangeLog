@@ -12,6 +12,34 @@
 
 	* run-debuginfod-find.sh: Add test for X-Forwarded-For hops limit.
 
+2021-08-20  Noah Sanci  <nsanci@redhat.com>
+
+	* debuginfod-find.sh: Separated file into 
+	run-debuginfod-000-permission.sh, 
+	run-debuginfod-archive-groom.sh,
+	run-debuginfod-archive-rename.sh,
+	run-debuginfod-archive-test.sh,
+	run-debuginfod-artifact-running.sh,
+	run-debuginfod-dlopen.sh,
+	run-debuginfod-duplicate-urls.sh,
+	run-debuginfod-extraction.sh,
+	run-debuginfod-fd-prefetch-caches.sh,
+	run-debuginfod-federation-link.sh,
+	run-debuginfod-federation-metrics.sh,
+	run-debuginfod-federation-sqlite.sh,
+	run-debuginfod-file.sh,
+	run-debuginfod-malformed.sh,
+	run-debuginfod-no-urls.sh,
+	run-debuginfod-query-retry.sh,
+	run-debuginfod-regex.sh,
+	run-debuginfod-sizetime.sh,
+	run-debuginfod-tmp-home.sh,
+	run-debuginfod-x-forwarded.sh
+	and run-debuginfod-writable.sh.
+	All files source debuginfod-subr.sh and use the $base variable to find ports.
+	* tests/Makefile.am: Added the above new files to the test suite
+	* tests/debuginfod-subr.sh: Added some general functions for above tests
+
 2021-08-04  Mark Wielaard  <mark@klomp.org>
 
 	PR28190

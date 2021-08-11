@@ -24,7 +24,9 @@ notrans_dist_man8_MANS=
 notrans_dist_man1_MANS=
 
 if DEBUGINFOD
+if !LIBDEBUGINFOD
 notrans_dist_man7_MANS += debuginfod-client-config.7
+endif
 notrans_dist_man8_MANS += debuginfod.8
 endif
 

@@ -1,3 +1,9 @@
+2021-10-23  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR28240
+	* run-debuginfod-000-permission.sh, -writable.sh:
+	Correct negative-cache file permission checking.
+
 2021-10-06  Mark Wielaard  <mark@klomp.org>
 
 	* show-die-info.c (handle): Handle dwarf_attr_string returning NULL.

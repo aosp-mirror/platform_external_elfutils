@@ -1,5 +1,5 @@
 /* Retrieve ELF / DWARF / source files from the debuginfod.
-   Copyright (C) 2019-2020 Red Hat, Inc.
+   Copyright (C) 2019-2021 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -766,24 +766,14 @@ debuginfod_query_server (debuginfod_client *c,
   if (rc != 0)
     goto out;
 
-  /* If the target is already in the cache then we are done.  */
-  int fd = open (target_cache_path, O_RDONLY);
-  if (fd >= 0)
-    {
-      /* Success!!!! */
-      if (path != NULL)
-        *path = strdup(target_cache_path);
-      rc = fd;
-      goto out;
-    }
-
   struct stat st;
-  time_t cache_miss;
-  /* Check if the file exists and it's of permission 000*/
-  if (errno == EACCES
-      && stat(target_cache_path, &st) == 0
+  /* Check if the file exists and it's of permission 000; must check
+     explicitly rather than trying to open it first (PR28240). */
+  if (stat(target_cache_path, &st) == 0
       && (st.st_mode & 0777) == 0)
     {
+      time_t cache_miss;
+
       rc = debuginfod_config_cache(cache_miss_path, cache_miss_default_s, &st);
       if (rc < 0)
         goto out;
@@ -795,7 +785,22 @@ debuginfod_query_server (debuginfod_client *c,
          goto out;
        }
       else
+        /* TOCTOU non-problem: if another task races, puts a working
+           download or a 000 file in its place, unlinking here just
+           means WE will try to download again as uncached. */
         unlink(target_cache_path);
+    }
+  
+  /* If the target is already in the cache (known not-000 - PR28240), 
+     then we are done. */
+  int fd = open (target_cache_path, O_RDONLY);
+  if (fd >= 0)
+    {
+      /* Success!!!! */
+      if (path != NULL)
+        *path = strdup(target_cache_path);
+      rc = fd;
+      goto out;
     }
 
   long timeout = default_timeout;

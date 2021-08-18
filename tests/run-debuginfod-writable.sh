@@ -79,7 +79,7 @@ wait_ready $PORT1 'thread_busy{role="scan"}' 0
 rm -rf $DEBUGINFOD_CACHE_PATH # clean it from previous tests
 filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID`
 cmp $filename F/p+r%o\$g.debug
-if [ -w $filename ]; then
+if [  `stat -c "%A" $filename` != "-r--------" ]; then
     echo "cache file writable, boo"
     err
 fi

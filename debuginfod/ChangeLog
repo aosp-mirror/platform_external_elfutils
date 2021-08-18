@@ -1,3 +1,9 @@
+2021-10-23  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR28240
+	* debuginfod-client.c (debuginfod_query_server): Correct
+	negative-hit cache check sequence for root user.
+
 2021-10-15  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod-client.c (debuginfod_query_server): Set

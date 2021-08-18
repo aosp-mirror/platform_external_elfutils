@@ -90,10 +90,6 @@ wait_ready $PORT1 'thread_busy{role="scan"}' 0
 rm -rf $DEBUGINFOD_CACHE_PATH # clean it from previous tests
 filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID`
 cmp $filename F/prog.debug
-if [ -w $filename ]; then
-    echo "cache file writable, boo"
-    err
-fi
 
 filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find executable F/prog`
 cmp $filename F/prog

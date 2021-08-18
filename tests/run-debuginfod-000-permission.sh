@@ -56,7 +56,7 @@ if [ ! -f $DEBUGINFOD_CACHE_PATH/01234567/debuginfo ]; then
   err
 fi
 
-if [ -r $DEBUGINFOD_CACHE_PATH/01234567/debuginfo ]; then
+if [ `stat -c "%A" $DEBUGINFOD_CACHE_PATH/01234567/debuginfo` != "----------" ]; then
   echo "The cache $DEBUGINFOD_CACHE_PATH/01234567/debuginfo is readable"
   err
 fi

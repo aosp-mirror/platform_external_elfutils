@@ -2141,7 +2141,7 @@ handler_cb (void * /*cls*/,
           struct timespec tsay_start, tsay_end;
           clock_gettime (CLOCK_MONOTONIC, &tsay_start);
           static unique_set<string> busy_urls;
-          unique_set_reserver<string> after_you(busy_urls, url1);
+          unique_set_reserver<string> after_you(busy_urls, url_copy);
           clock_gettime (CLOCK_MONOTONIC, &tsay_end);
           afteryou = (tsay_end.tv_sec - tsay_start.tv_sec) + (tsay_end.tv_nsec - tsay_start.tv_nsec)/1.e9;
           add_metric ("thread_busy", "role", "http-buildid-after-you", -1);

@@ -1,5 +1,10 @@
 2021-08-20  Saleem Abdulrasool  <abdulras@google.com>
 
+	* system.h: Check for HAVE_ERROR_H and HAVE_ERR_H and define
+	error_message_cont and error if necessary.
+
+2021-08-20  Saleem Abdulrasool  <abdulras@google.com>
+
 	* fixedsizehash.h: Remove sys/cdefs.h include. Unconditionally
 	define STROF and CONCAT macros.
 

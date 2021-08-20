@@ -1,3 +1,7 @@
+2021-08-20  Saleem Abdulrasool  <abdulras@google.com>
+
+	* Add AC_CHECK_HEADERS for error.h and err.h.
+
 2021-07-28  Mark Wielaard  <mark@klomp.org>
 
 	* configure.ac (AC_CHECK_DECLS): Add reallocarray check.

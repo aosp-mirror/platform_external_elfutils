@@ -1,3 +1,7 @@
+2021-08-20  Saleem Abdulrasool  <abdulras@google.com>
+
+	* elfclassify.c: Remove error.h include.
+
 2021-03-18  Timm Bäder  <tbaeder@redhat.com>
 
 	* readelf.c (run_advance_pc): New static inline function

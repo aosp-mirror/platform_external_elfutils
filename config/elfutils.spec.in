@@ -299,12 +299,14 @@ fi
 %{_libdir}/libdebuginfod.so.*
 %{_bindir}/debuginfod-find
 %{_mandir}/man1/debuginfod-find.1*
+%{_mandir}/man7/debuginfod*.7*
 %config(noreplace) %{_sysconfdir}/profile.d/*
   
 %files debuginfod-client-devel
 %defattr(-,root,root)
 %{_libdir}/pkgconfig/libdebuginfod.pc
 %{_mandir}/man3/debuginfod_*.3*
+%{_mandir}/man7/debuginfod*.7*
 %{_includedir}/elfutils/debuginfod.h
 %{_libdir}/libdebuginfod.so
 
@@ -315,6 +317,7 @@ fi
 %{_unitdir}/debuginfod.service
 %{_sysconfdir}/sysconfig/debuginfod
 %{_mandir}/man8/debuginfod.8*
+%{_mandir}/man7/debuginfod*.7*
 
 %dir %attr(0700,debuginfod,debuginfod) %{_localstatedir}/cache/debuginfod
 %ghost %attr(0600,debuginfod,debuginfod) %{_localstatedir}/cache/debuginfod/debuginfod.sqlite

@@ -1,3 +1,7 @@
+2021-08-20  Di Chen  <dichen@redhat.com>
+
+	* debuginfod.8: Add --forwarded-ttl-limit=NUM documentation.
+
 2021-07-28  Alice Zhang <alizhang@redhat.com>
 
 	PR27950

@@ -1,3 +1,11 @@
+2021-08-20  Di Chen  <dichen@redhat.com>
+
+	* debuginfod.cxx (options): Add ARGP_KEY_FORWARDED_TTL_LIMIT.
+	(forwarded_ttl_limit): New static unsigned.
+	(parse_opt): Handle ARGP_KEY_FORWARDED_TTL_LIMIT.
+	(handle_buildid): Check forwarded_ttl_limit.
+	(main): Log forwarded ttl limit.
+
 2021-08-20  Saleem Abdulrasool  <abdulras@google.com>
 
 	* debuginfod.cxx: Remove error.h include.

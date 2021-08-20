@@ -374,6 +374,8 @@ static const struct argp_option options[] =
 #define ARGP_KEY_FDCACHE_PREFETCH_FDS 0x1006
    { "fdcache-prefetch-fds", ARGP_KEY_FDCACHE_PREFETCH_FDS, "NUM", 0,"Number of files allocated to the \
       prefetch cache.", 0},
+#define ARGP_KEY_FORWARDED_TTL_LIMIT 0x1007
+   {"forwarded-ttl-limit", ARGP_KEY_FORWARDED_TTL_LIMIT, "NUM", 0, "Limit of X-Forwarded-For hops, default 8.", 0},
    { NULL, 0, NULL, 0, NULL, 0 },
   };
 
@@ -421,6 +423,7 @@ static long fdcache_prefetch;
 static long fdcache_mintmp;
 static long fdcache_prefetch_mbs;
 static long fdcache_prefetch_fds;
+static unsigned forwarded_ttl_limit = 8;
 static string tmpdir;
 
 static void set_metric(const string& key, double value);
@@ -552,6 +555,9 @@ parse_opt (int key, char *arg,
       fdcache_mintmp = atol (arg);
       if( fdcache_mintmp > 100 || fdcache_mintmp < 0 )
         argp_failure(state, 1, EINVAL, "fdcache mintmp percent");
+      break;
+    case ARGP_KEY_FORWARDED_TTL_LIMIT:
+      forwarded_ttl_limit = (unsigned) atoi(arg);
       break;
     case ARGP_KEY_ARG:
       source_paths.insert(string(arg));
@@ -1879,6 +1885,17 @@ handle_buildid (MHD_Connection* conn,
           string xff = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "X-Forwarded-For") ?: "";
           if (xff != "")
             xff += string(", "); // comma separated list
+
+          unsigned int xff_count = 0;
+          for (auto&& i : xff){
+            if (i == ',') xff_count++;
+          }
+
+          // if X-Forwarded-For: exceeds N hops,
+          // do not delegate a local lookup miss to upstream debuginfods.
+          if (xff_count >= forwarded_ttl_limit)
+            throw reportable_exception(MHD_HTTP_NOT_FOUND, "not found, --forwared-ttl-limit reached \
+and will not query the upstream servers");
 
           // Compute the client's numeric IP address only - so can't merge with conninfo()
           const union MHD_ConnectionInfo *u = MHD_get_connection_info (conn,
@@ -3718,6 +3735,7 @@ main (int argc, char *argv[])
   obatched(clog) << "groom time " << groom_s << endl;
   obatched(clog) << "prefetch fds " << fdcache_prefetch_fds << endl;
   obatched(clog) << "prefetch mbs " << fdcache_prefetch_mbs << endl;
+  obatched(clog) << "forwarded ttl limit " << forwarded_ttl_limit << endl;
 
   if (scan_archives.size()>0)
     {

@@ -236,6 +236,12 @@ can translate to RAM scarcity if the disk happens to be on a RAM
 virtual disk.  The default threshold is 25%.
 
 .TP
+.B "\-\-forwarded\-ttl\-limit=NUM"
+Configure limits of X-Forwarded-For hops. if X-Forwarded-For
+exceeds N hops, it will not delegate a local lookup miss to
+upstream debuginfods. The default limit is 8.
+
+.TP
 .B "\-v"
 Increase verbosity of logging to the standard error file descriptor.
 May be repeated to increase details.  The default verbosity is 0.

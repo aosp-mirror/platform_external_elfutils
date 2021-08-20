@@ -37,6 +37,8 @@ PID1=0
 PID2=0
 PID3=0
 PID4=0
+PID5=0
+PID6=0
 
 cleanup()
 {
@@ -44,6 +46,8 @@ cleanup()
   if [ $PID2 -ne 0 ]; then kill $PID2; wait $PID2; fi
   if [ $PID3 -ne 0 ]; then kill $PID3; wait $PID3; fi
   if [ $PID4 -ne 0 ]; then kill $PID4; wait $PID4; fi
+  if [ $PID5 -ne 0 ]; then kill $PID5; wait $PID5; fi
+  if [ $PID6 -ne 0 ]; then kill $PID6; wait $PID6; fi
   rm -rf F R D L Z ${PWD}/foobar ${PWD}/mocktree ${PWD}/.client_cache* ${PWD}/tmp*
   exit_cleanup
 }
@@ -54,7 +58,7 @@ trap cleanup 0 1 2 3 5 9 15
 errfiles_list=
 err() {
     echo ERROR REPORTS
-    for ports in $PORT1 $PORT2 $PORT3
+    for ports in $PORT1 $PORT2 $PORT3 $PORT4 $PORT5
     do
         echo ERROR REPORT $port metrics
         curl -s http://127.0.0.1:$port/metrics
@@ -803,5 +807,46 @@ if [ $retry_attempts -ne 10 ]; then
     echo "retry mechanism failed."
     exit 1;
   fi
+
+########################################################################
+
+# Test when debuginfod hitting X-Forwarded-For hops limit.
+# This test will start two servers (as a loop) with two different hop limits.
+
+while true; do
+    PORT4=`expr '(' $RANDOM % 1000 ')' + 9000`
+    PORT5=`expr '(' $RANDOM % 1000 ')' + 9000`
+    ss -atn | fgrep -e ":$PORT4" -e ":$PORT5"|| break
+done
+
+# Make sure the vlogs are cleaned up after the test
+# and that they are printed on error.
+tempfiles vlog$PORT4 vlog$PORT5
+errfiles vlog$PORT4 vlog$PORT5
+
+env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS=http://127.0.0.1:$PORT5 ${abs_builddir}/../debuginfod/debuginfod $VERBOSE --forwarded-ttl-limit 0 -p $PORT4 > vlog$PORT4 2>&1 &
+PID5=$!
+
+env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS=http://127.0.0.1:$PORT4 ${abs_builddir}/../debuginfod/debuginfod $VERBOSE --forwarded-ttl-limit 1 -p $PORT5 > vlog$PORT5 2>&1 &
+PID6=$!
+
+wait_ready $PORT4 'ready' 1
+wait_ready $PORT5 'ready' 1
+
+export DEBUGINFOD_URLS="http://127.0.0.1:$PORT4/"
+testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo 01234567 || true
+
+# Use a different buildid to avoid using same cache.
+export DEBUGINFOD_URLS="http://127.0.0.1:$PORT5/"
+testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo 11234567 || true
+
+grep "forwared-ttl-limit reached and will not query the upstream servers" vlog$PORT4
+grep -v "forwared-ttl-limit reached and will not query the upstream servers" vlog$PORT5 | grep "not found" vlog$PORT5
+
+kill $PID5 $PID6
+wait $PID5 $PID6
+
+PID5=0
+PID6=0
 
 exit 0

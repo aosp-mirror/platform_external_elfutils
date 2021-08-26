@@ -1,3 +1,8 @@
+2021-09-08  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_begin_elf.c (valid_p): Identify ELF class and use this to set
+	address_size of the fake CUs. Also set offset_size and DWARF version.
+
 2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* dwarf_begin_elf.c (valid_p): Remove casts of malloc return values.

@@ -1,3 +1,17 @@
+2021-09-08  Mark Wielaard  <mark@klomp.org>
+
+	* run-varlocs-vars.sh: New test.
+	* testfile-vars-clang-dwarf4-32.o.bz2: New test file.
+	* testfile-vars-clang-dwarf4-64.o.bz2: Likewise.
+	* testfile-vars-clang-dwarf5-32.o.bz2: Likewise.
+	* testfile-vars-clang-dwarf5-64.o.bz2: Likewise.
+	* testfile-vars-gcc-dwarf4-32.o.bz2: Likewise.
+	* testfile-vars-gcc-dwarf4-64.o.bz2: Likewise.
+	* testfile-vars-gcc-dwarf5-32.o.bz2: Likewise.
+	* testfile-vars-gcc-dwarf5-64.o.bz2: Likewise.
+	* Makefile.am (EXTRA_DIST): Add new test and test files.
+	(TESTS): Add run-varlocs-vars.sh.
+
 2021-09-09  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod-subr.sh: set -o functrace.

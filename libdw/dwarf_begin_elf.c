@@ -224,6 +224,23 @@ valid_p (Dwarf *result)
       result = NULL;
     }
 
+  /* We are setting up some "fake" CUs, which need an address size.
+     Check the ELF class to come up with something reasonable.  */
+  int elf_addr_size = 8;
+  if (result != NULL)
+    {
+      GElf_Ehdr ehdr;
+      if (gelf_getehdr (result->elf, &ehdr) == NULL)
+	{
+	  Dwarf_Sig8_Hash_free (&result->sig8_hash);
+	  __libdw_seterrno (DWARF_E_INVALID_ELF);
+	  free (result);
+	  result = NULL;
+	}
+      else if (ehdr.e_ident[EI_CLASS] == ELFCLASS32)
+	elf_addr_size = 4;
+    }
+
   /* For dwarf_location_attr () we need a "fake" CU to indicate
      where the "fake" attribute data comes from.  This is a block
      inside the .debug_loc or .debug_loclists section.  */
@@ -247,8 +264,9 @@ valid_p (Dwarf *result)
 	    = (result->sectiondata[IDX_debug_loc]->d_buf
 	       + result->sectiondata[IDX_debug_loc]->d_size);
 	  result->fake_loc_cu->locs = NULL;
-	  result->fake_loc_cu->address_size = 0;
-	  result->fake_loc_cu->version = 0;
+	  result->fake_loc_cu->address_size = elf_addr_size;
+	  result->fake_loc_cu->offset_size = 4;
+	  result->fake_loc_cu->version = 4;
 	  result->fake_loc_cu->split = NULL;
 	}
     }
@@ -274,8 +292,9 @@ valid_p (Dwarf *result)
 	    = (result->sectiondata[IDX_debug_loclists]->d_buf
 	       + result->sectiondata[IDX_debug_loclists]->d_size);
 	  result->fake_loclists_cu->locs = NULL;
-	  result->fake_loclists_cu->address_size = 0;
-	  result->fake_loclists_cu->version = 0;
+	  result->fake_loclists_cu->address_size = elf_addr_size;
+	  result->fake_loclists_cu->offset_size = 4;
+	  result->fake_loclists_cu->version = 5;
 	  result->fake_loclists_cu->split = NULL;
 	}
     }
@@ -306,8 +325,9 @@ valid_p (Dwarf *result)
 	    = (result->sectiondata[IDX_debug_addr]->d_buf
 	       + result->sectiondata[IDX_debug_addr]->d_size);
 	  result->fake_addr_cu->locs = NULL;
-	  result->fake_addr_cu->address_size = 0;
-	  result->fake_addr_cu->version = 0;
+	  result->fake_addr_cu->address_size = elf_addr_size;
+	  result->fake_addr_cu->offset_size = 4;
+	  result->fake_addr_cu->version = 5;
 	  result->fake_addr_cu->split = NULL;
 	}
     }

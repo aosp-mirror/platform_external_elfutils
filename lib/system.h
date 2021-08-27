@@ -45,21 +45,8 @@
 #if defined(HAVE_ERROR_H)
 #include <error.h>
 #elif defined(HAVE_ERR_H)
-#include <err.h>
-
-static int error_message_count = 0;
-
-static inline void error(int status, int errnum, const char *format, ...) {
-  va_list argp;
-
-  va_start(argp, format);
-  verr(status, format, argp);
-  va_end(argp);
-
-  if (status)
-    exit(status);
-  ++error_message_count;
-}
+extern int error_message_count;
+void error(int status, int errnum, const char *format, ...);
 #else
 #error "err.h or error.h must be available"
 #endif

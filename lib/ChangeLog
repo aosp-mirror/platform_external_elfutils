@@ -1,3 +1,12 @@
+2021-08-23  Saleem Abdulrasool  <abdulras@google.com>
+
+	* system.h: Remove inline definition for error and error_message_count
+	in the fallback path.
+	* Makefile.am (libeu_a_SOURCES): Add error.c.
+	* error.c: New file, moves the previous inline definitions to avoid
+	multiple definitions properly rather than relying on -fcommon and vague
+	linkage.
+
 2021-08-21  Saleem Abdulrasool  <abdulras@google.com>
 
 	* fixedsizehash.h: Remove unused STROF macro.

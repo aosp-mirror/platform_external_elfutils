@@ -966,6 +966,7 @@ enum
     DW_CFA_low_user = 0x1c,
     DW_CFA_MIPS_advance_loc8 = 0x1d,
     DW_CFA_GNU_window_save = 0x2d,
+    DW_CFA_AARCH64_negate_ra_state = 0x2d,
     DW_CFA_GNU_args_size = 0x2e,
     DW_CFA_GNU_negative_offset_extended = 0x2f,
     DW_CFA_high_user = 0x3f
@@ -1013,7 +1014,7 @@ enum
 /* Section 7.2.2 of the DWARF3 specification defines a range of escape
    codes that can appear in the length field of certain DWARF structures.
 
-   These defines enumerate the minium and maximum values of this range.
+   These defines enumerate the minimum and maximum values of this range.
    Currently only the maximum value is used (to indicate that 64-bit
    values are going to be used in the dwarf data that accompanies the
    structure).  The other values are reserved.

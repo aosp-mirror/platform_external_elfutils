@@ -1,5 +1,10 @@
 2021-08-28  Mark Wielaard  <mark@klomp.org>
 
+	* run-debuginfod-find.sh: Use ":memory:" for the
+	forwarded-ttl-limit tests.
+
+2021-08-28  Mark Wielaard  <mark@klomp.org>
+
 	* run-debuginfod-find.sh: Use clean, separate databases for
 	forwarded-ttl-limit tests.
 

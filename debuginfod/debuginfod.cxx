@@ -483,7 +483,14 @@ parse_opt (int key, char *arg,
   switch (key)
     {
     case 'v': verbose ++; break;
-    case 'd': db_path = string(arg); break;
+    case 'd':
+      /* When using the in-memory database make sure it is shareable,
+	 so we can open it twice as read/write and read-only.  */
+      if (strcmp (arg, ":memory:") == 0)
+	db_path = "file::memory:?cache=shared";
+      else
+	db_path = string(arg);
+      break;
     case 'p': http_port = (unsigned) atoi(arg);
       if (http_port == 0 || http_port > 65535)
         argp_failure(state, 1, EINVAL, "port number");

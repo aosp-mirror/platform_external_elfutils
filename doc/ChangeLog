@@ -1,3 +1,7 @@
+2021-08-28  Di Chen  <dichen@redhat.com>
+
+	* debuginfod.8 (-d): Document ":memory:" as in-memory database.
+
 2021-08-20  Di Chen  <dichen@redhat.com>
 
 	* debuginfod.8: Add --forwarded-ttl-limit=NUM documentation.

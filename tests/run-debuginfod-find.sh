@@ -824,10 +824,13 @@ done
 tempfiles vlog$PORT4 vlog$PORT5
 errfiles vlog$PORT4 vlog$PORT5
 
-env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS=http://127.0.0.1:$PORT5 ${abs_builddir}/../debuginfod/debuginfod $VERBOSE --forwarded-ttl-limit 0 -p $PORT4 > vlog$PORT4 2>&1 &
+# Give each debuginfd its own clean database.
+tempfiles db.$PORT4.sql db.$PORT5.sql
+
+env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS=http://127.0.0.1:$PORT5 ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -d db.$PORT4.sql --forwarded-ttl-limit 0 -p $PORT4 > vlog$PORT4 2>&1 &
 PID5=$!
 
-env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS=http://127.0.0.1:$PORT4 ${abs_builddir}/../debuginfod/debuginfod $VERBOSE --forwarded-ttl-limit 1 -p $PORT5 > vlog$PORT5 2>&1 &
+env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS=http://127.0.0.1:$PORT4 ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -d db.$PORT5.sql --forwarded-ttl-limit 1 -p $PORT5 > vlog$PORT5 2>&1 &
 PID6=$!
 
 wait_ready $PORT4 'ready' 1

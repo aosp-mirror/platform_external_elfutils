@@ -1,3 +1,7 @@
+2021-08-10  Adrian Ratiu  <adrian.ratiu@collabora.com>
+
+	* configure.ac (AC_CACHE_CHECK): Rework std=gnu99 check to allow clang.
+
 2021-08-20  Saleem Abdulrasool  <abdulras@google.com>
 
 	* Add AC_CHECK_HEADERS for error.h and err.h.

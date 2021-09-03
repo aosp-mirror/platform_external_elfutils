@@ -25,6 +25,10 @@ unset VALGRIND_CMD
 base=9600
 get_ports
 
+DB=${PWD}/.debuginfod_tmp.sqlite
+tempfiles $DB
+export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
+
 echo "int main() { return 0; }" > ${PWD}/prog.c
 # Create a subdirectory to confound source path names
 mkdir foobar
@@ -34,7 +38,7 @@ tempfiles prog prog.debug prog.c
 BUILDID=`env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../src/readelf \
           -a prog | grep 'Build ID' | cut -d ' ' -f 7`
 
-env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -p $PORT1 -t0 -g0 ${PWD} > vlog$PORT1 2>&1 &
+env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -p $PORT1 -d $DB -t0 -g0 ${PWD} > vlog$PORT1 2>&1 &
 PID1=$!
 tempfiles vlog$PORT1
 errfiles  vlog$PORT1

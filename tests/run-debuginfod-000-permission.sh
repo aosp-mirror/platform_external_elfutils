@@ -22,12 +22,13 @@
 set -x
 unset VALGRIND_CMD
 DB=${PWD}/.debuginfod_tmp.sqlite
+tempfiles $DB
 export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
 # This variable is essential and ensures no time-race for claiming ports occurs
 # set base to a unique multiple of 100 not used in any other 'run-debuginfod-*' test
 base=8000
 get_ports
-env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -p $PORT1 \
+env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -p $PORT1 -d $DB \
     -t0 -g0 -v ${PWD} > vlog$PORT1 2>&1 &
 PID1=$!
 tempfiles vlog$PORT1

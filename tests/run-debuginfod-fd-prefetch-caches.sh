@@ -31,8 +31,12 @@ PREFETCH_MBS=100
 base=8800
 get_ports
 
+DB=${PWD}/.debuginfod_tmp.sqlite
+tempfiles $DB
+export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
+
 echo $PORT1
-env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -p $PORT1 \
+env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -p $PORT1 -d $DB \
     --fdcache-mbs=$FDCACHE_MDS --fdcache-fds=$FDCACHE_FDS --fdcache-prefetch-mbs=$PREFETCH_MBS \
     --fdcache-prefetch-fds=$PREFETCH_FDS --fdcache-mintmp 0 -v -F F > vlog$PORT1 2>&1 &
 PID1=$!

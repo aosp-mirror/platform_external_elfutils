@@ -26,6 +26,10 @@ unset VALGRIND_CMD
 base=8600
 get_ports
 
+DB=${PWD}/.debuginfod_tmp.sqlite
+tempfiles $DB
+export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
+
 env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod \
     $VERBOSE -F -p $PORT1 -t0 -g0 -d ${DB} F > vlog$PORT1 2>&1 &
 PID1=$!

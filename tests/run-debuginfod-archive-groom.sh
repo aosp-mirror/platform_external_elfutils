@@ -26,6 +26,7 @@ unset VALGRIND_CMD
 base=8100
 get_ports
 DB=${PWD}/.debuginfod_tmp.sqlite
+tempfiles $DB
 export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
 export DEBUGINFOD_TIMEOUT=10
 export DEBUGINFOD_URLS='http://127.0.0.1:'$PORT1
@@ -68,7 +69,7 @@ if [ "$zstd" = "false" ]; then  # nuke the zstd fedora 31 ones
     rm -vrf R/debuginfod-rpms/fedora31
 fi
 
-tempfiles vlog3 $DB
+tempfiles vlog3
 cp -rvp ${abs_srcdir}/debuginfod-tars Z
 kill -USR1 $PID1
 # Wait till both files are in the index and scan/index fully finished

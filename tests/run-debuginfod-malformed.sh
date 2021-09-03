@@ -28,11 +28,12 @@ base=9200
 # find an unused port number
 get_ports
 DB=${PWD}/.debuginfod_tmp.sqlite
+tempfiles $DB
 export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
 mkdir F
 mkdir -p $DEBUGINFOD_CACHE_PATH
 
-env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -p $PORT1 \
+env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -p $PORT1 -d $DB \
     -t0 -g0 -v F > vlog$PORT1 2>&1 &
 PID1=$!
 tempfiles vlog$PORT1

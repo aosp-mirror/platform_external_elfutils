@@ -1,5 +1,20 @@
 2021-09-03  Mark Wielaard  <mark@klomp.org>
 
+	* run-debuginfod-000-permission.sh: Set DEBUGINFOD_CACHE_PATH
+	and use an unique sqlite db.
+	* run-debuginfod-archive-groom.sh: Likewise.
+	* run-debuginfod-archive-test.sh: Likewise.
+	* run-debuginfod-dlopen.sh: Likewise.
+	* run-debuginfod-duplicate-urls.sh: Likewise.
+	* run-debuginfod-extraction.sh: Likewise.
+	* run-debuginfod-fd-prefetch-caches.sh: Likewise.
+	* run-debuginfod-malformed.sh: Likewise.
+	* run-debuginfod-sizetime.sh: Likewise.
+	* run-debuginfod-tmp-home.sh: Likewise.
+	* run-debuginfod-writable.sh: Likewise.
+
+2021-09-03  Mark Wielaard  <mark@klomp.org>
+
 	* debuginfod-subr.sh (EXTRA_DIST): Add debuginfod-subr.sh.
 
 2021-08-28  Mark Wielaard  <mark@klomp.org>

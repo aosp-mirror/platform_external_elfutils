@@ -300,7 +300,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile21.bz2 testfile21.index.bz2 \
 	     testfile22.bz2 testfile23.bz2 testfile24.bz2 testfile25.bz2 \
 	     testfile26.bz2 testfile27.bz2 \
-	     coverage.sh test-subr.sh test-wrapper.sh \
+	     coverage.sh test-subr.sh test-wrapper.sh debuginfod-subr.sh \
 	     run-readelf-test1.sh run-readelf-test2.sh run-readelf-test3.sh \
 	     run-readelf-test4.sh run-readelf-twofiles.sh \
 	     run-bug1-test.sh testfile28.bz2 testfile28.rdwr.bz2 \

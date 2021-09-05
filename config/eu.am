@@ -39,8 +39,10 @@ ARFLAGS = cr
 # Warn about stack usage of more than 256K = 262144 bytes.
 if ADD_STACK_USAGE_WARNING
 STACK_USAGE_WARNING=-Wstack-usage=262144
+STACK_USAGE_NO_ERROR=-Wno-error=stack-usage=
 else
 STACK_USAGE_WARNING=
+STACK_USAGE_NO_ERROR=
 endif
 
 if SANE_LOGICAL_OP_WARNING

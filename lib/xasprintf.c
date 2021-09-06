@@ -1,5 +1,5 @@
-/* Declarations for the common library.
-   Copyright (C) 2006-2011 Red Hat, Inc.
+/* A wrapper around vasprintf that dies in case of an error.
+   Copyright (c) 2021 Dmitry V. Levin <ldv@altlinux.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -26,23 +26,27 @@
    the GNU Lesser General Public License along with this program.  If
    not, see <http://www.gnu.org/licenses/>.  */
 
-#ifndef LIBEU_H
-#define LIBEU_H
-
-#include <stddef.h>
-#include <stdint.h>
-
-extern void *xmalloc (size_t) __attribute__ ((__malloc__));
-extern void *xcalloc (size_t, size_t) __attribute__ ((__malloc__));
-extern void *xrealloc (void *, size_t) __attribute__ ((__malloc__));
-
-extern char *xstrdup (const char *) __attribute__ ((__malloc__));
-extern char *xstrndup (const char *, size_t) __attribute__ ((__malloc__));
-
-extern char *xasprintf(const char *fmt, ...)
-	__attribute__ ((format (printf, 1, 2))) __attribute__ ((__malloc__));
-
-extern uint32_t crc32 (uint32_t crc, unsigned char *buf, size_t len);
-extern int crc32_file (int fd, uint32_t *resp);
-
+#ifdef HAVE_CONFIG_H
+# include <config.h>
 #endif
+
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <libintl.h>
+#include "libeu.h"
+#include "system.h"
+
+char *
+xasprintf (const char *fmt, ...)
+{
+  char *res;
+  va_list ap;
+
+  va_start (ap, fmt);
+  if (unlikely (vasprintf (&res, fmt, ap) < 0))
+    error (EXIT_FAILURE, 0, _("memory exhausted"));
+  va_end(ap);
+
+  return res;
+}

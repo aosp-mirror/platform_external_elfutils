@@ -1,5 +1,9 @@
 2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
 
+	* xasprintf.c: New file.
+	* Makefile.am (libeu_a_SOURCES): Add it.
+	* libeu.h (xasprintf): New prototype.
+
 	* dynamicsizehash.c (INIT(NAME)): Remove cast of calloc return value.
 	* dynamicsizehash_concurrent.c (INIT(NAME)): Remove cast of malloc
 	return value.

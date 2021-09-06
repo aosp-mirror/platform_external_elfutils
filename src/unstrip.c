@@ -2401,9 +2401,7 @@ handle_output_dir_module (const char *output_dir, Dwfl_Module *mod, bool force,
   if (file == NULL && ignore)
     return;
 
-  char *output_file;
-  if (asprintf (&output_file, "%s/%s", output_dir, modnames ? name : file) < 0)
-    error (EXIT_FAILURE, 0, _("memory exhausted"));
+  char *output_file = xasprintf ("%s/%s", output_dir, modnames ? name : file);
 
   handle_dwfl_module (output_file, true, force, mod, all, ignore, relocate);
 
@@ -2606,9 +2604,7 @@ or - if no debuginfo was found, or . if FILE contains the debug information.\
 
       if (info.output_dir != NULL)
 	{
-	  char *file;
-	  if (asprintf (&file, "%s/%s", info.output_dir, info.args[0]) < 0)
-	    error (EXIT_FAILURE, 0, _("memory exhausted"));
+	  char *file = xasprintf ("%s/%s", info.output_dir, info.args[0]);
 	  handle_explicit_files (file, true, info.force,
 				 info.args[0], info.args[1]);
 	  free (file);

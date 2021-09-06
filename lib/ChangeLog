@@ -1,5 +1,8 @@
 2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
 
+	* color.c (parse_opt): Replace asprintf followed by error(EXIT_FAILURE)
+	with xasprintf.
+
 	* xasprintf.c: New file.
 	* Makefile.am (libeu_a_SOURCES): Add it.
 	* libeu.h (xasprintf): New prototype.

@@ -3448,17 +3448,15 @@ handle_gnu_hash (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, size_t shstrndx)
       nbits += (word & 0x0000ffff) + ((word >> 16) & 0x0000ffff);
     }
 
-  char *str;
-  if (unlikely (asprintf (&str, _("\
+  char *str = xasprintf (_("\
  Symbol Bias: %u\n\
  Bitmask Size: %zu bytes  %" PRIuFAST32 "%% bits set  2nd hash shift: %u\n"),
-			  (unsigned int) symbias,
-			  bitmask_words * sizeof (Elf32_Word),
-			  ((nbits * 100 + 50)
-			   / (uint_fast32_t) (bitmask_words
+			 (unsigned int) symbias,
+			 bitmask_words * sizeof (Elf32_Word),
+			 ((nbits * 100 + 50)
+			  / (uint_fast32_t) (bitmask_words
 					      * sizeof (Elf32_Word) * 8)),
-			  (unsigned int) shift) == -1))
-    error (EXIT_FAILURE, 0, _("memory exhausted"));
+			  (unsigned int) shift);
 
   print_hash_info (ebl, scn, shdr, shstrndx, maxlength, nbucket, nsyms,
 		   lengths, str);

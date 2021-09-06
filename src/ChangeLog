@@ -1,5 +1,10 @@
 2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
 
+	* objdump.c (show_disasm): Replace asprintf followed by
+	error(EXIT_FAILURE) with xasprintf.
+	* readelf.c (handle_gnu_hash): Likewise.
+	* unstrip.c (handle_output_dir_module, main): Likewise.
+
 	* elflint.c (check_sections): Remove cast of xcalloc return value.
 	* findtextrel.c (process_file): Remove casts of malloc and realloc
 	return values.

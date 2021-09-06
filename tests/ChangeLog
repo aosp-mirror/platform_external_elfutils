@@ -1,3 +1,10 @@
+2021-09-06  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfod-file.sh: Set DEBUGINFOD_CACHE_PATH. Export
+	correct DEBUGINFOD_URLS.
+	* run-debuginfod-query-retry.sh: Add DEBUGINFOD_CACHE_PATH
+	to env.
+
 2021-09-03  Mark Wielaard  <mark@klomp.org>
 
 	* run-debuginfod-000-permission.sh: Set DEBUGINFOD_CACHE_PATH

@@ -22,7 +22,7 @@
 set -x
 unset VALGRIND_CMD
 
-export DEBUGINFOD_URLS=http://127.0.0.1:$PORT1/   # or without trailing /
+export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
 
 # Test fetching a file using file:// . No debuginfod server needs to be run for
 # this test.
@@ -30,11 +30,11 @@ local_dir=${PWD}/mocktree/buildid/aaaaaaaaaabbbbbbbbbbccccccccccdddddddddd/sourc
 mkdir -p ${local_dir}
 echo "int main() { return 0; }" > ${local_dir}/main.c
 # first test that is doesn't work, when no DEBUGINFOD_URLS is set
-DEBUGINFOD_URLS=""
+export DEBUGINFOD_URLS=""
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find source aaaaaaaaaabbbbbbbbbbccccccccccdddddddddd /my/path/main.c && false || true
 
 # Now test is with proper DEBUGINFOD_URLS
-DEBUGINFOD_URLS="file://${PWD}/mocktree/"
+export DEBUGINFOD_URLS="file://${PWD}/mocktree/"
 filename=`testrun ${abs_top_builddir}/debuginfod/debuginfod-find source aaaaaaaaaabbbbbbbbbbccccccccccdddddddddd /my/path/main.c`
 cmp $filename ${local_dir}/main.c
 

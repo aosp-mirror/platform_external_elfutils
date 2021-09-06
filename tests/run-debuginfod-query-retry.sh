@@ -24,7 +24,7 @@ unset VALGRIND_CMD
 
 ########################################################################
 # set up tests for retrying failed queries.
-retry_attempts=`(testrun env DEBUGINFOD_URLS=http://255.255.255.255/JUNKJUNK DEBUGINFOD_RETRY_LIMIT=10 DEBUGINFOD_VERBOSE=1 \
+retry_attempts=`(testrun env DEBUGINFOD_URLS=http://255.255.255.255/JUNKJUNK DEBUGINFOD_RETRY_LIMIT=10 DEBUGINFOD_VERBOSE=1 DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache \
         ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo /bin/ls || true) 2>&1 >/dev/null \
         | grep -c 'Retry failed query'`
 if [ $retry_attempts -ne 10 ]; then

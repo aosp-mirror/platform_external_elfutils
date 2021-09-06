@@ -51,9 +51,11 @@ export DEBUGINFOD_TIMEOUT=10
 
 # Server must become ready
 wait_ready $PORT1 'ready' 1
-kill -USR1 $PID1
-
+# And the initial scan should have been done
 wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
+
+kill -USR1 $PID1
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 2
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
 
@@ -76,7 +78,7 @@ tempfiles F/prog2 F/prog2.debug
 
 kill -USR1 $PID1
 # Now there should be 3 files in the index
-wait_ready $PORT1 'thread_work_total{role="traverse"}' 2
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 3
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
 

@@ -37,7 +37,10 @@ env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod \
 PID1=$!
 tempfiles vlog$PORT1
 errfiles vlog$PORT1
+
+# Wait till the server is ready and an initial scan has been done
 wait_ready $PORT1 'ready' 1
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
 
 # Compile a simple program, strip its debuginfo and save the build-id.
 # Also move the debuginfo into another directory so that elfutils
@@ -55,7 +58,7 @@ tempfiles F/prog.debug F/prog
 
 kill -USR1 $PID1
 # Wait till both files are in the index.
-wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 2
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
 cp ${DB} ${DB}.backup
@@ -79,7 +82,7 @@ errfiles vlog$PORT2
 # Server must become ready
 wait_ready $PORT2 'ready' 1
 
-kill -USR2 $PID1
+# Wait till the initial groom cycle has been done
 wait_ready $PORT2 'thread_work_total{role="groom"}' 1
 wait_ready $PORT2 'groom{statistic="archive d/e"}'  0
 wait_ready $PORT2 'groom{statistic="archive sdef"}' 0

@@ -38,6 +38,8 @@ tempfiles vlog$PORT1
 errfiles vlog$PORT1
 # Server must become ready
 wait_ready $PORT1 'ready' 1
+# And make sure first scan is done
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
 
 # Be patient when run on a busy machine things might take a bit.
 export DEBUGINFOD_TIMEOUT=10
@@ -55,7 +57,7 @@ fi
 
 kill -USR1 $PID1
 # Wait till both files are in the index and scan/index fully finished
-wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 2
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
 

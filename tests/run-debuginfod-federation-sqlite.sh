@@ -59,7 +59,7 @@ errfiles vlog$PORT1
 
 wait_ready $PORT1 'ready' 1
 
-kill -USR1 $PID1
+# Wait till initial scan is done
 wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
@@ -73,13 +73,17 @@ tempfiles vlog$PORT2
 errfiles vlog$PORT2
 tempfiles ${DB}_2
 wait_ready $PORT2 'ready' 1
+# Wait till initial scan is done
+wait_ready $PORT2 'thread_work_total{role="traverse"}' 1
+# And initial groom cycle
+wait_ready $PORT1 'thread_work_total{role="groom"}' 1
 
 export DEBUGINFOD_URLS='http://127.0.0.1:'$PORT2 
 if type bsdtar 2>/dev/null; then
     # copy in the deb files
     cp -rvp ${abs_srcdir}/debuginfod-debs/*deb D
     kill -USR1 $PID2
-    wait_ready $PORT2 'thread_work_total{role="traverse"}' 1
+    wait_ready $PORT2 'thread_work_total{role="traverse"}' 2
     wait_ready $PORT2 'thread_work_pending{role="scan"}' 0
     wait_ready $PORT2 'thread_busy{role="scan"}' 0
 
@@ -177,7 +181,7 @@ wait_ready $PORT1 'thread_work_total{role="traverse"}' 2
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
 kill -USR2 $PID1
-wait_ready $PORT1 'thread_work_total{role="groom"}' 1
+wait_ready $PORT1 'thread_work_total{role="groom"}' 2
 curl -s http://127.0.0.1:$PORT1/buildid/beefbeefbeefd00dd00d/debuginfo > /dev/null || true
 curl -s http://127.0.0.1:$PORT1/metrics | grep 'error_count.*sqlite'
 # Run the tests again without the servers running. The target file should

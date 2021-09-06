@@ -57,9 +57,12 @@ cp -rvp ${abs_srcdir}/debuginfod-rpms R
 if [ "$zstd" = "false" ]; then  # nuke the zstd fedora 31 ones
     rm -vrf R/debuginfod-rpms/fedora31
 fi
+
+# wait till the initial scan is done before triggering a new one
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
 kill -USR1 $PID1
 # Now there should be 1 files in the index
-wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 2
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
 
@@ -72,7 +75,7 @@ tempfiles vlog3
 cp -rvp ${abs_srcdir}/debuginfod-tars Z
 kill -USR1 $PID1
 # Wait till both files are in the index and scan/index fully finished
-wait_ready $PORT1 'thread_work_total{role="traverse"}' 2
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 3
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
 ########################################################################
@@ -83,7 +86,7 @@ txz=$(find Z -name \*tar.xz | wc -l)
 
 kill -USR1 $PID1  # two hits of SIGUSR1 may be needed to resolve .debug->dwz->srefs
 # Wait till both files are in the index and scan/index fully finished
-wait_ready $PORT1 'thread_work_total{role="traverse"}' 3
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 4
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
 
@@ -136,9 +139,11 @@ RPM_BUILDID=d44d42cbd7d915bc938c81333a21e355a6022fb7 # in rhel6/ subdir
 # Drop some of the artifacts, run a groom cycle; confirm that
 # debuginfod has forgotten them, but remembers others
 rm -r R/debuginfod-rpms/rhel6/*
+
+wait_ready $PORT1 'thread_work_total{role="groom"}' 1
 kill -USR2 $PID1  # groom cycle
 ## 1 groom cycle already took place at/soon-after startup, so -USR2 makes 2
-wait_ready $PORT1 'thread_work_total{role="groom"}' 1
+wait_ready $PORT1 'thread_work_total{role="groom"}' 2
 # Expect 4 rpms containing 2 buildids to be deleted by the groom
 wait_ready $PORT1 'groomed_total{decision="stale"}' 4
 

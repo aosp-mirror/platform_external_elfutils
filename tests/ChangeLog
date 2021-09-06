@@ -1,5 +1,22 @@
 2021-09-06  Mark Wielaard  <mark@klomp.org>
 
+	* run-debuginfod-archive-groom.sh: Wait for initial scan and groom
+	cycle.
+	* run-debuginfod-archive-rename.sh: Likewise.
+	* run-debuginfod-federation-sqlite.sh: Likewise.
+	* run-debuginfod-archive-test.sh: Wait for initial scan cycle.
+	* run-debuginfod-artifact-running.sh: Likewise.
+	* run-debuginfod-dlopen.sh: Likewise.
+	* run-debuginfod-extraction.sh: Likewise.
+	* run-debuginfod-federation-link.sh: Likewise.
+	* run-debuginfod-federation-metrics.sh: Likewise.
+	* run-debuginfod-malformed.sh: Likewise.
+	* run-debuginfod-regex.sh: Likewise.
+	* run-debuginfod-tmp-home.sh: Likewise.
+	* run-debuginfod-writable.sh: Likewise.
+
+2021-09-06  Mark Wielaard  <mark@klomp.org>
+
 	* run-debuginfod-archive-groom.sh: Set DEBUGINFOD_URLS after starting
 	debuginfod server.
 	* run-debuginfod-archive-rename.sh: Likewise.

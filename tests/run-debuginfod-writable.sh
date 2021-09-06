@@ -39,6 +39,9 @@ tempfiles vlog$PORT1
 errfiles vlog$PORT1
 # Server must become ready
 wait_ready $PORT1 'ready' 1
+# And initial scan should be done
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
+
 export DEBUGINFOD_URLS=http://127.0.0.1:$PORT1/   # or without trailing /
 
 # Be patient when run on a busy machine things might take a bit.
@@ -67,7 +70,7 @@ mv p+r%o\$g F
 mv p+r%o\$g.debug F
 kill -USR1 $PID1
 # Wait till both files are in the index.
-wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 2
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
 

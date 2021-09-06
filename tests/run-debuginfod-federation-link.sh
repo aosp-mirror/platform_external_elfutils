@@ -62,6 +62,9 @@ BUILDID=`env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../src/readelf \
 
 mv prog F
 mv prog.debug F
+
+# Make sure initial scan was done
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
 kill -USR1 $PID1
 # Wait till both files are in the index.
 wait_ready $PORT1 'thread_work_total{role="traverse"}' 2
@@ -83,9 +86,11 @@ tempfiles ${DB}_2
 
 wait_ready $PORT2 'ready' 1
 
+# Make sure initial scan was done
+wait_ready $PORT2 'thread_work_total{role="traverse"}' 1
 kill -USR1 $PID2
 # Wait till both files are in the index.
-wait_ready $PORT2 'thread_work_total{role="traverse"}' 1
+wait_ready $PORT2 'thread_work_total{role="traverse"}' 2
 wait_ready $PORT2 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT2 'thread_busy{role="scan"}' 0
 
@@ -99,7 +104,7 @@ if type bsdtar 2>/dev/null; then
     # copy in the deb files
     cp -rvp ${abs_srcdir}/debuginfod-debs/*deb D
     kill -USR1 $PID2
-    wait_ready $PORT2 'thread_work_total{role="traverse"}' 2
+    wait_ready $PORT2 'thread_work_total{role="traverse"}' 3
     wait_ready $PORT2 'thread_work_pending{role="scan"}' 0
     wait_ready $PORT2 'thread_busy{role="scan"}' 0
 

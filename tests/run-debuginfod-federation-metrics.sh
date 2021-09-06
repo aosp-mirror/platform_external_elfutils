@@ -45,7 +45,7 @@ errfiles vlog$PORT1
 
 wait_ready $PORT1 'ready' 1
 
-kill -USR1 $PID1
+# Wait till initial scan is done
 wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0

@@ -54,9 +54,11 @@ fi
 
 cp -rvp ${abs_srcdir}/debuginfod-tars Z
 
+# Make sure the initial scan has finished
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
 kill -USR1 $PID1
 # Wait till both files are in the index and scan/index fully finished
-wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 2
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
 
@@ -71,7 +73,7 @@ wait_ready $PORT1 'scanned_files_total{source=".tar.bz2 archive"}' $tb2
 
 kill -USR1 $PID1  # two hits of SIGUSR1 may be needed to resolve .debug->dwz->srefs
 # Wait till both files are in the index and scan/index fully finished
-wait_ready $PORT1 'thread_work_total{role="traverse"}' 2
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 3
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
 

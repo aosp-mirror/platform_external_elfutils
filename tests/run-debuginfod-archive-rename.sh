@@ -49,9 +49,11 @@ if [ "$zstd" = "false" ]; then  # nuke the zstd fedora 31 ones
     rm -vrf R/debuginfod-rpms/fedora31
 fi
 
+# Make sure the initial scan is done
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
 kill -USR1 $PID1
 # Now there should be 1 files in the index
-wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 2
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
 
@@ -63,23 +65,25 @@ SHA=f4a1a8062be998ae93b8f1cd744a398c6de6dbb1
 # there are two copies of the same buildid in the index, one for the
 # no-longer-existing file name, and one under the new name.
 
+# Make sure the initial groom cycle has been done
+wait_ready $PORT1 'thread_work_total{role="groom"}' 1
 # run a groom cycle to force server to drop its fdcache
 kill -USR2 $PID1  # groom cycle
 wait_ready $PORT1 'thread_work_total{role="groom"}' 2
 # move it around a couple of times to make it likely to hit a nonexistent entry during iteration
 mv R/debuginfod-rpms/rhel7 R/debuginfod-rpms/rhel7renamed
 kill -USR1 $PID1  # scan cycle
-wait_ready $PORT1 'thread_work_total{role="traverse"}' 2
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 3
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
 mv R/debuginfod-rpms/rhel7renamed R/debuginfod-rpms/rhel7renamed2
 kill -USR1 $PID1  # scan cycle
-wait_ready $PORT1 'thread_work_total{role="traverse"}' 3
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 4
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
 mv R/debuginfod-rpms/rhel7renamed2 R/debuginfod-rpms/rhel7renamed3
 kill -USR1 $PID1  # scan cycle
-wait_ready $PORT1 'thread_work_total{role="traverse"}' 4
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 5
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
 

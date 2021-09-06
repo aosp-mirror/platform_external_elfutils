@@ -28,7 +28,6 @@ get_ports
 DB=${PWD}/.debuginfod_tmp.sqlite
 export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
 export DEBUGINFOD_TIMEOUT=10
-export DEBUGINFOD_URLS='http://127.0.0.1:'$PORT1
 tempfiles $DEBUGINFOD_CACHE_PATH $DB
 # Clean old dirictories
 mkdir R ${PWD}/F
@@ -83,6 +82,8 @@ kill -USR1 $PID1  # scan cycle
 wait_ready $PORT1 'thread_work_total{role="traverse"}' 4
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
+
+export DEBUGINFOD_URLS=http://127.0.0.1:$PORT1
 
 # retest rhel7
 archive_test bc1febfd03ca05e030f0d205f7659db29f8a4b30 /usr/src/debug/hello-1.0/hello.c $SHA

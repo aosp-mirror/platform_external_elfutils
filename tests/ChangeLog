@@ -1,5 +1,15 @@
 2021-09-06  Mark Wielaard  <mark@klomp.org>
 
+	* run-debuginfod-archive-groom.sh: Set DEBUGINFOD_URLS after starting
+	debuginfod server.
+	* run-debuginfod-archive-rename.sh: Likewise.
+	* run-debuginfod-federation-link.sh: Don't set DEBUGINFOD_URLS.
+	* run-debuginfod-federation-sqlite.sh: Likewise.
+	* run-debuginfod-federation-metrics.sh: Add comment why invalid
+	DEBUGINFOD_URLS is set.
+
+2021-09-06  Mark Wielaard  <mark@klomp.org>
+
 	* debuginfod-subr.sh (err): Change ports to port in for loop so both
 	PORT1 and PORT2 are used.
 	(get_ports): Simplify port selection by using for 50 for PORT1 and

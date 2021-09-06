@@ -29,7 +29,6 @@ DB=${PWD}/.debuginfod_tmp.sqlite
 tempfiles $DB
 export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
 export DEBUGINFOD_TIMEOUT=10
-export DEBUGINFOD_URLS='http://127.0.0.1:'$PORT1
 
 # Clean old dirictories
 mkdir R ${PWD}/F
@@ -111,6 +110,8 @@ cd ..
 rm -rf extracted
 
 wait_ready $PORT1 'found_sourcerefs_total{source=".rpm archive"}' $sourcefiles
+
+export DEBUGINFOD_URLS=http://127.0.0.1:$PORT1
 
 # common source file sha1
 SHA=f4a1a8062be998ae93b8f1cd744a398c6de6dbb1

@@ -1,5 +1,12 @@
 2021-09-06  Mark Wielaard  <mark@klomp.org>
 
+	* debuginfod-subr.sh (err): Change ports to port in for loop so both
+	PORT1 and PORT2 are used.
+	(get_ports): Simplify port selection by using for 50 for PORT1 and
+	second 50 for PORT2.
+
+2021-09-06  Mark Wielaard  <mark@klomp.org>
+
 	* run-debuginfod-file.sh: Set DEBUGINFOD_CACHE_PATH. Export
 	correct DEBUGINFOD_URLS.
 	* run-debuginfod-query-retry.sh: Add DEBUGINFOD_CACHE_PATH

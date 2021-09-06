@@ -39,7 +39,7 @@ trap cleanup 0 1 2 3 5 9 15
 errfiles_list=
 err() {
     echo ERROR REPORTS
-    for ports in $PORT1 $PORT2
+    for port in $PORT1 $PORT2
     do
         echo ERROR REPORT $port metrics
         curl -s http://127.0.0.1:$port/metrics
@@ -129,13 +129,13 @@ archive_test() {
 
 get_ports() {
   while true; do
-    PORT1=`expr '(' $RANDOM % 100 ')' + $base`
+    PORT1=`expr '(' $RANDOM % 50 ')' + $base`
     ss -atn | fgrep ":$PORT1" || break
   done
 # Some tests will use two servers, so assign the second var
   while true; do
-    PORT2=`expr '(' $RANDOM % 100 ')' + $base`
-    ss -atn | fgrep ":$PORT2" && $PORT1 -ne $PORT2 || break
+    PORT2=`expr '(' $RANDOM % 50 ')' + $base + 50`
+    ss -atn | fgrep ":$PORT2" || break
   done
 
 }

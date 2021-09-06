@@ -1,3 +1,9 @@
+2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* dwelf_strtab.c (dwelf_strtab_init): Remove cast of calloc return
+	value.
+	(morememory): Remove cast of malloc return value.
+
 2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* libdwelf.h: Fix spelling typos in comments.

@@ -3165,7 +3165,7 @@ print_hash_info (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, size_t shstrndx,
 		 uint_fast32_t maxlength, Elf32_Word nbucket,
 		 uint_fast32_t nsyms, uint32_t *lengths, const char *extrastr)
 {
-  uint32_t *counts = (uint32_t *) xcalloc (maxlength + 1, sizeof (uint32_t));
+  uint32_t *counts = xcalloc (maxlength + 1, sizeof (uint32_t));
 
   for (Elf32_Word cnt = 0; cnt < nbucket; ++cnt)
     ++counts[lengths[cnt]];
@@ -3266,7 +3266,7 @@ handle_sysv_hash (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, size_t shstrndx)
   Elf32_Word *bucket = &((Elf32_Word *) data->d_buf)[2];
   Elf32_Word *chain = &((Elf32_Word *) data->d_buf)[2 + nbucket];
 
-  uint32_t *lengths = (uint32_t *) xcalloc (nbucket, sizeof (uint32_t));
+  uint32_t *lengths = xcalloc (nbucket, sizeof (uint32_t));
 
   uint_fast32_t maxlength = 0;
   uint_fast32_t nsyms = 0;
@@ -3332,7 +3332,7 @@ handle_sysv_hash64 (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, size_t shstrndx)
   Elf64_Xword *bucket = &((Elf64_Xword *) data->d_buf)[2];
   Elf64_Xword *chain = &((Elf64_Xword *) data->d_buf)[2 + nbucket];
 
-  uint32_t *lengths = (uint32_t *) xcalloc (nbucket, sizeof (uint32_t));
+  uint32_t *lengths = xcalloc (nbucket, sizeof (uint32_t));
 
   uint_fast32_t maxlength = 0;
   uint_fast32_t nsyms = 0;
@@ -3410,7 +3410,7 @@ handle_gnu_hash (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, size_t shstrndx)
   if (used_buf > data->d_size)
     goto invalid_data;
 
-  lengths = (uint32_t *) xcalloc (nbucket, sizeof (uint32_t));
+  lengths = xcalloc (nbucket, sizeof (uint32_t));
 
   Elf32_Word *bitmask = &((Elf32_Word *) data->d_buf)[4];
   Elf32_Word *bucket = &((Elf32_Word *) data->d_buf)[4 + bitmask_words];
@@ -7744,7 +7744,7 @@ print_debug_units (Dwfl_Module *dwflmod,
     return;
 
   int maxdies = 20;
-  Dwarf_Die *dies = (Dwarf_Die *) xmalloc (maxdies * sizeof (Dwarf_Die));
+  Dwarf_Die *dies = xmalloc (maxdies * sizeof (Dwarf_Die));
 
   /* New compilation unit.  */
   Dwarf_Half version;
@@ -7916,9 +7916,7 @@ print_debug_units (Dwfl_Module *dwflmod,
 
       /* Make room for the next level's DIE.  */
       if (level + 1 == maxdies)
-	dies = (Dwarf_Die *) xrealloc (dies,
-				       (maxdies += 10)
-				       * sizeof (Dwarf_Die));
+	dies = xrealloc (dies, (maxdies += 10) * sizeof (Dwarf_Die));
 
       int res = dwarf_child (&dies[level], &dies[level + 1]);
       if (res > 0)

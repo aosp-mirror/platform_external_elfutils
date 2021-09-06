@@ -1,3 +1,12 @@
+2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* dwarf_begin_elf.c (valid_p): Remove casts of malloc return values.
+	(dwarf_begin_elf): Remove cast of calloc return value.
+	* dwarf_getpubnames.c (get_offsets): Remove casts of realloc return
+	values.
+	* dwarf_getsrclines.c (read_srclines): Remove cast of malloc return
+	value.
+
 2021-04-19  Martin Liska  <mliska@suse.cz>
 
 	* dwarf_begin_elf.c (check_section): Use startswith.

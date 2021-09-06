@@ -146,7 +146,7 @@ convert_data (Elf_Scn *scn, int eclass,
 	scn->data_base = scn->rawdata_base;
       else
 	{
-	  scn->data_base = (char *) malloc (size);
+	  scn->data_base = malloc (size);
 	  if (scn->data_base == NULL)
 	    {
 	      __libelf_seterrno (ELF_E_NOMEM);
@@ -161,7 +161,7 @@ convert_data (Elf_Scn *scn, int eclass,
     {
       xfct_t fp;
 
-      scn->data_base = (char *) malloc (size);
+      scn->data_base = malloc (size);
       if (scn->data_base == NULL)
 	{
 	  __libelf_seterrno (ELF_E_NOMEM);
@@ -175,7 +175,7 @@ convert_data (Elf_Scn *scn, int eclass,
 	rawdata_source = scn->rawdata_base;
       else
 	{
-	  rawdata_source = (char *) malloc (size);
+	  rawdata_source = malloc (size);
 	  if (rawdata_source == NULL)
 	    {
 	      __libelf_seterrno (ELF_E_NOMEM);
@@ -328,8 +328,7 @@ __libelf_set_rawdata_wrlock (Elf_Scn *scn)
 
 	  /* We have to read the data from the file.  Allocate the needed
 	     memory.  */
-	  scn->rawdata_base = scn->rawdata.d.d_buf
-	    = (char *) malloc (size);
+	  scn->rawdata_base = scn->rawdata.d.d_buf = malloc (size);
 	  if (scn->rawdata.d.d_buf == NULL)
 	    {
 	      __libelf_seterrno (ELF_E_NOMEM);

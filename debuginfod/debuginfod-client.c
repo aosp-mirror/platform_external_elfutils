@@ -1359,7 +1359,7 @@ debuginfod_begin (void)
 {
   debuginfod_client *client;
   size_t size = sizeof (struct debuginfod_client);
-  client = (debuginfod_client *) calloc (1, size);
+  client = calloc (1, size);
 
   if (client != NULL)
     {

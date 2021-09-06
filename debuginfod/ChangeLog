@@ -1,3 +1,8 @@
+2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* debuginfod-client.c (debuginfod_begin): Remove cast of calloc return
+	value.
+
 2021-08-28  Mark Wielaard  <mjw@redhat.com>
 
 	* debuginfod.cxx (parse_opt): Turn the -d arg ":memory:" into

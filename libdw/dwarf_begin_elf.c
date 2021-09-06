@@ -229,7 +229,7 @@ valid_p (Dwarf *result)
      inside the .debug_loc or .debug_loclists section.  */
   if (result != NULL && result->sectiondata[IDX_debug_loc] != NULL)
     {
-      result->fake_loc_cu = (Dwarf_CU *) malloc (sizeof (Dwarf_CU));
+      result->fake_loc_cu = malloc (sizeof (Dwarf_CU));
       if (unlikely (result->fake_loc_cu == NULL))
 	{
 	  Dwarf_Sig8_Hash_free (&result->sig8_hash);
@@ -255,7 +255,7 @@ valid_p (Dwarf *result)
 
   if (result != NULL && result->sectiondata[IDX_debug_loclists] != NULL)
     {
-      result->fake_loclists_cu = (Dwarf_CU *) malloc (sizeof (Dwarf_CU));
+      result->fake_loclists_cu = malloc (sizeof (Dwarf_CU));
       if (unlikely (result->fake_loclists_cu == NULL))
 	{
 	  Dwarf_Sig8_Hash_free (&result->sig8_hash);
@@ -286,7 +286,7 @@ valid_p (Dwarf *result)
      inside the .debug_addr section, if it exists.  */
   if (result != NULL && result->sectiondata[IDX_debug_addr] != NULL)
     {
-      result->fake_addr_cu = (Dwarf_CU *) malloc (sizeof (Dwarf_CU));
+      result->fake_addr_cu = malloc (sizeof (Dwarf_CU));
       if (unlikely (result->fake_addr_cu == NULL))
 	{
 	  Dwarf_Sig8_Hash_free (&result->sig8_hash);
@@ -415,7 +415,7 @@ dwarf_begin_elf (Elf *elf, Dwarf_Cmd cmd, Elf_Scn *scngrp)
   assert (sizeof (struct Dwarf) < mem_default_size);
 
   /* Allocate the data structure.  */
-  Dwarf *result = (Dwarf *) calloc (1, sizeof (Dwarf));
+  Dwarf *result = calloc (1, sizeof (Dwarf));
   if (unlikely (result == NULL)
       || unlikely (Dwarf_Sig8_Hash_init (&result->sig8_hash, 11) < 0))
     {

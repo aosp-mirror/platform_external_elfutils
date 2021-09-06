@@ -274,7 +274,7 @@ openbackend (Elf *elf, const char *emulation, GElf_Half machine)
   /* First allocate the data structure for the result.  We do this
      here since this assures that the structure is always large
      enough.  */
-  result = (Ebl *) calloc (1, sizeof (Ebl));
+  result = calloc (1, sizeof (Ebl));
   if (result == NULL)
     {
       // XXX uncomment

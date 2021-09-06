@@ -3705,7 +3705,7 @@ check_sections (Ebl *ebl, GElf_Ehdr *ehdr)
     return;
 
   /* Allocate array to count references in section groups.  */
-  scnref = (int *) xcalloc (shnum, sizeof (int));
+  scnref = xcalloc (shnum, sizeof (int));
 
   /* Check the zeroth section first.  It must not have any contents
      and the section header must contain nonzero value at most in the

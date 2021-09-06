@@ -1,3 +1,16 @@
+2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* elflint.c (check_sections): Remove cast of xcalloc return value.
+	* findtextrel.c (process_file): Remove casts of malloc and realloc
+	return values.
+	* nm.c (get_local_names, show_symbols_sysv, show_symbols): Remove
+	casts of xmalloc return values.
+	* readelf.c (print_hash_info, handle_sysv_hash, handle_sysv_hash64,
+	handle_gnu_hash): Remove cast of xcalloc return value.
+	(print_debug_units): Remove casts of xmalloc return values.
+	* strip.c (handle_elf): Remove casts of xcalloc and xmalloc return
+	values.
+
 2021-09-05  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* Makefile.am (AM_LDFLAGS): Add $(STACK_USAGE_NO_ERROR).

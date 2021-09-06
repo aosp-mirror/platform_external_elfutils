@@ -135,7 +135,7 @@ read_cached_memory (struct __libdwfl_pid_arg *pid_arg,
   if (mem_cache == NULL)
     {
       size_t mem_cache_size = sizeof (struct __libdwfl_remote_mem_cache);
-      mem_cache = (struct __libdwfl_remote_mem_cache *) malloc (mem_cache_size);
+      mem_cache = malloc (mem_cache_size);
       if (mem_cache == NULL)
 	return false;
 

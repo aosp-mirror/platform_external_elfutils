@@ -1,3 +1,7 @@
+2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* eblopenbackend.c (openbackend): Remove cast of calloc return value.
+
 2021-04-19  Martin Liska  <mliska@suse.cz>
 
 	* eblobjnotetypename.c (ebl_object_note_type_name): Use startswith.

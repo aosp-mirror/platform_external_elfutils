@@ -1062,7 +1062,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	 the debug file if the file would not contain any
 	 information.  */
       size_t debug_fname_len = strlen (debug_fname);
-      tmp_debug_fname = (char *) xmalloc (debug_fname_len + sizeof (".XXXXXX"));
+      tmp_debug_fname = xmalloc (debug_fname_len + sizeof (".XXXXXX"));
       strcpy (mempcpy (tmp_debug_fname, debug_fname, debug_fname_len),
 	      ".XXXXXX");
 
@@ -1196,8 +1196,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
      table.  Maybe some weird tool created an ELF file without one.
      The other one is used for the debug link section.  */
   if ((shnum + 2) * sizeof (struct shdr_info) > MAX_STACK_ALLOC)
-    shdr_info = (struct shdr_info *) xcalloc (shnum + 2,
-					      sizeof (struct shdr_info));
+    shdr_info = xcalloc (shnum + 2, sizeof (struct shdr_info));
   else
     {
       shdr_info = (struct shdr_info *) alloca ((shnum + 2)
@@ -1980,8 +1979,8 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 		  }
 
 		shdr_info[cnt].newsymidx
-		  = (Elf32_Word *) xcalloc (shdr_info[cnt].data->d_size
-					    / elsize, sizeof (Elf32_Word));
+		  = xcalloc (shdr_info[cnt].data->d_size / elsize,
+			     sizeof (Elf32_Word));
 
 		bool last_was_local = true;
 		size_t destidx;

@@ -1,3 +1,9 @@
+2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* dynamicsizehash.c (INIT(NAME)): Remove cast of calloc return value.
+	* dynamicsizehash_concurrent.c (INIT(NAME)): Remove cast of malloc
+	return value.
+
 2021-08-23  Saleem Abdulrasool  <abdulras@google.com>
 
 	* system.h: Remove inline definition for error and error_message_count

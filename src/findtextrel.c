@@ -304,8 +304,7 @@ process_file (const char *fname, bool more_than_one)
   /* Get the address ranges for the loaded segments.  */
   size_t nsegments_max = 10;
   size_t nsegments = 0;
-  struct segments *segments
-    = (struct segments *) malloc (nsegments_max * sizeof (segments[0]));
+  struct segments *segments = malloc (nsegments_max * sizeof (segments[0]));
   if (segments == NULL)
     error (1, errno, _("while reading ELF file"));
 
@@ -334,9 +333,7 @@ process_file (const char *fname, bool more_than_one)
 	    {
 	      nsegments_max *= 2;
 	      segments
-		= (struct segments *) realloc (segments,
-					       nsegments_max
-					       * sizeof (segments[0]));
+		= realloc (segments, nsegments_max * sizeof (segments[0]));
 	      if (segments == NULL)
 		{
 		  error (0, 0, _("\

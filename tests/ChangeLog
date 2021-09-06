@@ -1,3 +1,7 @@
+2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* elfcopy.c (copy_elf): Remove cast of malloc return value.
+
 2021-09-07  Mark Wielaard  <mark@klomp.org>
 
 	* run-debuginfod-archive-groom.sh: Wait for initial scan and groom

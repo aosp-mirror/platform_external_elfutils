@@ -1,3 +1,17 @@
+2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* asm_align.c (__libasm_ensure_section_space): Remove casts of calloc
+	return values.
+	* asm_begin.c (asm_begin): Remove cast of malloc return value.
+	* asm_fill.c (asm_fill): Likewise.
+	* asm_newabssym.c (asm_newabssym): Likewise.
+	* asm_newcomsym.c (asm_newcomsym): Likewise.
+	* asm_newscn.c (asm_newscn): Likewise.
+	* asm_newscngrp.c (asm_newscngrp): Likewise.
+	* asm_newsubscn.c (asm_newsubscn): Likewise.
+	* asm_newsym.c (asm_newsym): Likewise.
+	* disasm_begin.c (disasm_begin): Likewise.
+
 2021-04-19  Martin Liska  <mliska@suse.cz>
 
 	* libasmP.h (asm_emit_symbol_p): Use startswith.

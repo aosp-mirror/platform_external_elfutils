@@ -372,7 +372,7 @@ read_srclines (Dwarf *dbg,
     {
       if (ndirlist > SIZE_MAX / sizeof (*dirarray))
 	goto no_mem;
-      dirarray = (struct dirlist *) malloc (ndirlist * sizeof (*dirarray));
+      dirarray = malloc (ndirlist * sizeof (*dirarray));
       if (unlikely (dirarray == NULL))
 	{
 	no_mem:

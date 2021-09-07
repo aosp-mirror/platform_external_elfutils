@@ -51,6 +51,10 @@ ps -q $PID1 -e -L -o '%p %c %a' | grep groom
 ps -q $PID1 -e -L -o '%p %c %a' | grep scan
 ps -q $PID1 -e -L -o '%p %c %a' | grep traverse
 
+# Make sure the initial scan has finished.
+# Before moving files under the scan dirs.
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
+
 # We use -t0 and -g0 here to turn off time-based scanning & grooming.
 # For testing purposes, we just sic SIGUSR1 / SIGUSR2 at the process.
 
@@ -70,9 +74,6 @@ BUILDID=`env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../src/readelf \
 
 mv p+r%o\$g F
 mv p+r%o\$g.debug F
-
-# Make sure the initial scan has finished.
-wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
 
 kill -USR1 $PID1
 # Wait till both files are in the index.

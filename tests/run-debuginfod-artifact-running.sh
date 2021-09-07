@@ -42,17 +42,19 @@ env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -d
 PID1=$!
 tempfiles vlog$PORT1
 errfiles vlog$PORT1
+
+# Server must become ready
+wait_ready $PORT1 'ready' 1
+# And the initial scan should have been done before moving
+# files under the scan dirs.
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
+
 mv prog F
 mv prog.debug F
 tempfiles prog/F
 
 # Be patient when run on a busy machine things might take a bit.
 export DEBUGINFOD_TIMEOUT=10
-
-# Server must become ready
-wait_ready $PORT1 'ready' 1
-# And the initial scan should have been done
-wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
 
 kill -USR1 $PID1
 wait_ready $PORT1 'thread_work_total{role="traverse"}' 2

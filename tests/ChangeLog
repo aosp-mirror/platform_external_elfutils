@@ -1,3 +1,15 @@
+2021-09-07  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfod-archive-groom.sh: Wait for initial scan and groom
+	cycle before making any changes to the scan dirs.
+	* run-debuginfod-archive-rename.sh: Likewise.
+	* run-debuginfod-artifact-running.sh: Wait for initial scan cycle
+	before making any changes to the scan dirs.
+	* run-debuginfod-dlopen.sh: Likewise.
+	* run-debuginfod-extraction.sh: Likewise.
+	* run-debuginfod-federation-link.sh: Don't wait twice for the initial
+	scan.
+
 2021-09-06  Mark Wielaard  <mark@klomp.org>
 
 	* run-debuginfod-archive-groom.sh: Wait for initial scan and groom

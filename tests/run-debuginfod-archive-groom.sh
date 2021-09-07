@@ -46,6 +46,13 @@ ps -q $PID1 -e -L -o '%p %c %a' | grep groom
 ps -q $PID1 -e -L -o '%p %c %a' | grep scan
 ps -q $PID1 -e -L -o '%p %c %a' | grep traverse
 
+# wait till the initial scan is done before triggering a new one
+# and before dropping new file into the scan dirs
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
+# Same for the initial groom cycle, we don't want it to be done
+# half way initializing the file setup
+wait_ready $PORT1 'thread_work_total{role="groom"}' 1
+
 # Build a non-stripped binary
 echo "int main() { return 0; }" > ${PWD}/F/prog.c
 gcc -Wl,--build-id -g -o ${PWD}/F/prog ${PWD}/F/prog.c
@@ -58,8 +65,6 @@ if [ "$zstd" = "false" ]; then  # nuke the zstd fedora 31 ones
     rm -vrf R/debuginfod-rpms/fedora31
 fi
 
-# wait till the initial scan is done before triggering a new one
-wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
 kill -USR1 $PID1
 # Now there should be 1 files in the index
 wait_ready $PORT1 'thread_work_total{role="traverse"}' 2
@@ -140,7 +145,6 @@ RPM_BUILDID=d44d42cbd7d915bc938c81333a21e355a6022fb7 # in rhel6/ subdir
 # debuginfod has forgotten them, but remembers others
 rm -r R/debuginfod-rpms/rhel6/*
 
-wait_ready $PORT1 'thread_work_total{role="groom"}' 1
 kill -USR2 $PID1  # groom cycle
 ## 1 groom cycle already took place at/soon-after startup, so -USR2 makes 2
 wait_ready $PORT1 'thread_work_total{role="groom"}' 2

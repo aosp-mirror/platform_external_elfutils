@@ -47,6 +47,10 @@ ps -q $PID1 -e -L -o '%p %c %a' | grep groom
 ps -q $PID1 -e -L -o '%p %c %a' | grep scan
 ps -q $PID1 -e -L -o '%p %c %a' | grep traverse
 
+# Make sure the initial scan has finished before copying the new files in
+# We might remove some, which we don't want to be accidentially scanned.
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
+
 cp -rvp ${abs_srcdir}/debuginfod-rpms R
 if [ "$zstd" = "false" ]; then  # nuke the zstd fedora 31 ones
     rm -vrf R/debuginfod-rpms/fedora31
@@ -54,8 +58,6 @@ fi
 
 cp -rvp ${abs_srcdir}/debuginfod-tars Z
 
-# Make sure the initial scan has finished
-wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
 kill -USR1 $PID1
 # Wait till both files are in the index and scan/index fully finished
 wait_ready $PORT1 'thread_work_total{role="traverse"}' 2

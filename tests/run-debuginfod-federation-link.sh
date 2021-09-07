@@ -43,6 +43,7 @@ tempfiles vlog$PORT1
 errfiles vlog$PORT1
 
 wait_ready $PORT1 'ready' 1
+# Make sure initial scan was done
 wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
@@ -63,8 +64,6 @@ BUILDID=`env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../src/readelf \
 mv prog F
 mv prog.debug F
 
-# Make sure initial scan was done
-wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
 kill -USR1 $PID1
 # Wait till both files are in the index.
 wait_ready $PORT1 'thread_work_total{role="traverse"}' 2

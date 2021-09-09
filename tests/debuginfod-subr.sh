@@ -16,6 +16,9 @@
 
 # sourced from run-debuginfod-*.sh tests (must be bash scripts)
 
+# We trap ERR and like commands that fail in function to also trap
+set -o errtrace
+
 . $srcdir/test-subr.sh  # includes set -e
 
 type curl 2>/dev/null || (echo "need curl"; exit 77)
@@ -27,14 +30,14 @@ echo "zstd=$zstd bsdtar=`bsdtar --version`"
 
 cleanup()
 {
-  if [ $PID1 -ne 0 ]; then kill $PID1; wait $PID1; fi
-  if [ $PID2 -ne 0 ]; then kill $PID2; wait $PID2; fi
+  if [ $PID1 -ne 0 ]; then kill $PID1 || : ; wait $PID1 || :; fi
+  if [ $PID2 -ne 0 ]; then kill $PID2 || : ; wait $PID2 || :; fi
   rm -rf F R D L Z ${PWD}/foobar ${PWD}/mocktree ${PWD}/.client_cache* ${PWD}/tmp*
   exit_cleanup
 }
 
-# clean up trash if we were aborted early
-trap cleanup 0 1 2 3 5 9 15
+# clean up trash if we exit
+trap cleanup 0
 
 errfiles_list=
 err() {
@@ -42,7 +45,7 @@ err() {
     for port in $PORT1 $PORT2
     do
         echo ERROR REPORT $port metrics
-        curl -s http://127.0.0.1:$port/metrics
+        curl -s http://127.0.0.1:$port/metrics || :
         echo
     done
     for x in $errfiles_list
@@ -51,6 +54,7 @@ err() {
         cat $x
         echo
     done
+    cleanup
     false # trigger set -e
 }
 trap err ERR

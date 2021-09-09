@@ -92,6 +92,10 @@ wait_ready $PORT2 'thread_busy{role="http-metrics"}' 1
 
 # have clients contact the new server
 export DEBUGINFOD_URLS=http://127.0.0.1:$PORT2
+# Use fresh cache for debuginfod-find client requests
+export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache3
+mkdir -p $DEBUGINFOD_CACHE_PATH
+
 if type bsdtar 2>/dev/null; then
     # copy in the deb files
     cp -rvp ${abs_srcdir}/debuginfod-debs/*deb D
@@ -110,7 +114,6 @@ if type bsdtar 2>/dev/null; then
     archive_test f17a29b5a25bd4960531d82aa6b07c8abe84fa66 "" ""
 fi
 
-rm -rf $DEBUGINFOD_CACHE_PATH
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 
 # send a request to stress XFF and User-Agent federation relay;
@@ -171,20 +174,15 @@ curl -s http://127.0.0.1:$PORT2/buildid/deadbeef/debuginfo > /dev/null || true
 curl -s http://127.0.0.1:$PORT2/buildid/deadbeef/badtype > /dev/null || true
 (curl -s http://127.0.0.1:$PORT2/metrics | grep 'badtype') && false
 
-# DISABLE VALGRIND checking because valgrind might use debuginfod client
-# requests itself, causing confusion about who put what in the cache.
-# It stays disabled till the end of this test.
-unset VALGRIND_CMD
-
 # Confirm that reused curl connections survive 404 errors.
-# The rm's force an uncached fetch
-rm -f $DEBUGINFOD_CACHE_PATH/$BUILDID/debuginfo .client_cache*/$BUILDID/debuginfo
+# The rm's force an uncached fetch (in both servers and client cache)
+rm -f .client_cache*/$BUILDID/debuginfo
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
-rm -f $DEBUGINFOD_CACHE_PATH/$BUILDID/debuginfo .client_cache*/$BUILDID/debuginfo
+rm -f .client_cache*/$BUILDID/debuginfo
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
-rm -f $DEBUGINFOD_CACHE_PATH/$BUILDID/debuginfo .client_cache*/$BUILDID/debuginfo
+rm -f .client_cache*/$BUILDID/debuginfo
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 
 # Confirm that some debuginfod client pools are being used

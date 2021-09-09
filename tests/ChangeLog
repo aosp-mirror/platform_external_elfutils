@@ -1,3 +1,14 @@
+2021-09-09  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-subr.sh: set -o errtrace.
+	(cleanup): Don't fail kill or wait. Only trap on normal exit.
+	(err): Don't fail curl metrics. Call cleanup.
+	* run-debuginfod-federation-link.sh: Use separate client caches
+	for both servers and debuginfod client. Remove duplicate valgrind
+	disabling.
+	* run-debuginfod-federation-metrics.sh: Likewise.
+	* run-debuginfod-federation-sqlite.sh: Likewise.
+
 2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* elfcopy.c (copy_elf): Remove cast of malloc return value.

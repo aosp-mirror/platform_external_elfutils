@@ -98,6 +98,9 @@ wait_ready $PORT2 'thread_busy{role="http-metrics"}' 1
 
 # have clients contact the new server
 export DEBUGINFOD_URLS=http://127.0.0.1:$PORT2
+# Use fresh cache for debuginfod-find client requests
+export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache3
+mkdir -p $DEBUGINFOD_CACHE_PATH
 
 if type bsdtar 2>/dev/null; then
     # copy in the deb files
@@ -117,7 +120,6 @@ if type bsdtar 2>/dev/null; then
     archive_test f17a29b5a25bd4960531d82aa6b07c8abe84fa66 "" ""
 fi
 
-rm -rf $DEBUGINFOD_CACHE_PATH
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 
 # send a request to stress XFF and User-Agent federation relay;
@@ -148,8 +150,7 @@ export DEBUGINFOD_URLS=127.0.0.1:$PORT2
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 
 # test parallel queries in client
-export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache3
-mkdir -p $DEBUGINFOD_CACHE_PATH
+rm -rf $DEBUGINFOD_CACHE_PATH
 export DEBUGINFOD_URLS="BAD http://127.0.0.1:$PORT1 127.0.0.1:$PORT1 http://127.0.0.1:$PORT2 DNE"
 
 testrun ${abs_builddir}/debuginfod_build_id_find -e F/prog 1

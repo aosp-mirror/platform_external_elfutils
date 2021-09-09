@@ -428,6 +428,9 @@ AC_CHECK_DECLS([mempcpy],[],[],
 
 AC_CHECK_FUNCS([process_vm_readv])
 
+AC_CHECK_HEADERS([error.h])
+AC_CHECK_HEADERS([err.h])
+
 old_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -D_GNU_SOURCE"
 AC_FUNC_STRERROR_R()

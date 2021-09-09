@@ -61,7 +61,6 @@ nm_no_Wstack_usage = yes
 size_no_Wstack_usage = yes
 strip_no_Wstack_usage = yes
 elflint_no_Wstack_usage = yes
-findtextrel_no_Wstack_usage = yes
 elfcmp_no_Wstack_usage = yes
 objdump_no_Wstack_usage = yes
 ranlib_no_Wstack_usage = yes

@@ -1,3 +1,10 @@
+2021-09-09  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* findtextrel.c: Include "libeu.h".
+	(open_rootdir_file): New function.
+	(process_file): Use it to open file inside rootdir.
+	* Makefile.am (findtextrel_no_Wstack_usage): Remove.
+
 2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* objdump.c (show_disasm): Replace asprintf followed by

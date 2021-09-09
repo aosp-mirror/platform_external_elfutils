@@ -55,6 +55,12 @@
    don't. */
 #define HAVE_DECL_STRERROR_R 1
 
+/* Define to 1 if you have the <error.h> header file. */
+#define HAVE_ERROR_H 1
+
+/* Define to 1 if you have the <err.h> header file. */
+#define HAVE_ERR_H 1
+
 /* Defined if __attribute__((fallthrough)) is supported */
 #define HAVE_FALLTHROUGH 1
 

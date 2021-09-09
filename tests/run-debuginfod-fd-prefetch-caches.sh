@@ -51,10 +51,14 @@ grep 'prefetch fds ' vlog$PORT1 #$PREFETCH_FDS
 grep 'prefetch mbs ' vlog$PORT1 #$PREFETCH_MBS
 # search the vlog to find what metric counts should be and check the correct metrics
 # were incrimented
-wait_ready $PORT1 'fdcache_op_count{op="enqueue"}' $( grep -c 'interned.*front=1' vlog$PORT1 )
-wait_ready $PORT1 'fdcache_op_count{op="evict"}' $( grep -c 'evicted a=.*' vlog$PORT1 )
-wait_ready $PORT1 'fdcache_op_count{op="prefetch_enqueue"}' $( grep -c 'interned.*front=0' vlog$PORT1 )
-wait_ready $PORT1 'fdcache_op_count{op="prefetch_evict"}' $( grep -c 'evicted from prefetch a=.*front=0' vlog$PORT1 || true )
+enqueue_nr=$(grep -c 'interned.*front=1' vlog$PORT1 || true)
+wait_ready $PORT1 'fdcache_op_count{op="enqueue"}' $enqueue_nr
+evict_nr=$(grep -c 'evicted a=.*' vlog$PORT1 || true)
+wait_ready $PORT1 'fdcache_op_count{op="evict"}' $evict_nr
+prefetch_enqueue_nr=$(grep -c 'interned.*front=0' vlog$PORT1 || true)
+wait_ready $PORT1 'fdcache_op_count{op="prefetch_enqueue"}' $prefetch_enqueue_nr
+prefetch_evict_nr=$(grep -c 'evicted from prefetch a=.*front=0' vlog$PORT1 || true)
+wait_ready $PORT1 'fdcache_op_count{op="prefetch_evict"}' $prefetch_evict_nr
 
 kill $PID1
 wait $PID1

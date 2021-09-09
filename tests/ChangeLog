@@ -1,5 +1,12 @@
 2021-09-09  Mark Wielaard  <mark@klomp.org>
 
+	* debuginfod-subr.sh: set -o functrace.
+	(cleanup): Disable trap 0.
+	(err): Disable trap ERR.
+	* run-debuginfod-fd-prefetch-caches.sh: Use || true when grep -c fails.
+
+2021-09-09  Mark Wielaard  <mark@klomp.org>
+
 	* debuginfod-subr.sh: set -o errtrace.
 	(cleanup): Don't fail kill or wait. Only trap on normal exit.
 	(err): Don't fail curl metrics. Call cleanup.

@@ -17,6 +17,7 @@
 # sourced from run-debuginfod-*.sh tests (must be bash scripts)
 
 # We trap ERR and like commands that fail in function to also trap
+set -o functrace
 set -o errtrace
 
 . $srcdir/test-subr.sh  # includes set -e
@@ -30,6 +31,9 @@ echo "zstd=$zstd bsdtar=`bsdtar --version`"
 
 cleanup()
 {
+  # No more cleanups after this cleanup
+  trap - 0
+
   if [ $PID1 -ne 0 ]; then kill $PID1 || : ; wait $PID1 || :; fi
   if [ $PID2 -ne 0 ]; then kill $PID2 || : ; wait $PID2 || :; fi
   rm -rf F R D L Z ${PWD}/foobar ${PWD}/mocktree ${PWD}/.client_cache* ${PWD}/tmp*
@@ -41,6 +45,9 @@ trap cleanup 0
 
 errfiles_list=
 err() {
+    # Don't trap any new errors from now on
+    trap - ERR
+
     echo ERROR REPORTS
     for port in $PORT1 $PORT2
     do

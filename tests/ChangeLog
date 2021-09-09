@@ -30,6 +30,11 @@
 	* run-debuginfod-federation-metrics.sh: Likewise.
 	* run-debuginfod-federation-sqlite.sh: Likewise.
 
+2021-09-13  Noah Sanci  <nsanci@redhat.com>
+
+	* Makefile.am: added run-debuginfod-percent-escape.sh to TESTS and
+	EXTRA_DIST.
+
 2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* elfcopy.c (copy_elf): Remove cast of malloc return value.
@@ -164,11 +169,8 @@
 2021-07-16  Noah Sanci  <nsanci@redhat.com>
 
 	PR28034
-	* run-debuginfod-find.sh: Added a test ensuring files with %
-	escapable characters in their paths are accessible. The test
-	itself is changing the name of a binary known previously as prog to
-	p+r%o$g. General operations such as accessing p+r%o$g acts as the
-	test for %-escape checking.
+	* run-debuginfod-percent-escape.sh: Added a test ensuring files with %
+	escapable characters in their paths are accessible.
 
 2021-07-21  Noah Sanci <nsanci@redhat.com>
 

@@ -883,6 +883,32 @@ debuginfod_query_server (debuginfod_client *c,
       data[i].errbuf[0] = '\0';
     }
 
+  char *escaped_string = NULL;
+  size_t escaped_strlen = 0;
+  if (filename)
+    {
+      escaped_string = curl_easy_escape(&target_handle, filename+1, 0);
+      if (!escaped_string)
+        {
+          rc = -ENOMEM;
+          goto out2;
+        }
+      char *loc = escaped_string;
+      escaped_strlen = strlen(escaped_string);
+      while ((loc = strstr(loc, "%2F")))
+        {
+          loc[0] = '/';
+          //pull the string back after replacement
+          // loc-escaped_string finds the distance from the origin to the new location
+          // - 2 accounts for the 2F which remain and don't need to be measured.
+          // The two above subtracted from escaped_strlen yields the remaining characters
+          // in the string which we want to pull back
+          memmove(loc+1, loc+3,escaped_strlen - (loc-escaped_string) - 2);
+          //Because the 2F was overwritten in the memmove (as desired) escaped_strlen is
+          // now two shorter.
+          escaped_strlen -= 2;
+        }
+    }
   /* Initialize each handle.  */
   for (int i = 0; i < num_urls; i++)
     {
@@ -904,16 +930,8 @@ debuginfod_query_server (debuginfod_client *c,
       if (filename) /* must start with / */
         {
           /* PR28034 escape characters in completed url to %hh format. */
-          char *escaped_string;
-          escaped_string = curl_easy_escape(data[i].handle, filename, 0);
-          if (!escaped_string)
-            {
-              rc = -ENOMEM;
-              goto out2;
-            }
           snprintf(data[i].url, PATH_MAX, "%s/%s/%s/%s", server_url,
                    build_id_bytes, type, escaped_string);
-          curl_free(escaped_string);
         }
       else
         snprintf(data[i].url, PATH_MAX, "%s/%s/%s", server_url, build_id_bytes, type);
@@ -953,6 +971,7 @@ debuginfod_query_server (debuginfod_client *c,
       curl_multi_add_handle(curlm, data[i].handle);
     }
 
+  if (filename) curl_free(escaped_string);
   /* Query servers in parallel.  */
   if (vfd >= 0)
     dprintf (vfd, "query %d urls in parallel\n", num_urls);

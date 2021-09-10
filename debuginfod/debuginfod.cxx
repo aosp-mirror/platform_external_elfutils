@@ -45,7 +45,6 @@ extern "C" {
 
 #include <unistd.h>
 #include <stdlib.h>
-#include <error.h>
 #include <libintl.h>
 #include <locale.h>
 #include <pthread.h>

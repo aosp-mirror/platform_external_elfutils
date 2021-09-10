@@ -1,3 +1,8 @@
+2021-09-10  Colin Cross <ccross@google.com>
+
+	* error.c (error): Call fflush on stdout and stderr. Setup errno and
+	call verr, verrx, vwarn or vwarnx based on status and errnum.
+
 2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* color.c (parse_opt): Replace asprintf followed by error(EXIT_FAILURE)

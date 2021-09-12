@@ -1347,7 +1347,7 @@ public:
     if (statfs_free_enough_p(tmpdir, "tmpdir", fdcache_mintmp))
       {
         inc_metric("fdcache_op_count","op","emerg-flush");
-        obatched(clog) << "fdcache emergency flush for filling tmpdir";
+        obatched(clog) << "fdcache emergency flush for filling tmpdir" << endl;
         this->limit(0, 0, 0, 0); // emergency flush
       }
     else if (fd >= 0)

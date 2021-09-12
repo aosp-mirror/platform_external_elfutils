@@ -1,3 +1,8 @@
+2021-09-12  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod.cxx (libarchive_fdcache::lookup): Add endl after
+	obatched(clog) line.
+
 2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* debuginfod-client.c (debuginfod_begin): Remove cast of calloc return

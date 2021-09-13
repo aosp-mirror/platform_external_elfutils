@@ -49,6 +49,11 @@ cc_binary_host {
     static_libs: [
         "libeu",
     ],
+    target: {
+        musl: {
+            static_libs: ["libobstack"],
+        },
+    },
 }
 
 genrule {

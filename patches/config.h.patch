@@ -1,5 +1,5 @@
 diff --git b/config.h a/config.h
-index 3ce5c686..ee0d24fa 100644
+index 3ce5c686..b39476f6 100644
 --- b/config.h
 +++ a/config.h
 @@ -29,7 +29,7 @@
@@ -11,7 +11,17 @@ index 3ce5c686..ee0d24fa 100644
  
  /* Define if the GNU dcgettext() function is already present or preinstalled.
     */
-@@ -65,7 +65,7 @@
+@@ -56,7 +56,9 @@
+ #define HAVE_DECL_STRERROR_R 1
+ 
+ /* Define to 1 if you have the <error.h> header file. */
++#if defined(__BIONIC__) || defined(__GLIBC__)
+ #define HAVE_ERROR_H 1
++#endif
+ 
+ /* Define to 1 if you have the <err.h> header file. */
+ #define HAVE_ERR_H 1
+@@ -65,7 +67,7 @@
  #define HAVE_FALLTHROUGH 1
  
  /* Defined if __attribute__((gcc_struct)) is supported */
@@ -20,7 +30,17 @@ index 3ce5c686..ee0d24fa 100644
  
  /* Define if the GNU gettext() function is already present or preinstalled. */
  #define HAVE_GETTEXT 1
-@@ -170,13 +170,15 @@
+@@ -143,7 +145,9 @@
+ #define STDC_HEADERS 1
+ 
+ /* Define to 1 if strerror_r returns char *. */
++#if defined(__GLIBC__) || defined(__BIONIC__)
+ #define STRERROR_R_CHAR_P 1
++#endif
+ 
+ /* Support bzip2 decompression via -lbz2. */
+ /* #undef USE_BZLIB */
+@@ -170,13 +174,15 @@
     `char[]'. */
  #define YYTEXT_POINTER 1
  

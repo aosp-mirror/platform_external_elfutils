@@ -663,10 +663,11 @@ class workq
   mutex mtx;
   condition_variable cv;
   bool dead;
-  unsigned idlers;
+  unsigned idlers;   // number of threads busy with wait_idle / done_idle
+  unsigned fronters; // number of threads busy with wait_front / done_front
 
 public:
-  workq() { dead = false; idlers = 0; }
+  workq() { dead = false; idlers = 0; fronters = 0; }
   ~workq() {}
 
   void push_back(const Payload& p)
@@ -690,10 +691,11 @@ public:
     unique_lock<mutex> lock(mtx);
     q.clear();
     set_metric("thread_work_pending","role","scan", q.size());
+    // NB: there may still be some live fronters
     cv.notify_all(); // maybe wake up waiting idlers
   }
 
-  // block this scanner thread until there is work to do and no active
+  // block this scanner thread until there is work to do and no active idler
   bool wait_front (Payload& p)
   {
     unique_lock<mutex> lock(mtx);
@@ -705,19 +707,29 @@ public:
       {
         p = * q.begin();
         q.erase (q.begin());
+        fronters ++; // prevent idlers from starting awhile, even if empty q
         set_metric("thread_work_pending","role","scan", q.size());
-        if (q.size() == 0)
-          cv.notify_all(); // maybe wake up waiting idlers
+        // NB: don't wake up idlers yet!  The consumer is busy
+        // processing this element until it calls done_front().
         return true;
       }
   }
 
+  // notify waitq that scanner thread is done with that last item
+  void done_front ()
+  {
+    unique_lock<mutex> lock(mtx);
+    fronters --;
+    if (q.size() == 0 && fronters == 0)
+      cv.notify_all(); // maybe wake up waiting idlers
+  }
+  
   // block this idler thread until there is no work to do
   void wait_idle ()
   {
     unique_lock<mutex> lock(mtx);
     cv.notify_all(); // maybe wake up waiting scanners
-    while (!dead && (q.size() != 0))
+    while (!dead && ((q.size() != 0) || fronters > 0))
       cv.wait(lock);
     idlers ++;
   }
@@ -3145,6 +3157,8 @@ thread_main_scanner (void* arg)
           e.report(cerr);
         }
 
+      scanq.done_front(); // let idlers run
+      
       if (fts_cached || fts_executable || fts_debuginfo || fts_sourcefiles || fts_sref || fts_sdef)
         {} // NB: not just if a successful scan - we might have encountered -ENOSPC & failed
       (void) statfs_free_enough_p(db_path, "database"); // report sqlite filesystem size

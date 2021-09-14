@@ -1,3 +1,11 @@
+2021-09-14  Frank Ch. Eigler <fche@redhat.com>
+
+	PRPR28339
+	* debuginfod.cxx (waitq::fronters): New field.
+	(waitq::wait_idle): Respect it.
+	(waitq::done_front): New function.
+	(thread_main_scanner): Call it to match wait_front().
+
 2021-09-12  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod.cxx (libarchive_fdcache::lookup): Add endl after

@@ -1,3 +1,8 @@
+2021-09-10  Colin Cross <ccross@google.com>
+
+	* error.c (error): Call fflush on stdout and stderr. Setup errno and
+	call verr, verrx, vwarn or vwarnx based on status and errnum.
+
 2021-08-23  Saleem Abdulrasool  <abdulras@google.com>
 
 	* system.h: Remove inline definition for error and error_message_count

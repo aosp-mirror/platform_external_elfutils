@@ -1,3 +1,8 @@
+2021-09-17  Noah Sanci  <nsanci@redhat.com>
+
+	* debuginfod-client.c (debuginfod_query_server): curl_multi_perform
+	now occurs before checking if response headers have arrived.
+
 2021-09-14  Frank Ch. Eigler <fche@redhat.com>
 
 	PRPR28339

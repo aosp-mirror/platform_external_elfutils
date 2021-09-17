@@ -1046,6 +1046,7 @@ debuginfod_query_server (debuginfod_client *c,
         }
       /* Wait 1 second, the minimum DEBUGINFOD_TIMEOUT.  */
       curl_multi_wait(curlm, NULL, 0, 1000, NULL);
+      CURLMcode curlm_res = curl_multi_perform(curlm, &still_running);
 
       /* If the target file has been found, abort the other queries.  */
       if (target_handle != NULL)
@@ -1077,7 +1078,6 @@ debuginfod_query_server (debuginfod_client *c,
 	  verbose_reported = true;
 	}
 
-      CURLMcode curlm_res = curl_multi_perform(curlm, &still_running);
       if (curlm_res != CURLM_OK)
         {
           switch (curlm_res)

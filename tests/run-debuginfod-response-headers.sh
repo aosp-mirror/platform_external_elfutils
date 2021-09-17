@@ -74,8 +74,6 @@ env DEBUGINFOD_URLS="http://127.0.0.1:"$PORT1 LD_LIBRARY_PATH=$ldpath ${abs_top_
     -vvv executable F/prog > vlog-find$PORT1.1 2>&1
 tempfiles vlog-find$PORT1.1
 grep 'Content-Length: ' vlog-find$PORT1.1
-grep 'Connection: ' vlog-find$PORT1.1
-grep 'Cache-Control: ' vlog-find$PORT1.1
 grep 'X-DEBUGINFOD-FILE: ' vlog-find$PORT1.1
 grep 'X-DEBUGINFOD-SIZE: ' vlog-find$PORT1.1
 
@@ -84,8 +82,6 @@ env DEBUGINFOD_URLS="http://127.0.0.1:"$PORT1 LD_LIBRARY_PATH=$ldpath ${abs_top_
     -vvv executable c36708a78618d597dee15d0dc989f093ca5f9120 > vlog-find$PORT1.2 2>&1
 tempfiles vlog-find$PORT1.2
 grep 'Content-Length: ' vlog-find$PORT1.2
-grep 'Connection: ' vlog-find$PORT1.2
-grep 'Cache-Control: ' vlog-find$PORT1.2
 grep 'X-DEBUGINFOD-FILE: ' vlog-find$PORT1.2
 grep 'X-DEBUGINFOD-SIZE: ' vlog-find$PORT1.2
 grep 'X-DEBUGINFOD-ARCHIVE: ' vlog-find$PORT1.2

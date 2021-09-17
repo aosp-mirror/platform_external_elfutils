@@ -1,3 +1,8 @@
+2021-09-17  Noah Sanci  <nsanci@redhat.com>
+
+	* run-debuginfod-response-header.sh: removed checking for Connection
+	and Cache-Control in response headers.
+
 2021-09-08  Mark Wielaard  <mark@klomp.org>
 
 	* run-varlocs-vars.sh: New test.

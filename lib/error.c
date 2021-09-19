@@ -29,7 +29,9 @@
 #include <config.h>
 
 #if !defined(HAVE_ERROR_H) && defined(HAVE_ERR_H)
+#include <errno.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <err.h>
 
@@ -37,13 +39,37 @@ unsigned int error_message_count = 0;
 
 void error(int status, int errnum, const char *format, ...) {
   va_list argp;
+  int saved_errno = errno;
+
+  fflush (stdout);
 
   va_start(argp, format);
-  verr(status, format, argp);
+  if (status)
+    {
+      if (errnum)
+        {
+          errno = errnum;
+          verr (status, format, argp);
+        }
+      else
+        verrx (status, format, argp);
+    }
+  else
+    {
+      if (errnum)
+        {
+          errno = errnum;
+          vwarn (format, argp);
+        }
+      else
+        vwarnx (format, argp);
+    }
   va_end(argp);
 
-  if (status)
-    exit(status);
+  fflush (stderr);
+
   ++error_message_count;
+
+  errno = saved_errno;
 }
 #endif

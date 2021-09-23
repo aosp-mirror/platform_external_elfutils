@@ -55,6 +55,14 @@
    don't. */
 #define HAVE_DECL_STRERROR_R 1
 
+/* Define to 1 if you have the <error.h> header file. */
+#if defined(__BIONIC__) || defined(__GLIBC__)
+#define HAVE_ERROR_H 1
+#endif
+
+/* Define to 1 if you have the <err.h> header file. */
+#define HAVE_ERR_H 1
+
 /* Defined if __attribute__((fallthrough)) is supported */
 #define HAVE_FALLTHROUGH 1
 
@@ -137,7 +145,9 @@
 #define STDC_HEADERS 1
 
 /* Define to 1 if strerror_r returns char *. */
+#if defined(__GLIBC__) || defined(__BIONIC__)
 #define STRERROR_R_CHAR_P 1
+#endif
 
 /* Support bzip2 decompression via -lbz2. */
 /* #undef USE_BZLIB */

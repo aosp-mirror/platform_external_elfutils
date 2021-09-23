@@ -1,3 +1,31 @@
+2021-09-10  Colin Cross <ccross@google.com>
+
+	* error.c (error): Call fflush on stdout and stderr. Setup errno and
+	call verr, verrx, vwarn or vwarnx based on status and errnum.
+
+2021-08-23  Saleem Abdulrasool  <abdulras@google.com>
+
+	* system.h: Remove inline definition for error and error_message_count
+	in the fallback path.
+	* Makefile.am (libeu_a_SOURCES): Add error.c.
+	* error.c: New file, moves the previous inline definitions to avoid
+	multiple definitions properly rather than relying on -fcommon and vague
+	linkage.
+
+2021-08-21  Saleem Abdulrasool  <abdulras@google.com>
+
+	* fixedsizehash.h: Remove unused STROF macro.
+
+2021-08-20  Saleem Abdulrasool  <abdulras@google.com>
+
+	* system.h: Check for HAVE_ERROR_H and HAVE_ERR_H and define
+	error_message_cont and error if necessary.
+
+2021-08-20  Saleem Abdulrasool  <abdulras@google.com>
+
+	* fixedsizehash.h: Remove sys/cdefs.h include. Unconditionally
+	define STROF and CONCAT macros.
+
 2021-02-05  Mark Wielaard  <mark@klomp.org>
 
 	* printversion.c (print_version): Update copyright year.

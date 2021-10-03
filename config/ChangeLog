@@ -1,3 +1,11 @@
+2021-10-03  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR27783
+	* profile.sh, profile.csh: Rewrite to document and set DEBUGINFOD_URLS
+	from /etc/debuginfod/*.urls files.
+	* Makefile.am: Install the configury-specified .urls file.
+	* elfutils.spec: Package it.
+
 2021-09-05  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* eu.am (STACK_USAGE_NO_ERROR): New variable.

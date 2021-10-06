@@ -436,7 +436,14 @@ static void inc_metric(const string& metric,
 static void add_metric(const string& metric,
                        const string& lname, const string& lvalue,
                        double value);
-// static void add_metric(const string& metric, double value);
+static void inc_metric(const string& metric,
+                       const string& lname, const string& lvalue,
+                       const string& rname, const string& rvalue);
+static void add_metric(const string& metric,
+                       const string& lname, const string& lvalue,
+                       const string& rname, const string& rvalue,                       
+                       double value);
+
 
 class tmp_inc_metric { // a RAII style wrapper for exception-safe scoped increment & decrement
   string m, n, v;
@@ -1802,7 +1809,7 @@ void debuginfod_pool_end(debuginfod_client* c)
 static struct MHD_Response*
 handle_buildid (MHD_Connection* conn,
                 const string& buildid /* unsafe */,
-                const string& artifacttype /* unsafe */,
+                string& artifacttype /* unsafe, cleanse on exception/return */,
                 const string& suffix /* unsafe */,
                 int *result_fd)
 {
@@ -1811,7 +1818,10 @@ handle_buildid (MHD_Connection* conn,
   if (artifacttype == "debuginfo") atype_code = "D";
   else if (artifacttype == "executable") atype_code = "E";
   else if (artifacttype == "source") atype_code = "S";
-  else throw reportable_exception("invalid artifacttype");
+  else {
+    artifacttype = "invalid"; // PR28242 ensure http_resposes metrics don't propagate unclean user data 
+    throw reportable_exception("invalid artifacttype");
+  }
 
   inc_metric("http_requests_total", "type", artifacttype);
   
@@ -2080,6 +2090,29 @@ add_metric(const string& metric,
 
 // and more for higher arity labels if needed
 
+static void
+inc_metric(const string& metric,
+           const string& lname, const string& lvalue,
+           const string& rname, const string& rvalue)
+{
+  string key = (metric + "{"
+                + metric_label(lname, lvalue) + ","
+                + metric_label(rname, rvalue) + "}");
+  unique_lock<mutex> lock(metrics_lock);
+  metrics[key] ++;
+}
+static void
+add_metric(const string& metric,
+           const string& lname, const string& lvalue,
+           const string& rname, const string& rvalue,
+           double value)
+{
+  string key = (metric + "{"
+                + metric_label(lname, lvalue) + ","
+                + metric_label(rname, rvalue) + "}");
+  unique_lock<mutex> lock(metrics_lock);
+  metrics[key] += value;
+}
 
 static struct MHD_Response*
 handle_metrics (off_t* size)
@@ -2165,6 +2198,7 @@ handler_cb (void * /*cls*/,
   struct timespec ts_start, ts_end;
   clock_gettime (CLOCK_MONOTONIC, &ts_start);
   double afteryou = 0.0;
+  string artifacttype, suffix;
 
   try
     {
@@ -2203,7 +2237,7 @@ handler_cb (void * /*cls*/,
           string buildid = url_copy.substr(slash1+1, slash2-slash1-1);
 
           size_t slash3 = url_copy.find('/', slash2+1);
-          string artifacttype, suffix;
+
           if (slash3 == string::npos)
             {
               artifacttype = url_copy.substr(slash2+1);
@@ -2229,12 +2263,14 @@ handler_cb (void * /*cls*/,
       else if (url1 == "/metrics")
         {
           tmp_inc_metric m ("thread_busy", "role", "http-metrics");
-          inc_metric("http_requests_total", "type", "metrics");
+          artifacttype = "metrics";
+          inc_metric("http_requests_total", "type", artifacttype);
           r = handle_metrics(& http_size);
         }
       else if (url1 == "/")
         {
-          inc_metric("http_requests_total", "type", "/");
+          artifacttype = "/";
+          inc_metric("http_requests_total", "type", artifacttype);
           r = handle_root(& http_size);
         }
       else
@@ -2274,19 +2310,21 @@ handler_cb (void * /*cls*/,
 
   // related prometheus metrics
   string http_code_str = to_string(http_code);
-  if (http_size >= 0)
-    add_metric("http_responses_transfer_bytes_sum","code",http_code_str,
-               http_size);
-  inc_metric("http_responses_transfer_bytes_count","code",http_code_str);
+  add_metric("http_responses_transfer_bytes_sum",
+             "code", http_code_str, "type", artifacttype, http_size);
+  inc_metric("http_responses_transfer_bytes_count",
+             "code", http_code_str, "type", artifacttype);
 
-  add_metric("http_responses_duration_milliseconds_sum","code",http_code_str,
-             deltas*1000); // prometheus prefers _seconds and floating point
-  inc_metric("http_responses_duration_milliseconds_count","code",http_code_str);
+  add_metric("http_responses_duration_milliseconds_sum",
+             "code", http_code_str, "type", artifacttype, deltas*1000); // prometheus prefers _seconds and floating point
+  inc_metric("http_responses_duration_milliseconds_count",
+             "code", http_code_str, "type", artifacttype);
 
-  add_metric("http_responses_after_you_milliseconds_sum","code",http_code_str,
-             afteryou*1000);
-  inc_metric("http_responses_after_you_milliseconds_count","code",http_code_str);
-  
+  add_metric("http_responses_after_you_milliseconds_sum",
+             "code", http_code_str, "type", artifacttype, afteryou*1000);
+  inc_metric("http_responses_after_you_milliseconds_count",
+             "code", http_code_str, "type", artifacttype);
+
   return rc;
 }
 
@@ -2334,7 +2372,8 @@ dwarf_extract_source_paths (Elf *elf, set<string>& debug_sourcefiles)
           struct MHD_Response *r = 0;
           try
             {
-              r = handle_buildid (0, buildid, "debuginfo", "", &alt_fd);
+              string artifacttype = "debuginfo";
+              r = handle_buildid (0, buildid, artifacttype, "", &alt_fd);
             }
           catch (const reportable_exception& e)
             {

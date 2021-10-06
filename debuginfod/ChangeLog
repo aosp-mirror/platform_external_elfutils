@@ -1,3 +1,11 @@
+2021-10-06  Di Chen <dichen@redhat.com>
+
+	PR28242
+	* debuginfod.cxx (inc_metrics, add_metrics): Add two-tag variants.
+	(handler_cb): Call it with artifacttype for http_responses_* metrics.
+	(handle_buildid): Sanitize artifacttype if necessary.
+	(dwarf_extract_source_path): Pass sanitizable string param.
+
 2021-09-17  Noah Sanci  <nsanci@redhat.com>
 
 	* debuginfod-client.c (debuginfod_query_server): curl_multi_perform

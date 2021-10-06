@@ -61,22 +61,22 @@ if [ -r $DEBUGINFOD_CACHE_PATH/01234567/debuginfo ]; then
   err
 fi
 
-bytecount_before=`curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_transfer_bytes_count{code="404"}'`
+bytecount_before=`curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_transfer_bytes_count{code="404",type="debuginfo"}'`
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo 01234567 || true
-bytecount_after=`curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_transfer_bytes_count{code="404"}'`
+bytecount_after=`curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_transfer_bytes_count{code="404",type="debuginfo"}'`
 if [ "$bytecount_before" != "$bytecount_after" ]; then
-  echo "http_responses_transfer_bytes_count{code="404"} has changed."
+  echo "http_responses_transfer_bytes_count{code="404",type="debuginfo"} has changed."
   err
 fi
 
 # set cache_miss_s to 0 and sleep 1 to make the mtime expire.
 echo 0 > $DEBUGINFOD_CACHE_PATH/cache_miss_s
 sleep 1
-bytecount_before=`curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_transfer_bytes_count{code="404"}'`
+bytecount_before=`curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_transfer_bytes_count{code="404",type="debuginfo"}'`
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo 01234567 || true
-bytecount_after=`curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_transfer_bytes_count{code="404"}'`
+bytecount_after=`curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_transfer_bytes_count{code="404",type="debuginfo"}'`
 if [ "$bytecount_before" == "$bytecount_after" ]; then
-  echo "http_responses_transfer_bytes_count{code="404"} should be incremented."
+  echo "http_responses_transfer_bytes_count{code="404",type="debuginfo"} should be incremented."
   err
 fi
 

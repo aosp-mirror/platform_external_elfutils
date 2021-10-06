@@ -1,3 +1,8 @@
+2021-10-06  Di Chen <dichen@redhat.com>
+
+	PR28242
+	* run-debuginfod-000-permission.sh: Expect artifacttype metrics.
+
 2021-09-17  Noah Sanci  <nsanci@redhat.com>
 
 	* run-debuginfod-response-header.sh: removed checking for Connection

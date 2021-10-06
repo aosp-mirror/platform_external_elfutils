@@ -1,3 +1,7 @@
+2021-10-06  Mark Wielaard  <mark@klomp.org>
+
+	* elflint.c (check_sections): Don't dereference databits if bad.
+
 2021-09-09  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* findtextrel.c: Include "libeu.h".

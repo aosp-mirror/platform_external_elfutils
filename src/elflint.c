@@ -4102,7 +4102,7 @@ section [%2zu] '%s' has type NOBITS but is read from the file in segment of prog
 			    bad = (databits == NULL
 				   || databits->d_size != shdr->sh_size);
 			    for (size_t idx = 0;
-				 idx < databits->d_size && ! bad;
+				 ! bad && idx < databits->d_size;
 				 idx++)
 			      bad = ((char *) databits->d_buf)[idx] != 0;
 

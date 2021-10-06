@@ -83,19 +83,51 @@ array_size (Dwarf_Die *die, Dwarf_Word *size,
 	    }
 	  else
 	    {
+	      bool is_signed = true;
+	      if (INTUSE(dwarf_attr) (get_type (&child, attr_mem, &type_mem),
+				      DW_AT_encoding, attr_mem) != NULL)
+		{
+		  Dwarf_Word encoding;
+		  if (INTUSE(dwarf_formudata) (attr_mem, &encoding) == 0)
+		    is_signed = (encoding == DW_ATE_signed
+				 || encoding == DW_ATE_signed_char);
+		}
+
 	      Dwarf_Sword upper;
 	      Dwarf_Sword lower;
-	      if (INTUSE(dwarf_formsdata) (INTUSE(dwarf_attr_integrate)
-					   (&child, DW_AT_upper_bound,
-					    attr_mem), &upper) != 0)
-		return -1;
+	      if (is_signed)
+		{
+		  if (INTUSE(dwarf_formsdata) (INTUSE(dwarf_attr_integrate)
+					       (&child, DW_AT_upper_bound,
+						attr_mem), &upper) != 0)
+		    return -1;
+		}
+	      else
+		{
+		  Dwarf_Word unsigned_upper;
+		  if (INTUSE(dwarf_formudata) (INTUSE(dwarf_attr_integrate)
+					       (&child, DW_AT_upper_bound,
+						attr_mem), &unsigned_upper) != 0)
+		    return -1;
+		  upper = unsigned_upper;
+		}
 
 	      /* Having DW_AT_lower_bound is optional.  */
 	      if (INTUSE(dwarf_attr_integrate) (&child, DW_AT_lower_bound,
 						attr_mem) != NULL)
 		{
-		  if (INTUSE(dwarf_formsdata) (attr_mem, &lower) != 0)
-		    return -1;
+		  if (is_signed)
+		    {
+		      if (INTUSE(dwarf_formsdata) (attr_mem, &lower) != 0)
+			return -1;
+		    }
+		  else
+		    {
+		      Dwarf_Word unsigned_lower;
+		      if (INTUSE(dwarf_formudata) (attr_mem, &unsigned_lower) != 0)
+			return -1;
+		      lower = unsigned_lower;
+		    }
 		}
 	      else
 		{

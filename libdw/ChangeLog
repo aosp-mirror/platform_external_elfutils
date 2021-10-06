@@ -1,3 +1,9 @@
+2021-10-06  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_aggregate_size.c (array_size): Check signedness of child DIE
+	type. Use dwarf_formsdata or dwarf_formudata to get the lower and
+	upper bounds.
+
 2021-09-08  Mark Wielaard  <mark@klomp.org>
 
 	* dwarf_begin_elf.c (valid_p): Identify ELF class and use this to set

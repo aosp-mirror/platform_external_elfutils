@@ -1,3 +1,7 @@
+2021-10-06  Mark Wielaard  <mark@klomp.org>
+
+	* show-die-info.c (handle): Handle dwarf_attr_string returning NULL.
+
 2021-10-06  Di Chen <dichen@redhat.com>
 
 	PR28242

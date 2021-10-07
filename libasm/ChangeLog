@@ -1,3 +1,48 @@
+2020-12-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* libasmP.h (_): Remove.
+
+2020-12-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* asm_begin.c (prepare_binary_output): Fix spelling typo in comment.
+	* asm_end.c (binary_end): Likewise.
+
+2020-12-11  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* Makefile.am (GCC_INCLUDE): Remove.
+
+2020-12-09  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* Makefile.am (noinst_PROGRAMS): Rename to noinst_DATA.
+	(libasm_so_SOURCES): Remove.
+	(CLEANFILES): Add libasm.so.
+
+2020-11-30  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* Makefile.am (libasm.so$(EXEEXT)): Drop $(EXEEXT) suffix.
+
+2020-10-29  Mark Wielaard  <mark@klomp.org>
+
+	* asm_align.c (__libasm_ensure_section_space): Use calloc, not
+	malloc to allocate extra space.
+
+2020-07-19  Mark Wielaard  <mark@klomp.org>
+
+	* libasmP.h: Include libebl.h after libasm.h.
+
+2020-07-05  Mark Wielaard  <mark@klomp.org>
+
+	* libasm.h: Include gelf.h.
+
+2020-04-25  Mark Wielaard  <mark@klomp.org>
+
+	* asm_end.c (text_end): Call fflush instead of fclose.
+
+2020-01-08  Mark Wielaard  <mark@klomp.org>
+
+	* libasm.h: Don't include libebl.h. Define an opaque Ebl handle.
+	* libasmP.h: Do include libebl.h.
+
 2019-08-28  Mark Wielaard  <mark@klomp.org>
 
 	* Makefile.am (libasm_so_DEPS): Replace libebl.a with libebl_pic.a.

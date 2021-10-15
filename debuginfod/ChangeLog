@@ -1,3 +1,8 @@
+2021-10-15  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (debuginfod_query_server): Set
+	CURLOPT_PROTOCOLS.
+
 2021-10-06  Di Chen <dichen@redhat.com>
 
 	PR28242

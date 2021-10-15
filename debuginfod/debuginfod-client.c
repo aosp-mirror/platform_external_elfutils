@@ -973,6 +973,10 @@ debuginfod_query_server (debuginfod_client *c,
       if (vfd >= 0)
 	dprintf (vfd, "url %d %s\n", i, data[i].url);
 
+      /* Only allow http:// + https:// + file:// so we aren't being
+	 redirected to some unsupported protocol.  */
+      curl_easy_setopt(data[i].handle, CURLOPT_PROTOCOLS,
+		       CURLPROTO_HTTP | CURLPROTO_HTTPS | CURLPROTO_FILE);
       curl_easy_setopt(data[i].handle, CURLOPT_URL, data[i].url);
       if (vfd >= 0)
 	curl_easy_setopt(data[i].handle, CURLOPT_ERRORBUFFER, data[i].errbuf);

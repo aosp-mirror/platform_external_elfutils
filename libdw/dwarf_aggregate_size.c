@@ -40,7 +40,7 @@ get_type (Dwarf_Die *die, Dwarf_Attribute *attr_mem, Dwarf_Die *type_mem)
   Dwarf_Die *type = INTUSE(dwarf_formref_die)
     (INTUSE(dwarf_attr_integrate) (die, DW_AT_type, attr_mem), type_mem);
 
-  if (INTUSE(dwarf_peel_type) (type, type) != 0)
+  if (type == NULL || INTUSE(dwarf_peel_type) (type, type) != 0)
     return NULL;
 
   return type;

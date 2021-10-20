@@ -1,3 +1,16 @@
+2021-10-20  John M Mellor-Crummey  <johnmc@rice.edu>
+
+	* nvidia_extended_linemap_libdw.c: New file.
+	* run-nvidia-extended-linemap-libdw.sh: New test.
+	* run-nvidia-extended-linemap-readelf.sh: Likewise.
+	* testfile_nvidia_linemap.bz2: New test file.
+	* .gitignore: Add nvidia_extended_linemap_libdw.
+	* Makefile.am (check_PROGRAMS): Add nvidia_extended_linemap_libdw.
+	(TESTS): Add run-nvidia-extended-linemap-libdw.sh and
+	run-nvidia-extended-linemap-readelf.sh
+	(EXTRA_DIST): Likewise and testfile_nvidia_linemap.bz2.
+	(nvidia_extended_linemap_libdw_LDADD): New variable.
+
 2021-11-08  Mark Wielaard  <mark@klomp.org>
 
 	* Makefile.am (TESTS): Add run-readelf-fat-lto.sh.

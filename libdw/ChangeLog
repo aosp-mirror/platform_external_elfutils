@@ -1,3 +1,22 @@
+2021-10-20  John M Mellor-Crummey  <johnmc@rice.edu>
+
+	* dwarf_linecontext.c: New file.
+	* dwarf_linefunctionname.c: Likewise.
+	* Makefile.am (libdw_a_SOURCES): Add dwarf_linecontext.c and
+	dwarf_linefunctionname.c
+	* dwarf.h: Add DW_LNE_NVIDIA_inlined_call and
+	DW_LNE_NVIDIA_set_function_name.
+	* dwarf_getsrclines.c (struct line_state): Add context and
+	function_name fields.
+	(add_new_line): Set context and function_name.
+	(MAX_STACK_LINES): Reduce to MAX_STACK_ALLOC / 2.
+	(read_srclines): Initialize context and function_name.  Try to
+	read debug_str_offset if available.  Handle
+	DW_LNE_NVIDIA_inlined_call and DW_LNE_NVIDIA_set_function_name.
+	* libdw.h (dwarf_linecontext): New declaration.
+	(dwarf_linefunctionname): Likewise.
+	* libdw.map (ELFUTILS_0.186): New section.
+
 2021-11-08  Mark Wielaard  <mark@klomp.org>
 
 	* dwarf_begin_elf.c (scn_dwarf_type): New function.

@@ -16,6 +16,11 @@ debuginfod: Supply extra HTTP response headers, describing archive/file
             Limit the duration of groom ops roughly to rescan (-t) times.
             Several other performance improvements & prometheus metrics.
 
+libdw: Support for the NVIDIA Cuda line map extensions.
+       DW_LNE_NVIDIA_inlined_call and DW_LNE_NVIDIA_set_function_name
+       are defined in dwarf.h. New functions dwarf_linecontext and
+       dwarf_linefunctionname
+
 Version 0.185
 
 debuginfod-client: Simplify curl handle reuse so downloads which

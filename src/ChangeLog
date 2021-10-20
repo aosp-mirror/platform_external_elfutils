@@ -1,3 +1,9 @@
+2021-10-20  John M Mellor-Crummey  <johnmc@rice.edu>
+
+	* readelf.c (print_debug_line_section): Try to read
+	debug_str_offset if available.  Handle DW_LNE_NVIDIA_inlined_call
+	and DW_LNE_NVIDIA_set_function_name.
+
 2021-10-06  Mark Wielaard  <mark@klomp.org>
 
 	* elflint.c (check_sections): Don't dereference databits if bad.

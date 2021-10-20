@@ -8478,6 +8478,8 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 	  header_length = read_8ubyte_unaligned_inc (dbg, linep);
 	}
 
+      const unsigned char *header_start = linep;
+
       /* Next the minimum instruction length.  */
       if ((size_t) (lineendp - linep) < 1)
 	goto invalid_data;
@@ -8761,6 +8763,13 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 	  ++linep;
 	}
 
+      unsigned int debug_str_offset = 0;
+      if (unlikely (linep == header_start + header_length - 4))
+	{
+	  /* CUBINs contain an unsigned 4-byte offset */
+	  debug_str_offset = read_4ubyte_unaligned_inc (dbg, linep);
+	}
+
       if (linep == lineendp)
 	{
 	  puts (_("\nNo line number statements."));
@@ -8907,6 +8916,59 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 
 		  get_uleb128 (u128, linep, lineendp);
 		  printf (_(" set discriminator to %u\n"), u128);
+		  break;
+
+		case DW_LNE_NVIDIA_inlined_call:
+		  {
+		    if (unlikely (linep >= lineendp))
+		      goto invalid_data;
+
+		    unsigned int context;
+		    get_uleb128 (context, linep, lineendp);
+
+		    if (unlikely (linep >= lineendp))
+		      goto invalid_data;
+
+		    unsigned int function_name;
+		    get_uleb128 (function_name, linep, lineendp);
+		    function_name += debug_str_offset;
+
+		    Elf_Data *str_data = dbg->sectiondata[IDX_debug_str];
+		    char *function_str;
+		    if (str_data == NULL || function_name >= str_data->d_size
+			|| memchr (str_data->d_buf + function_name, '\0',
+				   str_data->d_size - function_name) == NULL)
+		      function_str = "???";
+		    else
+		      function_str = (char *) str_data->d_buf + function_name;
+
+		    printf (_(" set inlined context %u,"
+		              " function name %s (0x%x)\n"),
+			    context, function_str, function_name);
+		    break;
+		  }
+
+		case DW_LNE_NVIDIA_set_function_name:
+		  {
+		    if (unlikely (linep >= lineendp))
+		      goto invalid_data;
+
+		    unsigned int function_name;
+		    get_uleb128 (function_name, linep, lineendp);
+		    function_name += debug_str_offset;
+
+		    Elf_Data *str_data = dbg->sectiondata[IDX_debug_str];
+		    char *function_str;
+		    if (str_data == NULL || function_name >= str_data->d_size
+			|| memchr (str_data->d_buf + function_name, '\0',
+				   str_data->d_size - function_name) == NULL)
+		      function_str = "???";
+		    else
+		      function_str = (char *) str_data->d_buf + function_name;
+
+		    printf (_(" set function name %s (0x%x)\n"),
+			    function_str, function_name);
+		  }
 		  break;
 
 		default:

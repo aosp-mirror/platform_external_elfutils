@@ -303,6 +303,9 @@ struct Dwarf_Line_s
   unsigned int op_index:8;
   unsigned int isa:8;
   unsigned int discriminator:24;
+  /* These are currently only used for the NVIDIA extensions.  */
+  unsigned int context;
+  unsigned int function_name;
 };
 
 struct Dwarf_Lines_s

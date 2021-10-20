@@ -61,6 +61,7 @@ check_PROGRAMS = arextract arsymtest newfile saridx scnnames sectiondump \
 		  dwelf_elf_e_machine_string \
 		  getphdrnum leb128 read_unaligned \
 		  msg_tst system-elf-libelf-test \
+		  nvidia_extended_linemap_libdw \
 		  $(asm_TESTS)
 
 asm_TESTS = asm-tst1 asm-tst2 asm-tst3 asm-tst4 asm-tst5 \
@@ -189,6 +190,7 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	leb128 read_unaligned \
 	msg_tst system-elf-libelf-test \
 	$(asm_TESTS) run-disasm-bpf.sh run-low_high_pc-dw-form-indirect.sh \
+	run-nvidia-extended-linemap-libdw.sh run-nvidia-extended-linemap-readelf.sh \
 	run-readelf-dw-form-indirect.sh run-strip-largealign.sh
 
 if !BIARCH
@@ -566,6 +568,8 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-getphdrnum.sh testfile-phdrs.elf.bz2 \
 	     run-test-includes.sh run-low_high_pc-dw-form-indirect.sh \
 	     run-readelf-dw-form-indirect.sh testfile-dw-form-indirect.bz2 \
+	     run-nvidia-extended-linemap-libdw.sh run-nvidia-extended-linemap-readelf.sh \
+	     testfile_nvidia_linemap.bz2 \
 	     testfile-largealign.o.bz2 run-strip-largealign.sh
 
 
@@ -739,6 +743,7 @@ dwelf_elf_e_machine_string_LDADD = $(libelf) $(libdw)
 getphdrnum_LDADD = $(libelf) $(libdw)
 leb128_LDADD = $(libelf) $(libdw)
 read_unaligned_LDADD = $(libelf) $(libdw)
+nvidia_extended_linemap_libdw_LDADD = $(libelf) $(libdw)
 
 # We want to test the libelf header against the system elf.h header.
 # Don't include any -I CPPFLAGS. Except when we install our own elf.h.

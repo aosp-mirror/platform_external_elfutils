@@ -150,6 +150,8 @@ kill -USR2 $PID1  # groom cycle
 wait_ready $PORT1 'thread_work_total{role="groom"}' 2
 # Expect 4 rpms containing 2 buildids to be deleted by the groom
 wait_ready $PORT1 'groomed_total{decision="stale"}' 4
+# Expect no more groom actions pending
+wait_ready $PORT1 'thread_work_pending{role="groom"}' 0
 
 rm -rf $DEBUGINFOD_CACHE_PATH # clean it from previous tests
 

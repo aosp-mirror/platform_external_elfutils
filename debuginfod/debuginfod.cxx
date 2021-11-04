@@ -3431,16 +3431,30 @@ void groom()
   clock_gettime (CLOCK_MONOTONIC, &ts_start);
 
   // scan for files that have disappeared
-  sqlite_ps files (db, "check old files", "select s.mtime, s.file, f.name from "
-                       BUILDIDS "_file_mtime_scanned s, " BUILDIDS "_files f "
-                       "where f.id = s.file");
-  sqlite_ps files_del_f_de (db, "nuke f_de", "delete from " BUILDIDS "_f_de where file = ? and mtime = ?");
-  sqlite_ps files_del_r_de (db, "nuke r_de", "delete from " BUILDIDS "_r_de where file = ? and mtime = ?");
-  sqlite_ps files_del_scan (db, "nuke f_m_s", "delete from " BUILDIDS "_file_mtime_scanned "
-                            "where file = ? and mtime = ?");
+  sqlite_ps files (db, "check old files",
+                   "select distinct s.mtime, s.file, f.name from "
+                   BUILDIDS "_file_mtime_scanned s, " BUILDIDS "_files f "
+                   "where f.id = s.file");
+  // NB: Because _ftime_mtime_scanned can contain both F and
+  // R records for the same file, this query would return duplicates if the
+  // DISTINCT qualifier were not there.
   files.reset();
+
+  // DECISION TIME - we enumerate stale fileids/mtimes
+  deque<pair<int64_t,int64_t> > stale_fileid_mtime;
+  
+  time_t time_start = time(NULL);
   while(1)
     {
+      // PR28514: limit grooming iteration to O(rescan time), to avoid
+      // slow filesystem tests over many files locking out rescans for
+      // too long.
+      if (rescan_s > 0 && (long)time(NULL) > (long)(time_start + rescan_s))
+        {
+          inc_metric("groomed_total", "decision", "aborted");
+          break;
+        }
+
       if (interrupted) break;
 
       int rc = files.step();
@@ -3458,19 +3472,67 @@ void groom()
       if ( (regex_groom && reg_exclude && !reg_include) ||  rc < 0 || (mtime != (int64_t) s.st_mtime) )
         {
           if (verbose > 2)
-            obatched(clog) << "groom: forgetting file=" << filename << " mtime=" << mtime << endl;
-          files_del_f_de.reset().bind(1,fileid).bind(2,mtime).step_ok_done();
-          files_del_r_de.reset().bind(1,fileid).bind(2,mtime).step_ok_done();
-          files_del_scan.reset().bind(1,fileid).bind(2,mtime).step_ok_done();
+            obatched(clog) << "groom: stale file=" << filename << " mtime=" << mtime << endl;
+          stale_fileid_mtime.push_back(make_pair(fileid,mtime));
           inc_metric("groomed_total", "decision", "stale");
+          set_metric("thread_work_pending","role","groom", stale_fileid_mtime.size());
         }
       else
         inc_metric("groomed_total", "decision", "fresh");
+      
       if (sigusr1 != forced_rescan_count) // stop early if scan triggered
         break;
     }
   files.reset();
 
+  // ACTION TIME
+
+  // Now that we know which file/mtime tuples are stale, actually do
+  // the deletion from the database.  Doing this during the SELECT
+  // iteration above results in undefined behaviour in sqlite, as per
+  // https://www.sqlite.org/isolation.html
+
+  // We could shuffle stale_fileid_mtime[] here.  It'd let aborted
+  // sequences of nuke operations resume at random locations, instead
+  // of just starting over.  But it doesn't matter much either way,
+  // as long as we make progress.
+
+  sqlite_ps files_del_f_de (db, "nuke f_de", "delete from " BUILDIDS "_f_de where file = ? and mtime = ?");
+  sqlite_ps files_del_r_de (db, "nuke r_de", "delete from " BUILDIDS "_r_de where file = ? and mtime = ?");
+  sqlite_ps files_del_scan (db, "nuke f_m_s", "delete from " BUILDIDS "_file_mtime_scanned "
+                            "where file = ? and mtime = ?");
+
+  while (! stale_fileid_mtime.empty())
+    {
+      auto stale = stale_fileid_mtime.front();
+      stale_fileid_mtime.pop_front();
+      set_metric("thread_work_pending","role","groom", stale_fileid_mtime.size());
+
+      // PR28514: limit grooming iteration to O(rescan time), to avoid
+      // slow nuke_* queries over many files locking out rescans for too
+      // long.  We iterate over the files in random() sequence to avoid
+      // partial checks going over the same set.
+      if (rescan_s > 0 && (long)time(NULL) > (long)(time_start + rescan_s))
+        {
+          inc_metric("groomed_total", "action", "aborted");
+          break;
+        }
+
+      if (interrupted) break;
+
+      int64_t fileid = stale.first;
+      int64_t mtime = stale.second;
+      files_del_f_de.reset().bind(1,fileid).bind(2,mtime).step_ok_done();
+      files_del_r_de.reset().bind(1,fileid).bind(2,mtime).step_ok_done();
+      files_del_scan.reset().bind(1,fileid).bind(2,mtime).step_ok_done();
+      inc_metric("groomed_total", "action", "cleaned");
+      
+       if (sigusr1 != forced_rescan_count) // stop early if scan triggered
+        break;
+    }
+  stale_fileid_mtime.clear(); // no need for this any longer
+  set_metric("thread_work_pending","role","groom", stale_fileid_mtime.size());
+      
   // delete buildids with no references in _r_de or _f_de tables;
   // cascades to _r_sref & _f_s records
   sqlite_ps buildids_del (db, "nuke orphan buildids",

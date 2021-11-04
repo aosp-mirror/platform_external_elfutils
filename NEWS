@@ -13,6 +13,7 @@ debuginfod: Supply extra HTTP response headers, describing archive/file
             Protect against loops in federated server configurations.
             Add -r option to use -I/-X regexes for grooming stale files.
             Protect against wasted CPU from duplicate concurrent requests.
+            Limit the duration of groom ops roughly to rescan (-t) times.
             Several other performance improvements & prometheus metrics.
 
 Version 0.185

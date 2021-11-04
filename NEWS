@@ -3,6 +3,17 @@ Version 0.186
 debuginfod-client: Default $DEBUGINFOD_URLS is computed from drop-in files
                    /etc/debuginfod/*.urls rather than hardcoded into the
                    /etc/profile.d/debuginfod* scripts.
+                   Add $DEBUGINFOD_MAXSIZE and $DEBUGINFOD_MAXTIME settings
+                   for skipping large/slow transfers.
+                   Add $DEBUGINFOD_RETRY for retrying aborted lookups.
+
+debuginfod: Supply extra HTTP response headers, describing archive/file
+            names that satisfy the requested buildid content.
+            Support -d :memory: option for in-memory databases.
+            Protect against loops in federated server configurations.
+            Add -r option to use -I/-X regexes for grooming stale files.
+            Protect against wasted CPU from duplicate concurrent requests.
+            Several other performance improvements & prometheus metrics.
 
 Version 0.185
 

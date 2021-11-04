@@ -1,4 +1,4 @@
-Version 0.186
+Version 0.186 (one after 0.185)
 
 debuginfod-client: Default $DEBUGINFOD_URLS is computed from drop-in files
                    /etc/debuginfod/*.urls rather than hardcoded into the

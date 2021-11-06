@@ -376,6 +376,8 @@ static const struct argp_option options[] =
       prefetch cache.", 0},
 #define ARGP_KEY_FORWARDED_TTL_LIMIT 0x1007
    {"forwarded-ttl-limit", ARGP_KEY_FORWARDED_TTL_LIMIT, "NUM", 0, "Limit of X-Forwarded-For hops, default 8.", 0},
+#define ARGP_KEY_PASSIVE 0x1008
+   { "passive", ARGP_KEY_PASSIVE, NULL, 0, "Do not scan or groom, read-only database.", 0 },
    { NULL, 0, NULL, 0, NULL, 0 },
   };
 
@@ -425,6 +427,7 @@ static long fdcache_prefetch_mbs;
 static long fdcache_prefetch_fds;
 static unsigned forwarded_ttl_limit = 8;
 static string tmpdir;
+static bool passive_p = false;
 
 static void set_metric(const string& key, double value);
 // static void inc_metric(const string& key);
@@ -524,36 +527,56 @@ parse_opt (int key, char *arg,
       }
       break;
     case 'L':
+      if (passive_p)
+        argp_failure(state, 1, EINVAL, "-L option inconsistent with passive mode");
       traverse_logical = true;
       break;
-    case 'D': extra_ddl.push_back(string(arg)); break;
+    case 'D':
+      if (passive_p)
+        argp_failure(state, 1, EINVAL, "-D option inconsistent with passive mode");
+      extra_ddl.push_back(string(arg));
+      break;
     case 't':
+      if (passive_p)
+        argp_failure(state, 1, EINVAL, "-t option inconsistent with passive mode");
       rescan_s = (unsigned) atoi(arg);
       break;
     case 'g':
+      if (passive_p)
+        argp_failure(state, 1, EINVAL, "-g option inconsistent with passive mode");
       groom_s = (unsigned) atoi(arg);
       break;
     case 'G':
+      if (passive_p)
+        argp_failure(state, 1, EINVAL, "-G option inconsistent with passive mode");
       maxigroom = true;
       break;
     case 'c':
+      if (passive_p)
+        argp_failure(state, 1, EINVAL, "-c option inconsistent with passive mode");
       concurrency = (unsigned) atoi(arg);
       if (concurrency < 1) concurrency = 1;
       break;
     case 'I':
       // NB: no problem with unconditional free here - an earlier failed regcomp would exit program
+      if (passive_p)
+        argp_failure(state, 1, EINVAL, "-I option inconsistent with passive mode");
       regfree (&file_include_regex);
       rc = regcomp (&file_include_regex, arg, REG_EXTENDED|REG_NOSUB);
       if (rc != 0)
         argp_failure(state, 1, EINVAL, "regular expression");
       break;
     case 'X':
+      if (passive_p)
+        argp_failure(state, 1, EINVAL, "-X option inconsistent with passive mode");
       regfree (&file_exclude_regex);
       rc = regcomp (&file_exclude_regex, arg, REG_EXTENDED|REG_NOSUB);
       if (rc != 0)
         argp_failure(state, 1, EINVAL, "regular expression");
       break;
     case 'r':
+      if (passive_p)
+        argp_failure(state, 1, EINVAL, "-r option inconsistent with passive mode");
       regex_groom = true;
       break;
     case ARGP_KEY_FDCACHE_FDS:
@@ -585,6 +608,15 @@ parse_opt (int key, char *arg,
       fdcache_prefetch_mbs = atol(arg);
       if ( fdcache_prefetch_mbs < 0)
         argp_failure(state, 1, EINVAL, "fdcache prefetch mbs");
+      break;
+    case ARGP_KEY_PASSIVE:
+      passive_p = true;
+      if (source_paths.size() > 0
+          || maxigroom
+          || extra_ddl.size() > 0
+          || traverse_logical)
+        // other conflicting options tricky to check
+        argp_failure(state, 1, EINVAL, "inconsistent options with passive mode");
       break;
       // case 'h': argp_state_help (state, stderr, ARGP_HELP_LONG|ARGP_HELP_EXIT_OK);
     default: return ARGP_ERR_UNKNOWN;
@@ -3732,22 +3764,25 @@ main (int argc, char *argv[])
   (void) signal (SIGUSR2, sigusr2_handler); // end-user
 
   /* Get database ready. */
-  rc = sqlite3_open_v2 (db_path.c_str(), &db, (SQLITE_OPEN_READWRITE
-                                               |SQLITE_OPEN_URI
-                                               |SQLITE_OPEN_PRIVATECACHE
-                                               |SQLITE_OPEN_CREATE
-                                               |SQLITE_OPEN_FULLMUTEX), /* thread-safe */
-                        NULL);
-  if (rc == SQLITE_CORRUPT)
+  if (! passive_p)
     {
-      (void) unlink (db_path.c_str());
-      error (EXIT_FAILURE, 0,
-             "cannot open %s, deleted database: %s", db_path.c_str(), sqlite3_errmsg(db));
-    }
-  else if (rc)
-    {
-      error (EXIT_FAILURE, 0,
-             "cannot open %s, consider deleting database: %s", db_path.c_str(), sqlite3_errmsg(db));
+      rc = sqlite3_open_v2 (db_path.c_str(), &db, (SQLITE_OPEN_READWRITE
+                                                   |SQLITE_OPEN_URI
+                                                   |SQLITE_OPEN_PRIVATECACHE
+                                                   |SQLITE_OPEN_CREATE
+                                                   |SQLITE_OPEN_FULLMUTEX), /* thread-safe */
+                            NULL);
+      if (rc == SQLITE_CORRUPT)
+        {
+          (void) unlink (db_path.c_str());
+          error (EXIT_FAILURE, 0,
+                 "cannot open %s, deleted database: %s", db_path.c_str(), sqlite3_errmsg(db));
+        }
+      else if (rc)
+        {
+          error (EXIT_FAILURE, 0,
+                 "cannot open %s, consider deleting database: %s", db_path.c_str(), sqlite3_errmsg(db));
+        }
     }
 
   // open the readonly query variant
@@ -3765,8 +3800,10 @@ main (int argc, char *argv[])
     }
 
 
-  obatched(clog) << "opened database " << db_path << endl;
+  obatched(clog) << "opened database " << db_path
+                 << (db?" rw":"") << (dbq?" ro":"") << endl;
   obatched(clog) << "sqlite version " << sqlite3_version << endl;
+  obatched(clog) << "service mode " << (passive_p ? "passive":"active") << endl;
 
   // add special string-prefix-similarity function used in rpm sref/sdef resolution
   rc = sqlite3_create_function(dbq, "sharedprefix", 2, SQLITE_UTF8, NULL,
@@ -3775,13 +3812,16 @@ main (int argc, char *argv[])
     error (EXIT_FAILURE, 0,
            "cannot create sharedprefix function: %s", sqlite3_errmsg(dbq));
 
-  if (verbose > 3)
-    obatched(clog) << "ddl: " << DEBUGINFOD_SQLITE_DDL << endl;
-  rc = sqlite3_exec (db, DEBUGINFOD_SQLITE_DDL, NULL, NULL, NULL);
-  if (rc != SQLITE_OK)
+  if (! passive_p)
     {
-      error (EXIT_FAILURE, 0,
-             "cannot run database schema ddl: %s", sqlite3_errmsg(db));
+      if (verbose > 3)
+        obatched(clog) << "ddl: " << DEBUGINFOD_SQLITE_DDL << endl;
+      rc = sqlite3_exec (db, DEBUGINFOD_SQLITE_DDL, NULL, NULL, NULL);
+      if (rc != SQLITE_OK)
+        {
+          error (EXIT_FAILURE, 0,
+                 "cannot run database schema ddl: %s", sqlite3_errmsg(db));
+        }
     }
 
   // Start httpd server threads.  Separate pool for IPv4 and IPv6, in
@@ -3845,27 +3885,31 @@ main (int argc, char *argv[])
     }
 
   // run extra -D sql if given
-  for (auto&& i: extra_ddl)
-    {
-      if (verbose > 1)
-        obatched(clog) << "extra ddl:\n" << i << endl;
-      rc = sqlite3_exec (db, i.c_str(), NULL, NULL, NULL);
-      if (rc != SQLITE_OK && rc != SQLITE_DONE && rc != SQLITE_ROW)
-        error (0, 0,
-               "warning: cannot run database extra ddl %s: %s", i.c_str(), sqlite3_errmsg(db));
-    }
+  if (! passive_p)
+    for (auto&& i: extra_ddl)
+      {
+        if (verbose > 1)
+          obatched(clog) << "extra ddl:\n" << i << endl;
+        rc = sqlite3_exec (db, i.c_str(), NULL, NULL, NULL);
+        if (rc != SQLITE_OK && rc != SQLITE_DONE && rc != SQLITE_ROW)
+          error (0, 0,
+                 "warning: cannot run database extra ddl %s: %s", i.c_str(), sqlite3_errmsg(db));
 
-  if (maxigroom)
-    obatched(clog) << "maxigroomed database" << endl;
+        if (maxigroom)
+          obatched(clog) << "maxigroomed database" << endl;
+      }
 
-  obatched(clog) << "search concurrency " << concurrency << endl;
-  obatched(clog) << "rescan time " << rescan_s << endl;
+  if (! passive_p)
+    obatched(clog) << "search concurrency " << concurrency << endl;
+  if (! passive_p)
+    obatched(clog) << "rescan time " << rescan_s << endl;
   obatched(clog) << "fdcache fds " << fdcache_fds << endl;
   obatched(clog) << "fdcache mbs " << fdcache_mbs << endl;
   obatched(clog) << "fdcache prefetch " << fdcache_prefetch << endl;
   obatched(clog) << "fdcache tmpdir " << tmpdir << endl;
   obatched(clog) << "fdcache tmpdir min% " << fdcache_mintmp << endl;
-  obatched(clog) << "groom time " << groom_s << endl;
+  if (! passive_p)
+    obatched(clog) << "groom time " << groom_s << endl;
   obatched(clog) << "prefetch fds " << fdcache_prefetch_fds << endl;
   obatched(clog) << "prefetch mbs " << fdcache_prefetch_mbs << endl;
   obatched(clog) << "forwarded ttl limit " << forwarded_ttl_limit << endl;
@@ -3873,7 +3917,7 @@ main (int argc, char *argv[])
   if (scan_archives.size()>0)
     {
       obatched ob(clog);
-      auto& o = ob << "scanning archive types ";
+      auto& o = ob << "accepting archive types ";
       for (auto&& arch : scan_archives)
 	o << arch.first << "(" << arch.second << ") ";
       o << endl;
@@ -3884,37 +3928,40 @@ main (int argc, char *argv[])
 
   vector<pthread_t> all_threads;
 
-  pthread_t pt;
-  rc = pthread_create (& pt, NULL, thread_main_groom, NULL);
-  if (rc)
-    error (EXIT_FAILURE, rc, "cannot spawn thread to groom database\n");
-  else
+  if (! passive_p)
     {
-#ifdef HAVE_PTHREAD_SETNAME_NP
-      (void) pthread_setname_np (pt, "groom");
-#endif
-      all_threads.push_back(pt);
-    }
-
-  if (scan_files || scan_archives.size() > 0)
-    {
-      rc = pthread_create (& pt, NULL, thread_main_fts_source_paths, NULL);
+      pthread_t pt;
+      rc = pthread_create (& pt, NULL, thread_main_groom, NULL);
       if (rc)
-        error (EXIT_FAILURE, rc, "cannot spawn thread to traverse source paths\n");
-#ifdef HAVE_PTHREAD_SETNAME_NP
-      (void) pthread_setname_np (pt, "traverse");
-#endif
-      all_threads.push_back(pt);
-
-      for (unsigned i=0; i<concurrency; i++)
+        error (EXIT_FAILURE, rc, "cannot spawn thread to groom database\n");
+      else
         {
-          rc = pthread_create (& pt, NULL, thread_main_scanner, NULL);
-          if (rc)
-            error (EXIT_FAILURE, rc, "cannot spawn thread to scan source files / archives\n");
 #ifdef HAVE_PTHREAD_SETNAME_NP
-          (void) pthread_setname_np (pt, "scan");          
+          (void) pthread_setname_np (pt, "groom");
 #endif
           all_threads.push_back(pt);
+        }
+
+      if (scan_files || scan_archives.size() > 0)
+        {
+          rc = pthread_create (& pt, NULL, thread_main_fts_source_paths, NULL);
+          if (rc)
+            error (EXIT_FAILURE, rc, "cannot spawn thread to traverse source paths\n");
+#ifdef HAVE_PTHREAD_SETNAME_NP
+          (void) pthread_setname_np (pt, "traverse");
+#endif
+          all_threads.push_back(pt);
+
+          for (unsigned i=0; i<concurrency; i++)
+            {
+              rc = pthread_create (& pt, NULL, thread_main_scanner, NULL);
+              if (rc)
+                error (EXIT_FAILURE, rc, "cannot spawn thread to scan source files / archives\n");
+#ifdef HAVE_PTHREAD_SETNAME_NP
+              (void) pthread_setname_np (pt, "scan");
+#endif
+              all_threads.push_back(pt);
+            }
         }
     }
   
@@ -3936,12 +3983,15 @@ main (int argc, char *argv[])
   if (d4) MHD_stop_daemon (d4);
   if (d6) MHD_stop_daemon (d6);
 
-  /* With all threads known dead, we can clean up the global resources. */
-  rc = sqlite3_exec (db, DEBUGINFOD_SQLITE_CLEANUP_DDL, NULL, NULL, NULL);
-  if (rc != SQLITE_OK)
+  if (! passive_p)
     {
-      error (0, 0,
-             "warning: cannot run database cleanup ddl: %s", sqlite3_errmsg(db));
+      /* With all threads known dead, we can clean up the global resources. */
+      rc = sqlite3_exec (db, DEBUGINFOD_SQLITE_CLEANUP_DDL, NULL, NULL, NULL);
+      if (rc != SQLITE_OK)
+        {
+          error (0, 0,
+                 "warning: cannot run database cleanup ddl: %s", sqlite3_errmsg(db));
+        }
     }
 
   // NB: no problem with unconditional free here - an earlier failed regcomp would exit program
@@ -3952,7 +4002,8 @@ main (int argc, char *argv[])
   sqlite3 *databaseq = dbq;
   db = dbq = 0; // for signal_handler not to freak
   (void) sqlite3_close (databaseq);
-  (void) sqlite3_close (database);
+  if (! passive_p)
+    (void) sqlite3_close (database);
 
   return 0;
 }

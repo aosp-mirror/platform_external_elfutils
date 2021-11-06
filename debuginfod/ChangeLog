@@ -1,3 +1,11 @@
+2021-11-05  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR28430
+	* debuginfod.cxx (parse_opt): Add "--passive" flag.  Complain
+	about inconsistent flags.
+	(main): In passive mode, suppress scan/groom/traverse threads and
+	other read-write database ops.
+
 2021-11-04  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR28514

@@ -74,9 +74,10 @@ all.
 
 If no PATH is listed, or none of the scanning options is given, then
 \fBdebuginfod\fP will simply serve content that it accumulated into
-its index in all previous runs, and federate to any upstream
-debuginfod servers.
-
+its index in all previous runs, periodically groom the database, and
+federate to any upstream debuginfod servers.  In \fIpassive\fP mode,
+\fBdebuginfod\fP will only serve content from a read-only index and
+federated upstream servers, but will not scan or groom.
 
 .SH OPTIONS
 
@@ -121,6 +122,16 @@ machines or users, to maximize sqlite locking performance.  For quick
 testing the magic string ":memory:" can be used to use an one-time
 memory-only database.  The default database file is
 \%$HOME/.debuginfod.sqlite.
+
+.TP
+.B "\-\-passive"
+Set the server to passive mode, where it only services webapi
+requests, including participating in federation.  It performs no
+scanning, no grooming, and so only opens the sqlite database
+read-only.  This way a database can be safely shared between a active
+scanner/groomer server and multiple passive ones, thereby sharing
+service load.  Archive pattern options must still be given, so
+debuginfod can recognize file name extensions for unpacking.
 
 .TP
 .B "\-D SQL" "\-\-ddl=SQL"
@@ -365,22 +376,22 @@ be helpful to apply tight \-I or \-X regular-expression constraints to
 exclude files from scanning that you know have no debuginfo-relevant
 content.
 
-As debuginfod runs, it periodically rescans its target directories,
-and any new content found is added to the database.  Old content, such
-as data for files that have disappeared or that have been replaced
-with newer versions is removed at a periodic \fIgrooming\fP pass.
-This means that the sqlite files grow fast during initial indexing,
-slowly during index rescans, and periodically shrink during grooming.
-There is also an optional one-shot \fImaximal grooming\fP pass is
-available.  It removes information debuginfo-unrelated data from the
-archive content index such as file names found in archives ("archive
-sdef" records) that are not referred to as source files from any
-binaries find in archives ("archive sref" records).  This can save
-considerable disk space.  However, it is slow and temporarily requires
-up to twice the database size as free space.  Worse: it may result in
-missing source-code info if the archive traversals were interrupted,
-so that not all source file references were known.  Use it rarely to
-polish a complete index.
+As debuginfod runs in normal \fIactive\fP mode, it periodically
+rescans its target directories, and any new content found is added to
+the database.  Old content, such as data for files that have
+disappeared or that have been replaced with newer versions is removed
+at a periodic \fIgrooming\fP pass.  This means that the sqlite files
+grow fast during initial indexing, slowly during index rescans, and
+periodically shrink during grooming.  There is also an optional
+one-shot \fImaximal grooming\fP pass is available.  It removes
+information debuginfo-unrelated data from the archive content index
+such as file names found in archives ("archive sdef" records) that are
+not referred to as source files from any binaries find in archives
+("archive sref" records).  This can save considerable disk space.
+However, it is slow and temporarily requires up to twice the database
+size as free space.  Worse: it may result in missing source-code info
+if the archive traversals were interrupted, so that not all source
+file references were known.  Use it rarely to polish a complete index.
 
 You should ensure that ample disk space remains available.  (The flood
 of error messages on -ENOSPC is ugly and nagging.  But, like for most
@@ -413,6 +424,11 @@ worry about disk space.  If a system crash corrupts the database,
 or you want to force debuginfod to reset and start over, simply
 erase the sqlite file before restarting debuginfod.
 
+In contrast, in \fIpassive\fP mode, all scanning and grooming is
+disabled, and the index database remains read-only.  This makes the
+database more suitable for sharing between servers or sites with
+simple one-way replication, and data management considerations are
+generally moot.
 
 .SH SECURITY
 

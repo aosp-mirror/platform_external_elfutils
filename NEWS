@@ -14,6 +14,7 @@ debuginfod: Supply extra HTTP response headers, describing archive/file
             Add -r option to use -I/-X regexes for grooming stale files.
             Protect against wasted CPU from duplicate concurrent requests.
             Limit the duration of groom ops roughly to rescan (-t) times.
+            Add --passive mode for serving from read-only database.
             Several other performance improvements & prometheus metrics.
 
 libdw: Support for the NVIDIA Cuda line map extensions.

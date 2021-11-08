@@ -1,3 +1,11 @@
+2021-11-08  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (TESTS): Add run-readelf-fat-lto.sh.
+	(EXTRA_DIST): Add run-readelf-fat-lto.sh and
+	testfile-dwarf5-fat-lto.o.bz2.
+	* run-readelf-fat-lto.sh: New test.
+	* testfile-dwarf5-fat-lto.o.bz2: New test file.
+
 2021-11-04  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR28514

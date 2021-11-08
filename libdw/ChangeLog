@@ -1,3 +1,12 @@
+2021-11-08  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_begin_elf.c (scn_dwarf_type): New function.
+	(check_section): Check result->type.
+	(global_read): First check type.
+	(scngrp_read): Likewise.
+	* libdw/libdwP.h (enum dwarf_type): New enumeration.
+	(struct Dwarf): New field type.
+
 2021-02-14  Alexander Miller  <alex.miller@gmx.de>
 
 	* dwarf_aggregate_size.c (dwarf_aggregate_size): Move NEW_VERSION

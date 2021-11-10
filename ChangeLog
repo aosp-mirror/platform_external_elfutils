@@ -1,3 +1,8 @@
+2021-11-10  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac (AC_INIT): Set version to 0.186.
+	* NEWS: Add translation item.
+
 2021-09-03  John Mellor-Crummey <johnmc@rice.edu>
 
 	* NEWS: Read inlining info in NVIDIA extended line map

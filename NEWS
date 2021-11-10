@@ -1,4 +1,4 @@
-Version 0.186 (one after 0.185)
+Version 0.186
 
 debuginfod-client: Default $DEBUGINFOD_URLS is computed from drop-in files
                    /etc/debuginfod/*.urls rather than hardcoded into the
@@ -21,6 +21,8 @@ libdw: Support for the NVIDIA Cuda line map extensions.
        DW_LNE_NVIDIA_inlined_call and DW_LNE_NVIDIA_set_function_name
        are defined in dwarf.h. New functions dwarf_linecontext and
        dwarf_linefunctionname
+
+translations: Update Japanese translation.
 
 Version 0.185
 

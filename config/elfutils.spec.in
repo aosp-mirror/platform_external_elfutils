@@ -337,6 +337,29 @@ exit 0
 %systemd_postun_with_restart debuginfod.service
 
 %changelog
+* Wed Nov 10 2021 Mark Wielaard <mark@klomp.org> 0.186-1
+- debuginfod-client: Default $DEBUGINFOD_URLS is computed from
+  drop-in files /etc/debuginfod/*.urls rather than
+  hardcoded into the /etc/profile.d/debuginfod*
+  scripts.
+  Add $DEBUGINFOD_MAXSIZE and $DEBUGINFOD_MAXTIME settings
+  for skipping large/slow transfers.
+  Add $DEBUGINFOD_RETRY for retrying aborted lookups.
+- debuginfod: Supply extra HTTP response headers, describing
+  archive/file names that satisfy the requested buildid content.
+  Support -d :memory: option for in-memory databases.
+  Protect against loops in federated server configurations.
+  Add -r option to use -I/-X regexes for grooming stale files.
+  Protect against wasted CPU from duplicate concurrent requests.
+  Limit the duration of groom ops roughly to rescan (-t) times.
+  Add --passive mode for serving from read-only database.
+  Several other performance improvements & prometheus metrics.
+- libdw: Support for the NVIDIA Cuda line map extensions.
+  DW_LNE_NVIDIA_inlined_call and DW_LNE_NVIDIA_set_function_name
+  are defined in dwarf.h. New functions dwarf_linecontext and
+  dwarf_linefunctionname.
+- translations: Update Japanese translation.
+
 * Sat May 22 2021 Mark Wielaard <mark@klomp.org> 0.185-1
 - debuginfod-client: Simplify curl handle reuse so downloads which
                      return an error are retried.

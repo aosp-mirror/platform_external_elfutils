@@ -1,3 +1,19 @@
+2021-11-11  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfod-000-permission.sh: Don't set DEBUGINFOD_TIMEOUT.
+	* run-debuginfod-archive-groom.sh: Likewise.
+	* run-debuginfod-archive-rename.sh: Likewise.
+	* run-debuginfod-archive-test.sh: Likewise.
+	* run-debuginfod-artifact-running.sh: Likewise.
+	* run-debuginfod-dlopen.sh: Likewise.
+	* run-debuginfod-extraction.sh: Likewise.
+	* run-debuginfod-federation-link.sh: Likewise.
+	* run-debuginfod-federation-metrics.sh: Likewise.
+	* run-debuginfod-federation-sqlite.sh: Likewise.
+	* run-debuginfod-malformed.sh: Likewise.
+	* run-debuginfod-tmp-home.sh: Likewise.
+	* run-debuginfod-writable.sh: Likewise.
+
 2021-11-05  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR28430

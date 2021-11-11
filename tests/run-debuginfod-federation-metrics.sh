@@ -24,7 +24,6 @@ unset VALGRIND_CMD
 
 DB=${PWD}/.debuginfod_tmp.sqlite
 export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
-export DEBUGINFOD_TIMEOUT=10
 export DEBUGINFOD_URLS='http://127.0.0.1:0' # Note invalid, will trigger error_count metric
 tempfiles $DB
 # Clean old dirictories

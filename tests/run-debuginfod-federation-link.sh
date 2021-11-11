@@ -24,7 +24,6 @@ unset VALGRIND_CMD
 
 DB=${PWD}/.debuginfod_tmp.sqlite
 export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
-export DEBUGINFOD_TIMEOUT=10
 tempfiles $DB
 
 # Clean old dirictories

@@ -33,11 +33,11 @@
 
 extern "C" {
 #include "printversion.h"
+#include "system.h"
 }
 
 #include "debuginfod.h"
 #include <dwarf.h>
-#include <system.h>
 
 #include <argp.h>
 #ifdef __GNUC__

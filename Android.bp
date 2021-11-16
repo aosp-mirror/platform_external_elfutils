@@ -62,6 +62,7 @@ cc_defaults {
         "//external/elfutils:__subpackages__",
         "//external/libabigail:__subpackages__",
         "//external/libbpf:__subpackages__",
+        "//external/stg:__subpackages__",
     ],
 }
 

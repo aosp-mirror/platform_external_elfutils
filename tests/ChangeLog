@@ -1,3 +1,7 @@
+2021-11-18  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (dwfl_proc_attach_LDFLAGS): Add -rdynamic.
+
 2021-11-11  Mark Wielaard  <mark@klomp.org>
 
 	* run-debuginfod-000-permission.sh: Don't set DEBUGINFOD_TIMEOUT.

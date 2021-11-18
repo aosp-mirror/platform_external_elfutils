@@ -194,7 +194,7 @@ copy_elf (const char *in, const char *out, bool use_mmap, bool reverse_offs)
 	  exit (1);
 	}
 
-      offs = (GElf_Off *) malloc (shnum * sizeof (GElf_Off));
+      offs = malloc (shnum * sizeof (GElf_Off));
       if (offs == NULL)
 	{
 	  printf ("couldn't allocate memory for offs\n");

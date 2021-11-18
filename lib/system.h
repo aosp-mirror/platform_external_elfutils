@@ -38,7 +38,9 @@
 #include <endian.h>
 #include <byteswap.h>
 #include <unistd.h>
+#include <string.h>
 #include <stdarg.h>
+#include <stdlib.h>
 
 #if defined(HAVE_ERROR_H)
 #include <error.h>
@@ -80,6 +82,27 @@ void error(int status, int errnum, const char *format, ...);
     ((void *) ((char *) memcpy (dest, src, n) + (size_t) n))
 #endif
 
+#if !HAVE_DECL_REALLOCARRAY
+static inline void *
+reallocarray (void *ptr, size_t nmemb, size_t size)
+{
+  if (size > 0 && nmemb > SIZE_MAX / size)
+    {
+      errno = ENOMEM;
+      return NULL;
+    }
+  return realloc (ptr, nmemb * size);
+}
+#endif
+
+/* Return TRUE if the start of STR matches PREFIX, FALSE otherwise.  */
+
+static inline int
+startswith (const char *str, const char *prefix)
+{
+  return strncmp (str, prefix, strlen (prefix)) == 0;
+}
+
 /* A special gettext function we use if the strings are too short.  */
 #define sgettext(Str) \
   ({ const char *__res = strrchr (_(Str), '|');			      \
@@ -115,7 +138,7 @@ pwrite_retry (int fd, const void *buf, size_t len, off_t off)
 
   do
     {
-      ssize_t ret = TEMP_FAILURE_RETRY (pwrite (fd, buf + recvd, len - recvd,
+      ssize_t ret = TEMP_FAILURE_RETRY (pwrite (fd, ((char *)buf) + recvd, len - recvd,
 						off + recvd));
       if (ret <= 0)
 	return ret < 0 ? ret : recvd;
@@ -134,7 +157,7 @@ write_retry (int fd, const void *buf, size_t len)
 
   do
     {
-      ssize_t ret = TEMP_FAILURE_RETRY (write (fd, buf + recvd, len - recvd));
+      ssize_t ret = TEMP_FAILURE_RETRY (write (fd, ((char *)buf) + recvd, len - recvd));
       if (ret <= 0)
 	return ret < 0 ? ret : recvd;
 
@@ -152,7 +175,7 @@ pread_retry (int fd, void *buf, size_t len, off_t off)
 
   do
     {
-      ssize_t ret = TEMP_FAILURE_RETRY (pread (fd, buf + recvd, len - recvd,
+      ssize_t ret = TEMP_FAILURE_RETRY (pread (fd, ((char *)buf) + recvd, len - recvd,
 					       off + recvd));
       if (ret <= 0)
 	return ret < 0 ? ret : recvd;

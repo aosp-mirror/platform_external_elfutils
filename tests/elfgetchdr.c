@@ -18,6 +18,8 @@
 # include <config.h>
 #endif
 
+#include <system.h>
+
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -99,7 +101,7 @@ main (int argc, char *argv[])
 		}
 
 	      /* This duplicates what the dwelfgnucompressed testcase does.  */
-	      if (strncmp(".zdebug", sname, strlen (".zdebug")) == 0)
+	      if (startswith (sname, ".zdebug"))
 		{
 		  ssize_t size;
 		  if ((size = dwelf_scn_gnu_compressed_size (scn)) == -1)

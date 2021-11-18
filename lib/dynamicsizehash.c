@@ -184,7 +184,7 @@ INIT(NAME) (NAME *htab, size_t init_size)
 #ifdef ITERATE
   htab->first = NULL;
 #endif
-  htab->table = (void *) calloc ((init_size + 1), sizeof (htab->table[0]));
+  htab->table = calloc ((init_size + 1), sizeof (htab->table[0]));
   if (htab->table == NULL)
     return -1;
 

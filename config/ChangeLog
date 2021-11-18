@@ -1,3 +1,51 @@
+2021-11-10  Mark Wielaard  <mark@klomp.org>
+
+	* elfutils.spec.in: Update for 0.186.
+
+2021-10-03  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR27783
+	* profile.sh, profile.csh: Rewrite to document and set DEBUGINFOD_URLS
+	from /etc/debuginfod/*.urls files.
+	* Makefile.am: Install the configury-specified .urls file.
+	* elfutils.spec: Package it.
+
+2021-09-05  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* eu.am (STACK_USAGE_NO_ERROR): New variable.
+
+2021-07-06  Alice Zhang  <alizhang@redhat.com>
+
+	* debuginfod.sysconfig: Introduce default retry limit.
+
+2021-05-10  Mark Wielaard  <mark@klomp.org>
+
+	* elfutils.spec.in: Update for 0.185.
+
+2021-05-11  Frank Ch. Eigler  <fche@redhat.com>
+
+	* elfutils.spec.in: Add procps to BuildRequires: for %check.
+
+2021-05-10  Mark Wielaard  <mark@klomp.org>
+
+	* elfutils.spec.in: Update for 0.184.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
+	* eu.am (NO_PACKED_NOT_ALIGNED_WARNING): New variable.
+	(AM_CFLAGS): Use NO_PACKED_NOT_ALIGNED_WARNING.
+	(AM_CXXFLAGS): Likewise.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
+	* eu.am (TRAMPOLINES_WARNING): New variable.
+	(AM_CFLAGS): Use TRAMPOLINES_WARNING.
+	(AM_CXXFLAGS): Likewise.
+
+2021-02-12  Mark Wielaard  <mark@klomp.org>
+
+	* elfutils.spec.in: Escape %%check in comment.
+
 2021-02-05  Mark Wielaard  <mark@klomp.org>
 
 	* elfutils.spec.in: Update for 0.183.

@@ -607,7 +607,7 @@ remove_debug_relocations (Ebl *ebl, Elf *elf, GElf_Ehdr *ehdr,
 	  GElf_Chdr tchdr;
 	  int tcompress_type = 0;
 	  bool is_gnu_compressed = false;
-	  if (strncmp (tname, ".zdebug", strlen ("zdebug")) == 0)
+	  if (startswith (tname, ".zdebug"))
 	    {
 	      is_gnu_compressed = true;
 	      if (elf_compress_gnu (tscn, 0, 0) != 1)
@@ -705,17 +705,21 @@ remove_debug_relocations (Ebl *ebl, Elf *elf, GElf_Ehdr *ehdr,
 relocate_failed:
 	      if (relidx != next)
 		{
+		  int updated;
 		  if (is_rela)
-		    gelf_update_rela (reldata, next, rel_p);
+		    updated = gelf_update_rela (reldata, next, rel_p);
 		  else
-		    gelf_update_rel (reldata, next, rel_p);
+		    updated = gelf_update_rel (reldata, next, rel_p);
+		  if (updated == 0)
+		    INTERNAL_ERROR (fname);
 		}
 	      ++next;
 	    }
 
 	  nrels = next;
 	  shdr->sh_size = reldata->d_size = nrels * shdr->sh_entsize;
-	  gelf_update_shdr (scn, shdr);
+	  if (gelf_update_shdr (scn, shdr) == 0)
+	    INTERNAL_ERROR (fname);
 
 	  if (is_gnu_compressed)
 	    {
@@ -952,7 +956,8 @@ update_section_size (Elf_Scn *scn,
   GElf_Shdr shdr_mem;
   GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
   shdr->sh_size = newdata->d_size;
-  (void) gelf_update_shdr (scn, shdr);
+  if (gelf_update_shdr (scn, shdr) == 0)
+    INTERNAL_ERROR (fname);
   if (debugelf != NULL)
     {
       /* libelf will use d_size to set sh_size.  */
@@ -1057,7 +1062,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 	 the debug file if the file would not contain any
 	 information.  */
       size_t debug_fname_len = strlen (debug_fname);
-      tmp_debug_fname = (char *) xmalloc (debug_fname_len + sizeof (".XXXXXX"));
+      tmp_debug_fname = xmalloc (debug_fname_len + sizeof (".XXXXXX"));
       strcpy (mempcpy (tmp_debug_fname, debug_fname, debug_fname_len),
 	      ".XXXXXX");
 
@@ -1191,8 +1196,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
      table.  Maybe some weird tool created an ELF file without one.
      The other one is used for the debug link section.  */
   if ((shnum + 2) * sizeof (struct shdr_info) > MAX_STACK_ALLOC)
-    shdr_info = (struct shdr_info *) xcalloc (shnum + 2,
-					      sizeof (struct shdr_info));
+    shdr_info = xcalloc (shnum + 2, sizeof (struct shdr_info));
   else
     {
       shdr_info = (struct shdr_info *) alloca ((shnum + 2)
@@ -1975,8 +1979,8 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 		  }
 
 		shdr_info[cnt].newsymidx
-		  = (Elf32_Word *) xcalloc (shdr_info[cnt].data->d_size
-					    / elsize, sizeof (Elf32_Word));
+		  = xcalloc (shdr_info[cnt].data->d_size / elsize,
+			     sizeof (Elf32_Word));
 
 		bool last_was_local = true;
 		size_t destidx;

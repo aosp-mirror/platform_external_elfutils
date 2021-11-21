@@ -39,8 +39,10 @@ ARFLAGS = cr
 # Warn about stack usage of more than 256K = 262144 bytes.
 if ADD_STACK_USAGE_WARNING
 STACK_USAGE_WARNING=-Wstack-usage=262144
+STACK_USAGE_NO_ERROR=-Wno-error=stack-usage=
 else
 STACK_USAGE_WARNING=
+STACK_USAGE_NO_ERROR=
 endif
 
 if SANE_LOGICAL_OP_WARNING
@@ -64,29 +66,45 @@ endif
 if HAVE_IMPLICIT_FALLTHROUGH_WARNING
 # Use strict fallthrough. Only __attribute__((fallthrough)) will prevent the
 # warning
+if HAVE_IMPLICIT_FALLTHROUGH_5_WARNING
 IMPLICIT_FALLTHROUGH_WARNING=-Wimplicit-fallthrough=5
+else
+IMPLICIT_FALLTHROUGH_WARNING=-Wimplicit-fallthrough
+endif
 else
 IMPLICIT_FALLTHROUGH_WARNING=
 endif
 
+if HAVE_TRAMPOLINES_WARNING
+TRAMPOLINES_WARNING=-Wtrampolines
+else
+TRAMPOLINES_WARNING=
+endif
+
+if HAVE_NO_PACKED_NOT_ALIGNED_WARNING
+NO_PACKED_NOT_ALIGNED_WARNING=-Wno-packed-not-aligned
+else
+NO_PACKED_NOT_ALIGNED_WARNING=
+endif
+
 AM_CFLAGS = -std=gnu99 -Wall -Wshadow -Wformat=2 \
-	    -Wold-style-definition -Wstrict-prototypes -Wtrampolines \
+	    -Wold-style-definition -Wstrict-prototypes $(TRAMPOLINES_WARNING) \
 	    $(LOGICAL_OP_WARNING) $(DUPLICATED_COND_WARNING) \
 	    $(NULL_DEREFERENCE_WARNING) $(IMPLICIT_FALLTHROUGH_WARNING) \
 	    $(if $($(*F)_no_Werror),,-Werror) \
 	    $(if $($(*F)_no_Wunused),,-Wunused -Wextra) \
 	    $(if $($(*F)_no_Wstack_usage),,$(STACK_USAGE_WARNING)) \
-	    $(if $($(*F)_no_Wpacked_not_aligned),-Wno-packed-not-aligned,) \
+	    $(if $($(*F)_no_Wpacked_not_aligned),$(NO_PACKED_NOT_ALIGNED_WARNING),) \
 	    $($(*F)_CFLAGS)
 
 AM_CXXFLAGS = -std=c++11 -Wall -Wshadow \
-	   -Wtrampolines \
+	   $(TRAMPOLINES_WARNING) \
 	   $(LOGICAL_OP_WARNING) $(DUPLICATED_COND_WARNING) \
 	   $(NULL_DEREFERENCE_WARNING) $(IMPLICIT_FALLTHROUGH_WARNING) \
 	   $(if $($(*F)_no_Werror),,-Werror) \
 	   $(if $($(*F)_no_Wunused),,-Wunused -Wextra) \
 	   $(if $($(*F)_no_Wstack_usage),,$(STACK_USAGE_WARNING)) \
-	   $(if $($(*F)_no_Wpacked_not_aligned),-Wno-packed-not-aligned,) \
+	   $(if $($(*F)_no_Wpacked_not_aligned),$(NO_PACKED_NOT_ALIGNED_WARNING),) \
 	   $($(*F)_CXXFLAGS)
 
 COMPILE.os = $(filter-out -fprofile-arcs -ftest-coverage, $(COMPILE))

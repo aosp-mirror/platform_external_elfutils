@@ -18,6 +18,8 @@
 # include <config.h>
 #endif
 
+#include <system.h>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -83,7 +85,7 @@ main (int argc, char *argv[])
 	      printf ("Cannot compress %zd %s\n", idx, name);
 	    }
 	  else if ((shdr->sh_flags & SHF_COMPRESSED) != 0
-		   || strncmp (name, ".zdebug", strlen (".zdebug")) == 0)
+		   || startswith (name, ".zdebug"))
 	    {
 	      printf ("Already compressed %zd %s\n", idx, name);
 	    }

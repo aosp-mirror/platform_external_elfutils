@@ -254,7 +254,7 @@ read_addrs (struct memory_closure *closure,
   Dwfl *dwfl = closure->dwfl;
 
   /* Read a new buffer if the old one doesn't cover these words.  */
-  if (buffer == NULL
+  if (*buffer == NULL
       || vaddr < *read_vaddr
       || vaddr - (*read_vaddr) + nb > *buffer_available)
     {

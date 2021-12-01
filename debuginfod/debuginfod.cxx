@@ -852,10 +852,11 @@ timestamp (ostream &o)
   char datebuf[80];
   char *now2 = NULL;
   time_t now_t = time(NULL);
-  struct tm *now = gmtime (&now_t);
-  if (now)
+  struct tm now;
+  struct tm *nowp = gmtime_r (&now_t, &now);
+  if (nowp)
     {
-      (void) strftime (datebuf, sizeof (datebuf), "%c", now);
+      (void) strftime (datebuf, sizeof (datebuf), "%c", nowp);
       now2 = datebuf;
     }
 
@@ -1070,11 +1071,13 @@ conninfo (struct MHD_Connection * conn)
 static void
 add_mhd_last_modified (struct MHD_Response *resp, time_t mtime)
 {
-  struct tm *now = gmtime (&mtime);
-  if (now != NULL)
+  struct tm now;
+  struct tm *nowp = gmtime_r (&mtime, &now);
+  if (nowp != NULL)
     {
       char datebuf[80];
-      size_t rc = strftime (datebuf, sizeof (datebuf), "%a, %d %b %Y %T GMT", now);
+      size_t rc = strftime (datebuf, sizeof (datebuf), "%a, %d %b %Y %T GMT",
+                            nowp);
       if (rc > 0 && rc < sizeof (datebuf))
         (void) MHD_add_response_header (resp, "Last-Modified", datebuf);
     }

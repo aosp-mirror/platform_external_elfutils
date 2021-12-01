@@ -1,3 +1,8 @@
+2021-12-01  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (timestamp): Use gmtime_r instead of gmtime.
+	(add_mhd_last_modified): Likewise.
+
 2021-11-10  Érico N. Rolim  <erico.erc@gmail.com>
 
 	* debuginfod.cxx: include "system.h" under 'extern "C"' block.

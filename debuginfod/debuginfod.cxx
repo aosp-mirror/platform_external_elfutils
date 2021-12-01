@@ -1,5 +1,6 @@
 /* Debuginfo-over-http server.
    Copyright (C) 2019-2021 Red Hat, Inc.
+   Copyright (C) 2021 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -629,6 +630,9 @@ parse_opt (int key, char *arg,
 ////////////////////////////////////////////////////////////////////////
 
 
+static void add_mhd_response_header (struct MHD_Response *r,
+				     const char *h, const char *v);
+
 // represent errors that may get reported to an ostream and/or a libmicrohttpd connection
 
 struct reportable_exception
@@ -646,7 +650,7 @@ struct reportable_exception
     MHD_Response* r = MHD_create_response_from_buffer (message.size(),
                                                        (void*) message.c_str(),
                                                        MHD_RESPMEM_MUST_COPY);
-    MHD_add_response_header (r, "Content-Type", "text/plain");
+    add_mhd_response_header (r, "Content-Type", "text/plain");
     MHD_RESULT rc = MHD_queue_response (c, code, r);
     MHD_destroy_response (r);
     return rc;
@@ -1067,6 +1071,15 @@ conninfo (struct MHD_Connection * conn)
 
 ////////////////////////////////////////////////////////////////////////
 
+/* Wrapper for MHD_add_response_header that logs an error if we
+   couldn't add the specified header.  */
+static void
+add_mhd_response_header (struct MHD_Response *r,
+			 const char *h, const char *v)
+{
+  if (MHD_add_response_header (r, h, v) == MHD_NO)
+    obatched(clog) << "Error: couldn't add '" << h << "' header" << endl;
+}
 
 static void
 add_mhd_last_modified (struct MHD_Response *resp, time_t mtime)
@@ -1079,10 +1092,10 @@ add_mhd_last_modified (struct MHD_Response *resp, time_t mtime)
       size_t rc = strftime (datebuf, sizeof (datebuf), "%a, %d %b %Y %T GMT",
                             nowp);
       if (rc > 0 && rc < sizeof (datebuf))
-        (void) MHD_add_response_header (resp, "Last-Modified", datebuf);
+        add_mhd_response_header (resp, "Last-Modified", datebuf);
     }
 
-  (void) MHD_add_response_header (resp, "Cache-Control", "public");
+  add_mhd_response_header (resp, "Cache-Control", "public");
 }
 
 
@@ -1128,10 +1141,11 @@ handle_buildid_f_match (bool internal_req_t,
     }
   else
     {
-      MHD_add_response_header (r, "Content-Type", "application/octet-stream");
       std::string file = b_source0.substr(b_source0.find_last_of("/")+1, b_source0.length());
-      MHD_add_response_header (r, "X-DEBUGINFOD-SIZE", to_string(s.st_size).c_str() );
-      MHD_add_response_header (r, "X-DEBUGINFOD-FILE", file.c_str() );
+      add_mhd_response_header (r, "Content-Type", "application/octet-stream");
+      add_mhd_response_header (r, "X-DEBUGINFOD-SIZE",
+			       to_string(s.st_size).c_str());
+      add_mhd_response_header (r, "X-DEBUGINFOD-FILE", file.c_str());
       add_mhd_last_modified (r, s.st_mtime);
       if (verbose > 1)
         obatched(clog) << "serving file " << b_source0 << endl;
@@ -1600,10 +1614,11 @@ handle_buildid_r_match (bool internal_req_p,
 
       inc_metric ("http_responses_total","result","archive fdcache");
 
-      MHD_add_response_header (r, "Content-Type", "application/octet-stream");
-      MHD_add_response_header (r, "X-DEBUGINFOD-SIZE", to_string(fs.st_size).c_str());
-      MHD_add_response_header (r, "X-DEBUGINFOD-ARCHIVE", b_source0.c_str());
-      MHD_add_response_header (r, "X-DEBUGINFOD-FILE", b_source1.c_str());
+      add_mhd_response_header (r, "Content-Type", "application/octet-stream");
+      add_mhd_response_header (r, "X-DEBUGINFOD-SIZE",
+			       to_string(fs.st_size).c_str());
+      add_mhd_response_header (r, "X-DEBUGINFOD-ARCHIVE", b_source0.c_str());
+      add_mhd_response_header (r, "X-DEBUGINFOD-FILE", b_source1.c_str());
       add_mhd_last_modified (r, fs.st_mtime);
       if (verbose > 1)
         obatched(clog) << "serving fdcache archive " << b_source0 << " file " << b_source1 << endl;
@@ -1744,12 +1759,14 @@ handle_buildid_r_match (bool internal_req_p,
         }
       else
         {
-          MHD_add_response_header (r, "Content-Type", "application/octet-stream");
           std::string file = b_source1.substr(b_source1.find_last_of("/")+1, b_source1.length());
-          MHD_add_response_header (r, "X-DEBUGINFOD-SIZE", to_string(fs.st_size).c_str());
-          MHD_add_response_header (r, "X-DEBUGINFOD-ARCHIVE", b_source0.c_str());
-          MHD_add_response_header (r, "X-DEBUGINFOD-FILE", file.c_str());
-
+          add_mhd_response_header (r, "Content-Type",
+                                   "application/octet-stream");
+          add_mhd_response_header (r, "X-DEBUGINFOD-SIZE",
+                                   to_string(fs.st_size).c_str());
+          add_mhd_response_header (r, "X-DEBUGINFOD-ARCHIVE",
+                                   b_source0.c_str());
+          add_mhd_response_header (r, "X-DEBUGINFOD-FILE", file.c_str());
           add_mhd_last_modified (r, archive_entry_mtime(e));
           if (verbose > 1)
             obatched(clog) << "serving archive " << b_source0 << " file " << b_source1 << endl;
@@ -2015,7 +2032,8 @@ and will not query the upstream servers");
           auto r = MHD_create_response_from_fd ((uint64_t) s.st_size, fd);
           if (r)
             {
-              MHD_add_response_header (r, "Content-Type", "application/octet-stream");
+              add_mhd_response_header (r, "Content-Type",
+				       "application/octet-stream");
               add_mhd_last_modified (r, s.st_mtime);
               if (verbose > 1)
                 obatched(clog) << "serving file from upstream debuginfod/cache" << endl;
@@ -2166,8 +2184,11 @@ handle_metrics (off_t* size)
   MHD_Response* r = MHD_create_response_from_buffer (os.size(),
                                                      (void*) os.c_str(),
                                                      MHD_RESPMEM_MUST_COPY);
-  *size = os.size();
-  MHD_add_response_header (r, "Content-Type", "text/plain");
+  if (r != NULL)
+    {
+      *size = os.size();
+      add_mhd_response_header (r, "Content-Type", "text/plain");
+    }
   return r;
 }
 
@@ -2179,8 +2200,11 @@ handle_root (off_t* size)
   MHD_Response* r = MHD_create_response_from_buffer (version.size (),
 						     (void *) version.c_str (),
 						     MHD_RESPMEM_PERSISTENT);
-  *size = version.size ();
-  MHD_add_response_header (r, "Content-Type", "text/plain");
+  if (r != NULL)
+    {
+      *size = version.size ();
+      add_mhd_response_header (r, "Content-Type", "text/plain");
+    }
   return r;
 }
 

@@ -1,3 +1,15 @@
+2021-12-08  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod.cxx (add_mhd_response_header): New function.
+	(reportable_exception::mhd_send_response): Call
+	MHD_add_response_header.
+	(add_mhd_last_modified): Likewise.
+	(handle_buildid_f_match): Likewise.
+	(handle_buildid_r_match): Likewise.
+	(handle_metrics): Likewise. And check MHD_Response was actually
+	created.
+	(handle_root): Likewise.
+
 2021-12-08  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod.cxx (intern): Call set_metrics() holding the fdcache mutex.

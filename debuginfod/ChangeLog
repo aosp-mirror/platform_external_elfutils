@@ -1,5 +1,12 @@
 2021-12-01  Mark Wielaard  <mark@klomp.org>
 
+	* debuginfod-client.c (debuginfod_query_server): Free tmp_url on
+	realloc error. curl_free escaped_string on error. Fix error out
+	goto on curl_easy_init failure. Only cleanup data[i] handle and
+	response_data if it was initialized.
+
+2021-12-01  Mark Wielaard  <mark@klomp.org>
+
 	* debuginfod-client.c (timestamp): Use gmtime_r instead of gmtime.
 	(add_mhd_last_modified): Likewise.
 

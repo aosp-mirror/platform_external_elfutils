@@ -1,5 +1,6 @@
 /* Retrieve ELF / DWARF / source files from the debuginfod.
    Copyright (C) 2019-2021 Red Hat, Inc.
+   Copyright (C) 2021 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -882,6 +883,7 @@ debuginfod_query_server (debuginfod_client *c,
                                          sizeof(char*));
           if (realloc_ptr == NULL)
             {
+              free (tmp_url);
               rc = -ENOMEM;
               goto out1;
             }
@@ -909,7 +911,7 @@ debuginfod_query_server (debuginfod_client *c,
       goto out1;
     }
 
-  /* thereafter, goto out1 on error.  */
+  /* thereafter, goto out2 on error.  */
 
  /*The beginning of goto block query_in_parallel.*/
  query_in_parallel:
@@ -962,8 +964,9 @@ debuginfod_query_server (debuginfod_client *c,
       data[i].handle = curl_easy_init();
       if (data[i].handle == NULL)
         {
+          if (filename) curl_free (escaped_string);
           rc = -ENETUNREACH;
-          goto out1;
+          goto out2;
         }
       data[i].client = c;
 
@@ -1384,9 +1387,12 @@ debuginfod_query_server (debuginfod_client *c,
   /* remove all handles from multi */
   for (int i = 0; i < num_urls; i++)
     {
-      curl_multi_remove_handle(curlm, data[i].handle); /* ok to repeat */
-      curl_easy_cleanup (data[i].handle);
-      free (data[i].response_data);
+      if (data[i].handle != NULL)
+	{
+	  curl_multi_remove_handle(curlm, data[i].handle); /* ok to repeat */
+	  curl_easy_cleanup (data[i].handle);
+	  free (data[i].response_data);
+	}
     }
 
   unlink (target_cache_tmppath);

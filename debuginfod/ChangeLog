@@ -1,3 +1,7 @@
+2021-12-04  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod.cxx (main): Call debuginfod_pool_groom before exit.
+
 2021-12-08  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod.cxx (add_mhd_response_header): New function.

@@ -4021,6 +4021,8 @@ main (int argc, char *argv[])
         }
     }
 
+  debuginfod_pool_groom ();
+
   // NB: no problem with unconditional free here - an earlier failed regcomp would exit program
   (void) regfree (& file_include_regex);
   (void) regfree (& file_exclude_regex);

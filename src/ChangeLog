@@ -1,3 +1,7 @@
+2021-12-04  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (print_ehdr): Pass sizeof (buf) - 1 to strncpy.
+
 2021-10-20  John M Mellor-Crummey  <johnmc@rice.edu>
 
 	* readelf.c (print_debug_line_section): Try to read

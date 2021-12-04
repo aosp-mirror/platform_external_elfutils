@@ -1172,7 +1172,7 @@ print_ehdr (Ebl *ebl, GElf_Ehdr *ehdr)
 		  (uint32_t) shdr->sh_link);
       else
 	{
-	  strncpy (buf, _(" ([0] not available)"), sizeof (buf));
+	  strncpy (buf, _(" ([0] not available)"), sizeof (buf) - 1);
 	  buf[sizeof (buf) - 1] = '\0';
 	}
 

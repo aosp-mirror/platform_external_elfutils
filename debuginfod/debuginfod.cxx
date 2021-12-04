@@ -3707,7 +3707,7 @@ static void sqlite3_sharedprefix_fn (sqlite3_context* c, int argc, sqlite3_value
       const unsigned char* a = sqlite3_value_text (argv[0]);
       const unsigned char* b = sqlite3_value_text (argv[1]);
       int i = 0;
-      while (*a++ == *b++)
+      while (*a != '\0' && *b != '\0' && *a++ == *b++)
         i++;
       sqlite3_result_int (c, i);
     }

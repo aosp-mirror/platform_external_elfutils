@@ -1,3 +1,8 @@
+2021-12-04  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (debuginfod_query_server): Free winning_headers.
+	Reset response_data_size when clearing response_data.
+
 2021-12-01  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod-client.c (debuginfod_query_server): Free tmp_url on

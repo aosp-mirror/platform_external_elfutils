@@ -1031,7 +1031,11 @@ debuginfod_query_server (debuginfod_client *c,
   int committed_to = -1;
   bool verbose_reported = false;
   struct timespec start_time, cur_time;
-  c->winning_headers = NULL;
+  if (c->winning_headers != NULL)
+    {
+      free (c->winning_headers);
+      c->winning_headers = NULL;
+    }
   if ( maxtime > 0 && clock_gettime(CLOCK_MONOTONIC_RAW, &start_time) == -1)
     {
       rc = errno;
@@ -1075,6 +1079,7 @@ debuginfod_query_server (debuginfod_client *c,
                     if (vfd >= 0 && c->winning_headers != NULL)
                       dprintf(vfd, "\n%s", c->winning_headers);
                     data[committed_to].response_data = NULL;
+                    data[committed_to].response_data_size = 0;
                   }
 
               }

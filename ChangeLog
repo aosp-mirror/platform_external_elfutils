@@ -1,3 +1,7 @@
+2021-12-04  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac: Add --enable-sanitize-address.
+
 2021-11-10  Mark Wielaard  <mark@klomp.org>
 
 	* configure.ac (AC_INIT): Set version to 0.186.

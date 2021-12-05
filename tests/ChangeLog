@@ -1,5 +1,11 @@
 2021-12-04  Mark Wielaard  <mark@klomp.org>
 
+	* Makefile.am (EXTRA_NLIST_CFLAGS): New variable depends on
+	USE_ADDRESS_SANITIZER.
+	(test_nlist_CFLAGS): Add EXTRA_NLIST_CFLAGS.
+
+2021-12-04  Mark Wielaard  <mark@klomp.org>
+
 	* varlocs.c (dwarf_encoding_string): Return "<unknown encoding>" instead
 	of NULL.
 	(dwarf_tag_string): Return "<unknown tag>" instead of NULL.

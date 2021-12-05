@@ -87,7 +87,13 @@ endif
 
 # test_nlist checks its own symbol table, and expects various symbols
 # to be in the order as specified in the source file. Explicitly set
-# minimal CFLAGS
+# minimal CFLAGS. But add address sanitizer if in use.
+if USE_ADDRESS_SANITIZER
+EXTRA_NLIST_CFLAGS=-fsanitize=address
+else
+EXTRA_NLIST_CFLAGS=
+endif
+
 test-nlist$(EXEEXT): test-nlist.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	  $(AM_CPPFLAGS) $(CPPFLAGS) \
@@ -635,7 +641,7 @@ scnnames_LDADD = $(libelf)
 sectiondump_LDADD = $(libelf)
 showptable_LDADD = $(libelf)
 hash_LDADD = $(libelf)
-test_nlist_CFLAGS =-g -O0
+test_nlist_CFLAGS =-g -O0 $(EXTRA_NLIST_CFLAGS)
 test_nlist_LDADD = $(libelf)
 msg_tst_LDADD = $(libelf)
 newscn_LDADD = $(libelf)

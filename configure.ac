@@ -307,10 +307,34 @@ esac
 AC_DEFINE_UNQUOTED(CHECK_UNDEFINED, $check_undefined_val,
 		   [Building with -fsanitize=undefined or not])
 
+AC_ARG_ENABLE([sanitize-address],
+              AS_HELP_STRING([--enable-sanitize-address],
+                             [Use gcc address sanitizer]),
+                             [use_address=$enableval], [use_address=no])
+if test "$use_address" = yes; then
+  old_CFLAGS="$CFLAGS"
+  old_CXXFLAGS="$CXXFLAGS"
+  old_LDFLAGS="$LDFLAGS"
+  # We want to fail immediately on first error, don't try to recover.
+  CFLAGS="$CFLAGS -fsanitize=address -fno-sanitize-recover"
+  CXXFLAGS="$CXXFLAGS -fsanitize=address -fno-sanitize-recover"
+  # Some compilers don't handle -fsanatize=address correctly with --no-undefined
+  LDFLAGS="-Wl,-z,defs -shared"
+  AC_LINK_IFELSE([AC_LANG_SOURCE([int main (int argc, char **argv) { return 0; }])], use_address=yes, use_address=no)
+  AS_IF([test "x$use_address" != xyes],
+        AC_MSG_WARN([gcc address sanitizer not available])
+        CFLAGS="$old_CFLAGS" CXXFLAGS="$old_CXXFLAGS")
+  LDFLAGS="$old_LDFLAGS"
+fi
+AM_CONDITIONAL(USE_ADDRESS_SANITIZER, test "$use_address" = yes)
+
 AC_ARG_ENABLE([valgrind],
 AS_HELP_STRING([--enable-valgrind],[run all tests under valgrind]),
 [use_valgrind=$enableval], [use_valgrind=no])
 if test "$use_valgrind" = yes; then
+  if test "$use_address" = yes; then
+    AC_MSG_ERROR([cannot enable valgrind and sanitize address together])
+  fi
   AC_CHECK_PROG(HAVE_VALGRIND, valgrind, yes, no)
   if test "$HAVE_VALGRIND" = "no"; then
     AC_MSG_ERROR([valgrind not found])
@@ -809,6 +833,7 @@ AC_MSG_NOTICE([
     gcov support                       : ${use_gcov}
     run all tests under valgrind       : ${use_valgrind}
     gcc undefined behaviour sanitizer  : ${use_undefined}
+    gcc address sanitizer              : ${use_address}
     use rpath in tests                 : ${tests_use_rpath}
     test biarch                        : ${utrace_cv_cc_biarch}
 ])

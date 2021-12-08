@@ -784,7 +784,7 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
       GElf_Xword dyn_filesz = 0;
       GElf_Addr dyn_bias = (GElf_Addr) -1;
 
-      if (phdr != 0 && phnum != 0)
+      if (phdr != 0 && phnum != 0 && phent != 0)
 	{
 	  Dwfl_Module *phdr_mod;
 	  int phdr_segndx = INTUSE(dwfl_addrsegment) (dwfl, phdr, &phdr_mod);

@@ -1,5 +1,9 @@
 2021-12-08  Mark Wielaard  <mark@klomp.org>
 
+	* link_map.c (dwfl_link_map_report): Make sure phent != 0.
+
+2021-12-08  Mark Wielaard  <mark@klomp.org>
+
 	* link_map.c (dwfl_link_map_report): Limit malloc size to max
 	possible. When converting make sure we don't exceed the number
 	of bytes available in either in.d_buf nor out.d_buf.

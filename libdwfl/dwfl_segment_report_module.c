@@ -924,8 +924,12 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
               GElf_Off offset = is32 ? p32[i].p_offset : p64[i].p_offset;
               GElf_Xword filesz = is32 ? p32[i].p_filesz : p64[i].p_filesz;
 
+              /* Don't try to read beyond the actual end of file.  */
+              if (offset >= file_trimmed_end)
+                continue;
+
               void *into = contents + offset;
-              size_t read_size = filesz;
+              size_t read_size = MIN (filesz, file_trimmed_end - offset);
               (*memory_callback) (dwfl, addr_segndx (dwfl, segment,
                                                      vaddr + bias, false),
                                   &into, &read_size, vaddr + bias, read_size,

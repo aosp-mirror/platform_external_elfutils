@@ -1,3 +1,8 @@
+2021-12-08  Mark Wielaard  <mark@klomp.org>
+
+	* dwfl_segment_report_module.c (dwfl_segment_report_module): Don't
+	read beyond of (actual) end of (memory) file.
+
 2021-11-18  Matthias Maennich  <maennich@google.com>
 
 	* linux-kernel-modules.c (dwfl_linux_kernel_report_modules):

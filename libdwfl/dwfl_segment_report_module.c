@@ -543,10 +543,12 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 
               const GElf_Nhdr *nh = notes;
               size_t len = 0;
+              size_t last_len;
               while (filesz > len + sizeof (*nh))
                 {
                   const void *note_name;
                   const void *note_desc;
+                  last_len = len;
 
                   len += sizeof (*nh);
                   note_name = notes + len;
@@ -555,7 +557,9 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
                   len = align == 8 ? NOTE_ALIGN8 (len) : NOTE_ALIGN4 (len);
                   note_desc = notes + len;
 
-                  if (unlikely (filesz < len + nh->n_descsz))
+                  if (unlikely (filesz < len + nh->n_descsz
+                                || len < last_len
+                                || len + nh->n_descsz < last_len))
                     break;
 
                   if (nh->n_type == NT_GNU_BUILD_ID

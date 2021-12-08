@@ -1354,8 +1354,8 @@ public:
       if (verbose > 3)
         obatched(clog) << "fdcache interned a=" << a << " b=" << b
                        << " fd=" << fd << " mb=" << mb << " front=" << front_p << endl;
+      set_metrics();
     }
-    set_metrics();
 
     // NB: we age the cache at lookup time too
     if (statfs_free_enough_p(tmpdir, "tmpdir", fdcache_mintmp))

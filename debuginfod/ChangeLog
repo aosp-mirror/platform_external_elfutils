@@ -1,3 +1,7 @@
+2021-12-08  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.cxx (intern): Call set_metrics() holding the fdcache mutex.
+
 2021-12-04  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod-client.c (debuginfod_query_server): Free winning_headers.

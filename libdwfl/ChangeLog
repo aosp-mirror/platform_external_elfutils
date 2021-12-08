@@ -1,5 +1,10 @@
 2021-12-08  Mark Wielaard  <mark@klomp.org>
 
+	* dwfl_segment_report_module.c (dwfl_segment_report_module): Check
+	Dwfl_Module isn't associated with an Elf before installing it.
+
+2021-12-08  Mark Wielaard  <mark@klomp.org>
+
 	* dwfl_segment_report_module.c (dwfl_segment_report_module): Don't
 	trust e_shentsize.
 

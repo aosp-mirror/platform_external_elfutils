@@ -847,6 +847,11 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 	      /* Note this in the !in_ok path.  That means memory_callback
 		 failed.  But the callback might still have reset the d_size
 		 value (to zero).  So explicitly set it here again.  */
+	      if (unlikely (phnum > SIZE_MAX / phent))
+		{
+		  __libdwfl_seterrno (DWFL_E_NOMEM);
+		  return false;
+		}
 	      in.d_size = phnum * phent;
 	      in.d_buf = malloc (in.d_size);
 	      if (unlikely (in.d_buf == NULL))
@@ -876,6 +881,13 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 		  return false;
 		}
 	      size_t nbytes = phnum * phent;
+	      /* We can only process as many bytes/phnum as there are
+		 in in.d_size. The data might have been truncated.  */
+	      if (nbytes > in.d_size)
+		{
+		  nbytes = in.d_size;
+		  phnum = nbytes / phent;
+		}
 	      void *buf = malloc (nbytes);
 	      Elf32_Phdr (*p32)[phnum] = buf;
 	      Elf64_Phdr (*p64)[phnum] = buf;
@@ -888,10 +900,11 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 		{
 		  .d_type = ELF_T_PHDR,
 		  .d_version = EV_CURRENT,
-		  .d_size = phnum * phent,
+		  .d_size = nbytes,
 		  .d_buf = buf
 		};
-	      in.d_size = out.d_size;
+	      if (in.d_size > out.d_size)
+		in.d_size = out.d_size;
 	      if (likely ((elfclass == ELFCLASS32
 			   ? elf32_xlatetom : elf64_xlatetom)
 			  (&out, &in, elfdata) != NULL))

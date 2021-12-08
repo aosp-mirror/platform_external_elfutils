@@ -383,7 +383,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 	 zero sh_size field. We ignore this here because getting shdrs
 	 is just a nice bonus (see below in the type == PT_LOAD case
 	 where we trim the last segment).  */
-      shdrs_end = ehdr.e32.e_shoff + ehdr.e32.e_shnum * ehdr.e32.e_shentsize;
+      shdrs_end = ehdr.e32.e_shoff + ehdr.e32.e_shnum * sizeof (Elf32_Shdr);
       break;
 
     case ELFCLASS64:
@@ -397,7 +397,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
       if (phentsize != sizeof (Elf64_Phdr))
 	goto out;
       /* See the NOTE above for shdrs_end and ehdr.e32.e_shnum.  */
-      shdrs_end = ehdr.e64.e_shoff + ehdr.e64.e_shnum * ehdr.e64.e_shentsize;
+      shdrs_end = ehdr.e64.e_shoff + ehdr.e64.e_shnum * sizeof (Elf64_Shdr);
       break;
 
     default:

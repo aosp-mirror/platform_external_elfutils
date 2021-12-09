@@ -3469,7 +3469,7 @@ database_stats_report()
         throw sqlite_exception(rc, "step");
 
       obatched(clog)
-        << right << setw(20) << ((const char*) sqlite3_column_text(ps_query, 0) ?: (const char*) "NULL")
+        << ((const char*) sqlite3_column_text(ps_query, 0) ?: (const char*) "NULL")
         << " "
         << (sqlite3_column_text(ps_query, 1) ?: (const unsigned char*) "NULL")
         << endl;

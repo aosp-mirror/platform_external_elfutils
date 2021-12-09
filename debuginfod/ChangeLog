@@ -1,3 +1,8 @@
+2021-12-09  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod.cxx (database_stats_report): Don't format clog
+	using 'right' and 'setw(20)'.
+
 2021-12-04  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod.cxx (main): Call debuginfod_pool_groom before exit.

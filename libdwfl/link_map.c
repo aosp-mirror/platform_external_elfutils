@@ -994,6 +994,17 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 	  if ((*memory_callback) (dwfl, dyn_segndx, &in.d_buf, &in.d_size,
 				  dyn_vaddr, dyn_filesz, memory_callback_arg))
 	    {
+	      size_t entsize = (elfclass == ELFCLASS32
+				? sizeof (Elf32_Dyn) : sizeof (Elf64_Dyn));
+	      if (unlikely (dyn_filesz > SIZE_MAX / entsize))
+		{
+		  __libdwfl_seterrno (DWFL_E_NOMEM);
+		  return false;
+		}
+	      /* We can only process as many bytes as there are in
+	         in.d_size. The data might have been truncated.  */
+	      if (dyn_filesz > in.d_size)
+		dyn_filesz = in.d_size;
 	      void *buf = malloc (dyn_filesz);
 	      Elf32_Dyn (*d32)[dyn_filesz / sizeof (Elf32_Dyn)] = buf;
 	      Elf64_Dyn (*d64)[dyn_filesz / sizeof (Elf64_Dyn)] = buf;
@@ -1009,7 +1020,8 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 		  .d_size = dyn_filesz,
 		  .d_buf = buf
 		};
-	      in.d_size = out.d_size;
+	      if (in.d_size > out.d_size)
+		in.d_size = out.d_size;
 	      if (likely ((elfclass == ELFCLASS32
 			   ? elf32_xlatetom : elf64_xlatetom)
 			  (&out, &in, elfdata) != NULL))

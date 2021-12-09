@@ -135,17 +135,17 @@ struct debuginfod_client
    how frequently the cache should be cleaned. The file's st_mtime represents
    the time of last cleaning.  */
 static const char *cache_clean_interval_filename = "cache_clean_interval_s";
-static const time_t cache_clean_default_interval_s = 86400; /* 1 day */
+static const long cache_clean_default_interval_s = 86400; /* 1 day */
 
 /* The cache_miss_default_s within the debuginfod cache specifies how
    frequently the 000-permision file should be released.*/
-static const time_t cache_miss_default_s = 600; /* 10 min */
+static const long cache_miss_default_s = 600; /* 10 min */
 static const char *cache_miss_filename = "cache_miss_s";
 
 /* The cache_max_unused_age_s file within the debuginfod cache specifies the
    the maximum time since last access that a file will remain in the cache.  */
 static const char *cache_max_unused_age_filename = "max_unused_age_s";
-static const time_t cache_default_max_unused_age_s = 604800; /* 1 week */
+static const long cache_default_max_unused_age_s = 604800; /* 1 week */
 
 /* Location of the cache of files downloaded from debuginfods.
    The default parent directory is $HOME, or '/' if $HOME doesn't exist.  */

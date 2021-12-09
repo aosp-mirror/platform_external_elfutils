@@ -1,3 +1,10 @@
+2021-12-09  Alexander Kanavin <alex@linutronix.de>
+
+	* debuginfod-client.c (cache_clean_default_interval_s): Change type to
+	long from time_t.
+	(cache_miss_default_s): Likewise.
+	(cache_default_max_unused_age_s): Likewise.
+
 2021-12-09  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod.cxx (database_stats_report): Don't format clog

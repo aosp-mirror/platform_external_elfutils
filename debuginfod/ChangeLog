@@ -3,6 +3,14 @@
 	* debuginfod.cxx (database_stats_report): Don't format clog
 	using 'right' and 'setw(20)'.
 
+2021-12-08  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.cxx (connection_pool): New global.
+	(parse_opt): Parse & check -C option to set it.
+	(error_cb): New callback for libmicrohttpd error counting.
+	(main): Activate MHD_OPTION_THREAD_POOL_SIZE if appropriate.
+	Activate error_cb.
+
 2021-12-04  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod.cxx (main): Call debuginfod_pool_groom before exit.

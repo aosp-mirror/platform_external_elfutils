@@ -353,7 +353,9 @@ static const struct argp_option options[] =
    { "rescan-time", 't', "SECONDS", 0, "Number of seconds to wait between rescans, 0=disable.", 0 },
    { "groom-time", 'g', "SECONDS", 0, "Number of seconds to wait between database grooming, 0=disable.", 0 },
    { "maxigroom", 'G', NULL, 0, "Run a complete database groom/shrink pass at startup.", 0 },
-   { "concurrency", 'c', "NUM", 0, "Limit scanning thread concurrency to NUM.", 0 },
+   { "concurrency", 'c', "NUM", 0, "Limit scanning thread concurrency to NUM, default=#CPUs.", 0 },
+   { "connection-pool", 'C', "NUM", OPTION_ARG_OPTIONAL,
+     "Use webapi connection pool with NUM threads, default=unlim.", 0 },
    { "include", 'I', "REGEX", 0, "Include files matching REGEX, default=all.", 0 },
    { "exclude", 'X', "REGEX", 0, "Exclude files matching REGEX, default=none.", 0 },
    { "port", 'p', "NUM", 0, "HTTP port to listen on, default 8002.", 0 },
@@ -412,6 +414,7 @@ static unsigned rescan_s = 300;
 static unsigned groom_s = 86400;
 static bool maxigroom = false;
 static unsigned concurrency = std::thread::hardware_concurrency() ?: 1;
+static int connection_pool = 0;
 static set<string> source_paths;
 static bool scan_files = false;
 static map<string,string> scan_archives;
@@ -557,6 +560,16 @@ parse_opt (int key, char *arg,
         argp_failure(state, 1, EINVAL, "-c option inconsistent with passive mode");
       concurrency = (unsigned) atoi(arg);
       if (concurrency < 1) concurrency = 1;
+      break;
+    case 'C':
+      if (arg)
+        {
+          connection_pool = atoi(arg);
+          if (connection_pool < 2)
+            argp_failure(state, 1, EINVAL, "-C NUM minimum 2");
+        }
+      else // arg not given
+        connection_pool = std::thread::hardware_concurrency() * 2 ?: 2;
       break;
     case 'I':
       // NB: no problem with unconditional free here - an earlier failed regcomp would exit program
@@ -1368,6 +1381,7 @@ public:
       if (verbose > 3)
         obatched(clog) << "fdcache interned a=" << a << " b=" << b
                        << " fd=" << fd << " mb=" << mb << " front=" << front_p << endl;
+      
       set_metrics();
     }
 
@@ -3708,7 +3722,15 @@ sigusr2_handler (int /* sig */)
 }
 
 
-
+static void // error logging callback from libmicrohttpd internals
+error_cb (void *arg, const char *fmt, va_list ap)
+{
+  (void) arg;
+  inc_metric("error_count","libmicrohttpd",fmt);
+  char errmsg[512];
+  (void) vsnprintf (errmsg, sizeof(errmsg), fmt, ap); // ok if slightly truncated
+  obatched(cerr) << "libmicrohttpd error: " << errmsg; // MHD_DLOG calls already include \n
+}
 
 
 // A user-defined sqlite function, to score the sharedness of the
@@ -3853,7 +3875,7 @@ main (int argc, char *argv[])
 
   // Start httpd server threads.  Separate pool for IPv4 and IPv6, in
   // case the host only has one protocol stack.
-  MHD_Daemon *d4 = MHD_start_daemon (MHD_USE_THREAD_PER_CONNECTION
+  MHD_Daemon *d4 = MHD_start_daemon ((connection_pool ? 0 : MHD_USE_THREAD_PER_CONNECTION)
 #if MHD_VERSION >= 0x00095300
                                      | MHD_USE_INTERNAL_POLLING_THREAD
 #else
@@ -3863,8 +3885,11 @@ main (int argc, char *argv[])
                                      http_port,
                                      NULL, NULL, /* default accept policy */
                                      handler_cb, NULL, /* handler callback */
+                                     MHD_OPTION_EXTERNAL_LOGGER, error_cb, NULL,
+                                     (connection_pool ? MHD_OPTION_THREAD_POOL_SIZE : MHD_OPTION_END),
+                                     (connection_pool ? (int)connection_pool : MHD_OPTION_END),
                                      MHD_OPTION_END);
-  MHD_Daemon *d6 = MHD_start_daemon (MHD_USE_THREAD_PER_CONNECTION
+  MHD_Daemon *d6 = MHD_start_daemon ((connection_pool ? 0 : MHD_USE_THREAD_PER_CONNECTION)
 #if MHD_VERSION >= 0x00095300
                                      | MHD_USE_INTERNAL_POLLING_THREAD
 #else
@@ -3875,6 +3900,9 @@ main (int argc, char *argv[])
                                      http_port,
                                      NULL, NULL, /* default accept policy */
                                      handler_cb, NULL, /* handler callback */
+                                     MHD_OPTION_EXTERNAL_LOGGER, error_cb, NULL,
+                                     (connection_pool ? MHD_OPTION_THREAD_POOL_SIZE : MHD_OPTION_END),
+                                     (connection_pool ? (int)connection_pool : MHD_OPTION_END),
                                      MHD_OPTION_END);
 
   if (d4 == NULL && d6 == NULL) // neither ipv4 nor ipv6? boo
@@ -3928,6 +3956,8 @@ main (int argc, char *argv[])
 
   if (! passive_p)
     obatched(clog) << "search concurrency " << concurrency << endl;
+  obatched(clog) << "webapi connection pool " << connection_pool
+                 << (connection_pool ? "" : " (unlimited)") << endl;
   if (! passive_p)
     obatched(clog) << "rescan time " << rescan_s << endl;
   obatched(clog) << "fdcache fds " << fdcache_fds << endl;

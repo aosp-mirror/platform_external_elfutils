@@ -1,3 +1,8 @@
+2021-12-08  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR28661
+	* debuginfod.8 (-C): Document new flag.
+
 2021-11-05  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR28430

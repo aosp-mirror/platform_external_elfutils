@@ -1,3 +1,9 @@
+2021-12-09  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod-subr.sh (xfail): New proc.
+	* run-debuginfod-webapi-concurrency.sh: New test for -C.
+	* Makefile.am: List it.
+
 2021-12-04  Mark Wielaard  <mark@klomp.org>
 
 	* Makefile.am (EXTRA_NLIST_CFLAGS): New variable depends on

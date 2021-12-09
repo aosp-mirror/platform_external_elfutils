@@ -1,3 +1,8 @@
+Version 0.187 after 0.186
+
+debuginfod: Support -C option for connection thread pooling.
+
+
 Version 0.186
 
 debuginfod-client: Default $DEBUGINFOD_URLS is computed from drop-in files

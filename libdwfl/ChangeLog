@@ -1,3 +1,8 @@
+2021-12-12  Mark Wielaard  <mark@klomp.org>
+
+	* dwfl_segment_report_module.c (dwfl_segment_report_module): Don't
+	allocate more than SIZE_MAX.
+
 2021-12-09  Mark Wielaard  <mark@klomp.org>
 
 	* link_map.c (dwfl_link_map_report): Limit dyn_filesz malloc size

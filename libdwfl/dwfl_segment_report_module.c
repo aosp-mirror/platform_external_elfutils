@@ -904,6 +904,9 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
       /* The caller wants to read the whole file in right now, but hasn't
 	 done it for us.  Fill in a local image of the virtual file.  */
 
+      if (file_trimmed_end > SIZE_MAX)
+	goto out;
+
       void *contents = calloc (1, file_trimmed_end);
       if (unlikely (contents == NULL))
 	goto out;

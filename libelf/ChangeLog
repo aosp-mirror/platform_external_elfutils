@@ -1,3 +1,8 @@
+2021-12-15  Mark Wielaard  <mark@klomp.org>
+
+	* elf_begin.c (get_shnum): Use offsetof to get field of unaligned
+	struct.
+
 2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* common.h (allocate_elf): Remove cast of calloc return value.

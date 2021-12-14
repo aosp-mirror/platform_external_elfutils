@@ -1,5 +1,6 @@
 /* Create descriptor for processing file.
    Copyright (C) 1998-2010, 2012, 2014, 2015, 2016 Red Hat, Inc.
+   Copyright (C) 2021 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 1998.
 
@@ -170,9 +171,10 @@ get_shnum (void *map_address, unsigned char *e_ident, int fildes,
 	      if (likely (map_address != NULL))
 		/* gcc will optimize the memcpy to a simple memory
 		   access while taking care of alignment issues.  */
-		memcpy (&size, &((Elf32_Shdr *) ((char *) map_address
-						 + ehdr.e32->e_shoff
-						 + offset))->sh_size,
+		memcpy (&size, ((char *) map_address
+					 + ehdr.e32->e_shoff
+					 + offset
+					 + offsetof (Elf32_Shdr, sh_size)),
 			sizeof (Elf32_Word));
 	      else
 		if (unlikely ((r = pread_retry (fildes, &size,
@@ -227,9 +229,10 @@ get_shnum (void *map_address, unsigned char *e_ident, int fildes,
 	      if (likely (map_address != NULL))
 		/* gcc will optimize the memcpy to a simple memory
 		   access while taking care of alignment issues.  */
-		memcpy (&size, &((Elf64_Shdr *) ((char *) map_address
-						 + ehdr.e64->e_shoff
-						 + offset))->sh_size,
+		memcpy (&size, ((char *) map_address
+					 + ehdr.e64->e_shoff
+					 + offset
+					 + offsetof (Elf64_Shdr, sh_size)),
 			sizeof (Elf64_Xword));
 	      else
 		if (unlikely ((r = pread_retry (fildes, &size,

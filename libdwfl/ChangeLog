@@ -1,3 +1,9 @@
+2021-12-15  Mark Wielaard  <mark@klomp.org>
+
+	* link_map.c (dwfl_link_map_report): Make sure phent is either sizeof
+	Elf32_Phdr or sizeof Elf64_Phdr. Check in.d_size can hold at least one
+	Phdr.
+
 2021-12-12  Mark Wielaard  <mark@klomp.org>
 
 	* dwfl_segment_report_module.c (dwfl_segment_report_module): Don't

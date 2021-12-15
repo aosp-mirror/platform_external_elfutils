@@ -1,5 +1,6 @@
 /* Report modules by examining dynamic linker data structures.
    Copyright (C) 2008-2016 Red Hat, Inc.
+   Copyright (C) 2021 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -784,7 +785,9 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
       GElf_Xword dyn_filesz = 0;
       GElf_Addr dyn_bias = (GElf_Addr) -1;
 
-      if (phdr != 0 && phnum != 0 && phent != 0)
+      if (phdr != 0 && phnum != 0
+	  && ((elfclass == ELFCLASS32 && phent == sizeof (Elf32_Phdr))
+	      || (elfclass == ELFCLASS64 && phent == sizeof (Elf64_Phdr))))
 	{
 	  Dwfl_Module *phdr_mod;
 	  int phdr_segndx = INTUSE(dwfl_addrsegment) (dwfl, phdr, &phdr_mod);
@@ -904,7 +907,16 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 		  .d_buf = buf
 		};
 	      if (in.d_size > out.d_size)
-		in.d_size = out.d_size;
+		{
+		  in.d_size = out.d_size;
+		  phnum = in.d_size / phent;
+		  if (phnum == 0)
+		    {
+		      free (buf);
+		      __libdwfl_seterrno (DWFL_E_BADELF);
+		      return false;
+		    }
+		}
 	      if (likely ((elfclass == ELFCLASS32
 			   ? elf32_xlatetom : elf64_xlatetom)
 			  (&out, &in, elfdata) != NULL))

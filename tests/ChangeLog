@@ -1,3 +1,7 @@
+2021-12-17  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfod-query-retry.sh: Use /bin/sh instead of /bin/ls.
+
 2021-12-09  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod-subr.sh (xfail): New proc.

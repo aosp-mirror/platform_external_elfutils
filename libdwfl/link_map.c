@@ -1017,6 +1017,11 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 	         in.d_size. The data might have been truncated.  */
 	      if (dyn_filesz > in.d_size)
 		dyn_filesz = in.d_size;
+	      if (dyn_filesz / entsize == 0)
+		{
+		  __libdwfl_seterrno (DWFL_E_BADELF);
+		  return false;
+		}
 	      void *buf = malloc (dyn_filesz);
 	      Elf32_Dyn (*d32)[dyn_filesz / sizeof (Elf32_Dyn)] = buf;
 	      Elf64_Dyn (*d64)[dyn_filesz / sizeof (Elf64_Dyn)] = buf;

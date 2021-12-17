@@ -1,3 +1,8 @@
+2021-12-16  Mark Wielaard  <mark@klomp.org>
+
+	* link_map.c (dwfl_link_map_report): Make sure dyn_filesz / entsize is
+	non-zero.
+
 2021-12-08  Mark Wielaard  <mark@klomp.org>
 
 	* dwfl_segment_report_module.c (dwfl_segment_report_module): Add

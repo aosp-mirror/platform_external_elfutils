@@ -562,7 +562,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
                   note_desc = notes + len;
 
                   if (unlikely (filesz < len + nh->n_descsz
-                                || len < last_len
+                                || len <= last_len
                                 || len + nh->n_descsz < last_len))
                     break;
 

@@ -294,6 +294,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 			    void *memory_callback_arg,
 			    Dwfl_Module_Callback *read_eagerly,
 			    void *read_eagerly_arg,
+			    size_t maxread,
 			    const void *note_file, size_t note_file_size,
 			    const struct r_debug_info *r_debug_info)
 {
@@ -911,8 +912,8 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
       /* The caller wants to read the whole file in right now, but hasn't
 	 done it for us.  Fill in a local image of the virtual file.  */
 
-      if (file_trimmed_end > SIZE_MAX)
-	goto out;
+      if (file_trimmed_end > maxread)
+	file_trimmed_end = maxread;
 
       void *contents = calloc (1, file_trimmed_end);
       if (unlikely (contents == NULL))

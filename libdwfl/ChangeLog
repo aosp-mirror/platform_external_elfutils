@@ -1,3 +1,11 @@
+2021-12-17  Mark Wielaard  <mark@klomp.org>
+
+	* libdwflP.h (dwfl_segment_report_module): Add maxread argument.
+	* core-file.c (dwfl_core_file_report): Pass elf->maximum_size to
+	dwfl_segment_report_module.
+	* dwfl_segment_report_module.c (dwfl_segment_report_module): Add
+	maxread argument. Check file_trimmed_end against maxread.
+
 2021-12-16  Mark Wielaard  <mark@klomp.org>
 
 	* dwfl_segment_report_module.c (dwfl_segment_report_module): Check

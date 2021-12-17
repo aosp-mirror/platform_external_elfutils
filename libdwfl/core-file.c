@@ -559,6 +559,7 @@ dwfl_core_file_report (Dwfl *dwfl, Elf *elf, const char *executable)
       int seg = dwfl_segment_report_module (dwfl, ndx, NULL,
 					    &dwfl_elf_phdr_memory_callback, elf,
 					    core_file_read_eagerly, elf,
+					    elf->maximum_size,
 					    note_file, note_file_size,
 					    &r_debug_info);
       if (unlikely (seg < 0))

@@ -890,6 +890,11 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 		{
 		  nbytes = in.d_size;
 		  phnum = nbytes / phent;
+		  if (phnum == 0)
+		    {
+		      __libdwfl_seterrno (DWFL_E_BADELF);
+		      return false;
+		    }
 		}
 	      void *buf = malloc (nbytes);
 	      Elf32_Phdr (*p32)[phnum] = buf;

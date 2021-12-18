@@ -1,3 +1,8 @@
+2021-12-16  Mark Wielaard  <mark@klomp.org>
+
+	* libelfP.h (NOTE_ALIGN4): And with negative unsigned long.
+	(NOTE_ALIGN8): Likewise.
+
 2021-12-15  Mark Wielaard  <mark@klomp.org>
 
 	* elf_begin.c (get_shnum): Use offsetof to get field of unaligned

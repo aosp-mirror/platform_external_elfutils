@@ -1,5 +1,10 @@
 2021-12-16  Mark Wielaard  <mark@klomp.org>
 
+	* dwfl_segment_report_module.c (dwfl_segment_report_module): Check
+	note data is properly aligned.
+
+2021-12-16  Mark Wielaard  <mark@klomp.org>
+
 	* link_map.c (dwfl_link_map_report): Make sure phnum is non-zero.
 
 2021-12-16  Mark Wielaard  <mark@klomp.org>

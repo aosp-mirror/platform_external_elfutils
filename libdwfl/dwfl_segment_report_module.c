@@ -517,7 +517,10 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
               assert (sizeof (Elf32_Nhdr) == sizeof (Elf64_Nhdr));
 
               void *notes;
-              if (ei_data == MY_ELFDATA)
+              if (ei_data == MY_ELFDATA
+		  && (uintptr_t) data == (align == 8
+					  ? NOTE_ALIGN8 ((uintptr_t) data)
+					  : NOTE_ALIGN4 ((uintptr_t) data)))
                 notes = data;
               else
                 {

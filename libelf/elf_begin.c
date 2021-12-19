@@ -383,7 +383,7 @@ file_read_elf (int fildes, void *map_address, unsigned char *e_ident,
       if (map_address != NULL && e_ident[EI_DATA] == MY_ELFDATA
 	  && cmd != ELF_C_READ_MMAP /* We need a copy to be able to write.  */
 	  && (ALLOW_UNALIGNED
-	      || (((uintptr_t) ((char *) ehdr + e_shoff)
+	      || ((((uintptr_t) ehdr + e_shoff)
 		   & (__alignof__ (Elf32_Shdr) - 1)) == 0)))
 	{
 	  if (unlikely (scncnt > 0 && e_shoff >= maxsize)
@@ -395,8 +395,10 @@ file_read_elf (int fildes, void *map_address, unsigned char *e_ident,
 	      __libelf_seterrno (ELF_E_INVALID_ELF);
 	      return NULL;
 	    }
-	  elf->state.elf32.shdr
-	    = (Elf32_Shdr *) ((char *) ehdr + e_shoff);
+
+	  if (scncnt > 0)
+	    elf->state.elf32.shdr
+	      = (Elf32_Shdr *) ((char *) ehdr + e_shoff);
 
 	  for (size_t cnt = 0; cnt < scncnt; ++cnt)
 	    {
@@ -485,15 +487,17 @@ file_read_elf (int fildes, void *map_address, unsigned char *e_ident,
       if (map_address != NULL && e_ident[EI_DATA] == MY_ELFDATA
 	  && cmd != ELF_C_READ_MMAP /* We need a copy to be able to write.  */
 	  && (ALLOW_UNALIGNED
-	      || (((uintptr_t) ((char *) ehdr + e_shoff)
+	      || ((((uintptr_t) ehdr + e_shoff)
 		   & (__alignof__ (Elf64_Shdr) - 1)) == 0)))
 	{
 	  if (unlikely (scncnt > 0 && e_shoff >= maxsize)
 	      || unlikely (maxsize - e_shoff
 			   < scncnt * sizeof (Elf64_Shdr)))
 	    goto free_and_out;
-	  elf->state.elf64.shdr
-	    = (Elf64_Shdr *) ((char *) ehdr + e_shoff);
+
+	  if (scncnt > 0)
+	    elf->state.elf64.shdr
+	      = (Elf64_Shdr *) ((char *) ehdr + e_shoff);
 
 	  for (size_t cnt = 0; cnt < scncnt; ++cnt)
 	    {

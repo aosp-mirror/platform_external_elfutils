@@ -1,3 +1,8 @@
+2021-12-19  Mark Wielaard  <mark@klomp.org>
+
+	* elf_begin.c (file_read_elf): Cast ehdr to uintptr_t before e_shoff
+	alignment check. Only set shdr state when scncnt is larger than zero.
+
 2021-12-16  Mark Wielaard  <mark@klomp.org>
 
 	* libelfP.h (NOTE_ALIGN4): And with negative unsigned long.

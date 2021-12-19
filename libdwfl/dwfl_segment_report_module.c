@@ -787,6 +787,9 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
       if (dyn_data_size != 0)
 	dyn_filesz = dyn_data_size;
 
+      if ((dyn_filesz / dyn_entsize) == 0
+	  || dyn_filesz > (SIZE_MAX / dyn_entsize))
+	goto out;
       void *dyns = malloc (dyn_filesz);
       Elf32_Dyn *d32 = dyns;
       Elf64_Dyn *d64 = dyns;

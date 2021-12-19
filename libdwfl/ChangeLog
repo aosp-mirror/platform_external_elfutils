@@ -1,6 +1,12 @@
 2021-12-08  Mark Wielaard  <mark@klomp.org>
 
 	* dwfl_segment_report_module.c (dwfl_segment_report_module): Make sure
+	that dyn_filesz can contain at least one Elf_Dyn and isn't larger than
+	possible.
+
+2021-12-08  Mark Wielaard  <mark@klomp.org>
+
+	* dwfl_segment_report_module.c (dwfl_segment_report_module): Make sure
 	that ph_buffer_size has room for at least one phdr.
 
 2021-12-08  Mark Wielaard  <mark@klomp.org>

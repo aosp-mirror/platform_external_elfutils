@@ -461,6 +461,18 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   xlateto.d_buf = phdrsp;
   xlateto.d_size = phdrsp_bytes;
 
+  /* ph_ buffer may be unaligned, in which case xlatetom would not work.
+     xlatetom does work when the in and out d_buf are equal (but not
+     for any other overlap).  */
+  size_t phdr_align = (class32
+		       ? __alignof__ (Elf32_Phdr)
+		       : __alignof__ (Elf64_Phdr));
+  if (((uintptr_t) ph_buffer & (phdr_align - 1)) != 0)
+    {
+      memcpy (phdrsp, ph_buffer, phdrsp_bytes);
+      xlatefrom.d_buf = phdrsp;
+    }
+
   /* Track the bounds of the file visible in memory.  */
   GElf_Off file_trimmed_end = 0; /* Proper p_vaddr + p_filesz end.  */
   GElf_Off file_end = 0;	 /* Rounded up to effective page size.  */

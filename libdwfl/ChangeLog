@@ -1,5 +1,10 @@
 2021-12-19  Mark Wielaard  <mark@klomp.org>
 
+	* dwfl_segment_report_module.c (dwfl_segment_report_module): Copy
+	buffer and set xlatefrom.d_buf to ehdr when buffer is not aligned.
+
+2021-12-19  Mark Wielaard  <mark@klomp.org>
+
 	* dwfl_segment_report_module.c (dwfl_segment_report_module): Check
 	notes filesz. Rewrite reading of GElf_Nhdr.
 

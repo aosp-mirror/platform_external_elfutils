@@ -367,6 +367,20 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   e_ident = ((const unsigned char *) buffer);
   ei_class = e_ident[EI_CLASS];
   ei_data = e_ident[EI_DATA];
+  /* buffer may be unaligned, in which case xlatetom would not work.
+     xlatetom does work when the in and out d_buf are equal (but not
+     for any other overlap).  */
+  size_t ehdr_align = (ei_class == ELFCLASS32
+		       ? __alignof__ (Elf32_Ehdr)
+		       : __alignof__ (Elf64_Ehdr));
+  if (((uintptr_t) buffer & (ehdr_align - 1)) != 0)
+    {
+      memcpy (&ehdr, buffer,
+	      (ei_class == ELFCLASS32
+	       ? sizeof (Elf32_Ehdr)
+	       : sizeof (Elf64_Ehdr)));
+      xlatefrom.d_buf = &ehdr;
+    }
   switch (ei_class)
     {
     case ELFCLASS32:

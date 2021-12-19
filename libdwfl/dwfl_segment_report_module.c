@@ -426,7 +426,12 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
      buffer, otherwise it will be the size of the new buffer that
      could be read.  */
   if (ph_buffer_size != 0)
-    xlatefrom.d_size = ph_buffer_size;
+    {
+      phnum = ph_buffer_size / phentsize;
+      if (phnum == 0)
+	goto out;
+      xlatefrom.d_size = ph_buffer_size;
+    }
 
   xlatefrom.d_buf = ph_buffer;
 

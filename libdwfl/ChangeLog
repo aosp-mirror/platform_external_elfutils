@@ -1,3 +1,8 @@
+2021-12-19  Mark Wielaard  <mark@klomp.org>
+
+	* dwfl_segment_report_module.c (dwfl_segment_report_module): Check
+	notes filesz. Rewrite reading of GElf_Nhdr.
+
 2021-12-08  Mark Wielaard  <mark@klomp.org>
 
 	* dwfl_segment_report_module.c (dwfl_segment_report_module): Make sure

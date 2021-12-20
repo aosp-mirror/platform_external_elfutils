@@ -1,5 +1,6 @@
 /* Sniff out modules from ELF headers visible in memory segments.
    Copyright (C) 2008-2012, 2014, 2015, 2018 Red Hat, Inc.
+   Copyright (C) 2021 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -332,6 +333,12 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
      here so we can always safely free it.  */
   void *phdrsp = NULL;
 
+  /* Collect the build ID bits here.  */
+  struct elf_build_id build_id;
+  build_id.memory = NULL;
+  build_id.len = 0;
+  build_id.vaddr = 0;
+
   if (! (*memory_callback) (dwfl, ndx, &buffer, &buffer_available,
 			    start, sizeof (Elf64_Ehdr), memory_callback_arg)
       || memcmp (buffer, ELFMAG, SELFMAG) != 0)
@@ -491,12 +498,6 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   /* If we see PT_DYNAMIC, record it here.  */
   GElf_Addr dyn_vaddr = 0;
   GElf_Xword dyn_filesz = 0;
-
-  /* Collect the build ID bits here.  */
-  struct elf_build_id build_id;
-  build_id.memory = NULL;
-  build_id.len = 0;
-  build_id.vaddr =0;
 
   Elf32_Phdr *p32 = phdrsp;
   Elf64_Phdr *p64 = phdrsp;
@@ -701,10 +702,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   /* We must have seen the segment covering offset 0, or else the ELF
      header we read at START was not produced by these program headers.  */
   if (unlikely (!found_bias))
-    {
-      free (build_id.memory);
-      goto out;
-    }
+    goto out;
 
   /* Now we know enough to report a module for sure: its bounds.  */
   module_start += bias;
@@ -772,10 +770,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 	      }
 	  }
       if (skip_this_module)
-	{
-	  free (build_id.memory);
-	  goto out;
-	}
+	goto out;
     }
 
   const char *file_note_name = handle_file_note (module_start, module_end,
@@ -940,6 +935,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   /* At this point we do not need BUILD_ID or NAME any more.
      They have been copied.  */
   free (build_id.memory);
+  build_id.memory = NULL;
   finish_portion (&read_state, &soname, &soname_size);
 
   if (unlikely (mod == NULL))
@@ -1042,6 +1038,8 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
     }
 
 out:
+  if (build_id.memory != NULL)
+    free (build_id.memory);
   free (phdrsp);
   if (buffer != NULL)
     (*memory_callback) (dwfl, -1, &buffer, &buffer_available, 0, 0,

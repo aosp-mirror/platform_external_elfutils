@@ -573,6 +573,18 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
                   xlatefrom.d_size = filesz;
                   xlateto.d_buf = notes;
                   xlateto.d_size = filesz;
+
+		  /* data may be unaligned, in which case xlatetom would not work.
+		     xlatetom does work when the in and out d_buf are equal (but not
+		     for any other overlap).  */
+		  if ((uintptr_t) data != (align == 8
+					   ? NOTE_ALIGN8 ((uintptr_t) data)
+					   : NOTE_ALIGN4 ((uintptr_t) data)))
+		    {
+		      memcpy (notes, data, filesz);
+		      xlatefrom.d_buf = notes;
+		    }
+
                   if (elf32_xlatetom (&xlateto, &xlatefrom, xencoding) == NULL)
                     {
                       free (notes);

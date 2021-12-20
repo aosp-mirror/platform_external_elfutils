@@ -1,6 +1,11 @@
 2021-12-19  Mark Wielaard  <mark@klomp.org>
 
 	* dwfl_segment_report_module.c (dwfl_segment_report_module): Copy
+	data and set xlatefrom.d_buf to notes when data is not aligned.
+
+2021-12-19  Mark Wielaard  <mark@klomp.org>
+
+	* dwfl_segment_report_module.c (dwfl_segment_report_module): Copy
 	ph_buffer and set xlatefrom.d_buf to phdrsp when ph_buffer is not
 	aligned.
 

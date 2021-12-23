@@ -1,3 +1,8 @@
+2021-12-23  Mark Wielaard  <mark@klomp.org>
+
+	* core-file.c (dwfl_elf_phdr_memory_callback): Check start <
+	elf->maximum_size and end - start < minread.
+
 2021-12-20  Mark Wielaard  <mark@klomp.org>
 
 	* dwfl_segment_report_module.c (dwfl_segment_report_module): Move

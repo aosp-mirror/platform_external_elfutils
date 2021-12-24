@@ -1,5 +1,10 @@
 2021-12-23  Mark Wielaard  <mark@klomp.org>
 
+	* link_map.c (dwfl_link_map_report): Call memcpy and set in.d_buf to
+	out.d_buf before calling xlatetom for unaligned buffers.
+
+2021-12-23  Mark Wielaard  <mark@klomp.org>
+
 	* core-file.c (dwfl_elf_phdr_memory_callback): Check start <
 	elf->maximum_size and end - start < minread.
 

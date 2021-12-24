@@ -922,11 +922,20 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 		      return false;
 		    }
 		}
+	      bool is32 = (elfclass == ELFCLASS32);
+	      size_t phdr_align = (is32
+				   ? __alignof__ (Elf32_Phdr)
+				   : __alignof__ (Elf64_Phdr));
+	      if (!in_from_exec
+		  && ((uintptr_t) in.d_buf & (phdr_align - 1)) != 0)
+		{
+		  memcpy (out.d_buf, in.d_buf, in.d_size);
+		  in.d_buf = out.d_buf;
+		}
 	      if (likely ((elfclass == ELFCLASS32
 			   ? elf32_xlatetom : elf64_xlatetom)
 			  (&out, &in, elfdata) != NULL))
 		{
-		  bool is32 = (elfclass == ELFCLASS32);
 		  for (size_t i = 0; i < phnum; ++i)
 		    {
 		      GElf_Word type = (is32
@@ -1044,6 +1053,14 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 		};
 	      if (in.d_size > out.d_size)
 		in.d_size = out.d_size;
+	      size_t dyn_align = (elfclass == ELFCLASS32
+			          ? __alignof__ (Elf32_Dyn)
+				  : __alignof__ (Elf64_Dyn));
+	      if (((uintptr_t) in.d_buf & (dyn_align - 1)) != 0)
+		{
+		  memcpy (out.d_buf, in.d_buf, in.d_size);
+		  in.d_buf = out.d_buf;
+		}
 	      if (likely ((elfclass == ELFCLASS32
 			   ? elf32_xlatetom : elf64_xlatetom)
 			  (&out, &in, elfdata) != NULL))

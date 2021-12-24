@@ -270,26 +270,25 @@ read_addrs (struct memory_closure *closure,
 	return true;
     }
 
-  Elf32_Addr (*a32)[n] = vaddr - (*read_vaddr) + (*buffer);
-  Elf64_Addr (*a64)[n] = (void *) a32;
+  unsigned char *addr = vaddr - (*read_vaddr) + (*buffer);
 
   if (elfclass == ELFCLASS32)
     {
       if (elfdata == ELFDATA2MSB)
 	for (size_t i = 0; i < n; ++i)
-	  addrs[i] = BE32 (read_4ubyte_unaligned_noncvt (&(*a32)[i]));
+	  addrs[i] = BE32 (read_4ubyte_unaligned_noncvt (addr + i * 4));
       else
 	for (size_t i = 0; i < n; ++i)
-	  addrs[i] = LE32 (read_4ubyte_unaligned_noncvt (&(*a32)[i]));
+	  addrs[i] = LE32 (read_4ubyte_unaligned_noncvt (addr + i * 4));
     }
   else
     {
       if (elfdata == ELFDATA2MSB)
 	for (size_t i = 0; i < n; ++i)
-	  addrs[i] = BE64 (read_8ubyte_unaligned_noncvt (&(*a64)[i]));
+	  addrs[i] = BE64 (read_8ubyte_unaligned_noncvt (addr + i * 8));
       else
 	for (size_t i = 0; i < n; ++i)
-	  addrs[i] = LE64 (read_8ubyte_unaligned_noncvt (&(*a64)[i]));
+	  addrs[i] = LE64 (read_8ubyte_unaligned_noncvt (addr + i * 8));
     }
 
   return false;

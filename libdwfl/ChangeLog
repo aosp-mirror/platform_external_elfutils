@@ -1,5 +1,9 @@
 2021-12-23  Mark Wielaard  <mark@klomp.org>
 
+	* link_map.c (read_addrs): Calculate addr to read by hand.
+
+2021-12-23  Mark Wielaard  <mark@klomp.org>
+
 	* link_map.c (dwfl_link_map_report): Call memcpy and set in.d_buf to
 	out.d_buf before calling xlatetom for unaligned buffers.
 

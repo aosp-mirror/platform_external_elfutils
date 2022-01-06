@@ -1,5 +1,10 @@
 2022-01-03  Mark Wielaard  <mark@klomp.org>
 
+	* dwfl_segment_report_module.c (dwfl_segment_report_module): Copy
+	dyn_data and set xlatefrom.d_buf to dyns when dyns is not aligned.
+
+2022-01-03  Mark Wielaard  <mark@klomp.org>
+
 	* link_map.c (read_addrs): Fix buffer_available nb overflow.
 
 2021-12-23  Mark Wielaard  <mark@klomp.org>

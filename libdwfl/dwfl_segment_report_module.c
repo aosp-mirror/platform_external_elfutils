@@ -844,7 +844,19 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
       xlateto.d_buf = dyns;
       xlateto.d_size = dyn_filesz;
 
+      /* dyn_data may be unaligned, in which case xlatetom would not work.
+	 xlatetom does work when the in and out d_buf are equal (but not
+	 for any other overlap).  */
       bool is32 = (ei_class == ELFCLASS32);
+      size_t dyn_align = (is32
+			  ? __alignof__ (Elf32_Dyn)
+			  : __alignof__ (Elf64_Dyn));
+      if (((uintptr_t) dyn_data & (dyn_align - 1)) != 0)
+	{
+	  memcpy (dyns, dyn_data, dyn_filesz);
+	  xlatefrom.d_buf = dyns;
+	}
+
       if ((is32 && elf32_xlatetom (&xlateto, &xlatefrom, ei_data) != NULL)
           || (!is32 && elf64_xlatetom (&xlateto, &xlatefrom, ei_data) != NULL))
         {

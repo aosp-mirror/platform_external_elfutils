@@ -1037,8 +1037,6 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 		  return false;
 		}
 	      void *buf = malloc (dyn_filesz);
-	      Elf32_Dyn (*d32)[dyn_filesz / sizeof (Elf32_Dyn)] = buf;
-	      Elf64_Dyn (*d64)[dyn_filesz / sizeof (Elf64_Dyn)] = buf;
 	      if (unlikely (buf == NULL))
 		{
 		  __libdwfl_seterrno (DWFL_E_NOMEM);
@@ -1068,6 +1066,7 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 		  /* We are looking for DT_DEBUG.  */
 		  if (elfclass == ELFCLASS32)
 		    {
+		      Elf32_Dyn (*d32)[dyn_filesz / sizeof (Elf32_Dyn)] = buf;
 		      size_t n = dyn_filesz / sizeof (Elf32_Dyn);
 		      for (size_t i = 0; i < n; ++i)
 			if ((*d32)[i].d_tag == DT_DEBUG)
@@ -1078,6 +1077,7 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 		    }
 		  else
 		    {
+		      Elf64_Dyn (*d64)[dyn_filesz / sizeof (Elf64_Dyn)] = buf;
 		      size_t n = dyn_filesz / sizeof (Elf64_Dyn);
 		      for (size_t i = 0; i < n; ++i)
 			if ((*d64)[i].d_tag == DT_DEBUG)

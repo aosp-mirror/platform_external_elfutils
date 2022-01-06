@@ -257,7 +257,8 @@ read_addrs (struct memory_closure *closure,
   /* Read a new buffer if the old one doesn't cover these words.  */
   if (*buffer == NULL
       || vaddr < *read_vaddr
-      || vaddr - (*read_vaddr) + nb > *buffer_available)
+      || nb > *buffer_available
+      || vaddr - (*read_vaddr) > *buffer_available - nb)
     {
       release_buffer (closure, buffer, buffer_available, 0);
 

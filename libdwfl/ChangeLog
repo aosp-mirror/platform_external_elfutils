@@ -1,3 +1,7 @@
+2022-01-03  Mark Wielaard  <mark@klomp.org>
+
+	* link_map.c (read_addrs): Fix buffer_available nb overflow.
+
 2021-12-23  Mark Wielaard  <mark@klomp.org>
 
 	* link_map.c (read_addrs): Calculate addr to read by hand.

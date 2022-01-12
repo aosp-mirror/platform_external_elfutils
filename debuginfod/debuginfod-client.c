@@ -1140,11 +1140,45 @@ debuginfod_query_server (debuginfod_client *c,
           goto out2;
         }
 
+      long dl_size = 0;
+      if (target_handle && (c->progressfn || maxsize > 0))
+        {
+          /* Get size of file being downloaded. NB: If going through
+             deflate-compressing proxies, this number is likely to be
+             unavailable, so -1 may show. */
+          CURLcode curl_res;
+#ifdef CURLINFO_CONTENT_LENGTH_DOWNLOAD_T
+          curl_off_t cl;
+          curl_res = curl_easy_getinfo(target_handle,
+                                       CURLINFO_CONTENT_LENGTH_DOWNLOAD_T,
+                                       &cl);
+          if (curl_res == CURLE_OK && cl >= 0)
+            dl_size = (cl > LONG_MAX ? LONG_MAX : (long)cl);
+#else
+          double cl;
+          curl_res = curl_easy_getinfo(target_handle,
+                                       CURLINFO_CONTENT_LENGTH_DOWNLOAD,
+                                       &cl);
+          if (curl_res == CURLE_OK)
+            dl_size = (cl >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)cl);
+#endif
+          /* If Content-Length is -1, try to get the size from
+             X-Debuginfod-Size */
+          if (dl_size == -1 && c->winning_headers != NULL)
+            {
+              long xdl;
+              char *hdr = strcasestr(c->winning_headers, "x-debuginfod-size");
+
+              if (hdr != NULL
+                  && sscanf(hdr, "x-debuginfod-size: %ld", &xdl) == 1)
+                dl_size = xdl;
+            }
+        }
+
       if (c->progressfn) /* inform/check progress callback */
         {
           loops ++;
-          long pa = loops; /* default params for progress callback */
-          long pb = 0; /* transfer_timeout tempting, but loops != elapsed-time */
+          long pa = loops; /* default param for progress callback */
           if (target_handle) /* we've committed to a server; report its download progress */
             {
               CURLcode curl_res;
@@ -1164,50 +1198,19 @@ debuginfod_query_server (debuginfod_client *c,
                 pa = (dl >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)dl);
 #endif
 
-              /* NB: If going through deflate-compressing proxies, this
-                 number is likely to be unavailable, so -1 may show. */
-#ifdef CURLINFO_CONTENT_LENGTH_DOWNLOAD_T
-              curl_off_t cl;
-              curl_res = curl_easy_getinfo(target_handle,
-                                           CURLINFO_CONTENT_LENGTH_DOWNLOAD_T,
-                                           &cl);
-              if (curl_res == 0 && cl >= 0)
-                pb = (cl > LONG_MAX ? LONG_MAX : (long)cl);
-#else
-              double cl;
-              curl_res = curl_easy_getinfo(target_handle,
-                                           CURLINFO_CONTENT_LENGTH_DOWNLOAD,
-                                           &cl);
-              if (curl_res == 0)
-                pb = (cl >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)cl);
-#endif
             }
 
-          if ((*c->progressfn) (c, pa, pb))
+          if ((*c->progressfn) (c, pa, dl_size))
             break;
         }
+
       /* Check to see if we are downloading something which exceeds maxsize, if set.*/
-      if (maxsize > 0 && target_handle)
+      if (target_handle && dl_size > maxsize && maxsize > 0)
         {
-          long dl_size = 0;
-#ifdef CURLINFO_SIZE_DOWNLOAD_T
-          curl_off_t download_size_t;
-          if (curl_easy_getinfo(target_handle, CURLINFO_CONTENT_LENGTH_DOWNLOAD_T,
-                                                    &download_size_t) == CURLE_OK)
-            dl_size = download_size_t >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)download_size_t;
-#else
-          double download_size;
-          if (curl_easy_getinfo(target_handle, CURLINFO_CONTENT_LENGTH_DOWNLOAD,
-                                                    &download_size) == CURLE_OK)
-            dl_size = download_size >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)download_size;
-#endif
-            if (dl_size > maxsize)
-              {
-                if (vfd >=0)
-                  dprintf(vfd, "Content-Length too large.\n");
-                rc = -EFBIG;
-                goto out2;
-              }
+          if (vfd >=0)
+            dprintf(vfd, "Content-Length too large.\n");
+          rc = -EFBIG;
+          goto out2;
         }
     } while (still_running);
 

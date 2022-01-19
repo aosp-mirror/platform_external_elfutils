@@ -1,3 +1,10 @@
+2022-01-19  Ahelenia Ziemiańska <nabijaczleweli@nabijaczleweli.xyz>
+
+	* profile.csh.in: Set DEBUGINFOD_URLS directly. Use "$0" and :
+	in sh -c.
+	* profile.sh.in: Set DEBUGINFOD_URLS directly. Don't use sh -c.
+	Use $() instead of ``.
+
 2022-04-07  Mark Wielaard  <mark@klomp.org>
 
 	* elfutils.spec.in (debuginfod-client): Add an explicit requires

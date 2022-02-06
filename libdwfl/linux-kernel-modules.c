@@ -1008,7 +1008,7 @@ dwfl_linux_kernel_report_modules (Dwfl *dwfl)
   int result = 0;
   Dwarf_Addr modaddr;
   unsigned long int modsz;
-  char modname[128];
+  char modname[128+1];
   char *line = NULL;
   size_t linesz = 0;
   /* We can't just use fscanf here because it's not easy to distinguish \n

@@ -30,8 +30,6 @@
 # include <config.h>
 #endif
 
-#include <system.h>
-
 #include "libdwflP.h"
 #include <unistd.h>
 
@@ -174,7 +172,7 @@ dwfl_attach_state (Dwfl *dwfl, Elf *elf, pid_t pid,
 	     is called from dwfl_linux_proc_attach with elf == NULL.
 	     __libdwfl_module_getebl will call __libdwfl_getelf which
 	     will call the find_elf callback.  */
-	  if (startswith (mod->name, "[vdso: ")
+	  if (strncmp (mod->name, "[vdso: ", 7) == 0
 	      || strcmp (strrchr (mod->name, ' ') ?: "",
 			 " (deleted)") == 0)
 	    continue;

@@ -1566,9 +1566,6 @@ do_oper_insert (int oper, const char *arfname, char **argv, int argc,
   if (fd != -1)
     close (fd);
 
-  if (newfd != -1)
-    close (newfd);
-
   return status;
 }
 

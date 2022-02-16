@@ -440,7 +440,6 @@ __libdwfl_dynamic_vaddr_get (Elf *elf, GElf_Addr *vaddrp)
   return false;
 }
 
-NEW_VERSION (dwfl_core_file_report, ELFUTILS_0.158)
 int
 dwfl_core_file_report (Dwfl *dwfl, Elf *elf, const char *executable)
 {
@@ -626,7 +625,8 @@ dwfl_core_file_report (Dwfl *dwfl, Elf *elf, const char *executable)
      error rather than just nothing found.  */
   return listed > 0 ? listed : retval;
 }
-NEW_INTDEF (dwfl_core_file_report)
+INTDEF (dwfl_core_file_report)
+NEW_VERSION (dwfl_core_file_report, ELFUTILS_0.158)
 
 #ifdef SYMBOL_VERSIONING
 int _compat_without_executable_dwfl_core_file_report (Dwfl *dwfl, Elf *elf);

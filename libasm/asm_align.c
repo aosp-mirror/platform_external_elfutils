@@ -143,7 +143,8 @@ __libasm_ensure_section_space (AsmScn_t *asmscn, size_t len)
       /* This is the first block.  */
       size = MAX (2 * len, 960);
 
-      asmscn->content = calloc (1, sizeof (struct AsmData) + size);
+      asmscn->content = (struct AsmData *) calloc (1, sizeof (struct AsmData)
+						   + size);
       if (asmscn->content == NULL)
 	return -1;
 
@@ -159,7 +160,7 @@ __libasm_ensure_section_space (AsmScn_t *asmscn, size_t len)
 
       size = MAX (2 *len, MIN (32768, 2 * asmscn->offset));
 
-      newp = calloc (1, sizeof (struct AsmData) + size);
+      newp = (struct AsmData *) calloc (1, sizeof (struct AsmData) + size);
       if (newp == NULL)
 	return -1;
 

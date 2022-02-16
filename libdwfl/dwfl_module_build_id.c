@@ -77,7 +77,6 @@ __libdwfl_find_build_id (Dwfl_Module *mod, bool set, Elf *elf)
   return found_build_id (mod, set, build_id_bits, build_id_len, build_id_vaddr);
 }
 
-NEW_VERSION (dwfl_module_build_id, ELFUTILS_0.138)
 int
 dwfl_module_build_id (Dwfl_Module *mod,
 		      const unsigned char **bits, GElf_Addr *vaddr)
@@ -103,7 +102,8 @@ dwfl_module_build_id (Dwfl_Module *mod,
   *vaddr = mod->build_id_vaddr;
   return mod->build_id_len;
 }
-NEW_INTDEF (dwfl_module_build_id)
+INTDEF (dwfl_module_build_id)
+NEW_VERSION (dwfl_module_build_id, ELFUTILS_0.138)
 
 #ifdef SYMBOL_VERSIONING
 COMPAT_VERSION (dwfl_module_build_id, ELFUTILS_0.130, vaddr_at_end)

@@ -1,27 +1,3 @@
-2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
-
-	* common.h (allocate_elf): Remove cast of calloc return value.
-	* elf_newdata.c (elf_newdata): Likewise.
-	* elf_getscn.c (elf_getscn): Remove casts of calloc return values.
-	* elf_newscn.c (elf_newscn): Likewise.
-	* elf32_updatefile.c (__elfw2): Remove casts of malloc return values.
-	* elf_getdata.c (convert_data): Likewise.
-	(__libelf_set_rawdata_wrlock): Remove cast of malloc return value.
-	* elf_begin.c (read_long_names): Remove cast of malloc return value.
-	* elf_readall.c (__libelf_readall): Likewise.
-	* elf_getarsym.c (elf_getarsym): Remove casts of malloc and realloc
-	return values.
-
-2021-07-19  Mark Wielaard  <mark@klomp.org>
-
-	* elf_strptr.c (validate_str): Check last char is zero first before
-	calling memrchr on the whole block.
-
-2021-06-09  Andrei Homescu  <ah@immunant.com>
-
-	* elf_getdata.c: Fix d_align for sections where alignment is larger
-	than offset.
-
 2020-12-12  Mark Wielaard  <mark@klomp.org>
 
 	* elf.h: Update from glibc.

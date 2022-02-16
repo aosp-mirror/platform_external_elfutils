@@ -71,7 +71,7 @@ asm_newcomsym (AsmCtx_t *ctx, const char *name, GElf_Xword size,
 
   rwlock_wrlock (ctx->lock);
 
-  result = malloc (sizeof (AsmSym_t));
+  result = (AsmSym_t *) malloc (sizeof (AsmSym_t));
   if (result == NULL)
     return NULL;
 

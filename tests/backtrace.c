@@ -97,9 +97,6 @@ callback_verify (pid_t tid, unsigned frameno, Dwarf_Addr pc,
   static bool reduce_frameno = false;
   if (reduce_frameno)
     frameno--;
-  static bool pthread_kill_seen = false;
-  if (pthread_kill_seen)
-    frameno--;
   if (! use_raise_jmp_patching && frameno >= 2)
     frameno += 2;
   const char *symname2 = NULL;
@@ -110,26 +107,11 @@ callback_verify (pid_t tid, unsigned frameno, Dwarf_Addr pc,
 	       && (strcmp (symname, "__kernel_vsyscall") == 0
 		   || strcmp (symname, "__libc_do_syscall") == 0))
 	reduce_frameno = true;
-      else if (! pthread_kill_seen && symname
-	       && strstr (symname, "pthread_kill") != NULL)
-	pthread_kill_seen = true;
       else
-	{
-	  if (!symname || strcmp (symname, "raise") != 0)
-	    {
-	      fprintf (stderr,
-		       "case 0: expected symname 'raise' got '%s'\n", symname);
-	      abort ();
-	    }
-	}
+	assert (symname && strcmp (symname, "raise") == 0);
       break;
     case 1:
-      if (symname == NULL || strcmp (symname, "sigusr2") != 0)
-	{
-	  fprintf (stderr,
-		   "case 1: expected symname 'sigusr2' got '%s'\n", symname);
-	  abort ();
-	}
+      assert (symname != NULL && strcmp (symname, "sigusr2") == 0);
       break;
     case 2: // x86_64 only
       /* __restore_rt - glibc maybe does not have to have this symbol.  */
@@ -138,21 +120,11 @@ callback_verify (pid_t tid, unsigned frameno, Dwarf_Addr pc,
       if (use_raise_jmp_patching)
 	{
 	  /* Verify we trapped on the very first instruction of jmp.  */
-	  if (symname == NULL || strcmp (symname, "jmp") != 0)
-	    {
-	      fprintf (stderr,
-		       "case 3: expected symname 'raise' got '%s'\n", symname);
-	      abort ();
-	    }
+	  assert (symname != NULL && strcmp (symname, "jmp") == 0);
 	  mod = dwfl_addrmodule (dwfl, pc - 1);
 	  if (mod)
 	    symname2 = dwfl_module_addrname (mod, pc - 1);
-	  if (symname2 == NULL || strcmp (symname2, "jmp") != 0)
-	    {
-	      fprintf (stderr,
-		       "case 3: expected symname2 'jmp' got '%s'\n", symname2);
-	      abort ();
-	    }
+	  assert (symname2 == NULL || strcmp (symname2, "jmp") != 0);
 	  break;
 	}
       FALLTHROUGH;
@@ -165,22 +137,11 @@ callback_verify (pid_t tid, unsigned frameno, Dwarf_Addr pc,
 	  duplicate_sigusr2 = true;
 	  break;
 	}
-      if (symname == NULL || strcmp (symname, "stdarg") != 0)
-	{
-	  fprintf (stderr,
-		   "case 4: expected symname 'stdarg' got '%s'\n", symname);
-	  abort ();
-	}
+      assert (symname != NULL && strcmp (symname, "stdarg") == 0);
       break;
     case 5:
       /* Verify we trapped on the very last instruction of child.  */
-      if (symname == NULL || strcmp (symname, "backtracegen") != 0)
-	{
-	  fprintf (stderr,
-		   "case 5: expected symname 'backtracegen' got '%s'\n",
-		   symname);
-	  abort ();
-	}
+      assert (symname != NULL && strcmp (symname, "backtracegen") == 0);
       mod = dwfl_addrmodule (dwfl, pc);
       if (mod)
 	symname2 = dwfl_module_addrname (mod, pc);
@@ -190,15 +151,7 @@ callback_verify (pid_t tid, unsigned frameno, Dwarf_Addr pc,
       // instructions or even inserts some padding instructions at the end
       // (which apparently happens on ppc64).
       if (use_raise_jmp_patching)
-	{
-          if (symname2 != NULL && strcmp (symname2, "backtracegen") == 0)
-	    {
-	      fprintf (stderr,
-		       "use_raise_jmp_patching didn't expect symname2 "
-		       "'backtracegen'\n");
-	      abort ();
-	    }
-	}
+        assert (symname2 == NULL || strcmp (symname2, "backtracegen") != 0);
       break;
   }
 }

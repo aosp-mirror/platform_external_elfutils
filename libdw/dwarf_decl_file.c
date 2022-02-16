@@ -36,7 +36,6 @@
 #include "libdwP.h"
 
 
-NEW_VERSION (dwarf_decl_file, ELFUTILS_0.143)
 const char *
 dwarf_decl_file (Dwarf_Die *die)
 {
@@ -87,3 +86,4 @@ dwarf_decl_file (Dwarf_Die *die)
   return cu->files->info[idx].name;
 }
 OLD_VERSION (dwarf_decl_file, ELFUTILS_0.122)
+NEW_VERSION (dwarf_decl_file, ELFUTILS_0.143)

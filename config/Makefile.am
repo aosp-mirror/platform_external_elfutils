@@ -40,16 +40,9 @@ pkgconfig_DATA += libdebuginfod.pc
 install-data-local:
 	$(INSTALL_DATA) profile.sh -D $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.sh
 	$(INSTALL_DATA) profile.csh -D $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.csh
-	mkdir -p $(DESTDIR)$(sysconfdir)/debuginfod
-	if [ -n "@DEBUGINFOD_URLS@" ]; then \
-		echo "@DEBUGINFOD_URLS@" > $(DESTDIR)$(sysconfdir)/debuginfod/elfutils.urls; \
-	fi
 
 uninstall-local:
-	rm -f $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.sh
-	rm -f $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.csh
-	rm -f $(DESTDIR)$(sysconfdir)/debuginfod/elfutils.urls
-	-rmdir $(DESTDIR)$(sysconfdir)/debuginfod
+	rm -f $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.sh $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.csh
 endif
 
 if MAINTAINER_MODE

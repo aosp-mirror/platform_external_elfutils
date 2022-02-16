@@ -37,13 +37,13 @@
 #include "libdwP.h"
 
 
-NEW_VERSION (dwarf_decl_line, ELFUTILS_0.143)
 int
 dwarf_decl_line (Dwarf_Die *func, int *linep)
 {
   return __libdw_attr_intval (func, linep, DW_AT_decl_line);
 }
 OLD_VERSION (dwarf_decl_line, ELFUTILS_0.122)
+NEW_VERSION (dwarf_decl_line, ELFUTILS_0.143)
 
 
 int internal_function

@@ -62,7 +62,7 @@ asm_newsubscn (AsmScn_t *asmscn, unsigned int nr)
       runp = runp->subnext;
     }
 
-  newp = malloc (sizeof (AsmScn_t));
+  newp = (AsmScn_t *) malloc (sizeof (AsmScn_t));
   if (newp == NULL)
     return NULL;
 

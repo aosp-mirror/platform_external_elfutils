@@ -687,7 +687,8 @@ get_local_names (Dwarf *dbg)
 	      }
 
 	    /* We have all the information.  Create a record.  */
-	    struct local_name *newp = xmalloc (sizeof (*newp));
+	    struct local_name *newp
+	      = (struct local_name *) xmalloc (sizeof (*newp));
 	    newp->name = name;
 	    newp->file = dwarf_filesrc (files, fileidx, NULL, NULL);
 	    newp->lineno = lineno;
@@ -735,7 +736,7 @@ show_symbols_sysv (Ebl *ebl, GElf_Word strndx, const char *fullname,
   bool scnnames_malloced = shnum * sizeof (const char *) > 128 * 1024;
   const char **scnnames;
   if (scnnames_malloced)
-    scnnames = xmalloc (sizeof (const char *) * shnum);
+    scnnames = (const char **) xmalloc (sizeof (const char *) * shnum);
   else
     scnnames = (const char **) alloca (sizeof (const char *) * shnum);
   /* Get the section header string table index.  */
@@ -857,7 +858,7 @@ show_symbols_sysv (Ebl *ebl, GElf_Word strndx, const char *fullname,
       bind = ebl_symbol_binding_name (ebl,
 				      GELF_ST_BIND (syms[cnt].sym.st_info),
 				      symbindbuf, sizeof (symbindbuf));
-      if (bind != NULL && startswith (bind, "GNU_"))
+      if (bind != NULL && strncmp (bind, "GNU_", strlen ("GNU_")) == 0)
 	bind += strlen ("GNU_");
       printf ("%-*s|%s|%-6s|%-8s|%s|%*s|%s\n",
 	      longest_name, symstr, addressbuf, bind,
@@ -1307,8 +1308,6 @@ show_symbols (int fd, Ebl *ebl, GElf_Ehdr *ehdr,
 		      dwfl_getmodules (dwfl, &getdbg_dwflmod, &get, 0);
 		    }
 		}
-	      else
-		close (dwfl_fd);
 	    }
 	}
       if (dbg != NULL)
@@ -1339,7 +1338,7 @@ show_symbols (int fd, Ebl *ebl, GElf_Ehdr *ehdr,
   if (nentries * sizeof (GElf_SymX) < MAX_STACK_ALLOC)
     sym_mem = (GElf_SymX *) alloca (nentries * sizeof (GElf_SymX));
   else
-    sym_mem = xmalloc (nentries * sizeof (GElf_SymX));
+    sym_mem = (GElf_SymX *) xmalloc (nentries * sizeof (GElf_SymX));
 
   /* Iterate over all symbols.  */
 #ifdef USE_DEMANGLE

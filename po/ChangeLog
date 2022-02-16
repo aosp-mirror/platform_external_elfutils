@@ -1,32 +1,3 @@
-2021-11-10  Mark Wielaard  <mark@klomp.org>
-
-	* *.po: Update for 0.186.
-
-2021-07-25  Hayatsu Shunsuke <hayatsu.shunsuke@gmail.com>
-
-	* ja.po: update Japanese translation
-
-2021-05-22  Mark Wielaard  <mark@klomp.org>
-
-	* *.po: Update for 0.185.
-
-2021-05-10  Mark Wielaard  <mark@klomp.org>
-
-	* *.po: Update for 0.184.
-
-2021-03-21  Dmitry V. Levin  <ldv@altlinux.org>
-
-	* Makevars (XGETTEXT_OPTIONS): Update.
-
-2021-02-21  Piotr Drąg  <piotrdrag@gmail.com>
-
-	* pl.po: Updated.
-
-2021-02-21  Piotr Drąg  <piotrdrag@gmail.com>
-
-	* POTFILES.in: Add libcpu/i386_lex.l, libcpu/i386_parse.y,
-	src/elfclassify.c and debuginfod/debuginfod-find.c.
-
 2021-02-05  Mark Wielaard  <mark@klomp.org>
 
 	* *.po: Update for 0.183.

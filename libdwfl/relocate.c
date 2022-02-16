@@ -30,8 +30,6 @@
 # include <config.h>
 #endif
 
-#include <system.h>
-
 #include "libelfP.h"
 #include "libdwflP.h"
 
@@ -239,7 +237,7 @@ resolve_symbol (Dwfl_Module *referer, struct reloc_symtab_cache *symtab,
 	    return DWFL_E_LIBELF;
 
 	  /* If the section is already decompressed, that isn't an error.  */
-	  if (startswith (sname, ".zdebug"))
+	  if (strncmp (sname, ".zdebug", strlen (".zdebug")) == 0)
 	    elf_compress_gnu (scn, 0, 0);
 
 	  if ((shdr->sh_flags & SHF_COMPRESSED) != 0)
@@ -520,7 +518,7 @@ relocate_section (Dwfl_Module *mod, Elf *relocated, const GElf_Ehdr *ehdr,
        Nothing to do here.  */
     return DWFL_E_NOERROR;
 
-  if (startswith (tname, ".zdebug"))
+  if (strncmp (tname, ".zdebug", strlen ("zdebug")) == 0)
     elf_compress_gnu (tscn, 0, 0);
 
   if ((tshdr->sh_flags & SHF_COMPRESSED) != 0)
@@ -541,7 +539,7 @@ relocate_section (Dwfl_Module *mod, Elf *relocated, const GElf_Ehdr *ehdr,
   if (sname == NULL)
     return DWFL_E_LIBELF;
 
-  if (startswith (sname, ".zdebug"))
+  if (strncmp (sname, ".zdebug", strlen ("zdebug")) == 0)
     elf_compress_gnu (scn, 0, 0);
 
   if ((shdr->sh_flags & SHF_COMPRESSED) != 0)

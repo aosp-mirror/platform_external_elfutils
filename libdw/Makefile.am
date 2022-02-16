@@ -63,7 +63,6 @@ libdw_a_SOURCES = dwarf_begin.c dwarf_begin_elf.c dwarf_end.c dwarf_getelf.c \
 		  dwarf_linesrc.c dwarf_lineno.c dwarf_lineaddr.c \
 		  dwarf_linecol.c dwarf_linebeginstatement.c \
 		  dwarf_lineendsequence.c dwarf_lineblock.c \
-		  dwarf_linecontext.c dwarf_linefunctionname.c \
 		  dwarf_lineprologueend.c dwarf_lineepiloguebegin.c \
 		  dwarf_lineisa.c dwarf_linediscriminator.c \
 		  dwarf_lineop_index.c dwarf_line_file.c \

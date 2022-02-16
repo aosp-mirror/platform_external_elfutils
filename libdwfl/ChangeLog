@@ -1,34 +1,3 @@
-2021-11-18  Matthias Maennich  <maennich@google.com>
-
-	* linux-kernel-modules.c (dwfl_linux_kernel_report_modules):
-	Add one to modname array size.
-
-2021-02-14  Alexander Miller  <alex.miller@gmx.de>
-
-	* core-file.c (dwfl_core_file_report): Move NEW_VERSION before
-	definition.  Replace INTDEF with NEW_INTDEF.
-	* dwfl_module_build_id.c (dwfl_module_build_id): Likewise.
-	* dwfl_report_elf.c (dwfl_report_elf): Likewise.
-
-2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
-
-	* linux-pid-attach.c (read_cached_memory): Remove cast of malloc
-	return value.
-
-2021-06-09  Omar Sandoval  <osandov@fb.com>
-
-	* link_map.c (read_addrs): Fix potential NULL pointer dereference.
-
-2021-04-19  Martin Liska  <mliska@suse.cz>
-
-	* dwfl_frame.c (dwfl_attach_state): Use startswith.
-	* dwfl_module_getdwarf.c (find_symtab): Likewise.
-	* linux-kernel-modules.c: Likewise.
-	* linux-pid-attach.c (linux_proc_pid_is_stopped): Likewise.
-	(dwfl_linux_proc_attach): Likewise.
-	* relocate.c (resolve_symbol): Likewise.
-	(relocate_section): Likewise.
-
 2021-02-01  Érico Nogueira  <ericonr@disroot.org>
 
 	* dwfl_error.c (strerror_r): Only use the GNU version when available.

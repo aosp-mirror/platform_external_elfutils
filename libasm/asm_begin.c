@@ -138,7 +138,8 @@ asm_begin (const char *fname, Ebl *ebl, bool textp)
      right away.  Instead we create a temporary file in the same
      directory which, if everything goes alright, will replace a
      possibly existing file with the given name.  */
-  AsmCtx_t *result = malloc (sizeof (AsmCtx_t) + 2 * fname_len + 9);
+  AsmCtx_t *result
+    = (AsmCtx_t *) malloc (sizeof (AsmCtx_t) + 2 * fname_len + 9);
   if (result == NULL)
     return NULL;
 

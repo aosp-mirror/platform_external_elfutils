@@ -1,21 +1,3 @@
-2021-09-29  William Cohen  <wcohen@redhat.com>
-
-	* riscv_init.c (riscv_return_value_location_lp64f): New function
-	declaration.
-	(riscv_return_value_location_lp64): Likewise.
-	(riscv_init): Set return_value_location based on elf class and
-	ehdr flags.
-	* riscv_retval.c (riscv_return_value_location_lp64d): Renamed to...
-	(riscv_return_value_location_lp64ifd): ...this. Handle single,
-	double, float _Complex and double _Complex cases.
-	(riscv_return_value_location_lp64d): New function.
-	(riscv_return_value_location_lp64f): Likewise.
-
-2021-04-19  Martin Liska  <mliska@suse.cz>
-
-	* aarch64_symbol.c (aarch64_data_marker_symbol): Use startswith.
-	* arm_symbol.c (arm_data_marker_symbol): Likewise.
-
 2021-02-01  Érico Nogueira  <ericonr@disroot.org>
 
 	* ppc_initreg.c: Also include <asm/ptrace.h>.

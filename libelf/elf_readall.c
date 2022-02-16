@@ -107,7 +107,7 @@ __libelf_readall (Elf *elf)
 	}
 
       /* Allocate all the memory we need.  */
-      mem = malloc (elf->maximum_size);
+      mem = (char *) malloc (elf->maximum_size);
       if (mem != NULL)
 	{
 	  /* Read the file content.  */

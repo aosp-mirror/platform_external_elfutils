@@ -57,7 +57,8 @@ get_offsets (Dwarf *dbg)
       if (cnt >= allocated)
 	{
 	  allocated = MAX (10, 2 * allocated);
-	  struct pubnames_s *newmem = realloc (mem, allocated * entsize);
+	  struct pubnames_s *newmem
+	    = (struct pubnames_s *) realloc (mem, allocated * entsize);
 	  if (newmem == NULL)
 	    {
 	      __libdw_seterrno (DWARF_E_NOMEM);
@@ -131,7 +132,7 @@ get_offsets (Dwarf *dbg)
       return -1;
     }
 
-  dbg->pubnames_sets = realloc (mem, cnt * entsize);
+  dbg->pubnames_sets = (struct pubnames_s *) realloc (mem, cnt * entsize);
   dbg->pubnames_nsets = cnt;
 
   return 0;

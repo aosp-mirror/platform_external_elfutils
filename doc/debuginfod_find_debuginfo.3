@@ -105,8 +105,6 @@ as a debuginfod server begins transferring the target file all of the
 connections to the other servers are closed.
 
 A \fBclient\fP handle should be used from only one thread at a time.
-A handle may be reused for a series of lookups, which can improve
-performance due to retention of connections and caches.
 
 .SH "RETURN VALUE"
 
@@ -177,8 +175,8 @@ of the client object.
 
 .SS "HTTP HEADER"
 
-Before each lookup function is initiated, a client application may
-add HTTP request headers.  These are reset after each lookup function.
+Before a lookup function is initiated, a client application may
+add HTTP request headers to future downloads.
 .BR \%debuginfod_add_http_header ()
 may be called with strings of the form
 .BR \%"Header:\~value" .
@@ -197,6 +195,19 @@ server for logging purposes only.
 By default, the library adds a descriptive \fIUser-Agent:\fP
 header to outgoing requests.  If the client application adds
 a header with the same name, this default is suppressed.
+
+.SH "CACHE"
+If the query is successful, the \fBdebuginfod_find_*\fP() functions save
+the target file to a local cache. The location of the cache is controlled
+by the \fB$DEBUGINFOD_CACHE_PATH\fP environment variable (see below).
+Cleaning of the cache is controlled by the \fIcache_clean_interval_s\fP
+and \fImax_unused_age_s\fP files, which are found in the
+\fB$DEBUGINFOD_CACHE_PATH\fP directory. \fIcache_clean_interval_s\fP controls
+how frequently the cache is traversed for cleaning and \fImax_unused_age_s\fP
+controls how long a file can go unused (fstat(2) atime) before it's
+removed from the cache during cleaning. These files should contain only an
+ASCII decimal integer representing the interval or max unused age in seconds.
+The default is one day and one week, respectively.  Values of zero mean "immediately".
 
 .SH "MACROS"
 
@@ -227,6 +238,43 @@ through the internal \fIlibcurl\fP library is not currently enabled, except
 for the basic plaintext \%\fIhttp[s]://userid:password@hostname/\fP style.
 (The debuginfod server does not perform authentication, but a front-end
 proxy server could.)
+
+.SH "ENVIRONMENT VARIABLES"
+
+.TP 21
+.B DEBUGINFOD_URLS
+This environment variable contains a list of URL prefixes for trusted
+debuginfod instances.  Alternate URL prefixes are separated by space.
+
+.TP 21
+.B DEBUGINFOD_TIMEOUT
+This environment variable governs the timeout for each debuginfod HTTP
+connection.  A server that fails to provide at least 100K of data
+within this many seconds is skipped. The default is 90 seconds.  (Zero
+or negative means "no timeout".)
+
+.TP 21
+.B DEBUGINFOD_PROGRESS
+This environment variable governs the default progress function.  If
+set, and if a progressfn is not explicitly set, then the library will
+configure a default progressfn.  This function will append a simple
+progress message periodically to stderr.  The default is no progress
+function output.
+
+.TP 21
+.B DEBUGINFOD_VERBOSE
+This environment variable governs the default file descriptor for
+verbose output.  If set, and if a verbose fd is not explicitly set,
+then the verbose output will be produced on STDERR_FILENO.
+
+.TP 21
+.B DEBUGINFOD_CACHE_PATH
+This environment variable governs the location of the cache where
+downloaded files are kept.  It is cleaned periodically as this
+program is reexecuted. If XDG_CACHE_HOME is set then
+$XDG_CACHE_HOME/debuginfod_client is the default location, otherwise
+$HOME/.cache/debuginfod_client is used.
+
 
 .SH "ERRORS"
 The following list is not comprehensive. Error codes may also
@@ -283,16 +331,17 @@ System is unable to allocate resources.
 
 .TP
 .BR ETIME
-Query failed due to timeout. \fB$DEBUGINFOD_TIMEOUT\fP and
-\fB$DEBUGINFOD_MAXTIME\fP control this.
+Query failed due to timeout. \fB$DEBUGINFOD_TIMEOUT\fP controls
+the timeout duration. See debuginfod(8) for more information.
 
-.TP
-.BR EF2BIG
-Query aborted due to the file requested being too big.  The
-\fB$DEBUGINFOD_MAXSIZE\fP controls this.
-
-.nr zZ 1
-.so man7/debuginfod-client-config.7
+.SH "FILES"
+.LP
+.PD .1v
+.TP 20
+.B $HOME/.debuginfod_client_cache
+Default cache directory. If XDG_CACHE_HOME is not set then
+\fB$HOME/.cache/debuginfod_client\fP is used.
+.PD
 
 .SH "SEE ALSO"
 .I "debuginfod(8)"

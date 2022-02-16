@@ -62,7 +62,6 @@ cc_defaults {
         "//external/elfutils:__subpackages__",
         "//external/libabigail:__subpackages__",
         "//external/libbpf:__subpackages__",
-        "//external/stg:__subpackages__",
     ],
 }
 
@@ -91,11 +90,6 @@ cc_library {
                 enabled: false,
             },
         },
-        musl: {
-            cflags: [
-                "-include AndroidFixup.h",
-            ],
-        },
     },
 
     visibility: [
@@ -118,9 +112,6 @@ cc_library_headers {
         android: {
             export_include_dirs: ["bionic-fixup"],
         },
-        musl: {
-            export_include_dirs: ["bionic-fixup"],
-        },
     },
     visibility: [":__subpackages__"],
 }
@@ -131,12 +122,6 @@ cc_library_host_static {
     target: {
         darwin: {
             enabled: false,
-        },
-        musl: {
-            static_libs: [
-                "libfts",
-                "libz",
-            ],
         },
     },
     srcs: [
@@ -164,8 +149,6 @@ cc_library_host_static {
         "libdwfl/debuginfod-client.c",
         "libdwfl/elf-from-memory.c",
         "libdwfl/link_map.c",
-        // These depend on argp which doesn't exist in musl
-        "libdwfl/argp-std.c",
         // Those are common source files actually used as headers and not
         // compiled standalone.
         "backends/common-reloc.c",
@@ -184,9 +167,6 @@ cc_library_host_static {
     ],
     static_libs: [
         "libelf"
-    ],
-    whole_static_libs: [
-        "libeu",
     ],
     compile_multilib: "64",
 }

@@ -73,7 +73,7 @@ asm_newsym (AsmScn_t *asmscn, const char *name, GElf_Xword size,
 
   size_t name_len = strlen (name) + 1;
 
-  result = malloc (sizeof (AsmSym_t) + name_len);
+  result = (AsmSym_t *) malloc (sizeof (AsmSym_t) + name_len);
   if (result == NULL)
     return NULL;
 

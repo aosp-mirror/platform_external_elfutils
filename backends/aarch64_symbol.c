@@ -30,8 +30,6 @@
 # include <config.h>
 #endif
 
-#include <system.h>
-
 #include <elf.h>
 #include <stddef.h>
 #include <string.h>
@@ -106,7 +104,7 @@ aarch64_data_marker_symbol (const GElf_Sym *sym, const char *sname)
   return (sym != NULL && sname != NULL
 	  && sym->st_size == 0 && GELF_ST_BIND (sym->st_info) == STB_LOCAL
 	  && GELF_ST_TYPE (sym->st_info) == STT_NOTYPE
-	  && (strcmp (sname, "$d") == 0 || startswith (sname, "$d.")));
+	  && (strcmp (sname, "$d") == 0 || strncmp (sname, "$d.", 3) == 0));
 }
 
 const char *

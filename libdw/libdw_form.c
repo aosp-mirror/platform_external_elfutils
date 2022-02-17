@@ -116,8 +116,12 @@ __libdw_form_val_compute_len (struct Dwarf_CU *cu, unsigned int form,
       break;
 
     case DW_FORM_indirect:
+      /* The amount of data to skip in the DIE is the size of the actual
+	 FORM data (which is __libdw_form_val_len) plus the size of the
+	 uleb128 encoding that FORM (which is valp - startp).  */
       get_uleb128 (u128, valp, endp);
-      // XXX Is this really correct?
+      if (*valp == DW_FORM_indirect || *valp == DW_FORM_implicit_const)
+	return (size_t) -1;
       result = __libdw_form_val_len (cu, u128, valp);
       if (result != (size_t) -1)
 	result += valp - startp;

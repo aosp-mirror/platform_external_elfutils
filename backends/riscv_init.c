@@ -41,6 +41,12 @@
 extern __typeof (EBLHOOK (return_value_location))
   riscv_return_value_location_lp64d attribute_hidden;
 
+extern __typeof (EBLHOOK (return_value_location))
+    riscv_return_value_location_lp64f attribute_hidden;
+
+extern __typeof (EBLHOOK (return_value_location))
+    riscv_return_value_location_lp64 attribute_hidden;
+
 extern __typeof (EBLHOOK (core_note)) riscv64_core_note attribute_hidden;
 
 Ebl *
@@ -63,10 +69,17 @@ riscv_init (Elf *elf,
     eh->core_note = riscv64_core_note;
   else
     HOOK (eh, core_note);
-  if (eh->class == ELFCLASS64
-      && ((elf->state.elf64.ehdr->e_flags & EF_RISCV_FLOAT_ABI)
-	  == EF_RISCV_FLOAT_ABI_DOUBLE))
-    eh->return_value_location = riscv_return_value_location_lp64d;
+  if (eh->class == ELFCLASS64)
+    {
+      if ((elf->state.elf64.ehdr->e_flags & EF_RISCV_FLOAT_ABI)
+          == EF_RISCV_FLOAT_ABI_DOUBLE)
+        eh->return_value_location = riscv_return_value_location_lp64d;
+      else if ((elf->state.elf64.ehdr->e_flags & EF_RISCV_FLOAT_ABI)
+               == EF_RISCV_FLOAT_ABI_SINGLE)
+        eh->return_value_location = riscv_return_value_location_lp64f;
+      else
+        eh->return_value_location = riscv_return_value_location_lp64;
+    }
 
   return eh;
 }

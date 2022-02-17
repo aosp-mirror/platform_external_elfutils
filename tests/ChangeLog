@@ -1,3 +1,381 @@
+2021-11-05  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR28430
+	* run-debuginfod-extraction-passive.sh: New test.
+	* Makefile.am (TESTS, EXTRA_DIST): Add it.
+
+2021-10-20  John M Mellor-Crummey  <johnmc@rice.edu>
+
+	* nvidia_extended_linemap_libdw.c: New file.
+	* run-nvidia-extended-linemap-libdw.sh: New test.
+	* run-nvidia-extended-linemap-readelf.sh: Likewise.
+	* testfile_nvidia_linemap.bz2: New test file.
+	* .gitignore: Add nvidia_extended_linemap_libdw.
+	* Makefile.am (check_PROGRAMS): Add nvidia_extended_linemap_libdw.
+	(TESTS): Add run-nvidia-extended-linemap-libdw.sh and
+	run-nvidia-extended-linemap-readelf.sh
+	(EXTRA_DIST): Likewise and testfile_nvidia_linemap.bz2.
+	(nvidia_extended_linemap_libdw_LDADD): New variable.
+
+2021-11-08  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (TESTS): Add run-readelf-fat-lto.sh.
+	(EXTRA_DIST): Add run-readelf-fat-lto.sh and
+	testfile-dwarf5-fat-lto.o.bz2.
+	* run-readelf-fat-lto.sh: New test.
+	* testfile-dwarf5-fat-lto.o.bz2: New test file.
+
+2021-11-04  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR28514
+	* run-debuginfod-archive-groom.sh: Look for new groom metric.
+
+2021-10-23  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR28240
+	* run-debuginfod-000-permission.sh, -writable.sh:
+	Correct negative-cache file permission checking.
+
+2021-10-06  Mark Wielaard  <mark@klomp.org>
+
+	* show-die-info.c (handle): Handle dwarf_attr_string returning NULL.
+
+2021-10-06  Di Chen <dichen@redhat.com>
+
+	PR28242
+	* run-debuginfod-000-permission.sh: Expect artifacttype metrics.
+
+2021-09-17  Noah Sanci  <nsanci@redhat.com>
+
+	* run-debuginfod-response-header.sh: removed checking for Connection
+	and Cache-Control in response headers.
+
+2021-09-08  Mark Wielaard  <mark@klomp.org>
+
+	* run-varlocs-vars.sh: New test.
+	* testfile-vars-clang-dwarf4-32.o.bz2: New test file.
+	* testfile-vars-clang-dwarf4-64.o.bz2: Likewise.
+	* testfile-vars-clang-dwarf5-32.o.bz2: Likewise.
+	* testfile-vars-clang-dwarf5-64.o.bz2: Likewise.
+	* testfile-vars-gcc-dwarf4-32.o.bz2: Likewise.
+	* testfile-vars-gcc-dwarf4-64.o.bz2: Likewise.
+	* testfile-vars-gcc-dwarf5-32.o.bz2: Likewise.
+	* testfile-vars-gcc-dwarf5-64.o.bz2: Likewise.
+	* Makefile.am (EXTRA_DIST): Add new test and test files.
+	(TESTS): Add run-varlocs-vars.sh.
+
+2021-09-09  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-subr.sh: set -o functrace.
+	(cleanup): Disable trap 0.
+	(err): Disable trap ERR.
+	* run-debuginfod-fd-prefetch-caches.sh: Use || true when grep -c fails.
+
+2021-09-09  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-subr.sh: set -o errtrace.
+	(cleanup): Don't fail kill or wait. Only trap on normal exit.
+	(err): Don't fail curl metrics. Call cleanup.
+	* run-debuginfod-federation-link.sh: Use separate client caches
+	for both servers and debuginfod client. Remove duplicate valgrind
+	disabling.
+	* run-debuginfod-federation-metrics.sh: Likewise.
+	* run-debuginfod-federation-sqlite.sh: Likewise.
+
+2021-09-13  Noah Sanci  <nsanci@redhat.com>
+
+	* Makefile.am: added run-debuginfod-percent-escape.sh to TESTS and
+	EXTRA_DIST.
+
+2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* elfcopy.c (copy_elf): Remove cast of malloc return value.
+
+2021-09-07  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfod-archive-groom.sh: Wait for initial scan and groom
+	cycle before making any changes to the scan dirs.
+	* run-debuginfod-archive-rename.sh: Likewise.
+	* run-debuginfod-artifact-running.sh: Wait for initial scan cycle
+	before making any changes to the scan dirs.
+	* run-debuginfod-dlopen.sh: Likewise.
+	* run-debuginfod-extraction.sh: Likewise.
+	* run-debuginfod-federation-link.sh: Don't wait twice for the initial
+	scan.
+
+2021-09-06  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfod-archive-groom.sh: Wait for initial scan and groom
+	cycle.
+	* run-debuginfod-archive-rename.sh: Likewise.
+	* run-debuginfod-federation-sqlite.sh: Likewise.
+	* run-debuginfod-archive-test.sh: Wait for initial scan cycle.
+	* run-debuginfod-artifact-running.sh: Likewise.
+	* run-debuginfod-dlopen.sh: Likewise.
+	* run-debuginfod-extraction.sh: Likewise.
+	* run-debuginfod-federation-link.sh: Likewise.
+	* run-debuginfod-federation-metrics.sh: Likewise.
+	* run-debuginfod-malformed.sh: Likewise.
+	* run-debuginfod-regex.sh: Likewise.
+	* run-debuginfod-tmp-home.sh: Likewise.
+	* run-debuginfod-writable.sh: Likewise.
+
+2021-09-06  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfod-archive-groom.sh: Set DEBUGINFOD_URLS after starting
+	debuginfod server.
+	* run-debuginfod-archive-rename.sh: Likewise.
+	* run-debuginfod-federation-link.sh: Don't set DEBUGINFOD_URLS.
+	* run-debuginfod-federation-sqlite.sh: Likewise.
+	* run-debuginfod-federation-metrics.sh: Add comment why invalid
+	DEBUGINFOD_URLS is set.
+
+2021-09-06  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-subr.sh (err): Change ports to port in for loop so both
+	PORT1 and PORT2 are used.
+	(get_ports): Simplify port selection by using for 50 for PORT1 and
+	second 50 for PORT2.
+
+2021-09-06  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfod-file.sh: Set DEBUGINFOD_CACHE_PATH. Export
+	correct DEBUGINFOD_URLS.
+	* run-debuginfod-query-retry.sh: Add DEBUGINFOD_CACHE_PATH
+	to env.
+
+2021-09-03  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfod-000-permission.sh: Set DEBUGINFOD_CACHE_PATH
+	and use an unique sqlite db.
+	* run-debuginfod-archive-groom.sh: Likewise.
+	* run-debuginfod-archive-test.sh: Likewise.
+	* run-debuginfod-dlopen.sh: Likewise.
+	* run-debuginfod-duplicate-urls.sh: Likewise.
+	* run-debuginfod-extraction.sh: Likewise.
+	* run-debuginfod-fd-prefetch-caches.sh: Likewise.
+	* run-debuginfod-malformed.sh: Likewise.
+	* run-debuginfod-sizetime.sh: Likewise.
+	* run-debuginfod-tmp-home.sh: Likewise.
+	* run-debuginfod-writable.sh: Likewise.
+
+2021-09-03  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-subr.sh (EXTRA_DIST): Add debuginfod-subr.sh.
+
+2021-08-20  Noah Sanci  <nsanci@redhat.com>
+
+	* run-debuginfod-response-headers.sh: Ensures custom http response
+	headers are used and functional
+	* Makefile.am: Added the above new file to TESTS and EXTRA_DIST
+
+2021-08-28  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfod-find.sh: Use ":memory:" for the
+	forwarded-ttl-limit tests.
+
+2021-08-28  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfod-find.sh: Use clean, separate databases for
+	forwarded-ttl-limit tests.
+
+2021-08-20  Di Chen  <dichen@redhat.com>
+
+	* run-debuginfod-find.sh: Add test for X-Forwarded-For hops limit.
+
+2021-08-20  Noah Sanci  <nsanci@redhat.com>
+
+	* debuginfod-find.sh: Separated file into 
+	run-debuginfod-000-permission.sh, 
+	run-debuginfod-archive-groom.sh,
+	run-debuginfod-archive-rename.sh,
+	run-debuginfod-archive-test.sh,
+	run-debuginfod-artifact-running.sh,
+	run-debuginfod-dlopen.sh,
+	run-debuginfod-duplicate-urls.sh,
+	run-debuginfod-extraction.sh,
+	run-debuginfod-fd-prefetch-caches.sh,
+	run-debuginfod-federation-link.sh,
+	run-debuginfod-federation-metrics.sh,
+	run-debuginfod-federation-sqlite.sh,
+	run-debuginfod-file.sh,
+	run-debuginfod-malformed.sh,
+	run-debuginfod-no-urls.sh,
+	run-debuginfod-query-retry.sh,
+	run-debuginfod-regex.sh,
+	run-debuginfod-sizetime.sh,
+	run-debuginfod-tmp-home.sh,
+	run-debuginfod-x-forwarded.sh
+	and run-debuginfod-writable.sh.
+	All files source debuginfod-subr.sh and use the $base variable to find ports.
+	* tests/Makefile.am: Added the above new files to the test suite
+	* tests/debuginfod-subr.sh: Added some general functions for above tests
+
+2021-08-04  Mark Wielaard  <mark@klomp.org>
+
+	PR28190
+	* backtrace.c (callback_verify): Check for pthread_kill as first
+	frame. Change asserts to fprintf plus abort.
+
+2021-07-26  Noah Sanci  <nsanci@redhat.com>
+
+	PR27982
+	* run-debuginfod-find.sh: Added a test to ensure that
+	DEBUGINFOD_MAXSIZE and DEBUGINFOD_MAXTIME work properly
+	by searching server and client logs for prompts.
+
+2021-07-16  Noah Sanci  <nsanci@redhat.com>
+
+	PR28034
+	* run-debuginfod-percent-escape.sh: Added a test ensuring files with %
+	escapable characters in their paths are accessible.
+
+2021-07-21  Noah Sanci <nsanci@redhat.com>
+
+	* run-debuginfod-find.sh: Properly kill $PID4 by waiting for it to
+	finish. Report $PORT3's metrics in err().
+
+2021-06-28  Noah Sanci <nsanci@redhat.com>
+
+	PR25978
+	* run-debuginfod-find.sh: Test to ensure options
+	fdcache-prefetch-fds/mbs are set. Check that inc_metric works for lru
+	and prefetch cache metrics.
+
+2021-07-06  Alice Zhang  <alizhang@redhat.com>
+
+	PR27531
+	* run-debuginfod-find.sh: Add test case for retry mechanism.
+
+2021-07-01  Noah Sanci <nsanci@redhat.com>
+
+	PR2711
+	* run-debuginfod-find.sh: Added test case for grooming the database
+	using regexes. 
+
+2021-07-09  Noah Sanci  <nsanci@redhat.com>
+
+	PR27983
+	* run-debuginfod-find.sh: Wrote test to ensure duplicate urls are in
+	fact not checked.
+
+2021-07-08  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (EXTRA_DIST): Fix typo testfile-largealign.bz2 was
+	was missing .o.
+
+2021-06-09  Andrei Homescu  <ah@immunant.com>
+
+	* testfile-largealign.o.bz2: New test file.
+	* run-strip-largealign.sh: New test.
+	* Makefile.am (TESTS): Add run-strip-largealign.sh.
+	(EXTRA_DIST): Add run-strip-largealign.sh and
+	testfile-largealign.o.bz2
+
+2021-07-02  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfo-find.sh: unset VALGRIND_CMD before testing debuginfod
+	client cache.
+
+2021-06-16  Frank Ch. Eigler <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Fix intermittent groom/stale failure,
+	due to SIGUSR1/SIGUSR2 races.  Trace more.
+
+2021-06-15  Frank Ch. Eigler <fche@redhat.com>
+
+	* run-debuginfod-find.sh (err): Elaborate.  Use as the reliable
+	error-report triggering function, rather than "exit 1".
+
+2021-06-03  Frank Ch. Eigler <fche@redhat.com>
+
+	PR27863
+	* run-debuginfod-find.sh: Test "after-you" queueing via flooding
+	with concurent curls.
+
+2021-05-14  Frank Ch. Eigler <fche@redhat.com>
+
+	PR27859
+	* run-debuginfod-find.sh: Test absence of 404-latch bug in client
+	curl handle reuse.
+
+2021-04-19  Martin Liska  <mliska@suse.cz>
+
+	* dwelf_elf_e_machine_string.c (main): Use startswith.
+	* dwelfgnucompressed.c (main): Likewise.
+	* elfgetchdr.c (main): Likewise.
+	* elfputzdata.c (main): Likewise.
+	* vdsosyms.c (module_callback): Likewise.
+
+2021-05-04  Alice Zhang  <alizhang@redhat.com>
+
+	* run-debuginfod-find.sh: Added tests for negative cache files.
+
+2021-04-26  Frank Ch. Eigler <fche@redhat.com>
+
+	PR27571
+	* run-debuginfod-find.sh: Add test case for unwriteable cache files.
+
+2021-04-23  Omar Sandoval  <osandov@fb.com>
+
+	* run-low_high_pc-dw-form-indirect.sh: New file.
+	* run-readelf-dw-form-indirect.sh: New file.
+	* testfile-dw-form-indirect.bz2: New file.
+	* Makefile.am (TESTS): Add run-low_high_pc-dw-form-indirect.sh and
+	run-readelf-dw-form-indirect.sh.
+	(EXTRA_DIST): Add run-low_high_pc-dw-form-indirect.sh,
+	run-readelf-dw-form-indirect.sh, and testfile-dw-form-indirect.bz2.
+
+2021-04-26  Frank Ch. Eigler <fche@redhat.com>
+
+	PR26125
+	* run-debuginfod-find.sh: Add test case for cache cleanup rmdir.
+
+2021-04-23  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Add a tiny test for client object reuse.
+	Add an "errfiles" test construct to ask the framework to print
+	various files in the case of an error.
+
+2021-03-30  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Add thread comm checks.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
+	* elfstrmerge.c (main): Move new_data_buf function to...
+	(new_data_buf): ...top-level static function adding fname,
+	ndx, shdrstrnd and shdrnum as arguments.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
+	* elfstrmerge.c (main): Move newsecndx function to...
+	(newsecndx): ...top-level static function adding shdrstrndx,
+	shdrnum and fname as arguments.
+
+2021-02-25  Frank Ch. Eigler <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Add bad webapi artifacttype test.
+
+2021-02-17  Frank Ch. Eigler <fche@redhat.com>
+
+	* run-debuginfod-find.sh: Tweak wait_ready() to also print -vvv log of
+	appropriate debuginfod if metric timeout occurs.  Focus grooming
+	test carefully at a more deterministic metric.
+
+2021-02-12  Mark Wielaard  <mark@klomp.org>
+
+	* run-readelf-types.sh: Add CU start to type offset reference.
+
+2021-02-07  Alexander Miller  <alex.miller@gmx.de>
+
+	* Makefile.am (TESTS_ENVIRONMENT): Quote variables.
+	(valgrind_cmd): Unquote variable.
+
+2021-02-08  Érico Nogueira  <ericonr@disroot.org>
+
+	* run-debuginfod-find.sh: Check for cpio availability.
+
 2021-02-04  Frank Ch. Eigler <fche@redhat.com>
 
 	* run-debuginfod-find.sh: Smoke test --fdcache-mintmp option handling.

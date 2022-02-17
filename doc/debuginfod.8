@@ -12,7 +12,6 @@
 .fi
 .RE
 ..
-
 .TH DEBUGINFOD 8
 .SH NAME
 debuginfod \- debuginfo-related http file-server daemon
@@ -64,7 +63,7 @@ or even use debuginfod itself:
 If any of the \fB\-R\fP, \fB-U\fP, or \fB-Z\fP options is given, each
 file is scanned as an archive file that may contain ELF/DWARF/source
 files.  Archive files are recognized by extension.  If \-R is given,
-".rpm" files are scanned; if \-D is given, ".deb" and ".ddeb" files
+".rpm" files are scanned; if \-U is given, ".deb" and ".ddeb" files
 are scanned; if \-Z is given, the listed extensions are scanned.
 Because of complications such as DWZ-compressed debuginfo, may require
 \fItwo\fP traversal passes to identify all source code.  Source files
@@ -75,9 +74,10 @@ all.
 
 If no PATH is listed, or none of the scanning options is given, then
 \fBdebuginfod\fP will simply serve content that it accumulated into
-its index in all previous runs, and federate to any upstream
-debuginfod servers.
-
+its index in all previous runs, periodically groom the database, and
+federate to any upstream debuginfod servers.  In \fIpassive\fP mode,
+\fBdebuginfod\fP will only serve content from a read-only index and
+federated upstream servers, but will not scan or groom.
 
 .SH OPTIONS
 
@@ -118,8 +118,20 @@ file is disposable in the sense that a later rescan will repopulate
 data.  It will contain absolute file path names, so it may not be
 portable across machines.  It may be frequently read/written, so it
 should be on a fast filesystem.  It should not be shared across
-machines or users, to maximize sqlite locking performance.  The
-default database file is \%$HOME/.debuginfod.sqlite.
+machines or users, to maximize sqlite locking performance.  For quick
+testing the magic string ":memory:" can be used to use an one-time
+memory-only database.  The default database file is
+\%$HOME/.debuginfod.sqlite.
+
+.TP
+.B "\-\-passive"
+Set the server to passive mode, where it only services webapi
+requests, including participating in federation.  It performs no
+scanning, no grooming, and so only opens the sqlite database
+read-only.  This way a database can be safely shared between a active
+scanner/groomer server and multiple passive ones, thereby sharing
+service load.  Archive pattern options must still be given, so
+debuginfod can recognize file name extensions for unpacking.
 
 .TP
 .B "\-D SQL" "\-\-ddl=SQL"
@@ -159,6 +171,9 @@ scan, independent of the rescan time (including if it was zero),
 interrupting a groom pass (if any).
 
 .TP
+.B "\-r"
+Apply the -I and -X during groom cycles, so that files excluded by the regexes are removed from the index. These parameters are in addition to what normally qualifies a file for grooming, not a replacement.
+
 .B "\-g SECONDS" "\-\-groom\-time=SECONDS"
 Set the groom time for the index database.  This is the amount of time
 the grooming thread will wait after finishing a grooming pass before
@@ -213,6 +228,16 @@ most recently used extracted files are kept.  Grooming cleans this
 cache.
 
 .TP
+.B "\-\-fdcache\-\-prefetch\-fds=NUM"  "\-\-fdcache\-\-prefetch\-mbs=MB"
+Configure how many file descriptors (fds) and megabytes (mbs) are
+allocated to the prefetch fdcache. If unspecified, values of
+\fB\-\-prefetch\-fds\fP and \fB\-\-prefetch\-mbs\fP depend
+on concurrency of the system and on the available disk space on
+the $TMPDIR. Allocating more to the prefetch cache will improve
+performance in environments where different parts of several large
+archives are being accessed.
+
+.TP
 .B "\-\-fdcache\-mintmp=NUM"
 Configure a disk space threshold for emergency flushing of the cache.
 The filesystem holding the cache is checked periodically.  If the
@@ -222,6 +247,12 @@ cycle.  This mechanism, along a few associated /metrics on the webapi,
 are intended to give an operator notice about storage scarcity - which
 can translate to RAM scarcity if the disk happens to be on a RAM
 virtual disk.  The default threshold is 25%.
+
+.TP
+.B "\-\-forwarded\-ttl\-limit=NUM"
+Configure limits of X-Forwarded-For hops. if X-Forwarded-For
+exceeds N hops, it will not delegate a local lookup miss to
+upstream debuginfods. The default limit is 8.
 
 .TP
 .B "\-v"
@@ -237,6 +268,15 @@ request with a path containing a known buildid results in a file.
 Unknown buildid / request combinations result in HTTP error codes.
 This file service resemblance is intentional, so that an installation
 can take advantage of standard HTTP management infrastructure.
+
+Upon finding a file in an archive or simply in the database, some
+custom http headers are added to the response. For files in the
+database X-DEBUGINFOD-FILE and X-DEBUGINFOD-SIZE are added.
+X-DEBUGINFOD-FILE is simply the unescaped filename and
+X-DEBUGINFOD-SIZE is the size of the file. For files found in archives,
+in addition to X-DEBUGINFOD-FILE and X-DEBUGINFOD-SIZE,
+X-DEBUGINFOD-ARCHIVE is added.  X-DEBUGINFOD-ARCHIVE is the name of the
+archive the file was found in.
 
 There are three requests.  In each case, the buildid is encoded as a
 lowercase hexadecimal string.  For example, for a program \fI/bin/ls\fP,
@@ -296,6 +336,10 @@ l l.
 \../bar/foo.c AT_comp_dir=/zoo/	/buildid/BUILDID/source/zoo//../bar/foo.c
 .TE
 
+Note: the client should %-escape characters in /SOURCE/FILE that are
+not shown as "unreserved" in section 2.3 of RFC3986. Some characters
+that will be escaped include "+", "\\", "$", "!", the 'space' character,
+and ";". RFC3986 includes a more comprehensive list of these characters.
 .SS /metrics
 
 This endpoint returns a Prometheus formatted text/plain dump of a
@@ -332,22 +376,22 @@ be helpful to apply tight \-I or \-X regular-expression constraints to
 exclude files from scanning that you know have no debuginfo-relevant
 content.
 
-As debuginfod runs, it periodically rescans its target directories,
-and any new content found is added to the database.  Old content, such
-as data for files that have disappeared or that have been replaced
-with newer versions is removed at a periodic \fIgrooming\fP pass.
-This means that the sqlite files grow fast during initial indexing,
-slowly during index rescans, and periodically shrink during grooming.
-There is also an optional one-shot \fImaximal grooming\fP pass is
-available.  It removes information debuginfo-unrelated data from the
-archive content index such as file names found in archives ("archive
-sdef" records) that are not referred to as source files from any
-binaries find in archives ("archive sref" records).  This can save
-considerable disk space.  However, it is slow and temporarily requires
-up to twice the database size as free space.  Worse: it may result in
-missing source-code info if the archive traversals were interrupted,
-so that not all source file references were known.  Use it rarely to
-polish a complete index.
+As debuginfod runs in normal \fIactive\fP mode, it periodically
+rescans its target directories, and any new content found is added to
+the database.  Old content, such as data for files that have
+disappeared or that have been replaced with newer versions is removed
+at a periodic \fIgrooming\fP pass.  This means that the sqlite files
+grow fast during initial indexing, slowly during index rescans, and
+periodically shrink during grooming.  There is also an optional
+one-shot \fImaximal grooming\fP pass is available.  It removes
+information debuginfo-unrelated data from the archive content index
+such as file names found in archives ("archive sdef" records) that are
+not referred to as source files from any binaries find in archives
+("archive sref" records).  This can save considerable disk space.
+However, it is slow and temporarily requires up to twice the database
+size as free space.  Worse: it may result in missing source-code info
+if the archive traversals were interrupted, so that not all source
+file references were known.  Use it rarely to polish a complete index.
 
 You should ensure that ample disk space remains available.  (The flood
 of error messages on -ENOSPC is ugly and nagging.  But, like for most
@@ -380,6 +424,11 @@ worry about disk space.  If a system crash corrupts the database,
 or you want to force debuginfod to reset and start over, simply
 erase the sqlite file before restarting debuginfod.
 
+In contrast, in \fIpassive\fP mode, all scanning and grooming is
+disabled, and the index database remains read-only.  This makes the
+database more suitable for sharing between servers or sites with
+simple one-way replication, and data management considerations are
+generally moot.
 
 .SH SECURITY
 
@@ -401,51 +450,13 @@ rather than HTTPS, the network should be trustworthy.  Authentication
 information through the internal \fIlibcurl\fP library is not currently
 enabled.
 
+.nr zZ 1
+.so man7/debuginfod-client-config.7
 
-.SH "ENVIRONMENT VARIABLES"
-
+.SH ADDITIONAL FILES
 .TP
-.B TMPDIR
-This environment variable points to a file system to be used for
-temporary files.  The default is /tmp.
-
-.TP
-.B DEBUGINFOD_URLS
-This environment variable contains a list of URL prefixes for trusted
-debuginfod instances.  Alternate URL prefixes are separated by space.
-Avoid referential loops that cause a server to contact itself, directly
-or indirectly - the results would be hilarious.
-
-.TP
-.B DEBUGINFOD_TIMEOUT
-This environment variable governs the timeout for each debuginfod HTTP
-connection.  A server that fails to provide at least 100K of data
-within this many seconds is skipped. The default is 90 seconds.  (Zero
-or negative means "no timeout".)
-
-
-.TP
-.B DEBUGINFOD_CACHE_PATH
-This environment variable governs the location of the cache where
-downloaded files are kept.  It is cleaned periodically as this
-program is reexecuted. If XDG_CACHE_HOME is set then
-$XDG_CACHE_HOME/debuginfod_client is the default location, otherwise
-$HOME/.cache/debuginfod_client is used. For more information regarding
-the client cache see \fIdebuginfod_find_debuginfo(3)\fP.
-
-.SH FILES
-.LP
-.PD .1v
-.TP 20
 .B $HOME/.debuginfod.sqlite
 Default database file.
-.PD
-
-.TP 20
-.B $XDG_CACHE_HOME/debuginfod_client
-Default cache directory for content from upstream debuginfods.
-If XDG_CACHE_HOME is not set then \fB$HOME/.cache/debuginfod_client\fP
-is used.
 .PD
 
 

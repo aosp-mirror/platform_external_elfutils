@@ -360,3 +360,9 @@ ELFUTILS_0.177 {
     # presume that NULL is only returned on error (otherwise ELF_K_NONE).
     dwelf_elf_begin;
 } ELFUTILS_0.175;
+
+ELFUTILS_0.186 {
+  global:
+    dwarf_linecontext;
+    dwarf_linefunctionname;
+} ELFUTILS_0.177;

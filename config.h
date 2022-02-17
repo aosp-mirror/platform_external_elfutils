@@ -51,9 +51,21 @@
    don't. */
 #define HAVE_DECL_RAWMEMCHR 1
 
+/* Define to 1 if you have the declaration of `reallocarray', and to 0 if you
+   don't. */
+#define HAVE_DECL_REALLOCARRAY 1
+
 /* Define to 1 if you have the declaration of `strerror_r', and to 0 if you
    don't. */
 #define HAVE_DECL_STRERROR_R 1
+
+/* Define to 1 if you have the <error.h> header file. */
+#if defined(__BIONIC__) || defined(__GLIBC__)
+#define HAVE_ERROR_H 1
+#endif
+
+/* Define to 1 if you have the <err.h> header file. */
+#define HAVE_ERR_H 1
 
 /* Defined if __attribute__((fallthrough)) is supported */
 #define HAVE_FALLTHROUGH 1
@@ -70,11 +82,11 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
 
-/* Define to 1 if you have the <memory.h> header file. */
-#define HAVE_MEMORY_H 1
-
 /* Define to 1 if you have the `process_vm_readv' function. */
 #define HAVE_PROCESS_VM_READV 1
+
+/* Enable pthread_setname_np */
+#define HAVE_PTHREAD_SETNAME_NP 1
 
 /* Define to 1 if `stdatomic.h` is provided by the system, 0 otherwise. */
 #define HAVE_STDATOMIC_H 1
@@ -82,10 +94,13 @@
 /* Define to 1 if you have the <stdint.h> header file. */
 #define HAVE_STDINT_H 1
 
+/* Define to 1 if you have the <stdio.h> header file. */
+#define HAVE_STDIO_H 1
+
 /* Define to 1 if you have the <stdlib.h> header file. */
 #define HAVE_STDLIB_H 1
 
-/* Define to 1 if you have the `strerror_r' function. */
+/* Define if you have `strerror_r'. */
 #define HAVE_STRERROR_R 1
 
 /* Define to 1 if you have the <strings.h> header file. */
@@ -119,7 +134,7 @@
 #define PACKAGE_NAME "elfutils"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "elfutils 0.183"
+#define PACKAGE_STRING "elfutils 0.186"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "elfutils"
@@ -128,16 +143,20 @@
 #define PACKAGE_URL "http://elfutils.org/"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.183"
+#define PACKAGE_VERSION "0.186"
 
 /* The size of `long', as computed by sizeof. */
 #define SIZEOF_LONG 8
 
-/* Define to 1 if you have the ANSI C header files. */
+/* Define to 1 if all of the C90 standard headers exist (not just the ones
+   required in a freestanding environment). This macro is provided for
+   backward compatibility; new code need not use it. */
 #define STDC_HEADERS 1
 
 /* Define to 1 if strerror_r returns char *. */
+#if defined(__GLIBC__) || defined(__BIONIC__)
 #define STRERROR_R_CHAR_P 1
+#endif
 
 /* Support bzip2 decompression via -lbz2. */
 /* #undef USE_BZLIB */
@@ -158,16 +177,11 @@
 /* #undef USE_ZSTD */
 
 /* Version number of package */
-#define VERSION "0.183"
+#define VERSION "0.186"
 
 /* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
    `char[]'. */
 #define YYTEXT_POINTER 1
-
-/* Enable large inode numbers on Mac OS X 10.5.  */
-#ifndef _DARWIN_USE_64_BIT_INODE
-# define _DARWIN_USE_64_BIT_INODE 1
-#endif
 
 /* Number of bits in a file offset, on hosts where this is settable. */
 /* #undef _FILE_OFFSET_BITS */

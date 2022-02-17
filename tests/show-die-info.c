@@ -97,7 +97,7 @@ handle (Dwarf *dbg, Dwarf_Die *die, int n)
   printf ("%*s Attrs     :", n * 5, "");
   for (cnt = 0; cnt < 0xffff; ++cnt)
     if (dwarf_hasattr (die, cnt))
-      printf (" %s", dwarf_attr_string (cnt));
+      printf (" %s", dwarf_attr_string (cnt) ?: "<unknown>");
   puts ("");
 
   if (dwarf_hasattr (die, DW_AT_low_pc) && dwarf_lowpc (die, &addr) == 0)

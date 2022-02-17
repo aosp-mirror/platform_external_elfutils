@@ -1,3 +1,48 @@
+2021-11-05  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR28430
+	* debuginfod.8 (--passive): Document new flag & operation mode.
+
+2021-08-28  Di Chen  <dichen@redhat.com>
+
+	* debuginfod.8 (-d): Document ":memory:" as in-memory database.
+
+2021-08-20  Di Chen  <dichen@redhat.com>
+
+	* debuginfod.8: Add --forwarded-ttl-limit=NUM documentation.
+
+2021-07-28  Alice Zhang <alizhang@redhat.com>
+
+	PR27950
+	* debuginfod-client-config.7: New file to store all cache config
+	infos.
+	* debuginfod-find.1: Removed redundant occurrences of environment
+	variables & cache control files.
+	* debuginfod.8: Likewise.
+	* debuginfod_find_debuginfo.3: Likewise.
+	* Makefile.am: Updated to include debuginfod-client-config.7
+	* man3, man7: Symlinks for source tree man page testing.
+
+2021-08-04  Noah Sanci  <nsanci@redhat.com>
+
+	PR27277
+	* debuginfod-find.1: Increasing verbosity describes the downloaded
+	file.
+	* debuginfod.8: Describe X-DEBUGINFOD-FILE, X-DEBUGINFOD-SIZE, and
+	X-DEBUGINFOD-ARCHIVE.
+
+2021-07-26  Noah Sanci <nsanci@redhat.com>
+
+	PR27982
+	* debuginfod-find.1: Document DEBUGINFOD_MAXTIME
+	and DEBUGINFOD_MAXSIZE.
+
+2021-04-23  Frank Ch. Eigler <fche@redhat.com>
+
+	PR27701
+	* debuginfod_find_debuginfo.3: Specify sequential reuse policy of
+	debuginfod_client objects.
+
 2021-02-04  Frank Ch. Eigler <fche@redhat.com>
 
 	* debuginfod.8: Mention new --fdcache-mintmp option.

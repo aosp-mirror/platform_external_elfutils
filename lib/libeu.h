@@ -39,6 +39,8 @@ extern void *xrealloc (void *, size_t) __attribute__ ((__malloc__));
 extern char *xstrdup (const char *) __attribute__ ((__malloc__));
 extern char *xstrndup (const char *, size_t) __attribute__ ((__malloc__));
 
+extern char *xasprintf(const char *fmt, ...)
+	__attribute__ ((format (printf, 1, 2))) __attribute__ ((__malloc__));
 
 extern uint32_t crc32 (uint32_t crc, unsigned char *buf, size_t len);
 extern int crc32_file (int fd, uint32_t *resp);

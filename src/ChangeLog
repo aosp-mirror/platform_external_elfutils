@@ -1,3 +1,9 @@
+2022-03-01  Di Chen  <dichen@redhat.com>
+
+	* readelf.c (get_dyn_ents): New function.
+	(handle_dynamic): Use get_dyn_ents to get the actual number of
+	Dynamic entries in the section.
+
 2022-03-27  Mark Wielaard  <mark@klomp.org>
 
 	* addr2line.c: Replace error (EXIT_FAILURE, ...) with error_exit(...).

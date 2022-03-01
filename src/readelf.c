@@ -1772,6 +1772,24 @@ print_dt_posflag_1 (int class, GElf_Xword d_val)
 }
 
 
+static size_t
+get_dyn_ents (Elf_Data * dyn_data)
+{
+  GElf_Dyn *dyn;
+  size_t dyn_idx = 0;
+  do
+    {
+      GElf_Dyn dyn_mem;
+      dyn = gelf_getdyn(dyn_data, dyn_idx, &dyn_mem);
+      if (dyn != NULL)
+	++dyn_idx;
+    }
+  while (dyn != NULL && dyn->d_tag != DT_NULL);
+
+  return dyn_idx;
+}
+
+
 static void
 handle_dynamic (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 {
@@ -1781,18 +1799,19 @@ handle_dynamic (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
   Elf_Data *data;
   size_t cnt;
   size_t shstrndx;
-  size_t sh_entsize;
+  size_t dyn_ents;
 
   /* Get the data of the section.  */
   data = elf_getdata (scn, NULL);
   if (data == NULL)
     return;
 
+  /* Get the dynamic section entry number */
+  dyn_ents = get_dyn_ents (data);
+
   /* Get the section header string table index.  */
   if (unlikely (elf_getshdrstrndx (ebl->elf, &shstrndx) < 0))
     error_exit (0, _("cannot get section header string table index"));
-
-  sh_entsize = gelf_fsize (ebl->elf, ELF_T_DYN, 1, EV_CURRENT);
 
   glink = gelf_getshdr (elf_getscn (ebl->elf, shdr->sh_link), &glink_mem);
   if (glink == NULL)
@@ -1803,15 +1822,15 @@ handle_dynamic (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 \nDynamic segment contains %lu entry:\n Addr: %#0*" PRIx64 "  Offset: %#08" PRIx64 "  Link to section: [%2u] '%s'\n",
 		    "\
 \nDynamic segment contains %lu entries:\n Addr: %#0*" PRIx64 "  Offset: %#08" PRIx64 "  Link to section: [%2u] '%s'\n",
-		    shdr->sh_size / sh_entsize),
-	  (unsigned long int) (shdr->sh_size / sh_entsize),
+		    dyn_ents),
+	  (unsigned long int) dyn_ents,
 	  class == ELFCLASS32 ? 10 : 18, shdr->sh_addr,
 	  shdr->sh_offset,
 	  (int) shdr->sh_link,
 	  elf_strptr (ebl->elf, shstrndx, glink->sh_name));
   fputs_unlocked (_("  Type              Value\n"), stdout);
 
-  for (cnt = 0; cnt < shdr->sh_size / sh_entsize; ++cnt)
+  for (cnt = 0; cnt < dyn_ents; ++cnt)
     {
       GElf_Dyn dynmem;
       GElf_Dyn *dyn = gelf_getdyn (data, cnt, &dynmem);

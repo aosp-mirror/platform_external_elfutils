@@ -1,3 +1,10 @@
+2022-03-01  Di Chen <dichen@redhat.com>
+
+	* alldts.c (dtflags): Put DT_NULL last.
+	* run-alldts.sh: NULL comes last.
+	* run-readelf-d.sh: Adjust Dynamic entries, remove DT_NULL
+	padding.
+
 2022-04-14  Mark Wielaard  <mark@klomp.org>
 
 	* run-debuginfod-federation-sqlite.sh: Don't try to corrupt

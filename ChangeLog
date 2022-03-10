@@ -1,3 +1,9 @@
+2022-03-10  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac: Move AC_PROG_CXX earlier. Check for both
+	-D_FORTIFY_SOURCE=3 and -D_FORTIFY_SOURCE=2 support. Also
+	set CXXFLAGS. Output final CFLAGS and CXXFLAGS setting.
+
 2021-12-04  Mark Wielaard  <mark@klomp.org>
 
 	* configure.ac: Add --enable-sanitize-address.

@@ -2,6 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Configure input file for elfutils.                     -*-autoconf-*-
 dnl
 dnl Copyright (C) 1996-2019 Red Hat, Inc.
+dnl Copyright (C) 2022 Mark J. Wielaard <mark@klomp.org>
 dnl
 dnl This file is part of elfutils.
 dnl
@@ -88,6 +89,7 @@ AS_IF([test "$use_locks" = yes],
 AH_TEMPLATE([USE_LOCKS], [Defined if libraries should be thread-safe.])
 
 AC_PROG_CC_C99
+AC_PROG_CXX
 AC_PROG_RANLIB
 AC_PROG_YACC
 AM_PROG_LEX
@@ -231,25 +233,38 @@ AC_CACHE_CHECK([whether fts.h is bad when included (with LFS)], ac_cv_bad_fts,
 AS_IF([test "x$ac_cv_bad_fts" = "xyes"],
       [CFLAGS="$CFLAGS -DBAD_FTS=1" CXXFLAGS="$CXXFLAGS -DBAD_FTS=1"])
 
-# See if we can add -D_FORTIFY_SOURCE=2. Don't do it if it is already
+# See if we can add -D_FORTIFY_SOURCE=2 or =3. Don't do it if it is already
 # (differently) defined or if it generates warnings/errors because we
 # don't use the right optimisation level (string.h will warn about that).
-AC_MSG_CHECKING([whether to add -D_FORTIFY_SOURCE=2 to CFLAGS])
+AC_MSG_CHECKING([whether to add -D_FORTIFY_SOURCE=2 or =3 to CFLAGS])
 case "$CFLAGS" in
-  *-D_FORTIFY_SOURCE=2*)
+  *-D_FORTIFY_SOURCE=*)
     AC_MSG_RESULT([no, already there])
     ;;
   *)
     save_CFLAGS="$CFLAGS"
-    CFLAGS="-D_FORTIFY_SOURCE=2 $CFLAGS -Werror"
+    # Try 3 first.
+    CFLAGS="-D_FORTIFY_SOURCE=3 $save_CFLAGS -Werror"
+    fortified_cflags=""
     AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
       #include <string.h>
       int main() { return 0; }
-    ]])], [ AC_MSG_RESULT([yes])
-            CFLAGS="-D_FORTIFY_SOURCE=2 $save_CFLAGS" ],
-          [ AC_MSG_RESULT([no])
-            CFLAGS="$save_CFLAGS"])
-  ;;
+    ]])], [ AC_MSG_RESULT([yes -D_FORTIFY_SOURCE=3])
+            fortified_cflags="-D_FORTIFY_SOURCE=3" ], [])
+
+    # If that didn't work, try 2.
+    if test -z "$fortified_cflags"; then
+      CFLAGS="-D_FORTIFY_SOURCE=2 $save_CFLAGS -Werror"
+      AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+        #include <string.h>
+        int main() { return 0; }
+      ]])], [ AC_MSG_RESULT([yes -D_FORTIFY_SOURCE=2])
+              fortified_cflags="-D_FORTIFY_SOURCE=2" ],
+              [ AC_MSG_RESULT([no, cannot be used])])
+    fi
+    CFLAGS="$fortified_cflags $save_CFLAGS"
+    CXXFLAGS="$fortified_cflags $CXXFLAGS"
+    ;;
 esac
 
 dnl enable debugging of branch prediction.
@@ -757,7 +772,6 @@ AM_CONDITIONAL([DUMMY_LIBDEBUGINFOD],[test "x$enable_libdebuginfod" = "xdummy"])
 # Look for libmicrohttpd, libarchive, sqlite for debuginfo server
 # minimum versions as per rhel7.
 AC_ARG_ENABLE([debuginfod],AC_HELP_STRING([--enable-debuginfod], [Build debuginfod server]))
-AC_PROG_CXX
 AS_IF([test "x$enable_debuginfod" != "xno"], [
     AC_MSG_NOTICE([checking debuginfod C++11 support, --disable-debuginfod to skip])
     AX_CXX_COMPILE_STDCXX(11, noext, mandatory)
@@ -803,6 +817,9 @@ AC_MSG_NOTICE([
     Source code location               : ${srcdir}
     Maintainer mode                    : ${enable_maintainer_mode}
     build arch                         : ${ac_cv_build}
+
+    CFLAGS=${CFLAGS}
+    CXXFLAGS=${CXXFLAGS}
 
   RECOMMENDED FEATURES (should all be yes)
     gzip support                       : ${with_zlib}

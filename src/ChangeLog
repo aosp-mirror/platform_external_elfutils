@@ -1,3 +1,10 @@
+2022-03-11  Mark Wielaard  <mark@klomp.org>
+
+	* addr2line.c (OPT_RELATIVE): New constant.
+	(options): Add --relative.
+	(use_comp_dir): Initialize to true.
+	(parse_opt): Handle OPT_RELATIVE.
+
 2021-12-04  Mark Wielaard  <mark@klomp.org>
 
 	* readelf.c (print_ehdr): Pass sizeof (buf) - 1 to strncpy.

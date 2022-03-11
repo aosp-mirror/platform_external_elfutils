@@ -2,6 +2,9 @@ Version 0.187 after 0.186
 
 debuginfod: Support -C option for connection thread pooling.
 
+addr2line: The -A, --absolute option, which shows file names including
+           the full compilation directory is now the default.  To get the
+           old behavior use the new option --relative.
 
 Version 0.186
 

@@ -744,7 +744,7 @@ AC_CHECK_PROG(HAVE_ZSTD, zstd, yes, no)
 AM_CONDITIONAL([HAVE_ZSTD],[test "x$HAVE_ZSTD" = "xyes"])
 
 # Look for libcurl for libdebuginfod minimum version as per rhel7.
-AC_ARG_ENABLE([libdebuginfod],AC_HELP_STRING([--enable-libdebuginfod], [Build debuginfod client library (can be =dummy)]))
+AC_ARG_ENABLE([libdebuginfod],AS_HELP_STRING([--enable-libdebuginfod], [Build debuginfod client library (can be =dummy)]))
 AS_IF([test "x$enable_libdebuginfod" != "xno"], [
     if test "x$enable_libdebuginfod" != "xdummy"; then
       AC_MSG_NOTICE([checking libdebuginfod dependencies, --disable-libdebuginfod or --enable-libdebuginfo=dummy to skip])
@@ -771,7 +771,7 @@ AM_CONDITIONAL([DUMMY_LIBDEBUGINFOD],[test "x$enable_libdebuginfod" = "xdummy"])
 
 # Look for libmicrohttpd, libarchive, sqlite for debuginfo server
 # minimum versions as per rhel7.
-AC_ARG_ENABLE([debuginfod],AC_HELP_STRING([--enable-debuginfod], [Build debuginfod server]))
+AC_ARG_ENABLE([debuginfod],AS_HELP_STRING([--enable-debuginfod], [Build debuginfod server]))
 AS_IF([test "x$enable_debuginfod" != "xno"], [
     AC_MSG_NOTICE([checking debuginfod C++11 support, --disable-debuginfod to skip])
     AX_CXX_COMPILE_STDCXX(11, noext, mandatory)

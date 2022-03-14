@@ -28,7 +28,7 @@ biarch_CC="$biarch_CC $utrace_biarch"])])
 AC_DEFUN([utrace_BIARCH], [AC_REQUIRE([utrace_HOST64])
 utrace_biarch_forced=no
 AC_ARG_WITH([biarch],
-	    AC_HELP_STRING([--with-biarch],
+	    AS_HELP_STRING([--with-biarch],
 			   [enable biarch tests despite build problems]),
 	    [AS_IF([test "x$with_biarch" != xno], [utrace_biarch_forced=yes])])
 AS_IF([test $utrace_biarch_forced = yes], [dnl

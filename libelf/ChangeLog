@@ -1,3 +1,8 @@
+2022-03-17  Mark Wielaard  <mark@klomp.org>
+
+	* elf_begin.c (get_shnum): Take offset into account for Shdr
+	alignment check.
+
 2021-12-19  Mark Wielaard  <mark@klomp.org>
 
 	* elf_begin.c (file_read_elf): Cast ehdr to uintptr_t before e_shoff

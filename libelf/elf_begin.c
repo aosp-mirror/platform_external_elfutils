@@ -1,6 +1,6 @@
 /* Create descriptor for processing file.
    Copyright (C) 1998-2010, 2012, 2014, 2015, 2016 Red Hat, Inc.
-   Copyright (C) 2021 Mark J. Wielaard <mark@klomp.org>
+   Copyright (C) 2021, 2022 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 1998.
 
@@ -158,7 +158,8 @@ get_shnum (void *map_address, unsigned char *e_ident, int fildes,
 
 	  if (likely (map_address != NULL) && e_ident[EI_DATA] == MY_ELFDATA
 	      && (ALLOW_UNALIGNED
-		  || (((size_t) ((char *) map_address + ehdr.e32->e_shoff))
+		  || (((size_t) ((char *) (map_address + ehdr.e32->e_shoff
+					   + offset)))
 		      & (__alignof__ (Elf32_Shdr) - 1)) == 0))
 	    /* We can directly access the memory.  */
 	    result = ((Elf32_Shdr *) ((char *) map_address + ehdr.e32->e_shoff
@@ -218,7 +219,8 @@ get_shnum (void *map_address, unsigned char *e_ident, int fildes,
 	  Elf64_Xword size;
 	  if (likely (map_address != NULL) && e_ident[EI_DATA] == MY_ELFDATA
 	      && (ALLOW_UNALIGNED
-		  || (((size_t) ((char *) map_address + ehdr.e64->e_shoff))
+		  || (((size_t) ((char *) (map_address + ehdr.e64->e_shoff
+					   + offset)))
 		      & (__alignof__ (Elf64_Shdr) - 1)) == 0))
 	    /* We can directly access the memory.  */
 	    size = ((Elf64_Shdr *) ((char *) map_address + ehdr.e64->e_shoff

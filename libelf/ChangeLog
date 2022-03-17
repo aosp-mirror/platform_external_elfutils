@@ -1,3 +1,9 @@
+2022-03-18  Mark Wielaard  <mark@klomp.org>
+
+	* version_xlate.h (elf_cvt_Verdef): Check alignment of def_offset
+	and aux_offset.
+	(elf_cvt_Verneed): Check alignment of need_offset and aux_offset.
+
 2022-03-17  Mark Wielaard  <mark@klomp.org>
 
 	* elf_begin.c (read_long_names): Check ar_size starts with a digit.

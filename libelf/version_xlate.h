@@ -1,5 +1,6 @@
 /* Conversion functions for versioning information.
    Copyright (C) 1998, 1999, 2000, 2002, 2003, 2015 Red Hat, Inc.
+   Copyright (C) 2022 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 1998.
 
@@ -66,7 +67,9 @@ elf_cvt_Verdef (void *dest, const void *src, size_t len, int encode)
       GElf_Verdaux *asrc;
 
       /* Test for correct offset.  */
-      if (def_offset > len || len - def_offset < sizeof (GElf_Verdef))
+      if (def_offset > len
+	  || len - def_offset < sizeof (GElf_Verdef)
+	  || (def_offset & (__alignof__ (GElf_Verdef) - 1)) != 0)
 	return;
 
       /* Work the tree from the first record.  */
@@ -95,7 +98,9 @@ elf_cvt_Verdef (void *dest, const void *src, size_t len, int encode)
 	  GElf_Verdaux *adest;
 
 	  /* Test for correct offset.  */
-	  if (aux_offset > len || len - aux_offset < sizeof (GElf_Verdaux))
+	  if (aux_offset > len
+	      || len - aux_offset < sizeof (GElf_Verdaux)
+	      || (aux_offset & (__alignof__ (GElf_Verdaux) - 1)) != 0)
 	    return;
 
 	  adest = (GElf_Verdaux *) ((char *) dest + aux_offset);
@@ -165,7 +170,9 @@ elf_cvt_Verneed (void *dest, const void *src, size_t len, int encode)
       GElf_Vernaux *asrc;
 
       /* Test for correct offset.  */
-      if (need_offset > len || len - need_offset < sizeof (GElf_Verneed))
+      if (need_offset > len
+	  || len - need_offset < sizeof (GElf_Verneed)
+	  || (need_offset & (__alignof__ (GElf_Verneed) - 1)) != 0)
 	return;
 
       /* Work the tree from the first record.  */
@@ -192,7 +199,9 @@ elf_cvt_Verneed (void *dest, const void *src, size_t len, int encode)
 	  GElf_Vernaux *adest;
 
 	  /* Test for correct offset.  */
-	  if (aux_offset > len || len - aux_offset < sizeof (GElf_Vernaux))
+	  if (aux_offset > len
+	      || len - aux_offset < sizeof (GElf_Vernaux)
+	      || (aux_offset & (__alignof__ (GElf_Vernaux) - 1)) != 0)
 	    return;
 
 	  adest = (GElf_Vernaux *) ((char *) dest + aux_offset);

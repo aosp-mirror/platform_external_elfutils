@@ -765,6 +765,11 @@ read_long_names (Elf *elf)
 	  *((char *) mempcpy (buf, hdr->ar_size, sizeof (hdr->ar_size))) = '\0';
 	  string = buf;
 	}
+
+      /* atol expects to see at least one digit.
+	 It also cannot be negative (-).  */
+      if (!isdigit(string[0]))
+	return NULL;
       len = atol (string);
 
       if (memcmp (hdr->ar_name, "//              ", 16) == 0)

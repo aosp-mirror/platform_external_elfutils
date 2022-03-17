@@ -1,5 +1,9 @@
 2022-03-17  Mark Wielaard  <mark@klomp.org>
 
+	* elf_begin.c (read_long_names): Check ar_size starts with a digit.
+
+2022-03-17  Mark Wielaard  <mark@klomp.org>
+
 	* elf_begin.c (get_shnum): Take offset into account for Shdr
 	alignment check.
 

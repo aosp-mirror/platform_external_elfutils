@@ -1,5 +1,10 @@
 2022-02-18  Mark Wielaard  <mark@klomp.org>
 
+	* image-header.c (__libdw_image_header): Assign header values for
+	magic1, magic2, version, offset, length and sects using memcpy.
+
+2022-02-18  Mark Wielaard  <mark@klomp.org>
+
 	* offline.c (process_archive_member): Close member if process_file
 	failed.
 

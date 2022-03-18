@@ -1,3 +1,8 @@
+2022-02-18  Mark Wielaard  <mark@klomp.org>
+
+	* offline.c (process_archive_member): Close member if process_file
+	failed.
+
 2022-01-03  Mark Wielaard  <mark@klomp.org>
 
 	* link_map.c (dwfl_link_map_report): Only declare d32 and d64 before

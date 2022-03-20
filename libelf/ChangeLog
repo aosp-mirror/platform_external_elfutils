@@ -1,3 +1,10 @@
+2022-03-20  Mark Wielaard  <mark@klomp.org>
+
+	* version_xlate.h (elf_cvt_Verdef): Make sure aux_offset and
+	def_offset don't overflow.
+	(elf_cvt_Verneed): Make sure aux_offset and need_offset don't
+	overflow.
+
 2022-03-18  Mark Wielaard  <mark@klomp.org>
 
 	* version_xlate.h (elf_cvt_Verdef): Check alignment of def_offset

@@ -706,9 +706,7 @@ if test "$sys_user_has_user_regs" = "yes"; then
 fi
 
 # On a 64-bit host where can can use $CC -m32, we'll run two sets of tests.
-# Likewise in a 32-bit build on a host where $CC -m64 works.
 utrace_BIARCH
-# `$utrace_biarch' will be `-m64' even on an uniarch i386 machine.
 CC_BIARCH="$CC $utrace_biarch"
 AC_SUBST([CC_BIARCH])
 

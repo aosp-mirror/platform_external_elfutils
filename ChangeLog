@@ -1,3 +1,8 @@
+2021-03-20  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac: Remove -m64 on 32bit target comments for
+	utrace_BIARCH check.
+
 2021-03-14  Mark Wielaard  <mark@klomp.org>
 
 	* configure.ac: Use AS_HELP_STRING instead of AC_HELP_STRING.

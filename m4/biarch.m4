@@ -34,7 +34,7 @@ AC_ARG_WITH([biarch],
 AS_IF([test $utrace_biarch_forced = yes], [dnl
 utrace_cv_cc_biarch=yes
 AC_MSG_NOTICE([enabling biarch tests regardless using $biarch_CC])], [dnl
-AS_IF([test x$utrace_cv_CC_m32 != xnone], [dnl
+AS_IF([test x$utrace_cv_CC_m32 != xnone -a x$utrace_cv_host64 != xno], [dnl
 AC_CACHE_CHECK([whether $biarch_CC makes executables we can run],
 	       utrace_cv_cc_biarch, [dnl
 save_CC="$CC"

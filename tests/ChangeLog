@@ -1,3 +1,7 @@
+2022-03-20  Mark Wielaard  <mark@klomp.org>
+
+	* run-large-elf-file.sh: Check elf class of addsections binary.
+
 2021-12-17  Mark Wielaard  <mark@klomp.org>
 
 	* run-debuginfod-query-retry.sh: Use /bin/sh instead of /bin/ls.

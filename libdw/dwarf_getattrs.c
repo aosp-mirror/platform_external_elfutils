@@ -55,8 +55,6 @@ dwarf_getattrs (Dwarf_Die *die, int (*callback) (Dwarf_Attribute *, void *),
       return -1l;
     }
 
-  const unsigned char *endp = die->cu->endp;
-
   /* This is where the attributes start.  */
   const unsigned char *attrp = abbrevp->attrp;
   const unsigned char *const offset_attrp = abbrevp->attrp + offset;
@@ -79,17 +77,6 @@ dwarf_getattrs (Dwarf_Die *die, int (*callback) (Dwarf_Attribute *, void *),
 	   Instead we return +1 which would never be a valid
 	   offset of an attribute.  */
         return 1l;
-
-      if (attr.form == DW_FORM_indirect)
-	{
-	  get_uleb128 (attr.form, die_addr, endp);
-	  if (attr.form == DW_FORM_indirect ||
-	      attr.form == DW_FORM_implicit_const)
-	    {
-	      __libdw_seterrno (DWARF_E_INVALID_DWARF);
-	      return -1l;
-	    }
-	}
 
       /* If we are not to OFFSET_ATTRP yet, we just have to skip
 	 the values of the intervening attributes.  */

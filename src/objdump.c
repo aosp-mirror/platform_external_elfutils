@@ -717,14 +717,15 @@ show_disasm (Ebl *ebl, const char *fname, uint32_t shstrndx)
 	      info.address_color = color_address;
 	      info.bytes_color = color_bytes;
 
-	      fmt = xasprintf ("%s%%7m %s%%.1o,%s%%.2o,%s%%.3o,,%s%%.4o%s%%.5o%%34a %s%%l",
-			       color_mnemonic ?: "",
-			       color_operand1 ?: "",
-			       color_operand2 ?: "",
-			       color_operand3 ?: "",
-			       color_operand4 ?: "",
-			       color_operand5 ?: "",
-			       color_label ?: "");
+	      if (asprintf (&fmt, "%s%%7m %s%%.1o,%s%%.2o,%s%%.3o,,%s%%.4o%s%%.5o%%34a %s%%l",
+			    color_mnemonic ?: "",
+			    color_operand1 ?: "",
+			    color_operand2 ?: "",
+			    color_operand3 ?: "",
+                            color_operand4 ?: "",
+                            color_operand5 ?: "",
+			    color_label ?: "") < 0)
+		error (EXIT_FAILURE, errno, _("cannot allocate memory"));
 	    }
 	  else
 	    {

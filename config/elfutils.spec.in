@@ -35,9 +35,8 @@ BuildRequires: pkgconfig(libarchive) >= 3.1.2
 # For tests need to bunzip2 test files.
 BuildRequires: bzip2
 BuildRequires: zstd
-# For the run-debuginfod-find.sh test case in %%check for /usr/sbin/ss etc.
+# For the run-debuginfod-find.sh test case in %check for /usr/sbin/ss
 BuildRequires: iproute
-BuildRequires: procps
 BuildRequires: bsdtar
 BuildRequires: curl
 
@@ -299,15 +298,12 @@ fi
 %{_libdir}/libdebuginfod.so.*
 %{_bindir}/debuginfod-find
 %{_mandir}/man1/debuginfod-find.1*
-%{_mandir}/man7/debuginfod*.7*
 %config(noreplace) %{_sysconfdir}/profile.d/*
-%config(noreplace) %{_sysconfdir}/debuginfod/*
   
 %files debuginfod-client-devel
 %defattr(-,root,root)
 %{_libdir}/pkgconfig/libdebuginfod.pc
 %{_mandir}/man3/debuginfod_*.3*
-%{_mandir}/man7/debuginfod*.7*
 %{_includedir}/elfutils/debuginfod.h
 %{_libdir}/libdebuginfod.so
 
@@ -318,7 +314,6 @@ fi
 %{_unitdir}/debuginfod.service
 %{_sysconfdir}/sysconfig/debuginfod
 %{_mandir}/man8/debuginfod.8*
-%{_mandir}/man7/debuginfod*.7*
 
 %dir %attr(0700,debuginfod,debuginfod) %{_localstatedir}/cache/debuginfod
 %ghost %attr(0600,debuginfod,debuginfod) %{_localstatedir}/cache/debuginfod/debuginfod.sqlite
@@ -337,50 +332,6 @@ exit 0
 %systemd_postun_with_restart debuginfod.service
 
 %changelog
-* Wed Nov 10 2021 Mark Wielaard <mark@klomp.org> 0.186-1
-- debuginfod-client: Default $DEBUGINFOD_URLS is computed from
-  drop-in files /etc/debuginfod/*.urls rather than
-  hardcoded into the /etc/profile.d/debuginfod*
-  scripts.
-  Add $DEBUGINFOD_MAXSIZE and $DEBUGINFOD_MAXTIME settings
-  for skipping large/slow transfers.
-  Add $DEBUGINFOD_RETRY for retrying aborted lookups.
-- debuginfod: Supply extra HTTP response headers, describing
-  archive/file names that satisfy the requested buildid content.
-  Support -d :memory: option for in-memory databases.
-  Protect against loops in federated server configurations.
-  Add -r option to use -I/-X regexes for grooming stale files.
-  Protect against wasted CPU from duplicate concurrent requests.
-  Limit the duration of groom ops roughly to rescan (-t) times.
-  Add --passive mode for serving from read-only database.
-  Several other performance improvements & prometheus metrics.
-- libdw: Support for the NVIDIA Cuda line map extensions.
-  DW_LNE_NVIDIA_inlined_call and DW_LNE_NVIDIA_set_function_name
-  are defined in dwarf.h. New functions dwarf_linecontext and
-  dwarf_linefunctionname.
-- translations: Update Japanese translation.
-
-* Sat May 22 2021 Mark Wielaard <mark@klomp.org> 0.185-1
-- debuginfod-client: Simplify curl handle reuse so downloads which
-                     return an error are retried.
-- elfcompress: Always exit with code 0 when the operation succeeds
-               (even when nothing was done). On error the exit code is
-               now always 1.
-
-* Mon May 10 2021  Mark Wielaard <mark@klomp.org> 0.184-1
-- debuginfod: Use libarchive's bsdtar as the .deb-family file unpacker.
-- debuginfod-client: Client caches negative results. If a query for a
-		   file failed with 404, an empty 000 permission
-		   file is created in the cache. This will prevent
-		   requesting the same file for the next 10 minutes.
-- 		   Client objects now carry long-lived curl handles
-		   for outgoing connections.  This makes it more
-		   efficient for multiple sequential queries, because
-		   the TCP connections and/or TLS state info are kept
-		   around awhile, avoiding O(100ms) setup latencies.
-- libdw: handle DW_FORM_indirect when reading attributes
-- translations: Update Polish translation.
-
 * Fri Feb  5 2021 Mark Wielaard <mark@klomp.org> 0.183-1
 - debuginfod: New thread-busy metric and more detailed error metrics.
   New --fdcache-mintmp and tracking of filesystem freespace.

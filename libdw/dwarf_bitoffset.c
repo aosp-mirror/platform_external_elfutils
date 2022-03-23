@@ -35,7 +35,6 @@
 #include "libdwP.h"
 
 
-NEW_VERSION (dwarf_bitoffset, ELFUTILS_0.143)
 int
 dwarf_bitoffset (Dwarf_Die *die)
 {
@@ -47,3 +46,4 @@ dwarf_bitoffset (Dwarf_Die *die)
 				  &value) == 0 ? (int) value : -1;
 }
 OLD_VERSION (dwarf_bitoffset, ELFUTILS_0.122)
+NEW_VERSION (dwarf_bitoffset, ELFUTILS_0.143)

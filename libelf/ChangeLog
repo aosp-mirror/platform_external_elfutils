@@ -1,3 +1,8 @@
+2022-03-22  Mark Wielaard  <mark@klomp.org>
+
+	* elf_getdata.c (__libelf_type_aligns): ELF_T_GNUHASH has different
+	alignment for ELFCLASS32 and ELFCLASS64.
+
 2022-03-20  Mark Wielaard  <mark@klomp.org>
 
 	* version_xlate.h (elf_cvt_Verdef): Make sure aux_offset and

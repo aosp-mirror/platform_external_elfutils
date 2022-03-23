@@ -287,7 +287,6 @@ __libdwfl_report_elf (Dwfl *dwfl, const char *name, const char *file_name,
   return m;
 }
 
-NEW_VERSION (dwfl_report_elf, ELFUTILS_0.156)
 Dwfl_Module *
 dwfl_report_elf (Dwfl *dwfl, const char *name, const char *file_name, int fd,
 		 GElf_Addr base, bool add_p_vaddr)
@@ -323,7 +322,8 @@ dwfl_report_elf (Dwfl *dwfl, const char *name, const char *file_name, int fd,
 
   return mod;
 }
-NEW_INTDEF (dwfl_report_elf)
+INTDEF (dwfl_report_elf)
+NEW_VERSION (dwfl_report_elf, ELFUTILS_0.156)
 
 #ifdef SYMBOL_VERSIONING
 Dwfl_Module *

@@ -57,7 +57,7 @@ asm_newscngrp (AsmCtx_t *ctx, const char *grpname, AsmSym_t *signature,
       return NULL;
     }
 
-  result = malloc (sizeof (AsmScnGrp_t) + grpname_len);
+  result = (AsmScnGrp_t *) malloc (sizeof (AsmScnGrp_t) + grpname_len);
   if (result == NULL)
     return NULL;
 

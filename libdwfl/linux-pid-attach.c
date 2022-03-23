@@ -30,8 +30,6 @@
 # include <config.h>
 #endif
 
-#include <system.h>
-
 #include "libelfP.h"
 #include "libdwflP.h"
 #include <sys/types.h>
@@ -61,7 +59,7 @@ linux_proc_pid_is_stopped (pid_t pid)
 
   have_state = false;
   while (fgets (buffer, sizeof (buffer), procfile) != NULL)
-    if (startswith (buffer, "State:"))
+    if (strncmp (buffer, "State:", 6) == 0)
       {
 	have_state = true;
 	break;
@@ -135,7 +133,7 @@ read_cached_memory (struct __libdwfl_pid_arg *pid_arg,
   if (mem_cache == NULL)
     {
       size_t mem_cache_size = sizeof (struct __libdwfl_remote_mem_cache);
-      mem_cache = malloc (mem_cache_size);
+      mem_cache = (struct __libdwfl_remote_mem_cache *) malloc (mem_cache_size);
       if (mem_cache == NULL)
 	return false;
 
@@ -409,7 +407,7 @@ dwfl_linux_proc_attach (Dwfl *dwfl, pid_t pid, bool assume_ptrace_stopped)
   char *line = NULL;
   size_t linelen = 0;
   while (getline (&line, &linelen, procfile) >= 0)
-    if (startswith (line, "Tgid:"))
+    if (strncmp (line, "Tgid:", 5) == 0)
       {
 	errno = 0;
 	char *endptr;

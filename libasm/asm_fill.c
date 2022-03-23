@@ -54,7 +54,8 @@ asm_fill (AsmScn_t *asmscn, void *bytes, size_t len)
   else
     {
       /* Allocate appropriate memory.  */
-      pattern = malloc (sizeof (struct FillPattern) + len);
+      pattern = (struct FillPattern *) malloc (sizeof (struct FillPattern)
+					       + len);
       if (pattern == NULL)
 	return -1;
 

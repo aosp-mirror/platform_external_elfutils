@@ -181,7 +181,7 @@ asm_newscn (AsmCtx_t *ctx, const char *scnname, GElf_Word type,
   rwlock_wrlock (ctx->lock);
 
   /* This is a new section.  */
-  result = malloc (sizeof (AsmScn_t) + scnname_len);
+  result = (AsmScn_t *) malloc (sizeof (AsmScn_t) + scnname_len);
   if (result != NULL)
     {
       /* Add the name.  */

@@ -1,5 +1,5 @@
 /* Retrieve ELF / DWARF / source files from the debuginfod.
-   Copyright (C) 2019-2021 Red Hat, Inc.
+   Copyright (C) 2019-2020 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -119,15 +119,10 @@ struct debuginfod_client
   /* File descriptor to output any verbose messages if > 0.  */
   int verbose_fd;
 
-  /* Maintain a long-lived curl multi-handle, which keeps a
-     connection/tls/dns cache to recently seen servers. */
-  CURLM *server_mhandle;
-  
   /* Can contain all other context, like cache_path, server_urls,
      timeout or other info gotten from environment variables, the
      handle data, etc. So those don't have to be reparsed and
      recreated on each request.  */
-  char * winning_headers;
 };
 
 /* The cache_clean_interval_s file within the debuginfod cache specifies
@@ -135,11 +130,6 @@ struct debuginfod_client
    the time of last cleaning.  */
 static const char *cache_clean_interval_filename = "cache_clean_interval_s";
 static const time_t cache_clean_default_interval_s = 86400; /* 1 day */
-
-/* The cache_miss_default_s within the debuginfod cache specifies how
-   frequently the 000-permision file should be released.*/
-static const time_t cache_miss_default_s = 600; /* 10 min */
-static const char *cache_miss_filename = "cache_miss_s";
 
 /* The cache_max_unused_age_s file within the debuginfod cache specifies the
    the maximum time since last access that a file will remain in the cache.  */
@@ -150,15 +140,17 @@ static const time_t cache_default_max_unused_age_s = 604800; /* 1 week */
    The default parent directory is $HOME, or '/' if $HOME doesn't exist.  */
 static const char *cache_default_name = ".debuginfod_client_cache";
 static const char *cache_xdg_name = "debuginfod_client";
+static const char *cache_path_envvar = DEBUGINFOD_CACHE_PATH_ENV_VAR;
 
 /* URLs of debuginfods, separated by url_delim. */
+static const char *server_urls_envvar = DEBUGINFOD_URLS_ENV_VAR;
 static const char *url_delim =  " ";
+static const char url_delim_char = ' ';
 
 /* Timeout for debuginfods, in seconds (to get at least 100K). */
+static const char *server_timeout_envvar = DEBUGINFOD_TIMEOUT_ENV_VAR;
 static const long default_timeout = 90;
 
-/* Default retry count for download error. */
-static const long default_retry_limit = 2;
 
 /* Data associated with a particular CURL easy handle. Passed to
    the write callback.  */
@@ -184,9 +176,6 @@ struct handle_data
      to the cache. Used to ensure that a file is not downloaded from
      multiple servers unnecessarily.  */
   CURL **target_handle;
-  /* Response http headers for this client handle, sent from the server */
-  char *response_data;
-  size_t response_data_size;
 };
 
 static size_t
@@ -215,38 +204,6 @@ debuginfod_write_callback (char *ptr, size_t size, size_t nmemb, void *data)
     return -1;
 
   return (size_t) write(d->fd, (void*)ptr, count);
-}
-
-/* handle config file read and write */
-static int
-debuginfod_config_cache(char *config_path,
-			long cache_config_default_s,
-			struct stat *st)
-{
-  int fd;
-  /* if the config file doesn't exist, create one with DEFFILEMODE*/
-  if(stat(config_path, st) == -1)
-    {
-      fd = open(config_path, O_CREAT | O_RDWR, DEFFILEMODE);
-      if (fd < 0)
-        return -errno;
-
-      if (dprintf(fd, "%ld", cache_config_default_s) < 0)
-        return -errno;
-    }
-
-  long cache_config;
-  FILE *config_file = fopen(config_path, "r");
-  if (config_file)
-    {
-      if (fscanf(config_file, "%ld", &cache_config) != 1)
-        cache_config = cache_config_default_s;
-      fclose(config_file);
-    }
-  else
-    cache_config = cache_config_default_s;
-
-  return cache_config;
 }
 
 /* Create the cache and interval file if they do not already exist.
@@ -294,28 +251,52 @@ debuginfod_clean_cache(debuginfod_client *c,
 		       char *cache_path, char *interval_path,
 		       char *max_unused_path)
 {
-  time_t clean_interval, max_unused_age;
-  int rc = -1;
   struct stat st;
+  FILE *interval_file;
+  FILE *max_unused_file;
 
-  /* Create new interval file.  */
-  rc = debuginfod_config_cache(interval_path,
-			       cache_clean_default_interval_s, &st);
-  if (rc < 0)
-    return rc;
-  clean_interval = (time_t)rc;
+  if (stat(interval_path, &st) == -1)
+    {
+      /* Create new interval file.  */
+      interval_file = fopen(interval_path, "w");
+
+      if (interval_file == NULL)
+        return -errno;
+
+      int rc = fprintf(interval_file, "%ld", cache_clean_default_interval_s);
+      fclose(interval_file);
+
+      if (rc < 0)
+        return -errno;
+    }
 
   /* Check timestamp of interval file to see whether cleaning is necessary.  */
+  time_t clean_interval;
+  interval_file = fopen(interval_path, "r");
+  if (interval_file)
+    {
+      if (fscanf(interval_file, "%ld", &clean_interval) != 1)
+        clean_interval = cache_clean_default_interval_s;
+      fclose(interval_file);
+    }
+  else
+    clean_interval = cache_clean_default_interval_s;
+
   if (time(NULL) - st.st_mtime < clean_interval)
     /* Interval has not passed, skip cleaning.  */
     return 0;
 
   /* Read max unused age value from config file.  */
-  rc = debuginfod_config_cache(max_unused_path,
-			       cache_default_max_unused_age_s, &st);
-  if (rc < 0)
-    return rc;
-  max_unused_age = (time_t)rc;
+  time_t max_unused_age;
+  max_unused_file = fopen(max_unused_path, "r");
+  if (max_unused_file)
+    {
+      if (fscanf(max_unused_file, "%ld", &max_unused_age) != 1)
+        max_unused_age = cache_default_max_unused_age_s;
+      fclose(max_unused_file);
+    }
+  else
+    max_unused_age = cache_default_max_unused_age_s;
 
   char * const dirs[] = { cache_path, NULL, };
 
@@ -324,13 +305,12 @@ debuginfod_clean_cache(debuginfod_client *c,
     return -errno;
 
   regex_t re;
-  const char * pattern = ".*/[a-f0-9]+(/debuginfo|/executable|/source.*|)$"; /* include dirs */
+  const char * pattern = ".*/[a-f0-9]+/(debuginfo|executable|source.*)$";
   if (regcomp (&re, pattern, REG_EXTENDED | REG_NOSUB) != 0)
     return -ENOMEM;
 
   FTSENT *f;
   long files = 0;
-  time_t now = time(NULL);
   while ((f = fts_read(fts)) != NULL)
     {
       /* ignore any files that do not match the pattern.  */
@@ -345,16 +325,15 @@ debuginfod_clean_cache(debuginfod_client *c,
       switch (f->fts_info)
         {
         case FTS_F:
-          /* delete file if max_unused_age has been met or exceeded w.r.t. atime.  */
-          if (now - f->fts_statp->st_atime >= max_unused_age)
-            (void) unlink (f->fts_path);
+          /* delete file if max_unused_age has been met or exceeded.  */
+          /* XXX consider extra effort to clean up old tmp files */
+          if (time(NULL) - f->fts_statp->st_atime >= max_unused_age)
+            unlink (f->fts_path);
           break;
 
         case FTS_DP:
-          /* Remove if old & empty.  Weaken race against concurrent creation by 
-             checking mtime. */
-          if (now - f->fts_statp->st_mtime >= max_unused_age)
-            (void) rmdir (f->fts_path);
+          /* Remove if empty. */
+          (void) rmdir (f->fts_path);
           break;
 
         default:
@@ -502,37 +481,6 @@ default_progressfn (debuginfod_client *c, long a, long b)
   return 0;
 }
 
-/* This is a callback function that receives http response headers in buffer for use
- * in this program. https://curl.se/libcurl/c/CURLOPT_HEADERFUNCTION.html is the
- * online documentation.
- */
-static size_t
-header_callback (char * buffer, size_t size, size_t numitems, void * userdata)
-{
-  if (size != 1)
-    return 0;
-  /* Temporary buffer for realloc */
-  char *temp = NULL;
-  struct handle_data *data = (struct handle_data *) userdata;
-  if (data->response_data == NULL)
-    {
-      temp = malloc(numitems+1);
-      if (temp == NULL)
-        return 0;
-    }
-  else
-    {
-      temp = realloc(data->response_data, data->response_data_size + numitems + 1);
-      if (temp == NULL)
-        return 0;
-    }
-
-  memcpy(temp + data->response_data_size, buffer, numitems);
-  data->response_data = temp;
-  data->response_data_size += numitems;
-  data->response_data[data->response_data_size] = '\0';
-  return numitems;
-}
 
 /* Query each of the server URLs found in $DEBUGINFOD_URLS for the file
    with the specified build-id, type (debuginfo, executable or source)
@@ -552,7 +500,6 @@ debuginfod_query_server (debuginfod_client *c,
   char *cache_path = NULL;
   char *maxage_path = NULL;
   char *interval_path = NULL;
-  char *cache_miss_path = NULL;
   char *target_cache_dir = NULL;
   char *target_cache_path = NULL;
   char *target_cache_tmppath = NULL;
@@ -576,7 +523,7 @@ debuginfod_query_server (debuginfod_client *c,
 
   /* Is there any server we can query?  If not, don't do any work,
      just return with ENOSYS.  Don't even access the cache.  */
-  urls_envvar = getenv(DEBUGINFOD_URLS_ENV_VAR);
+  urls_envvar = getenv(server_urls_envvar);
   if (vfd >= 0)
     dprintf (vfd, "server urls \"%s\"\n",
 	     urls_envvar != NULL ? urls_envvar : "");
@@ -590,39 +537,6 @@ debuginfod_query_server (debuginfod_client *c,
   free (c->url);
   c->url = NULL;
 
-  /* PR 27982: Add max size if DEBUGINFOD_MAXSIZE is set. */
-  long maxsize = 0;
-  const char *maxsize_envvar;
-  maxsize_envvar = getenv(DEBUGINFOD_MAXSIZE_ENV_VAR);
-  if (maxsize_envvar != NULL)
-    maxsize = atol (maxsize_envvar);
-
-  /* PR 27982: Add max time if DEBUGINFOD_MAXTIME is set. */
-  long maxtime = 0;
-  const char *maxtime_envvar;
-  maxtime_envvar = getenv(DEBUGINFOD_MAXTIME_ENV_VAR);
-  if (maxtime_envvar != NULL)
-    maxtime = atol (maxtime_envvar);
-  if (maxtime && vfd >= 0)
-    dprintf(vfd, "using max time %lds\n", maxtime);
-
-  /* Maxsize is valid*/
-  if (maxsize > 0)
-    {
-      if (vfd)
-        dprintf (vfd, "using max size %ldB\n", maxsize);
-      char *size_header = NULL;
-      rc = asprintf (&size_header, "X-DEBUGINFOD-MAXSIZE: %ld", maxsize);
-      if (rc < 0)
-        {
-          rc = -ENOMEM;
-          goto out;
-        }
-      rc = debuginfod_add_http_header(c, size_header);
-      free(size_header);
-      if (rc < 0)
-        goto out;
-    }
   add_default_headers(c);
 
   /* Copy lowercase hex representation of build_id into buf.  */
@@ -697,7 +611,7 @@ debuginfod_query_server (debuginfod_client *c,
 
   /* Determine location of the cache. The path specified by the debuginfod
      cache environment variable takes priority.  */
-  char *cache_var = getenv(DEBUGINFOD_CACHE_PATH_ENV_VAR);
+  char *cache_var = getenv(cache_path_envvar);
   if (cache_var != NULL && strlen (cache_var) > 0)
     xalloc_str (cache_path, "%s", cache_var);
   else
@@ -753,7 +667,6 @@ debuginfod_query_server (debuginfod_client *c,
 
   /* XXX combine these */
   xalloc_str (interval_path, "%s/%s", cache_path, cache_clean_interval_filename);
-  xalloc_str (cache_miss_path, "%s/%s", cache_path, cache_miss_filename);
   xalloc_str (maxage_path, "%s/%s", cache_path, cache_max_unused_age_filename);
 
   if (vfd >= 0)
@@ -766,33 +679,7 @@ debuginfod_query_server (debuginfod_client *c,
   if (rc != 0)
     goto out;
 
-  struct stat st;
-  /* Check if the file exists and it's of permission 000; must check
-     explicitly rather than trying to open it first (PR28240). */
-  if (stat(target_cache_path, &st) == 0
-      && (st.st_mode & 0777) == 0)
-    {
-      time_t cache_miss;
-
-      rc = debuginfod_config_cache(cache_miss_path, cache_miss_default_s, &st);
-      if (rc < 0)
-        goto out;
-
-      cache_miss = (time_t)rc;
-      if (time(NULL) - st.st_mtime <= cache_miss)
-        {
-         rc = -ENOENT;
-         goto out;
-       }
-      else
-        /* TOCTOU non-problem: if another task races, puts a working
-           download or a 000 file in its place, unlinking here just
-           means WE will try to download again as uncached. */
-        unlink(target_cache_path);
-    }
-  
-  /* If the target is already in the cache (known not-000 - PR28240), 
-     then we are done. */
+  /* If the target is already in the cache then we are done.  */
   int fd = open (target_cache_path, O_RDONLY);
   if (fd >= 0)
     {
@@ -804,7 +691,7 @@ debuginfod_query_server (debuginfod_client *c,
     }
 
   long timeout = default_timeout;
-  const char* timeout_envvar = getenv(DEBUGINFOD_TIMEOUT_ENV_VAR);
+  const char* timeout_envvar = getenv(server_timeout_envvar);
   if (timeout_envvar != NULL)
     timeout = atoi (timeout_envvar);
 
@@ -820,84 +707,37 @@ debuginfod_query_server (debuginfod_client *c,
     }
   /* thereafter, goto out0 on error*/
 
-  /* Because of a race with cache cleanup / rmdir, try to mkdir/mkstemp up to twice. */
-  for(int i=0; i<2; i++) {
-    /* (re)create target directory in cache */
-    (void) mkdir(target_cache_dir, 0700); /* files will be 0400 later */
-
-    /* NB: write to a temporary file first, to avoid race condition of
-       multiple clients checking the cache, while a partially-written or empty
-       file is in there, being written from libcurl. */
-    fd = mkstemp (target_cache_tmppath);
-    if (fd >= 0) break;
-  }
-  if (fd < 0) /* Still failed after two iterations. */
+  /* create target directory in cache if not found.  */
+  struct stat st;
+  if (stat(target_cache_dir, &st) == -1 && mkdir(target_cache_dir, 0700) < 0)
     {
       rc = -errno;
       goto out0;
     }
 
-  /* Initialize the memory to zero */
-  char *strtok_saveptr;
-  char **server_url_list = NULL;
-  char *server_url = strtok_r(server_urls, url_delim, &strtok_saveptr);
-  /* Count number of URLs.  */
-  int num_urls = 0;
-
-  while (server_url != NULL)
+  /* NB: write to a temporary file first, to avoid race condition of
+     multiple clients checking the cache, while a partially-written or empty
+     file is in there, being written from libcurl. */
+  fd = mkstemp (target_cache_tmppath);
+  if (fd < 0)
     {
-      /* PR 27983: If the url is already set to be used use, skip it */
-      char *slashbuildid;
-      if (strlen(server_url) > 1 && server_url[strlen(server_url)-1] == '/')
-        slashbuildid = "buildid";
-      else
-        slashbuildid = "/buildid";
-
-      char *tmp_url;
-      if (asprintf(&tmp_url, "%s%s", server_url, slashbuildid) == -1)
-        {
-          rc = -ENOMEM;
-          goto out1;
-        }
-      int url_index;
-      for (url_index = 0; url_index < num_urls; ++url_index)
-        {
-          if(strcmp(tmp_url, server_url_list[url_index]) == 0)
-            {
-              url_index = -1;
-              break;
-            }
-        }
-      if (url_index == -1)
-        {
-          if (vfd >= 0)
-            dprintf(vfd, "duplicate url: %s, skipping\n", tmp_url);
-          free(tmp_url);
-        }
-      else
-        {
-          num_urls++;
-          char ** realloc_ptr;
-          realloc_ptr = reallocarray(server_url_list, num_urls,
-                                         sizeof(char*));
-          if (realloc_ptr == NULL)
-            {
-              rc = -ENOMEM;
-              goto out1;
-            }
-          server_url_list = realloc_ptr;
-          server_url_list[num_urls-1] = tmp_url;
-        }
-      server_url = strtok_r(NULL, url_delim, &strtok_saveptr);
+      rc = -errno;
+      goto out0;
     }
 
-  int retry_limit = default_retry_limit;
-  const char* retry_limit_envvar = getenv(DEBUGINFOD_RETRY_LIMIT_ENV_VAR);
-  if (retry_limit_envvar != NULL)
-    retry_limit = atoi (retry_limit_envvar);
+  /* Count number of URLs.  */
+  int num_urls = 0;
+  for (int i = 0; server_urls[i] != '\0'; i++)
+    if (server_urls[i] != url_delim_char
+        && (i == 0 || server_urls[i - 1] == url_delim_char))
+      num_urls++;
 
-  CURLM *curlm = c->server_mhandle;
-  assert (curlm != NULL);
+  CURLM *curlm = curl_multi_init();
+  if (curlm == NULL)
+    {
+      rc = -ENETUNREACH;
+      goto out0;
+    }
 
   /* Tracks which handle should write to fd. Set to the first
      handle that is ready to write the target file to the cache.  */
@@ -906,14 +746,10 @@ debuginfod_query_server (debuginfod_client *c,
   if (data == NULL)
     {
       rc = -ENOMEM;
-      goto out1;
+      goto out0;
     }
 
   /* thereafter, goto out1 on error.  */
-
- /*The beginning of goto block query_in_parallel.*/
- query_in_parallel:
-  rc = -ENOENT; /* Reset rc to default.*/
 
   /* Initialize handle_data with default values. */
   for (int i = 0; i < num_urls; i++)
@@ -923,65 +759,44 @@ debuginfod_query_server (debuginfod_client *c,
       data[i].errbuf[0] = '\0';
     }
 
-  char *escaped_string = NULL;
-  size_t escaped_strlen = 0;
-  if (filename)
-    {
-      escaped_string = curl_easy_escape(&target_handle, filename+1, 0);
-      if (!escaped_string)
-        {
-          rc = -ENOMEM;
-          goto out2;
-        }
-      char *loc = escaped_string;
-      escaped_strlen = strlen(escaped_string);
-      while ((loc = strstr(loc, "%2F")))
-        {
-          loc[0] = '/';
-          //pull the string back after replacement
-          // loc-escaped_string finds the distance from the origin to the new location
-          // - 2 accounts for the 2F which remain and don't need to be measured.
-          // The two above subtracted from escaped_strlen yields the remaining characters
-          // in the string which we want to pull back
-          memmove(loc+1, loc+3,escaped_strlen - (loc-escaped_string) - 2);
-          //Because the 2F was overwritten in the memmove (as desired) escaped_strlen is
-          // now two shorter.
-          escaped_strlen -= 2;
-        }
-    }
+  char *strtok_saveptr;
+  char *server_url = strtok_r(server_urls, url_delim, &strtok_saveptr);
+
   /* Initialize each handle.  */
-  for (int i = 0; i < num_urls; i++)
+  for (int i = 0; i < num_urls && server_url != NULL; i++)
     {
-      if ((server_url = server_url_list[i]) == NULL)
-        break;
       if (vfd >= 0)
 	dprintf (vfd, "init server %d %s\n", i, server_url);
 
       data[i].fd = fd;
       data[i].target_handle = &target_handle;
       data[i].handle = curl_easy_init();
+      data[i].client = c;
+
       if (data[i].handle == NULL)
         {
           rc = -ENETUNREACH;
           goto out1;
         }
-      data[i].client = c;
+
+      /* Build handle url. Tolerate both  http://foo:999  and
+         http://foo:999/  forms */
+      char *slashbuildid;
+      if (strlen(server_url) > 1 && server_url[strlen(server_url)-1] == '/')
+        slashbuildid = "buildid";
+      else
+        slashbuildid = "/buildid";
 
       if (filename) /* must start with / */
-        {
-          /* PR28034 escape characters in completed url to %hh format. */
-          snprintf(data[i].url, PATH_MAX, "%s/%s/%s/%s", server_url,
-                   build_id_bytes, type, escaped_string);
-        }
+        snprintf(data[i].url, PATH_MAX, "%s%s/%s/%s%s", server_url,
+                 slashbuildid, build_id_bytes, type, filename);
       else
-        snprintf(data[i].url, PATH_MAX, "%s/%s/%s", server_url, build_id_bytes, type);
+        snprintf(data[i].url, PATH_MAX, "%s%s/%s/%s", server_url,
+                 slashbuildid, build_id_bytes, type);
+
       if (vfd >= 0)
 	dprintf (vfd, "url %d %s\n", i, data[i].url);
 
-      /* Only allow http:// + https:// + file:// so we aren't being
-	 redirected to some unsupported protocol.  */
-      curl_easy_setopt(data[i].handle, CURLOPT_PROTOCOLS,
-		       CURLPROTO_HTTP | CURLPROTO_HTTPS | CURLPROTO_FILE);
       curl_easy_setopt(data[i].handle, CURLOPT_URL, data[i].url);
       if (vfd >= 0)
 	curl_easy_setopt(data[i].handle, CURLOPT_ERRORBUFFER, data[i].errbuf);
@@ -998,14 +813,10 @@ debuginfod_query_server (debuginfod_client *c,
 	  curl_easy_setopt (data[i].handle, CURLOPT_LOW_SPEED_LIMIT,
 			    100 * 1024L);
 	}
-      data[i].response_data = NULL;
-      data[i].response_data_size = 0;
       curl_easy_setopt(data[i].handle, CURLOPT_FILETIME, (long) 1);
       curl_easy_setopt(data[i].handle, CURLOPT_FOLLOWLOCATION, (long) 1);
       curl_easy_setopt(data[i].handle, CURLOPT_FAILONERROR, (long) 1);
       curl_easy_setopt(data[i].handle, CURLOPT_NOSIGNAL, (long) 1);
-      curl_easy_setopt(data[i].handle, CURLOPT_HEADERFUNCTION, header_callback);
-      curl_easy_setopt(data[i].handle, CURLOPT_HEADERDATA, (void *) &(data[i]));
 #if LIBCURL_VERSION_NUM >= 0x072a00 /* 7.42.0 */
       curl_easy_setopt(data[i].handle, CURLOPT_PATH_AS_IS, (long) 1);
 #else
@@ -1017,9 +828,9 @@ debuginfod_query_server (debuginfod_client *c,
       curl_easy_setopt(data[i].handle, CURLOPT_HTTPHEADER, c->headers);
 
       curl_multi_add_handle(curlm, data[i].handle);
+      server_url = strtok_r(NULL, url_delim, &strtok_saveptr);
     }
 
-  if (filename) curl_free(escaped_string);
   /* Query servers in parallel.  */
   if (vfd >= 0)
     dprintf (vfd, "query %d urls in parallel\n", num_urls);
@@ -1027,35 +838,10 @@ debuginfod_query_server (debuginfod_client *c,
   long loops = 0;
   int committed_to = -1;
   bool verbose_reported = false;
-  struct timespec start_time, cur_time;
-  c->winning_headers = NULL;
-  if ( maxtime > 0 && clock_gettime(CLOCK_MONOTONIC_RAW, &start_time) == -1)
-    {
-      rc = errno;
-      goto out2;
-    }
-  long delta = 0;
   do
     {
-      /* Check to see how long querying is taking. */
-      if (maxtime > 0)
-        {
-          if (clock_gettime(CLOCK_MONOTONIC_RAW, &cur_time) == -1)
-            {
-              rc = errno;
-              goto out2;
-            }
-          delta = cur_time.tv_sec - start_time.tv_sec;
-          if ( delta >  maxtime)
-            {
-              dprintf(vfd, "Timeout with max time=%lds and transfer time=%lds\n", maxtime, delta );
-              rc = -ETIME;
-              goto out2;
-            }
-        }
       /* Wait 1 second, the minimum DEBUGINFOD_TIMEOUT.  */
       curl_multi_wait(curlm, NULL, 0, 1000, NULL);
-      CURLMcode curlm_res = curl_multi_perform(curlm, &still_running);
 
       /* If the target file has been found, abort the other queries.  */
       if (target_handle != NULL)
@@ -1064,17 +850,7 @@ debuginfod_query_server (debuginfod_client *c,
 	    if (data[i].handle != target_handle)
 	      curl_multi_remove_handle(curlm, data[i].handle);
 	    else
-              {
-	        committed_to = i;
-                if (c->winning_headers == NULL)
-                  {
-                    c->winning_headers = data[committed_to].response_data;
-                    if (vfd >= 0 && c->winning_headers != NULL)
-                      dprintf(vfd, "\n%s", c->winning_headers);
-                    data[committed_to].response_data = NULL;
-                  }
-
-              }
+	      committed_to = i;
 	}
 
       if (vfd >= 0 && !verbose_reported && committed_to >= 0)
@@ -1087,6 +863,7 @@ debuginfod_query_server (debuginfod_client *c,
 	  verbose_reported = true;
 	}
 
+      CURLMcode curlm_res = curl_multi_perform(curlm, &still_running);
       if (curlm_res != CURLM_OK)
         {
           switch (curlm_res)
@@ -1095,7 +872,7 @@ debuginfod_query_server (debuginfod_client *c,
             case CURLM_OUT_OF_MEMORY: rc = -ENOMEM; break;
             default: rc = -ENETUNREACH; break;
             }
-          goto out2;
+          goto out1;
         }
 
       if (c->progressfn) /* inform/check progress callback */
@@ -1119,12 +896,12 @@ debuginfod_query_server (debuginfod_client *c,
                                            CURLINFO_SIZE_DOWNLOAD,
                                            &dl);
               if (curl_res == 0)
-                pa = (dl >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)dl);
+                pa = (dl > LONG_MAX ? LONG_MAX : (long)dl);
 #endif
 
               /* NB: If going through deflate-compressing proxies, this
                  number is likely to be unavailable, so -1 may show. */
-#ifdef CURLINFO_CONTENT_LENGTH_DOWNLOAD_T
+#ifdef CURLINFO_CURLINFO_CONTENT_LENGTH_DOWNLOAD_T
               curl_off_t cl;
               curl_res = curl_easy_getinfo(target_handle,
                                            CURLINFO_CONTENT_LENGTH_DOWNLOAD_T,
@@ -1137,35 +914,12 @@ debuginfod_query_server (debuginfod_client *c,
                                            CURLINFO_CONTENT_LENGTH_DOWNLOAD,
                                            &cl);
               if (curl_res == 0)
-                pb = (cl >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)cl);
+                pb = (cl > LONG_MAX ? LONG_MAX : (long)cl);
 #endif
             }
 
           if ((*c->progressfn) (c, pa, pb))
             break;
-        }
-      /* Check to see if we are downloading something which exceeds maxsize, if set.*/
-      if (maxsize > 0 && target_handle)
-        {
-          long dl_size = 0;
-#ifdef CURLINFO_SIZE_DOWNLOAD_T
-          curl_off_t download_size_t;
-          if (curl_easy_getinfo(target_handle, CURLINFO_CONTENT_LENGTH_DOWNLOAD_T,
-                                                    &download_size_t) == CURLE_OK)
-            dl_size = download_size_t >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)download_size_t;
-#else
-          double download_size;
-          if (curl_easy_getinfo(target_handle, CURLINFO_CONTENT_LENGTH_DOWNLOAD,
-                                                    &download_size) == CURLE_OK)
-            dl_size = download_size >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)download_size;
-#endif
-            if (dl_size > maxsize)
-              {
-                if (vfd >=0)
-                  dprintf(vfd, "Content-Length too large.\n");
-                rc = -EFBIG;
-                goto out2;
-              }
         }
     } while (still_running);
 
@@ -1200,8 +954,6 @@ debuginfod_query_server (debuginfod_client *c,
 
           if (msg->data.result != CURLE_OK)
             {
-              long resp_code;
-              CURLcode ok0;
               /* Unsuccessful query, determine error code.  */
               switch (msg->data.result)
                 {
@@ -1216,16 +968,6 @@ debuginfod_query_server (debuginfod_client *c,
                 case CURLE_SEND_ERROR: rc = -ECONNRESET; break;
                 case CURLE_RECV_ERROR: rc = -ECONNRESET; break;
                 case CURLE_OPERATION_TIMEDOUT: rc = -ETIME; break;
-                case CURLE_HTTP_RETURNED_ERROR:
-                  ok0 = curl_easy_getinfo (msg->easy_handle,
-                                          CURLINFO_RESPONSE_CODE,
-				          &resp_code);
-                  /* 406 signals that the requested file was too large */
-                  if ( ok0 == CURLE_OK && resp_code == 406)
-                    rc = -EFBIG;
-                  else
-                    rc = -ENOENT;
-                  break;
                 default: rc = -ENOENT; break;
                 }
             }
@@ -1276,7 +1018,7 @@ debuginfod_query_server (debuginfod_client *c,
                                                     &scheme);
                   if(ok3 == CURLE_OK && scheme)
                     {
-                      if (startswith (scheme, "HTTP"))
+                      if (strncmp (scheme, "HTTP", 4) == 0)
                         if (resp_code == 200)
                           {
                             verified_handle = msg->easy_handle;
@@ -1290,41 +1032,8 @@ debuginfod_query_server (debuginfod_client *c,
         }
     } while (num_msg > 0);
 
-  /* Create a 000-permission file named as $HOME/.cache if the query
-     fails with ENOENT.*/
-  if (rc == -ENOENT)
-    {
-      int efd = open (target_cache_path, O_CREAT|O_EXCL, 0000);
-      if (efd >= 0)
-        close(efd);
-    }
-  else if (rc == -EFBIG)
-    goto out2;
-
-  /* If the verified_handle is NULL and rc != -ENOENT, the query fails with
-   * an error code other than 404, then do several retry within the retry_limit.
-   * Clean up all old handles and jump back to the beginning of query_in_parallel,
-   * reinitialize handles and query again.*/
   if (verified_handle == NULL)
-    {
-      if (rc != -ENOENT && retry_limit-- > 0)
-        {
-	  if (vfd >= 0)
-            dprintf (vfd, "Retry failed query, %d attempt(s) remaining\n", retry_limit);
-	  /* remove all handles from multi */
-          for (int i = 0; i < num_urls; i++)
-            {
-              curl_multi_remove_handle(curlm, data[i].handle); /* ok to repeat */
-              curl_easy_cleanup (data[i].handle);
-              free(data[i].response_data);
-            }
-            free(c->winning_headers);
-            c->winning_headers = NULL;
-	    goto query_in_parallel;
-	}
-      else
-	goto out2;
-    }
+    goto out1;
 
   if (vfd >= 0)
     {
@@ -1345,29 +1054,20 @@ debuginfod_query_server (debuginfod_client *c,
   tvs[0].tv_usec = tvs[1].tv_usec = 0;
   (void) futimes (fd, tvs);  /* best effort */
 
-  /* PR27571: make cache files casually unwriteable; dirs are already 0700 */
-  (void) fchmod(fd, 0400);
-                
   /* rename tmp->real */
   rc = rename (target_cache_tmppath, target_cache_path);
   if (rc < 0)
     {
       rc = -errno;
-      goto out2;
+      goto out1;
       /* Perhaps we need not give up right away; could retry or something ... */
     }
 
-  /* remove all handles from multi */
+  /* Success!!!! */
   for (int i = 0; i < num_urls; i++)
-    {
-      curl_multi_remove_handle(curlm, data[i].handle); /* ok to repeat */
-      curl_easy_cleanup (data[i].handle);
-      free (data[i].response_data);
-    }
+    curl_easy_cleanup(data[i].handle);
 
-  for (int i = 0; i < num_urls; ++i)
-    free(server_url_list[i]);
-  free(server_url_list);
+  curl_multi_cleanup (curlm);
   free (data);
   free (server_urls);
 
@@ -1380,35 +1080,21 @@ debuginfod_query_server (debuginfod_client *c,
   goto out;
 
 /* error exits */
- out2:
-  /* remove all handles from multi */
+ out1:
   for (int i = 0; i < num_urls; i++)
-    {
-      curl_multi_remove_handle(curlm, data[i].handle); /* ok to repeat */
-      curl_easy_cleanup (data[i].handle);
-      free (data[i].response_data);
-    }
+    curl_easy_cleanup(data[i].handle);
 
+  curl_multi_cleanup(curlm);
   unlink (target_cache_tmppath);
   close (fd); /* before the rmdir, otherwise it'll fail */
   (void) rmdir (target_cache_dir); /* nop if not empty */
   free(data);
-
- out1:
-  for (int i = 0; i < num_urls; ++i)
-    free(server_url_list[i]);
-  free(server_url_list);
 
  out0:
   free (server_urls);
 
 /* general purpose exit */
  out:
-  /* Reset sent headers */
-  curl_slist_free_all (c->headers);
-  c->headers = NULL;
-  c->user_agent_set_p = 0;
-  
   /* Conclude the last \r status line */
   /* Another possibility is to use the ANSI CSI n K EL "Erase in Line"
      code.  That way, the previously printed messages would be erased,
@@ -1427,7 +1113,6 @@ debuginfod_query_server (debuginfod_client *c,
   free (cache_path);
   free (maxage_path);
   free (interval_path);
-  free (cache_miss_path);
   free (target_cache_dir);
   free (target_cache_path);
   free (target_cache_tmppath);
@@ -1442,8 +1127,7 @@ debuginfod_begin (void)
 {
   debuginfod_client *client;
   size_t size = sizeof (struct debuginfod_client);
-  client = calloc (1, size);
-
+  client = (debuginfod_client *) calloc (1, size);
   if (client != NULL)
     {
       if (getenv(DEBUGINFOD_PROGRESS_ENV_VAR))
@@ -1452,22 +1136,7 @@ debuginfod_begin (void)
 	client->verbose_fd = STDERR_FILENO;
       else
 	client->verbose_fd = -1;
-
-      // allocate 1 curl multi handle
-      client->server_mhandle = curl_multi_init ();
-      if (client->server_mhandle == NULL)
-	goto out1;
     }
-
-  // extra future initialization
-  
-  goto out;
-
- out1:
-  free (client);
-  client = NULL;
-
- out:  
   return client;
 }
 
@@ -1496,9 +1165,7 @@ debuginfod_end (debuginfod_client *client)
   if (client == NULL)
     return;
 
-  curl_multi_cleanup (client->server_mhandle);
   curl_slist_free_all (client->headers);
-  free (client->winning_headers);
   free (client->url);
   free (client);
 }
@@ -1552,7 +1219,7 @@ int debuginfod_add_http_header (debuginfod_client *client, const char* header)
 
   /* Track if User-Agent: is being set.  If so, signal not to add the
      default one. */
-  if (startswith (header, "User-Agent:"))
+  if (strncmp (header, "User-Agent:", 11) == 0)
     client->user_agent_set_p = 1;
 
   client->headers = temp;

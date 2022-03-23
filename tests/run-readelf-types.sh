@@ -97,7 +97,7 @@ DWARF section [32] '.debug_types' at offset 0x1260:
              specification        (ref4) [    34]
  Type unit at offset 67:
  Version: 4, Abbreviation section offset: 0, Address size: 8, Offset size: 4
- Type signature: 0x18763953736e2de0, Type offset: 0x25 [68]
+ Type signature: 0x18763953736e2de0, Type offset: 0x25 [25]
  [    5a]  type_unit            abbrev: 1
            language             (data1) C_plus_plus (4)
            GNU_odr_signature    (data8) 16005269134005989797

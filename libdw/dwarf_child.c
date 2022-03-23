@@ -53,8 +53,6 @@ __libdw_find_attr (Dwarf_Die *die, unsigned int search_name,
       return NULL;
     }
 
-  const unsigned char *endp = die->cu->endp;
-
   /* Search the name attribute.  Attribute has been checked when
      Dwarf_Abbrev was created, we can read unchecked.  */
   const unsigned char *attrp = abbrevp->attrp;
@@ -70,17 +68,6 @@ __libdw_find_attr (Dwarf_Die *die, unsigned int search_name,
       /* We can stop if we found the attribute with value zero.  */
       if (attr_name == 0 && attr_form == 0)
 	break;
-
-      if (attr_form == DW_FORM_indirect)
-	{
-	  get_uleb128 (attr_form, readp, endp);
-	  if (attr_form == DW_FORM_indirect ||
-	      attr_form == DW_FORM_implicit_const)
-	    {
-	      __libdw_seterrno (DWARF_E_INVALID_DWARF);
-	      return NULL;
-	    }
-	}
 
       /* Is this the name attribute?  */
       if (attr_name == search_name && search_name != INVALID)

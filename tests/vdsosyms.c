@@ -43,7 +43,7 @@ module_callback (Dwfl_Module *mod, void **userdata __attribute__((unused)),
 {
   /* We can only recognize the vdso by inspecting the "magic name".  */
   printf ("module name: %s\n", name);
-  if (startswith (name, "[vdso: "))
+  if (strncmp ("[vdso: ", name, 7) == 0)
     {
       vdso_syms = dwfl_module_getsymtab (mod);
       printf ("vdso syms: %d\n", vdso_syms);

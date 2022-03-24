@@ -16,9 +16,9 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include <config.h>
+#include <system.h>
 
 #include <argp.h>
-#include <error.h>
 #include <fcntl.h>
 #include <gelf.h>
 #include <stdbool.h>
@@ -335,11 +335,8 @@ run_classify (void)
 		     stderr);
 	    has_bits_alloc = true;
 	  }
-        const char *debug_prefix = ".debug_";
-        const char *zdebug_prefix = ".zdebug_";
-        if (strncmp (section_name, debug_prefix, strlen (debug_prefix)) == 0
-	    || strncmp (section_name, zdebug_prefix,
-			strlen (zdebug_prefix)) == 0)
+        if (startswith (section_name, ".debug_")
+	    || startswith (section_name, ".zdebug_"))
           {
             if (verbose > 1 && !has_debug_sections)
               fputs ("debug: .debug_* section found\n", stderr);

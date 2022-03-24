@@ -1335,7 +1335,7 @@ There are %zd section headers, starting at offset %#" PRIx64 ":\n\
 		       _("bad compression header for section %zd: %s"),
 		       elf_ndxscn (scn), elf_errmsg (-1));
 	    }
-	  else if (strncmp(".zdebug", sname, strlen (".zdebug")) == 0)
+	  else if (startswith (sname, ".zdebug"))
 	    {
 	      ssize_t size;
 	      if ((size = dwelf_scn_gnu_compressed_size (scn)) >= 0)
@@ -2554,7 +2554,9 @@ handle_symtab (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 						 &vernaux_mem);
 		      while (vernaux != NULL
 			     && vernaux->vna_other != *versym
-			     && vernaux->vna_next != 0)
+			     && vernaux->vna_next != 0
+			     && (verneed_data->d_size - vna_offset
+				 >= vernaux->vna_next))
 			{
 			  /* Update the offset.  */
 			  vna_offset += vernaux->vna_next;
@@ -2569,6 +2571,9 @@ handle_symtab (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 		      /* Check whether we found the version.  */
 		      if (vernaux != NULL && vernaux->vna_other == *versym)
 			/* Found it.  */
+			break;
+
+		      if (verneed_data->d_size - vn_offset < verneed->vn_next)
 			break;
 
 		      vn_offset += verneed->vn_next;
@@ -2604,6 +2609,9 @@ handle_symtab (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 		    {
 		      if (verdef->vd_ndx == (*versym & 0x7fff))
 			/* Found the definition.  */
+			break;
+
+		      if (verdef_data->d_size - vd_offset < verdef->vd_next)
 			break;
 
 		      vd_offset += verdef->vd_next;
@@ -3157,7 +3165,7 @@ print_hash_info (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, size_t shstrndx,
 		 uint_fast32_t maxlength, Elf32_Word nbucket,
 		 uint_fast32_t nsyms, uint32_t *lengths, const char *extrastr)
 {
-  uint32_t *counts = (uint32_t *) xcalloc (maxlength + 1, sizeof (uint32_t));
+  uint32_t *counts = xcalloc (maxlength + 1, sizeof (uint32_t));
 
   for (Elf32_Word cnt = 0; cnt < nbucket; ++cnt)
     ++counts[lengths[cnt]];
@@ -3258,7 +3266,7 @@ handle_sysv_hash (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, size_t shstrndx)
   Elf32_Word *bucket = &((Elf32_Word *) data->d_buf)[2];
   Elf32_Word *chain = &((Elf32_Word *) data->d_buf)[2 + nbucket];
 
-  uint32_t *lengths = (uint32_t *) xcalloc (nbucket, sizeof (uint32_t));
+  uint32_t *lengths = xcalloc (nbucket, sizeof (uint32_t));
 
   uint_fast32_t maxlength = 0;
   uint_fast32_t nsyms = 0;
@@ -3324,7 +3332,7 @@ handle_sysv_hash64 (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, size_t shstrndx)
   Elf64_Xword *bucket = &((Elf64_Xword *) data->d_buf)[2];
   Elf64_Xword *chain = &((Elf64_Xword *) data->d_buf)[2 + nbucket];
 
-  uint32_t *lengths = (uint32_t *) xcalloc (nbucket, sizeof (uint32_t));
+  uint32_t *lengths = xcalloc (nbucket, sizeof (uint32_t));
 
   uint_fast32_t maxlength = 0;
   uint_fast32_t nsyms = 0;
@@ -3402,7 +3410,7 @@ handle_gnu_hash (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, size_t shstrndx)
   if (used_buf > data->d_size)
     goto invalid_data;
 
-  lengths = (uint32_t *) xcalloc (nbucket, sizeof (uint32_t));
+  lengths = xcalloc (nbucket, sizeof (uint32_t));
 
   Elf32_Word *bitmask = &((Elf32_Word *) data->d_buf)[4];
   Elf32_Word *bucket = &((Elf32_Word *) data->d_buf)[4 + bitmask_words];
@@ -3440,17 +3448,15 @@ handle_gnu_hash (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, size_t shstrndx)
       nbits += (word & 0x0000ffff) + ((word >> 16) & 0x0000ffff);
     }
 
-  char *str;
-  if (unlikely (asprintf (&str, _("\
+  char *str = xasprintf (_("\
  Symbol Bias: %u\n\
  Bitmask Size: %zu bytes  %" PRIuFAST32 "%% bits set  2nd hash shift: %u\n"),
-			  (unsigned int) symbias,
-			  bitmask_words * sizeof (Elf32_Word),
-			  ((nbits * 100 + 50)
-			   / (uint_fast32_t) (bitmask_words
+			 (unsigned int) symbias,
+			 bitmask_words * sizeof (Elf32_Word),
+			 ((nbits * 100 + 50)
+			  / (uint_fast32_t) (bitmask_words
 					      * sizeof (Elf32_Word) * 8)),
-			  (unsigned int) shift) == -1))
-    error (EXIT_FAILURE, 0, _("memory exhausted"));
+			  (unsigned int) shift);
 
   print_hash_info (ebl, scn, shdr, shstrndx, maxlength, nbucket, nsyms,
 		   lengths, str);
@@ -4879,7 +4885,7 @@ compare_listptr (const void *a, const void *b)
 	  error (0, 0,
 		 _("%s %#" PRIx64
 			  " used with different attribute %s and %s"),
-		 name, (uint64_t) p1->offset, dwarf_attr_name (p2->attr),
+		 name, (uint64_t) p1->offset, dwarf_attr_name (p1->attr),
 		 dwarf_attr_name (p2->attr));
 	}
     }
@@ -7599,7 +7605,9 @@ attr_callback (Dwarf_Attribute *attrp, void *arg)
 	case DW_AT_GNU_call_site_data_value:
 	case DW_AT_GNU_call_site_target:
 	case DW_AT_GNU_call_site_target_clobbered:
-	  if (form != DW_FORM_data16)
+	  if (form == DW_FORM_exprloc
+	      || (form != DW_FORM_data16
+		  && attrp->cu->version < 4)) /* blocks were expressions.  */
 	    {
 	      putchar ('\n');
 	      print_ops (cbargs->dwflmod, cbargs->dbg,
@@ -7734,7 +7742,7 @@ print_debug_units (Dwfl_Module *dwflmod,
     return;
 
   int maxdies = 20;
-  Dwarf_Die *dies = (Dwarf_Die *) xmalloc (maxdies * sizeof (Dwarf_Die));
+  Dwarf_Die *dies = xmalloc (maxdies * sizeof (Dwarf_Die));
 
   /* New compilation unit.  */
   Dwarf_Half version;
@@ -7792,7 +7800,8 @@ print_debug_units (Dwfl_Module *dwflmod,
 	{
 	  Dwarf_Die typedie;
 	  Dwarf_Off dieoffset;
-	  dieoffset = dwarf_dieoffset (dwarf_offdie_types (dbg, subdie_off,
+	  dieoffset = dwarf_dieoffset (dwarf_offdie_types (dbg, cu->start
+							   + subdie_off,
 							   &typedie));
 	  printf (_(" Type unit at offset %" PRIu64 ":\n"
 			   " Version: %" PRIu16
@@ -7905,9 +7914,7 @@ print_debug_units (Dwfl_Module *dwflmod,
 
       /* Make room for the next level's DIE.  */
       if (level + 1 == maxdies)
-	dies = (Dwarf_Die *) xrealloc (dies,
-				       (maxdies += 10)
-				       * sizeof (Dwarf_Die));
+	dies = xrealloc (dies, (maxdies += 10) * sizeof (Dwarf_Die));
 
       int res = dwarf_child (&dies[level], &dies[level + 1]);
       if (res > 0)
@@ -8362,6 +8369,23 @@ print_form_data (Dwarf *dbg, int form, const unsigned char *readp,
   return readp;
 }
 
+/* Only used via run_advance_pc() macro */
+static inline void
+run_advance_pc (unsigned int op_advance,
+                unsigned int minimum_instr_len,
+                unsigned int max_ops_per_instr,
+                unsigned int *op_addr_advance,
+                Dwarf_Word *address,
+                unsigned int *op_index)
+{
+  const unsigned int advanced_op_index = (*op_index) + op_advance;
+
+  *op_addr_advance = minimum_instr_len * (advanced_op_index
+                                         / max_ops_per_instr);
+  *address = *address + *op_addr_advance;
+  *op_index = advanced_op_index % max_ops_per_instr;
+}
+
 static void
 print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 			  Elf_Scn *scn, GElf_Shdr *shdr, Dwarf *dbg)
@@ -8453,6 +8477,8 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 	    goto invalid_data;
 	  header_length = read_8ubyte_unaligned_inc (dbg, linep);
 	}
+
+      const unsigned char *header_start = linep;
 
       /* Next the minimum instruction length.  */
       if ((size_t) (lineendp - linep) < 1)
@@ -8737,10 +8763,17 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 	  ++linep;
 	}
 
+      unsigned int debug_str_offset = 0;
+      if (unlikely (linep == header_start + header_length - 4))
+	{
+	  /* CUBINs contain an unsigned 4-byte offset */
+	  debug_str_offset = read_4ubyte_unaligned_inc (dbg, linep);
+	}
+
       if (linep == lineendp)
 	{
 	  puts (_("\nNo line number statements."));
-	  return;
+	  continue;
 	}
 
       puts (_("\nLine number statements:"));
@@ -8752,13 +8785,8 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
       /* Apply the "operation advance" from a special opcode
 	 or DW_LNS_advance_pc (as per DWARF4 6.2.5.1).  */
       unsigned int op_addr_advance;
-      inline void advance_pc (unsigned int op_advance)
-      {
-	op_addr_advance = minimum_instr_len * ((op_index + op_advance)
-					       / max_ops_per_instr);
-	address += op_addr_advance;
-	op_index = (op_index + op_advance) % max_ops_per_instr;
-      }
+#define advance_pc(op_advance) run_advance_pc(op_advance, minimum_instr_len, \
+                      max_ops_per_instr, &op_addr_advance, &address, &op_index)
 
       if (max_ops_per_instr == 0)
 	{
@@ -8888,6 +8916,59 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 
 		  get_uleb128 (u128, linep, lineendp);
 		  printf (_(" set discriminator to %u\n"), u128);
+		  break;
+
+		case DW_LNE_NVIDIA_inlined_call:
+		  {
+		    if (unlikely (linep >= lineendp))
+		      goto invalid_data;
+
+		    unsigned int context;
+		    get_uleb128 (context, linep, lineendp);
+
+		    if (unlikely (linep >= lineendp))
+		      goto invalid_data;
+
+		    unsigned int function_name;
+		    get_uleb128 (function_name, linep, lineendp);
+		    function_name += debug_str_offset;
+
+		    Elf_Data *str_data = dbg->sectiondata[IDX_debug_str];
+		    char *function_str;
+		    if (str_data == NULL || function_name >= str_data->d_size
+			|| memchr (str_data->d_buf + function_name, '\0',
+				   str_data->d_size - function_name) == NULL)
+		      function_str = "???";
+		    else
+		      function_str = (char *) str_data->d_buf + function_name;
+
+		    printf (_(" set inlined context %u,"
+		              " function name %s (0x%x)\n"),
+			    context, function_str, function_name);
+		    break;
+		  }
+
+		case DW_LNE_NVIDIA_set_function_name:
+		  {
+		    if (unlikely (linep >= lineendp))
+		      goto invalid_data;
+
+		    unsigned int function_name;
+		    get_uleb128 (function_name, linep, lineendp);
+		    function_name += debug_str_offset;
+
+		    Elf_Data *str_data = dbg->sectiondata[IDX_debug_str];
+		    char *function_str;
+		    if (str_data == NULL || function_name >= str_data->d_size
+			|| memchr (str_data->d_buf + function_name, '\0',
+				   str_data->d_size - function_name) == NULL)
+		      function_str = "???";
+		    else
+		      function_str = (char *) str_data->d_buf + function_name;
+
+		    printf (_(" set function name %s (0x%x)\n"),
+			    function_str, function_name);
+		  }
 		  break;
 
 		default:
@@ -11440,7 +11521,7 @@ print_debug (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr)
 			  || (scnlen == dbglen + 5
 			      && strstr (name, ".dwo") == name + dbglen + 1)))
 		  || (scnlen > 14 /* .gnu.debuglto_ prefix. */
-		      && strncmp (name, ".gnu.debuglto_", 14) == 0
+		      && startswith (name, ".gnu.debuglto_")
 		      && strcmp (&name[14], debug_sections[n].name) == 0)
 )
 		{
@@ -12444,8 +12525,7 @@ handle_notes_data (Ebl *ebl, const GElf_Ehdr *ehdr,
 	 into the owner name field.  Extract just the owner name
 	 prefix here, then use the rest later as data.  */
       bool is_gnu_build_attr
-	= strncmp (name, ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX,
-		   strlen (ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX)) == 0;
+	= startswith (name, ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX);
       const char *print_name = (is_gnu_build_attr
 				? ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX : name);
       size_t print_namesz = (is_gnu_build_attr
@@ -12625,7 +12705,7 @@ dump_data_section (Elf_Scn *scn, const GElf_Shdr *shdr, const char *name)
 			_("Couldn't uncompress section"),
 			elf_ndxscn (scn));
 	    }
-	  else if (strncmp (name, ".zdebug", strlen (".zdebug")) == 0)
+	  else if (startswith (name, ".zdebug"))
 	    {
 	      if (elf_compress_gnu (scn, 0, 0) < 0)
 		printf ("WARNING: %s [%zd]\n",
@@ -12676,7 +12756,7 @@ print_string_section (Elf_Scn *scn, const GElf_Shdr *shdr, const char *name)
 			_("Couldn't uncompress section"),
 			elf_ndxscn (scn));
 	    }
-	  else if (strncmp (name, ".zdebug", strlen (".zdebug")) == 0)
+	  else if (startswith (name, ".zdebug"))
 	    {
 	      if (elf_compress_gnu (scn, 0, 0) < 0)
 		printf ("WARNING: %s [%zd]\n",

@@ -1,3 +1,7 @@
+2022-03-24  Mark Wielaard  <mark@klomp.org>
+
+	* elflint.c (check_note_data): Recognize NT_FDO_PACKAGING_METADATA.
+
 2022-03-11  Mark Wielaard  <mark@klomp.org>
 
 	* addr2line.c (OPT_RELATIVE): New constant.

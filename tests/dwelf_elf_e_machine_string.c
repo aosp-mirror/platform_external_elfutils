@@ -19,6 +19,8 @@
 # include <config.h>
 #endif
 
+#include <system.h>
+
 #include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
@@ -41,7 +43,7 @@ main (int argc, char **argv)
       const char *machine;
 
       errno = 0;
-      if (strncmp ("0x", argv[i], 2) == 0)
+      if (startswith (argv[i], "0x"))
 	val = strtol (&argv[i][2], NULL, 16);
       else
 	val = strtol (argv[i], NULL, 10);

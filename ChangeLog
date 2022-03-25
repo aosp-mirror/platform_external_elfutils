@@ -1,3 +1,46 @@
+2021-11-10  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac (AC_INIT): Set version to 0.186.
+	* NEWS: Add translation item.
+
+2021-09-03  John Mellor-Crummey <johnmc@rice.edu>
+
+	* NEWS: Read inlining info in NVIDIA extended line map
+
+2021-08-10  Adrian Ratiu  <adrian.ratiu@collabora.com>
+
+	* configure.ac (AC_CACHE_CHECK): Rework std=gnu99 check to allow clang.
+
+2021-08-20  Saleem Abdulrasool  <abdulras@google.com>
+
+	* Add AC_CHECK_HEADERS for error.h and err.h.
+
+2021-07-28  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac (AC_CHECK_DECLS): Add reallocarray check.
+
+2021-05-22  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac (AC_INIT): Set version to 0.185.
+	* NEWS: Add 0.185 entries.
+
+2021-05-10  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac (AC_INIT): Set version to 0.184.
+	* NEWS: Add libdw, translation and debuginfod-client entries.
+
+2021-03-30  Frank Ch. Eigler  <fche@redhat.com>
+
+	* configure.ac: Look for pthread_setname_np.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
+	* configure.ac: Add -Wno-packed-not-aligned check.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
+	* configure.ac: Add -Wtrampolines check.
+
 2021-02-05  Mark Wielaard  <mark@klomp.org>
 
 	* configure.ac (AC_INIT): Set version to 0.183.

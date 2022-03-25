@@ -6,5 +6,9 @@ cc_library_host_static {
     name: "libeu",
     defaults: ["elfutils_defaults"],
     srcs: ["*.c"],
-    exclude_srcs: ["dynamicsizehash*.c"],
+    exclude_srcs: [
+        "color.c", // uses argp
+        "dynamicsizehash*.c",
+        "printversion.c", // uses argp
+    ],
 }

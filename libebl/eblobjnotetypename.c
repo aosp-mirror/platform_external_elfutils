@@ -31,6 +31,8 @@
 # include <config.h>
 #endif
 
+#include <system.h>
+
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
@@ -79,8 +81,7 @@ ebl_object_note_type_name (Ebl *ebl, const char *name, uint32_t type,
 	    }
 	}
 
-      if (strncmp (name, ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX,
-		   strlen (ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX)) == 0)
+      if (startswith (name, ELF_NOTE_GNU_BUILD_ATTRIBUTE_PREFIX))
 	{
 	  /* GNU Build Attribute notes (ab)use the owner name to store
 	     most of their data.  Don't decode everything here.  Just

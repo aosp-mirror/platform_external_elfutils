@@ -701,6 +701,15 @@ extern int dwarf_linediscriminator (Dwarf_Line *line, unsigned int *discp)
 extern const char *dwarf_linesrc (Dwarf_Line *line,
 				  Dwarf_Word *mtime, Dwarf_Word *length);
 
+/* Return the caller of this line if inlined.  If not inlined,
+   return NULL.  */
+extern Dwarf_Line *dwarf_linecontext (Dwarf_Lines *lines, Dwarf_Line *line);
+
+/* Return the function name in this line record. If this line is
+   inlined, this is the name of the function that was inlined. If this line
+   is not inlined, return NULL.  */
+extern const char *dwarf_linefunctionname (Dwarf *dbg, Dwarf_Line *line);
+
 /* Return file information.  The returned string is NULL when
    an error occurred, or the file path.  The file path is either absolute
    or relative to the compilation directory.  See dwarf_decl_file.  */

@@ -924,7 +924,7 @@ dwfl_linux_kernel_module_section_address
 
 	  if (!strcmp (secname, ".modinfo")
 	      || !strcmp (secname, ".data.percpu")
-	      || !strncmp (secname, ".exit", 5))
+	      || startswith (secname, ".exit"))
 	    {
 	      *addr = (Dwarf_Addr) -1l;
 	      return DWARF_CB_OK;
@@ -935,7 +935,7 @@ dwfl_linux_kernel_module_section_address
 	     behavior, and this cruft leaks out into the /sys information.
 	     The file name for ".init*" may actually look like "_init*".  */
 
-	  const bool is_init = !strncmp (secname, ".init", 5);
+	  const bool is_init = startswith (secname, ".init");
 	  if (is_init)
 	    {
 	      if (asprintf (&sysfile, SECADDRDIRFMT "_%s",
@@ -1008,7 +1008,7 @@ dwfl_linux_kernel_report_modules (Dwfl *dwfl)
   int result = 0;
   Dwarf_Addr modaddr;
   unsigned long int modsz;
-  char modname[128];
+  char modname[128+1];
   char *line = NULL;
   size_t linesz = 0;
   /* We can't just use fscanf here because it's not easy to distinguish \n

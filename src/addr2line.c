@@ -524,8 +524,7 @@ adjust_to_section (const char *name, uintmax_t *addr, Dwfl *dwfl)
   Dwfl_Module *mod = NULL;
   if (dwfl_getmodules (dwfl, &see_one_module, &mod, 0) != 0
       || mod == NULL)
-    error (EXIT_FAILURE, 0, _("Section syntax requires"
-				     " exactly one module"));
+    error_exit (0, _("Section syntax requires exactly one module"));
 
   int nscn = dwfl_module_relocations (mod);
   for (int i = 0; i < nscn; ++i)

@@ -1,3 +1,17 @@
+2022-03-27  Mark Wielaard  <mark@klomp.org>
+
+	* addr2line.c: Replace error (EXIT_FAILURE, ...) with error_exit(...).
+	* ar.c: Likewise.
+	* arlib.c: Likewise.
+	* elfcompress.c: Likewise.
+	* nm.c: Likewise.
+	* objdump.c: Likewise.
+	* readelf.c: Likewise.
+	* size.c: Likewise.
+	* strings.c: Likewise.
+	* strip.c: Likewise.
+	* unstrip.c: Likewise.
+
 2022-03-24  Mark Wielaard  <mark@klomp.org>
 
 	* elflint.c (check_note_data): Recognize NT_FDO_PACKAGING_METADATA.

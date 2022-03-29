@@ -1,3 +1,8 @@
+2022-03-29  Mark Wielaard  <mark@klomp.org>
+
+	* gelf_xlate.c (START): Define and use sz variable.
+	(END): Use sz variable to decide whether to do a memmove.
+
 2022-03-24  Mark Wielaard  <mark@klomp.org>
 
 	* elf.h: Update from glibc.

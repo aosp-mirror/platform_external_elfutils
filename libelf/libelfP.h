@@ -266,6 +266,7 @@ typedef struct Elf_Data_Chunk
     Elf_Scn dummy_scn;
     struct Elf_Data_Chunk *next;
   };
+  int64_t offset;		/* The original raw offset in the Elf image.  */
 } Elf_Data_Chunk;
 
 

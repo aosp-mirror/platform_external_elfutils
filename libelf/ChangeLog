@@ -1,3 +1,10 @@
+2022-04-01  Mark Wielaard  <mark@klomp.org>
+
+	* libelfP.h (struct Elf_Data_Chunk): Add an int64_t offset field.
+	* elf_getdata_rawchunk.c (elf_getdata_rawchunk): Check whether the
+	requested chunk, offset, size and type, was already handed out.
+	Set new Elf_Data_Chunk offset field.
+
 2022-03-29  Mark Wielaard  <mark@klomp.org>
 
 	* gelf_xlate.c (START): Define and use sz variable.

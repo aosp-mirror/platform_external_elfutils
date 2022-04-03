@@ -1,3 +1,8 @@
+2022-04-03  Frank Ch. Eigler <fche@redhat.com>
+
+	* debuginfod.cxx (main): Use MHD_USE_EPOLL for libmicrohttpd, to
+	encourage more round-robin dispatch of incoming connections.
+
 2021-12-09  Alexander Kanavin <alex@linutronix.de>
 
 	* debuginfod-client.c (cache_clean_default_interval_s): Change type to

@@ -3881,6 +3881,9 @@ main (int argc, char *argv[])
 #else
                                      | MHD_USE_SELECT_INTERNALLY
 #endif
+#ifdef MHD_USE_EPOLL
+                                     | MHD_USE_EPOLL
+#endif
                                      | MHD_USE_DEBUG, /* report errors to stderr */
                                      http_port,
                                      NULL, NULL, /* default accept policy */
@@ -3894,6 +3897,9 @@ main (int argc, char *argv[])
                                      | MHD_USE_INTERNAL_POLLING_THREAD
 #else
                                      | MHD_USE_SELECT_INTERNALLY
+#endif
+#ifdef MHD_USE_EPOLL
+                                     | MHD_USE_EPOLL
 #endif
                                      | MHD_USE_IPv6
                                      | MHD_USE_DEBUG, /* report errors to stderr */

@@ -1,5 +1,14 @@
 2022-04-03  Frank Ch. Eigler <fche@redhat.com>
 
+	* debuginfod.cxx (main): Use single dual-stack daemon setup,
+	rather than duplicate ipv4 and ipv6.
+	(conninfo, handle_buildid): Represent ipv4-mapped ipv6 addresses
+	in their native ipv4 form for logging and X-F-F: purposes.
+	* debuginfod-client.c (debuginfod_add_http_header): Tolerate
+	colons in http header values.
+
+2022-04-03  Frank Ch. Eigler <fche@redhat.com>
+
 	* debuginfod.cxx (main): Use MHD_USE_EPOLL for libmicrohttpd, to
 	encourage more round-robin dispatch of incoming connections.
 

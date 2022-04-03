@@ -1063,9 +1063,22 @@ conninfo (struct MHD_Connection * conn)
     sts = getnameinfo (so, sizeof (struct sockaddr_in), hostname, sizeof (hostname), servname,
                        sizeof (servname), NI_NUMERICHOST | NI_NUMERICSERV);
   } else if (so && so->sa_family == AF_INET6) {
-    sts = getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname),
-                       servname, sizeof (servname), NI_NUMERICHOST | NI_NUMERICSERV);
+    struct sockaddr_in6* addr6 = (struct sockaddr_in6*) so;
+    if (IN6_IS_ADDR_V4MAPPED(&addr6->sin6_addr)) {
+      struct sockaddr_in addr4;
+      memset (&addr4, 0, sizeof(addr4));
+      addr4.sin_family = AF_INET;
+      addr4.sin_port = addr6->sin6_port;
+      memcpy (&addr4.sin_addr.s_addr, addr6->sin6_addr.s6_addr+12, sizeof(addr4.sin_addr.s_addr));
+      sts = getnameinfo ((struct sockaddr*) &addr4, sizeof (addr4),
+                         hostname, sizeof (hostname), servname, sizeof (servname),
+                         NI_NUMERICHOST | NI_NUMERICSERV);
+    } else {
+      sts = getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname), NULL, 0,
+                         NI_NUMERICHOST);
+    }
   }
+  
   if (sts != 0) {
     hostname[0] = servname[0] = '\0';
   }
@@ -2008,13 +2021,26 @@ and will not query the upstream servers");
                                                                        MHD_CONNECTION_INFO_CLIENT_ADDRESS);
           struct sockaddr *so = u ? u->client_addr : 0;
           char hostname[256] = ""; // RFC1035
-          if (so && so->sa_family == AF_INET)
+          if (so && so->sa_family == AF_INET) {
             (void) getnameinfo (so, sizeof (struct sockaddr_in), hostname, sizeof (hostname), NULL, 0,
                                 NI_NUMERICHOST);
-          else if (so && so->sa_family == AF_INET6)
-            (void) getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname), NULL, 0,
-                                NI_NUMERICHOST);
-
+          } else if (so && so->sa_family == AF_INET6) {
+            struct sockaddr_in6* addr6 = (struct sockaddr_in6*) so;
+            if (IN6_IS_ADDR_V4MAPPED(&addr6->sin6_addr)) {
+              struct sockaddr_in addr4;
+              memset (&addr4, 0, sizeof(addr4));
+              addr4.sin_family = AF_INET;
+              addr4.sin_port = addr6->sin6_port;
+              memcpy (&addr4.sin_addr.s_addr, addr6->sin6_addr.s6_addr+12, sizeof(addr4.sin_addr.s_addr));
+              (void) getnameinfo ((struct sockaddr*) &addr4, sizeof (addr4),
+                                  hostname, sizeof (hostname), NULL, 0,
+                                  NI_NUMERICHOST);
+            } else {
+              (void) getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname), NULL, 0,
+                                  NI_NUMERICHOST);
+            }
+          }
+          
           string xff_complete = string("X-Forwarded-For: ")+xff+string(hostname);
           debuginfod_add_http_header (client, xff_complete.c_str());
         }
@@ -3873,9 +3899,8 @@ main (int argc, char *argv[])
         }
     }
 
-  // Start httpd server threads.  Separate pool for IPv4 and IPv6, in
-  // case the host only has one protocol stack.
-  MHD_Daemon *d4 = MHD_start_daemon ((connection_pool ? 0 : MHD_USE_THREAD_PER_CONNECTION)
+  // Start httpd server threads.  Use a single dual-homed pool.
+  MHD_Daemon *d46 = MHD_start_daemon ((connection_pool ? 0 : MHD_USE_THREAD_PER_CONNECTION)
 #if MHD_VERSION >= 0x00095300
                                      | MHD_USE_INTERNAL_POLLING_THREAD
 #else
@@ -3884,24 +3909,7 @@ main (int argc, char *argv[])
 #ifdef MHD_USE_EPOLL
                                      | MHD_USE_EPOLL
 #endif
-                                     | MHD_USE_DEBUG, /* report errors to stderr */
-                                     http_port,
-                                     NULL, NULL, /* default accept policy */
-                                     handler_cb, NULL, /* handler callback */
-                                     MHD_OPTION_EXTERNAL_LOGGER, error_cb, NULL,
-                                     (connection_pool ? MHD_OPTION_THREAD_POOL_SIZE : MHD_OPTION_END),
-                                     (connection_pool ? (int)connection_pool : MHD_OPTION_END),
-                                     MHD_OPTION_END);
-  MHD_Daemon *d6 = MHD_start_daemon ((connection_pool ? 0 : MHD_USE_THREAD_PER_CONNECTION)
-#if MHD_VERSION >= 0x00095300
-                                     | MHD_USE_INTERNAL_POLLING_THREAD
-#else
-                                     | MHD_USE_SELECT_INTERNALLY
-#endif
-#ifdef MHD_USE_EPOLL
-                                     | MHD_USE_EPOLL
-#endif
-                                     | MHD_USE_IPv6
+                                     | MHD_USE_DUAL_STACK
                                      | MHD_USE_DEBUG, /* report errors to stderr */
                                      http_port,
                                      NULL, NULL, /* default accept policy */
@@ -3911,7 +3919,7 @@ main (int argc, char *argv[])
                                      (connection_pool ? (int)connection_pool : MHD_OPTION_END),
                                      MHD_OPTION_END);
 
-  if (d4 == NULL && d6 == NULL) // neither ipv4 nor ipv6? boo
+  if (d46 == NULL)
     {
       sqlite3 *database = db;
       sqlite3 *databaseq = dbq;
@@ -3922,8 +3930,6 @@ main (int argc, char *argv[])
     }
 
   obatched(clog) << "started http server on "
-                 << (d4 != NULL ? "IPv4 " : "")
-                 << (d6 != NULL ? "IPv6 " : "")
                  << "port=" << http_port << endl;
 
   // add maxigroom sql if -G given
@@ -4043,8 +4049,7 @@ main (int argc, char *argv[])
     pthread_join (it, NULL);
 
   /* Stop all the web service threads. */
-  if (d4) MHD_stop_daemon (d4);
-  if (d6) MHD_stop_daemon (d6);
+  if (d46) MHD_stop_daemon (d46);
 
   if (! passive_p)
     {

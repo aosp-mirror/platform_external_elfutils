@@ -3929,7 +3929,7 @@ main (int argc, char *argv[])
       error (EXIT_FAILURE, 0, "cannot start http server at port %d", http_port);
     }
 
-  obatched(clog) << "started http server on "
+  obatched(clog) << "started http server on IPv4 IPv6 "
                  << "port=" << http_port << endl;
 
   // add maxigroom sql if -G given

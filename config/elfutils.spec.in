@@ -141,6 +141,9 @@ profiling) of processes.
 %package debuginfod-client
 Summary: Library and command line client for build-id HTTP ELF/DWARF server
 License: GPLv3+ and (GPLv2+ or LGPLv3+)
+# For debuginfod-find binary
+Requires: elfutils-libs = %{version}-%{release}
+Requires: elfutils-libelf = %{version}-%{release}
 
 %package debuginfod-client-devel
 Summary: Libraries and headers to build debuginfod client applications

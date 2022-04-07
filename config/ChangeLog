@@ -1,3 +1,8 @@
+2022-04-07  Mark Wielaard  <mark@klomp.org>
+
+	* elfutils.spec.in (debuginfod-client): Add an explicit requires
+	on elfutils-libs and elfutils-libelf.
+
 2021-11-10  Mark Wielaard  <mark@klomp.org>
 
 	* elfutils.spec.in: Update for 0.186.

@@ -17,16 +17,13 @@ dnl  GNU General Public License for more details.
 dnl
 dnl  You should have received a copy of the GNU General Public License
 dnl  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-AC_INIT([elfutils],[0.183],[https://sourceware.org/bugzilla],[elfutils],[http://elfutils.org/])
+AC_INIT([elfutils],[0.178],[https://sourceware.org/bugzilla],[elfutils],[http://elfutils.org/])
 
 dnl Workaround for older autoconf < 2.64
 m4_ifndef([AC_PACKAGE_URL],
          [AC_DEFINE([PACKAGE_URL], ["http://elfutils.org/"],
                     [Define to home page for this package])
           AC_SUBST([PACKAGE_URL], ["http://elfutils.org/"])])
-
-LIBDEBUGINFOD_SONAME=libdebuginfod.so.1
-AC_SUBST([LIBDEBUGINFOD_SONAME])
 
 # We want eu- as default program prefix if none was given by the user.
 # But if the user explicitly provided --program-prefix="" then pretend
@@ -44,7 +41,7 @@ fi
 AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_FILES([config/Makefile])
 
-AC_COPYRIGHT([Copyright (C) 1996-2021 The elfutils developers.])
+AC_COPYRIGHT([Copyright (C) 1996-2018 The elfutils developers.])
 AC_PREREQ(2.63)			dnl Minimum Autoconf version required.
 
 dnl We use GNU make extensions; automake 1.10 defaults to -Wportability.
@@ -57,11 +54,14 @@ AC_CONFIG_SRCDIR([libelf/libelf.h])
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_HEADERS([config.h])
 
+AC_CONFIG_MACRO_DIR([m4])
+AC_CONFIG_FILES([m4/Makefile])
+
 dnl The RPM spec file.  We substitute a few values in the file.
 AC_CONFIG_FILES([elfutils.spec:config/elfutils.spec.in])
 
 dnl debuginfo-server client & server parts.
-AC_CONFIG_FILES([debuginfod/Makefile debuginfod/debuginfod.h])
+AC_CONFIG_FILES([debuginfod/Makefile])
 
 AC_CANONICAL_HOST
 
@@ -197,15 +197,6 @@ if test "$ac_cv_zdefs" = "yes"; then
 	dso_LDFLAGS="$dso_LDFLAGS $ZDEFS_LDFLAGS"
 fi
 
-# We really want build-ids. Warn and force generating them if gcc was
-# configure without --enable-linker-build-id
-AC_CACHE_CHECK([whether the compiler generates build-ids], ac_cv_buildid, [dnl
-AC_LINK_IFELSE([AC_LANG_PROGRAM()],[ac_cv_buildid=yes; $READELF -n conftest$EXEEXT | grep -q NT_GNU_BUILD_ID || ac_cv_buildid=no],AC_MSG_FAILURE([unexpected compile failure]))])
-if test "$ac_cv_buildid" = "no"; then
-	AC_MSG_WARN([compiler doesn't generate build-id by default])
-	LDFLAGS="$LDFLAGS -Wl,--build-id"
-fi
-
 ZRELRO_LDFLAGS="-Wl,-z,relro"
 AC_CACHE_CHECK([whether gcc supports $ZRELRO_LDFLAGS], ac_cv_zrelro, [dnl
 save_LDFLAGS="$LDFLAGS"
@@ -237,7 +228,7 @@ LDFLAGS="$save_LDFLAGS"])
 AS_IF([test "x$ac_cv_tls" != xyes],
       AC_MSG_ERROR([__thread support required]))
 
-dnl Before 4.9 gcc doesn't ship stdatomic.h, but the necessary atomics are
+dnl Before 4.9 gcc doesn't ship stdatomic.h, but the nessesary atomics are
 dnl available by (at least) 4.7. So if the system doesn't have a stdatomic.h we
 dnl fall back on one copied from FreeBSD that handles the difference.
 AC_CACHE_CHECK([whether gcc provides stdatomic.h], ac_cv_has_stdatomic,
@@ -261,8 +252,7 @@ dnl check it before including config.h (which might define _FILE_OFFSET_BITS).
 AC_CACHE_CHECK([whether fts.h is bad when included (with LFS)], ac_cv_bad_fts,
   [AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <fts.h>]])],
 		     ac_cv_bad_fts=no, ac_cv_bad_fts=yes)])
-AS_IF([test "x$ac_cv_bad_fts" = "xyes"],
-      [CFLAGS="$CFLAGS -DBAD_FTS=1" CXXFLAGS="$CXXFLAGS -DBAD_FTS=1"])
+AS_IF([test "x$ac_cv_bad_fts" = "xyes"], [CFLAGS="$CFLAGS -DBAD_FTS=1"])
 
 # See if we can add -D_FORTIFY_SOURCE=2. Don't do it if it is already
 # (differently) defined or if it generates warnings/errors because we
@@ -274,7 +264,7 @@ case "$CFLAGS" in
     ;;
   *)
     save_CFLAGS="$CFLAGS"
-    CFLAGS="-D_FORTIFY_SOURCE=2 $CFLAGS -Werror"
+    CFLAGS="-D_FORTIFY_SOURCE=2 -Werror $CFLAGS"
     AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
       #include <string.h>
       int main() { return 0; }
@@ -295,7 +285,7 @@ case $use_debugpred in
 esac
 AC_SUBST([DEBUGPRED], $use_debugpred_val)
 
-dnl Enable gprof support.
+dnl Enable gprof suport.
 AC_ARG_ENABLE([gprof],
 AS_HELP_STRING([--enable-gprof],[build binaries with gprof support]), [use_gprof=$enableval], [use_gprof=no])
 if test "$use_gprof" = yes; then
@@ -304,16 +294,13 @@ if test "$use_gprof" = yes; then
 fi
 AM_CONDITIONAL(GPROF, test "$use_gprof" = yes)
 
-# Enable gcov support.
+# Enable gcov suport.
 AC_ARG_ENABLE([gcov],
 AS_HELP_STRING([--enable-gcov],[build binaries with gcov support]), [use_gcov=$enableval], [use_gcov=no])
 if test "$use_gcov" = yes; then
   CFLAGS="$CFLAGS -fprofile-arcs -ftest-coverage"
   CXXFLAGS="$CXXFLAGS -fprofile-arcs -ftest-coverage"
   LDFLAGS="$LDFLAGS -fprofile-arcs"
-  AC_CHECK_PROG([GCOV], [gcov], [gcov])
-  AC_CHECK_PROG([LCOV], [lcov], [lcov])
-  AC_CHECK_PROG([GENHTML], [genhtml], [genhtml])
 fi
 AM_CONDITIONAL(GCOV, test "$use_gcov" = yes)
 
@@ -400,8 +387,8 @@ eu_ZIPLIB(zlib,ZLIB,z,gzdirect,gzip)
 AS_IF([test "x$with_zlib" = xno], [AC_MSG_ERROR([zlib not found but is required])])
 LIBS="$save_LIBS"
 
-dnl Test for bzlib and xz/lzma/zstd, gives BZLIB/LZMALIB/ZSTD .am
-dnl conditional and config.h USE_BZLIB/USE_LZMALIB/USE_ZSTD #define.
+dnl Test for bzlib and xz/lzma, gives BZLIB/LZMALIB .am
+dnl conditional and config.h USE_BZLIB/USE_LZMALIB #define.
 save_LIBS="$LIBS"
 LIBS=
 eu_ZIPLIB(bzlib,BZLIB,bz2,BZ2_bzdopen,bzip2)
@@ -411,9 +398,6 @@ AC_SUBST([BZ2_LIB])
 eu_ZIPLIB(lzma,LZMA,lzma,lzma_auto_decoder,[LZMA (xz)])
 AS_IF([test "x$with_lzma" = xyes], [LIBLZMA="liblzma"], [LIBLZMA=""])
 AC_SUBST([LIBLZMA])
-eu_ZIPLIB(zstd,ZSTD,zstd,ZSTD_decompress,[ZSTD (zst)])
-AS_IF([test "x$with_zstd" = xyes], [LIBZSTD="libzstd"], [LIBLZSTD=""])
-AC_SUBST([LIBZSTD])
 zip_LIBS="$LIBS"
 LIBS="$save_LIBS"
 AC_SUBST([zip_LIBS])
@@ -427,11 +411,6 @@ AC_CHECK_DECLS([mempcpy],[],[],
                 #include <string.h>])
 
 AC_CHECK_FUNCS([process_vm_readv])
-
-old_CFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS -D_GNU_SOURCE"
-AC_FUNC_STRERROR_R()
-CFLAGS="$old_CFLAGS"
 
 AC_CHECK_LIB([stdc++], [__cxa_demangle], [dnl
 AC_DEFINE([USE_DEMANGLE], [1], [Defined if demangling is enabled])])
@@ -525,35 +504,30 @@ if test "$ac_cv_implicit_fallthrough" = "yes"; then
 		  [Defined if __attribute__((fallthrough)) is supported])
 fi
 
-saved_LIBS="$LIBS"
-AC_SEARCH_LIBS([argp_parse], [argp])
-LIBS="$saved_LIBS"
-case "$ac_cv_search_argp_parse" in
-        no) AC_MSG_FAILURE([failed to find argp_parse]) ;;
-        -l*) argp_LDADD="$ac_cv_search_argp_parse" ;;
-        *) argp_LDADD= ;;
-esac
+dnl Check if we have argp available from our libc
+AC_LINK_IFELSE(
+	[AC_LANG_PROGRAM(
+		[#include <argp.h>],
+		[int argc=1; char *argv[]={"test"}; argp_parse(0,argc,&argv,0,0,0); return 0;]
+		)],
+	[libc_has_argp="true"],
+	[libc_has_argp="false"]
+)
+
+dnl If our libc doesn't provide argp, then test for libargp
+if test "$libc_has_argp" = "false" ; then
+	AC_MSG_WARN("libc does not have argp")
+	AC_CHECK_LIB([argp], [argp_parse], [have_argp="true"], [have_argp="false"])
+
+	if test "$have_argp" = "false"; then
+		AC_MSG_ERROR("no libargp found")
+	else
+		argp_LDADD="-largp"
+	fi
+else
+	argp_LDADD=""
+fi
 AC_SUBST([argp_LDADD])
-
-saved_LIBS="$LIBS"
-AC_SEARCH_LIBS([fts_close], [fts])
-LIBS="$saved_LIBS"
-case "$ac_cv_search_fts_close" in
-        no) AC_MSG_FAILURE([failed to find fts_close]) ;;
-        -l*) fts_LIBS="$ac_cv_search_fts_close" ;;
-        *) fts_LIBS= ;;
-esac
-AC_SUBST([fts_LIBS])
-
-saved_LIBS="$LIBS"
-AC_SEARCH_LIBS([_obstack_free], [obstack])
-LIBS="$saved_LIBS"
-case "$ac_cv_search__obstack_free" in
-        no) AC_MSG_FAILURE([failed to find _obstack_free]) ;;
-        -l*) obstack_LIBS="$ac_cv_search__obstack_free" ;;
-        *) obstack_LIBS= ;;
-esac
-AC_SUBST([obstack_LIBS])
 
 dnl The directories with content.
 
@@ -582,6 +556,7 @@ dnl CPU handling library.
 AC_CONFIG_FILES([libcpu/Makefile])
 
 dnl Assembler library.
+AM_CONDITIONAL(HAVE_LIBASM, true)dnl Used in tests/Makefile.am, which see.
 AC_CONFIG_FILES([libasm/Makefile])
 
 dnl CPU-specific backend libraries.
@@ -591,21 +566,16 @@ dnl Tools.
 AC_CONFIG_FILES([src/Makefile po/Makefile.in])
 
 dnl Test suite.
+AM_CONDITIONAL(STANDALONE, false)dnl Used in tests/Makefile.am, which see.
 AC_CONFIG_FILES([tests/Makefile])
 
 dnl pkgconfig files
 AC_CONFIG_FILES([config/libelf.pc config/libdw.pc config/libdebuginfod.pc])
 
-dnl As long as "git grep 'PRI[diouxX]' po" reports matches in
-dnl translatable strings, we must use need-formatstring-macros here.
-AM_GNU_GETTEXT([external], [need-formatstring-macros])
-
-dnl AM_GNU_GETTEXT_VERSION is still needed for old versions
-dnl of autoreconf that do not recognize AM_GNU_GETTEXT_REQUIRE_VERSION.
-dnl 0.19.6 is the first version of gettext that provides
-dnl AM_GNU_GETTEXT_REQUIRE_VERSION support.
-AM_GNU_GETTEXT_VERSION([0.19.6])
-AM_GNU_GETTEXT_REQUIRE_VERSION([0.19.6])
+# Get the definitions necessary to create the Makefiles in the po
+# subdirectories.  This is a small subset of the gettext rules.
+AC_SUBST(USE_NLS, yes)
+AM_PO_SUBDIRS
 
 dnl Appended to the config.h file.
 dnl We hide all kinds of configuration magic in lib/eu-config.h.
@@ -647,6 +617,12 @@ esac
 
 # Round up to the next release API (x.y) version.
 eu_version=$(( (eu_version + 999) / 1000 ))
+
+dnl Unique ID for this build.
+MODVERSION="Build for ${eu_version} ${ac_cv_build}"
+AC_SUBST([MODVERSION])
+AC_DEFINE_UNQUOTED(MODVERSION, "$MODVERSION")
+AH_TEMPLATE([MODVERSION], [Identifier for modules in the build.])
 
 AC_CHECK_SIZEOF(long)
 
@@ -697,69 +673,29 @@ if test "$HAVE_BUNZIP2" = "no"; then
   AC_MSG_WARN([No bunzip2, needed to run make check])
 fi
 
-# For tests that need to use zstd compression
-AC_CHECK_PROG(HAVE_ZSTD, zstd, yes, no)
-AM_CONDITIONAL([HAVE_ZSTD],[test "x$HAVE_ZSTD" = "xyes"])
-
-# Look for libcurl for libdebuginfod minimum version as per rhel7.
-AC_ARG_ENABLE([libdebuginfod],AC_HELP_STRING([--enable-libdebuginfod], [Build debuginfod client library (can be =dummy)]))
-AS_IF([test "x$enable_libdebuginfod" != "xno"], [
-    if test "x$enable_libdebuginfod" != "xdummy"; then
-      AC_MSG_NOTICE([checking libdebuginfod dependencies, --disable-libdebuginfod or --enable-libdebuginfo=dummy to skip])
-      enable_libdebuginfod=yes # presume success
-      PKG_PROG_PKG_CONFIG
-      PKG_CHECK_MODULES([libcurl],[libcurl >= 7.29.0],[],[enable_libdebuginfod=no])
-      if test "x$enable_libdebuginfod" = "xno"; then
-        AC_MSG_ERROR([dependencies not found, use --disable-libdebuginfod to disable or --enable-libdebuginfod=dummy to build a (bootstrap) dummy library.])
-      fi
-    else
-      AC_MSG_NOTICE([building (bootstrap) dummy libdebuginfo library])
-    fi
-])
-
-AS_IF([test "x$enable_libdebuginfod" = "xyes" || test "x$enable_libdebuginfod" = "xdummy"],
-      [AC_DEFINE([ENABLE_LIBDEBUGINFOD], [1], [Enable libdebuginfod])])
-AS_IF([test "x$enable_libdebuginfod" = "xdummy"],
-      [AC_DEFINE([DUMMY_LIBDEBUGINFOD], [1], [Build dummy libdebuginfod])])
-AM_CONDITIONAL([LIBDEBUGINFOD],[test "x$enable_libdebuginfod" = "xyes" || test "x$enable_libdebuginfod" = "xdummy"])
-AM_CONDITIONAL([DUMMY_LIBDEBUGINFOD],[test "x$enable_libdebuginfod" = "xdummy"])
-
-# Look for libmicrohttpd, libarchive, sqlite for debuginfo server
-# minimum versions as per rhel7.
-AC_ARG_ENABLE([debuginfod],AC_HELP_STRING([--enable-debuginfod], [Build debuginfod server]))
+# Look for libmicrohttpd, libcurl, libarchive, sqlite for debuginfo server
+# minimum versions as per rhel7.  Single --enable-* option arranges to build
+# both client and server.
+AC_ARG_ENABLE([debuginfod],AC_HELP_STRING([--enable-debuginfod], [Build debuginfod server and client]))
 AC_PROG_CXX
+AX_CXX_COMPILE_STDCXX(11, noext, optional)
 AS_IF([test "x$enable_debuginfod" != "xno"], [
-    AC_MSG_NOTICE([checking debuginfod C++11 support, --disable-debuginfod to skip])
-    AX_CXX_COMPILE_STDCXX(11, noext, mandatory)
-    AC_MSG_NOTICE([checking debuginfod dependencies, --disable-debuginfod to skip])
-    if test "x$enable_libdebuginfod" = "xno"; then
-      AC_MSG_ERROR([need libdebuginfod (or dummy), use --disable-debuginfod to disable.])
-    fi
+    AC_MSG_NOTICE([checking debuginfod dependencies, disable to skip])
     enable_debuginfod=yes # presume success
     PKG_PROG_PKG_CONFIG
+    if test "x$ac_cv_prog_ac_ct_CXX" = "x"; then enable_debuginfod=no; fi
     PKG_CHECK_MODULES([libmicrohttpd],[libmicrohttpd >= 0.9.33],[],[enable_debuginfod=no])
+    PKG_CHECK_MODULES([libcurl],[libcurl >= 7.29.0],[],[enable_debuginfod=no])
     PKG_CHECK_MODULES([sqlite3],[sqlite3 >= 3.7.17],[],[enable_debuginfod=no])
     PKG_CHECK_MODULES([libarchive],[libarchive >= 3.1.2],[],[enable_debuginfod=no])
     if test "x$enable_debuginfod" = "xno"; then
-      AC_MSG_ERROR([dependencies not found, use --disable-debuginfod to disable.])
+      AC_MSG_ERROR([C++ compiler or dependencies not found, use --disable-debuginfod to disable.])
     fi
 ])
 
 AS_IF([test "x$enable_debuginfod" != "xno"],AC_DEFINE([ENABLE_DEBUGINFOD],[1],[Build debuginfod]))
 AM_CONDITIONAL([DEBUGINFOD],[test "x$enable_debuginfod" = "xyes"])
 
-dnl for /etc/profile.d/elfutils.{csh,sh}
-default_debuginfod_urls=""
-AC_ARG_ENABLE(debuginfod-urls,
-            [AS_HELP_STRING([--enable-debuginfod-urls@<:@=URLS@:>@],[add URLS to profile.d DEBUGINFOD_URLS])],
-            [if test "x${enableval}" = "xyes";
-             then default_debuginfod_urls="https://debuginfod.elfutils.org/";
-             elif test "x${enableval}" != "xno"; then
-             default_debuginfod_urls="${enableval}";
-             fi],
-            [default_debuginfod_urls=""])
-AC_SUBST(DEBUGINFOD_URLS, $default_debuginfod_urls)                
-AC_CONFIG_FILES([config/profile.sh config/profile.csh])
 
 AC_OUTPUT
 
@@ -778,7 +714,6 @@ AC_MSG_NOTICE([
     gzip support                       : ${with_zlib}
     bzip2 support                      : ${with_bzlib}
     lzma/xz support                    : ${with_lzma}
-    zstd support                       : ${with_zstd}
     libstdc++ demangle support         : ${enable_demangler}
     File textrel check                 : ${enable_textrelcheck}
     Symbol versioning                  : ${enable_symbol_versioning}
@@ -791,13 +726,10 @@ AC_MSG_NOTICE([
     Deterministic archives by default  : ${default_ar_deterministic}
     Native language support            : ${USE_NLS}
     Extra Valgrind annotations         : ${use_vg_annotations}
-    libdebuginfod client support       : ${enable_libdebuginfod}
-    Debuginfod server support          : ${enable_debuginfod}
-    Default DEBUGINFOD_URLS            : ${default_debuginfod_urls}
+    Debuginfod client/server support   : ${enable_debuginfod}
 
   EXTRA TEST FEATURES (used with make check)
     have bunzip2 installed (required)  : ${HAVE_BUNZIP2}
-    have zstd installed                : ${HAVE_ZSTD}
     debug branch prediction            : ${use_debugpred}
     gprof support                      : ${use_gprof}
     gcov support                       : ${use_gcov}

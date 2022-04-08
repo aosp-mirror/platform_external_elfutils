@@ -55,7 +55,7 @@ ebl_object_note (Ebl *ebl, uint32_t namesz, const char *name, uint32_t type,
 	{
 	  if (type != 3)
 	    {
-	      printf (_("unknown SDT version %u\n"), type);
+	      printf (gettext ("unknown SDT version %u\n"), type);
 	      return;
 	    }
 
@@ -73,7 +73,7 @@ ebl_object_note (Ebl *ebl, uint32_t namesz, const char *name, uint32_t type,
 	  if (descsz < addrs_size + 3)
 	    {
 	    invalid_sdt:
-	      printf (_("invalid SDT probe descriptor\n"));
+	      printf (gettext ("invalid SDT probe descriptor\n"));
 	      return;
 	    }
 
@@ -123,17 +123,17 @@ ebl_object_note (Ebl *ebl, uint32_t namesz, const char *name, uint32_t type,
 	      sem = addrs.a64[2];
 	    }
 
-	  printf (_("    PC: "));
+	  printf (gettext ("    PC: "));
 	  printf ("%#" PRIx64 ",", pc);
-	  printf (_(" Base: "));
+	  printf (gettext (" Base: "));
 	  printf ("%#" PRIx64 ",", base);
-	  printf (_(" Semaphore: "));
+	  printf (gettext (" Semaphore: "));
 	  printf ("%#" PRIx64 "\n", sem);
-	  printf (_("    Provider: "));
+	  printf (gettext ("    Provider: "));
 	  printf ("%s,", provider);
-	  printf (_(" Name: "));
+	  printf (gettext (" Name: "));
 	  printf ("%s,", pname);
-	  printf (_(" Args: "));
+	  printf (gettext (" Args: "));
 	  printf ("'%s'\n", args);
 	  return;
 	}
@@ -297,7 +297,7 @@ ebl_object_note (Ebl *ebl, uint32_t namesz, const char *name, uint32_t type,
 	case NT_GNU_BUILD_ID:
 	  if (strcmp (name, "GNU") == 0 && descsz > 0)
 	    {
-	      printf (_("    Build ID: "));
+	      printf (gettext ("    Build ID: "));
 	      uint_fast32_t i;
 	      for (i = 0; i < descsz - 1; ++i)
 		printf ("%02" PRIx8, (uint8_t) desc[i]);
@@ -308,7 +308,7 @@ ebl_object_note (Ebl *ebl, uint32_t namesz, const char *name, uint32_t type,
 	case NT_GNU_GOLD_VERSION:
 	  if (strcmp (name, "GNU") == 0 && descsz > 0)
 	    /* A non-null terminated version string.  */
-	    printf (_("    Linker version: %.*s\n"),
+	    printf (gettext ("    Linker version: %.*s\n"),
 		    (int) descsz, desc);
 	  break;
 
@@ -476,73 +476,6 @@ ebl_object_note (Ebl *ebl, uint32_t namesz, const char *name, uint32_t type,
 			    }
 			}
 		    }
-		  else if (prop.pr_type >= GNU_PROPERTY_LOPROC
-			   && prop.pr_type <= GNU_PROPERTY_HIPROC
-			   && ehdr.e_machine == EM_AARCH64)
-		    {
-		      printf ("AARCH64 ");
-		      if (prop.pr_type == GNU_PROPERTY_AARCH64_FEATURE_1_AND)
-			{
-			  printf ("FEATURE_1_AND: ");
-
-			  if (prop.pr_datasz == 4)
-			    {
-			      GElf_Word data;
-			      in.d_type = ELF_T_WORD;
-			      out.d_type = ELF_T_WORD;
-			      in.d_size = 4;
-			      out.d_size = 4;
-			      in.d_buf = (void *) desc;
-			      out.d_buf = (void *) &data;
-
-			      if (gelf_xlatetom (ebl->elf, &out, &in,
-						 elfident[EI_DATA]) == NULL)
-				{
-				  printf ("%s\n", elf_errmsg (-1));
-				  return;
-				}
-			      printf ("%08" PRIx32 " ", data);
-
-			      if ((data & GNU_PROPERTY_AARCH64_FEATURE_1_BTI)
-				  != 0)
-				{
-				  printf ("BTI");
-				  data &= ~GNU_PROPERTY_AARCH64_FEATURE_1_BTI;
-				  if (data != 0)
-				    printf (" ");
-				}
-
-			      if ((data & GNU_PROPERTY_AARCH64_FEATURE_1_PAC)
-				  != 0)
-				{
-				  printf ("PAC");
-				  data &= ~GNU_PROPERTY_AARCH64_FEATURE_1_PAC;
-				  if (data != 0)
-				    printf (" ");
-				}
-
-			      if (data != 0)
-				printf ("UNKNOWN");
-			    }
-			  else
-			    printf ("<bad datasz: %" PRId32 ">",
-				    prop.pr_datasz);
-
-			  printf ("\n");
-			}
-		      else
-			{
-			  printf ("%#" PRIx32, prop.pr_type);
-			  if (prop.pr_datasz > 0)
-			    {
-			      printf (" data: ");
-			      size_t i;
-			      for (i = 0; i < prop.pr_datasz - 1; i++)
-				printf ("%02" PRIx8 " ", (uint8_t) desc[i]);
-			      printf ("%02" PRIx8 "\n", (uint8_t) desc[i]);
-			    }
-			}
-		    }
 		  else
 		    {
 		      if (prop.pr_type >= GNU_PROPERTY_LOPROC
@@ -635,7 +568,7 @@ ebl_object_note (Ebl *ebl, uint32_t namesz, const char *name, uint32_t type,
 		      break;
 		    }
 
-		  printf (_("    OS: %s, ABI: "), os);
+		  printf (gettext ("    OS: %s, ABI: "), os);
 		  for (size_t cnt = 1; cnt < descsz / 4; ++cnt)
 		    {
 		      if (cnt > 1)

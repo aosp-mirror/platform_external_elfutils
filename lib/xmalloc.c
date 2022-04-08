@@ -36,6 +36,10 @@
 #include <sys/types.h>
 #include "system.h"
 
+#ifndef _
+# define _(str) gettext (str)
+#endif
+
 
 /* Allocate N bytes of memory dynamically, with error checking.  */
 void *

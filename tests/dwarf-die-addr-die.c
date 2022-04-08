@@ -164,7 +164,7 @@ main (int argc, char *argv[])
   int fd = open (name, O_RDONLY);
   if (fd < 0)
     {
-      printf ("Cannot open '%s': %s\n", name, strerror (errno));
+      printf ("Cannnot open '%s': %s\n", name, strerror (errno));
       return -1;
     }
 

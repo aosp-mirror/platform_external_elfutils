@@ -128,7 +128,7 @@ try_kernel_name (Dwfl *dwfl, char **fname, bool try_debug)
 
   if (fd < 0)
     for (size_t i = 0;
-	 i < sizeof vmlinux_suffixes / sizeof vmlinux_suffixes[0] && fd < 0;
+	 i < sizeof vmlinux_suffixes / sizeof vmlinux_suffixes[0];
 	 ++i)
       {
 	char *zname;
@@ -174,12 +174,9 @@ kernel_release (void)
 static int
 find_kernel_elf (Dwfl *dwfl, const char *release, char **fname)
 {
-  /* First try to find an uncompressed vmlinux image.  Possibly
-     including debuginfo.  */
-  if (release == NULL
-      || ((release[0] == '/'
-	   ? asprintf (fname, "%s/vmlinux", release)
-	   : asprintf (fname, "/boot/vmlinux-%s", release)) < 0))
+  if ((release[0] == '/'
+       ? asprintf (fname, "%s/vmlinux", release)
+       : asprintf (fname, "/boot/vmlinux-%s", release)) < 0)
     return -1;
 
   int fd = try_kernel_name (dwfl, fname, true);
@@ -189,27 +186,6 @@ find_kernel_elf (Dwfl *dwfl, const char *release, char **fname)
       if (asprintf (fname, MODULEDIRFMT "/vmlinux", release) < 0)
 	return -1;
       fd = try_kernel_name (dwfl, fname, true);
-    }
-
-  /* There might be a compressed vmlinuz image.  Probably without
-     debuginfo, but try to find it under the debug path also, just in
-     case.  */
-  if (fd < 0)
-    {
-      free (*fname);
-      if ((release[0] == '/'
-           ? asprintf (fname, "%s/vmlinuz", release)
-           : asprintf (fname, "/boot/vmlinuz-%s", release)) < 0)
-        return -1;
-
-      fd = try_kernel_name (dwfl, fname, true);
-      if (fd < 0 && release[0] != '/')
-	{
-	  free (*fname);
-	  if (asprintf (fname, MODULEDIRFMT "/vmlinuz", release) < 0)
-	    return -1;
-	  fd = try_kernel_name (dwfl, fname, true);
-	}
     }
 
   return fd;
@@ -241,9 +217,6 @@ report_kernel (Dwfl *dwfl, const char **release,
   int result = get_release (dwfl, release);
   if (unlikely (result != 0))
     return result;
-
-  if (release == NULL || *release == NULL)
-    return EINVAL;
 
   char *fname;
   int fd = find_kernel_elf (dwfl, *release, &fname);
@@ -300,9 +273,6 @@ report_kernel_archive (Dwfl *dwfl, const char **release,
   if (unlikely (result != 0))
     return result;
 
-  if (release == NULL || *release == NULL)
-    return EINVAL;
-
   char *archive;
   int res = (((*release)[0] == '/')
 	     ? asprintf (&archive, "%s/debug.a", *release)
@@ -356,9 +326,6 @@ check_suffix (const FTSENT *f, size_t namelen)
 #endif
 #if USE_LZMA
   TRY (".ko.xz");
-#endif
-#if USE_ZSTD
-  TRY (".ko.zst");
 #endif
 
   return 0;
@@ -541,14 +508,10 @@ intuit_kernel_bounds (Dwarf_Addr *start, Dwarf_Addr *end, Dwarf_Addr *notes)
 
   if (result == 0)
     {
-      Dwarf_Addr addr;
       *end = *start;
-      while (read_address (&state, &addr) && addr >= *end)
-	{
-	  *end = addr;
-	  if (*notes == 0 && !strcmp (state.p, "__start_notes\n"))
-	    *notes = *end;
-	}
+      while (read_address (&state, end))
+	if (*notes == 0 && !strcmp (state.p, "__start_notes\n"))
+	  *notes = *end;
 
       Dwarf_Addr round_kernel = sysconf (_SC_PAGESIZE);
       *start &= -(Dwarf_Addr) round_kernel;

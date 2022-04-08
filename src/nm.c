@@ -1,5 +1,5 @@
 /* Print symbol information from ELF file in human-readable form.
-   Copyright (C) 2000-2008, 2009, 2011, 2012, 2014, 2015, 2020 Red Hat, Inc.
+   Copyright (C) 2000-2008, 2009, 2011, 2012, 2014, 2015 Red Hat, Inc.
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2000.
 
@@ -137,7 +137,7 @@ static int handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 
 
 #define INTERNAL_ERROR(fname) \
-  error (EXIT_FAILURE, 0, _("%s: INTERNAL ERROR %d (%s): %s"),      \
+  error (EXIT_FAILURE, 0, gettext ("%s: INTERNAL ERROR %d (%s): %s"),      \
 	 fname, __LINE__, PACKAGE_VERSION, elf_errmsg (-1))
 
 
@@ -361,7 +361,7 @@ process_file (const char *fname, bool more_than_one)
   int fd = open (fname, O_RDONLY);
   if (fd == -1)
     {
-      error (0, errno, _("cannot open '%s'"), fname);
+      error (0, errno, gettext ("cannot open '%s'"), fname);
       return 1;
     }
 
@@ -378,7 +378,7 @@ process_file (const char *fname, bool more_than_one)
 	    INTERNAL_ERROR (fname);
 
 	  if (close (fd) != 0)
-	    error (EXIT_FAILURE, errno, _("while closing '%s'"), fname);
+	    error (EXIT_FAILURE, errno, gettext ("while closing '%s'"), fname);
 
 	  return result;
 	}
@@ -390,7 +390,7 @@ process_file (const char *fname, bool more_than_one)
 	    INTERNAL_ERROR (fname);
 
 	  if (close (fd) != 0)
-	    error (EXIT_FAILURE, errno, _("while closing '%s'"), fname);
+	    error (EXIT_FAILURE, errno, gettext ("while closing '%s'"), fname);
 
 	  return result;
 	}
@@ -400,7 +400,7 @@ process_file (const char *fname, bool more_than_one)
 	INTERNAL_ERROR (fname);
     }
 
-  error (0, 0, _("%s: File format not recognized"), fname);
+  error (0, 0, gettext ("%s: File format not recognized"), fname);
 
   return 1;
 }
@@ -440,7 +440,7 @@ handle_ar (int fd, Elf *elf, const char *prefix, const char *fname,
 	  Elf_Arhdr *arhdr = NULL;
 	  size_t arhdr_off = 0;	/* Note: 0 is no valid offset.  */
 
-	  fputs_unlocked (_("\nArchive index:\n"), stdout);
+	  fputs_unlocked (gettext("\nArchive index:\n"), stdout);
 
 	  while (arsym->as_off != 0)
 	    {
@@ -449,12 +449,12 @@ handle_ar (int fd, Elf *elf, const char *prefix, const char *fname,
 		      || (subelf = elf_begin (fd, cmd, elf)) == NULL
 		      || (arhdr = elf_getarhdr (subelf)) == NULL))
 		{
-		  error (0, 0, _("invalid offset %zu for symbol %s"),
+		  error (0, 0, gettext ("invalid offset %zu for symbol %s"),
 			 arsym->as_off, arsym->as_name);
 		  break;
 		}
 
-	      printf (_("%s in %s\n"), arsym->as_name, arhdr->ar_name);
+	      printf (gettext ("%s in %s\n"), arsym->as_name, arhdr->ar_name);
 
 	      ++arsym;
 	    }
@@ -462,7 +462,7 @@ handle_ar (int fd, Elf *elf, const char *prefix, const char *fname,
 	  if (elf_rand (elf, SARMAG) != SARMAG)
 	    {
 	      error (0, 0,
-		     _("cannot reset archive offset to beginning"));
+		     gettext ("cannot reset archive offset to beginning"));
 	      return 1;
 	    }
 	}
@@ -487,7 +487,7 @@ handle_ar (int fd, Elf *elf, const char *prefix, const char *fname,
 				 new_suffix);
 	  else
 	    {
-	      error (0, 0, _("%s%s%s: file format not recognized"),
+	      error (0, 0, gettext ("%s%s%s: file format not recognized"),
 		     new_prefix, arhdr->ar_name, new_suffix);
 	      result = 1;
 	    }
@@ -702,7 +702,7 @@ get_local_names (Dwarf *dbg)
 						local_compare);
 	    if (tres == NULL)
               error (EXIT_FAILURE, errno,
-                     _("cannot create search tree"));
+                     gettext ("cannot create search tree"));
 	    else if (*tres != newp)
 	      free (newp);
 	  }
@@ -743,7 +743,7 @@ show_symbols_sysv (Ebl *ebl, GElf_Word strndx, const char *fullname,
   size_t shstrndx;
   if (elf_getshdrstrndx (ebl->elf, &shstrndx) < 0)
     error (EXIT_FAILURE, 0,
-	   _("cannot get section header string table index"));
+	   gettext ("cannot get section header string table index"));
 
   /* Cache the section names.  */
   Elf_Scn *scn = NULL;
@@ -768,10 +768,10 @@ show_symbols_sysv (Ebl *ebl, GElf_Word strndx, const char *fullname,
   int digits = length_map[gelf_getclass (ebl->elf) - 1][radix];
 
   /* We always print this prolog.  */
-  printf (_("\n\nSymbols from %s:\n\n"), fullname);
+  printf (gettext ("\n\nSymbols from %s:\n\n"), fullname);
 
   /* The header line.  */
-  printf (_("%*s%-*s %-*s Class  Type     %-*s %*s Section\n\n"),
+  printf (gettext ("%*s%-*s %-*s Class  Type     %-*s %*s Section\n\n"),
 	  print_file_name ? (int) strlen (fullname) + 1: 0, "",
 	  longest_name, sgettext ("sysv|Name"),
 	  /* TRANS: the "sysv|" parts makes the string unique.  */
@@ -787,7 +787,7 @@ show_symbols_sysv (Ebl *ebl, GElf_Word strndx, const char *fullname,
 #endif
 
   /* Iterate over all symbols.  */
-  for (cnt = 0; cnt < nsyms; ++cnt)
+  for (cnt = 1; cnt < nsyms; ++cnt)
     {
       /* In this format SECTION entries are not printed.  */
       if (GELF_ST_TYPE (syms[cnt].sym.st_info) == STT_SECTION)
@@ -796,16 +796,6 @@ show_symbols_sysv (Ebl *ebl, GElf_Word strndx, const char *fullname,
       char symstrbuf[50];
       const char *symstr = sym_name (ebl->elf, strndx, syms[cnt].sym.st_name,
 				     symstrbuf, sizeof symstrbuf);
-
-      /* Printing entries with a zero-length name makes the output
-	 not very well parseable.  Since these entries don't carry
-	 much information we leave them out.  */
-      if (symstr[0] == '\0')
-	continue;
-
-      /* We do not print the entries for files.  */
-      if (GELF_ST_TYPE (syms[cnt].sym.st_info) == STT_FILE)
-	continue;
 
 #ifdef USE_DEMANGLE
       /* Demangle if necessary.  Require GNU v3 ABI by the "_Z" prefix.  */
@@ -835,10 +825,7 @@ show_symbols_sysv (Ebl *ebl, GElf_Word strndx, const char *fullname,
 
       /* Covert the address.  */
       if (syms[cnt].sym.st_shndx == SHN_UNDEF)
-	{
-	  sprintf (addressbuf, "%*c", digits, ' ');
-	  sprintf (sizebuf, "%*c", digits, ' ');
-	}
+	addressbuf[0] = sizebuf[0] = '\0';
       else
 	{
 	  snprintf (addressbuf, sizeof (addressbuf),
@@ -854,14 +841,11 @@ show_symbols_sysv (Ebl *ebl, GElf_Word strndx, const char *fullname,
 	}
 
       /* Print the actual string.  */
-      const char *bind;
-      bind = ebl_symbol_binding_name (ebl,
-				      GELF_ST_BIND (syms[cnt].sym.st_info),
-				      symbindbuf, sizeof (symbindbuf));
-      if (bind != NULL && strncmp (bind, "GNU_", strlen ("GNU_")) == 0)
-	bind += strlen ("GNU_");
       printf ("%-*s|%s|%-6s|%-8s|%s|%*s|%s\n",
-	      longest_name, symstr, addressbuf, bind,
+	      longest_name, symstr, addressbuf,
+	      ebl_symbol_binding_name (ebl,
+				       GELF_ST_BIND (syms[cnt].sym.st_info),
+				       symbindbuf, sizeof (symbindbuf)),
 	      ebl_symbol_type_name (ebl, GELF_ST_TYPE (syms[cnt].sym.st_info),
 				    symtypebuf, sizeof (symtypebuf)),
 	      sizebuf, longest_where, syms[cnt].where,
@@ -900,10 +884,6 @@ class_type_char (Elf *elf, const GElf_Ehdr *ehdr, GElf_Sym *sym)
       if (ehdr->e_ident[EI_OSABI] == ELFOSABI_LINUX
 	  && GELF_ST_BIND (sym->st_info) == STB_GNU_UNIQUE)
 	result = 'u';
-      else if (GELF_ST_BIND (sym->st_info) == STB_WEAK)
-	result = 'V';
-      else if (sym->st_shndx == SHN_COMMON)
-	result = 'C';
       else
 	{
 	  GElf_Shdr shdr_mem;
@@ -917,11 +897,6 @@ class_type_char (Elf *elf, const GElf_Ehdr *ehdr, GElf_Sym *sym)
 		result = 'B';
 	    }
 	}
-    }
-  else if (result == 'T')
-    {
-      if (GELF_ST_BIND (sym->st_info) == STB_WEAK)
-	result = 'W';
     }
 
   return local_p ? tolower (result) : result;
@@ -1088,10 +1063,6 @@ show_symbols_posix (Elf *elf, const GElf_Ehdr *ehdr, GElf_Word strndx,
       if (symstr[0] == '\0')
 	continue;
 
-      /* We do not print the entries for files.  */
-      if (GELF_ST_TYPE (syms[cnt].sym.st_info) == STT_FILE)
-	continue;
-
 #ifdef USE_DEMANGLE
       /* Demangle if necessary.  Require GNU v3 ABI by the "_Z" prefix.  */
       if (demangle && symstr[0] == '_' && symstr[1] == 'Z')
@@ -1113,23 +1084,21 @@ show_symbols_posix (Elf *elf, const GElf_Ehdr *ehdr, GElf_Word strndx,
 	  putchar_unlocked (' ');
 	}
 
-      printf ("%s %c%s", symstr,
+      printf ((radix == radix_hex
+	       ? "%s %c%s %0*" PRIx64 " %0*" PRIx64 "\n"
+	       : (radix == radix_decimal
+		  ? "%s %c%s %*" PRId64 " %*" PRId64 "\n"
+		  : "%s %c%s %0*" PRIo64 " %0*" PRIo64 "\n")),
+	      symstr,
 	      class_type_char (elf, ehdr, &syms[cnt].sym),
 	      mark_special
 	      ? (GELF_ST_TYPE (syms[cnt].sym.st_info) == STT_TLS
 		 ? "@"
 		 : (GELF_ST_BIND (syms[cnt].sym.st_info) == STB_WEAK
 		    ? "*" : " "))
-	      : "");
-      if (syms[cnt].sym.st_shndx != SHN_UNDEF)
-	printf ((radix == radix_hex
-		 ? " %0*" PRIx64 " %0*" PRIx64
-		 : (radix == radix_decimal
-		    ? " %*" PRId64 " %*" PRId64
-		    : " %0*" PRIo64 " %0*" PRIo64)),
-		digits, syms[cnt].sym.st_value,
-		digits, syms[cnt].sym.st_size);
-      putchar ('\n');
+	      : "",
+	      digits, syms[cnt].sym.st_value,
+	      digits, syms[cnt].sym.st_size);
     }
 
 #ifdef USE_DEMANGLE
@@ -1153,8 +1122,7 @@ sort_by_address (const void *p1, const void *p2)
   return reverse_sort ? -result : result;
 }
 
-static Elf *sort_by_name_elf;
-static size_t sort_by_name_ndx;
+static Elf_Data *sort_by_name_strtab;
 
 static int
 sort_by_name (const void *p1, const void *p2)
@@ -1162,10 +1130,8 @@ sort_by_name (const void *p1, const void *p2)
   GElf_SymX *s1 = (GElf_SymX *) p1;
   GElf_SymX *s2 = (GElf_SymX *) p2;
 
-  const char *n1 = elf_strptr (sort_by_name_elf, sort_by_name_ndx,
-			       s1->sym.st_name) ?: "";
-  const char *n2 = elf_strptr (sort_by_name_elf, sort_by_name_ndx,
-			       s2->sym.st_name) ?: "";
+  const char *n1 = sort_by_name_strtab->d_buf + s1->sym.st_name;
+  const char *n2 = sort_by_name_strtab->d_buf + s2->sym.st_name;
 
   int result = strcmp (n1, n2);
 
@@ -1236,7 +1202,7 @@ show_symbols (int fd, Ebl *ebl, GElf_Ehdr *ehdr,
   size_t shstrndx;
   if (elf_getshdrstrndx (ebl->elf, &shstrndx) < 0)
     error (EXIT_FAILURE, 0,
-	   _("cannot get section header string table index"));
+	   gettext ("cannot get section header string table index"));
 
   /* The section is that large.  */
   size_t size = shdr->sh_size;
@@ -1247,12 +1213,12 @@ show_symbols (int fd, Ebl *ebl, GElf_Ehdr *ehdr,
   if (entsize == 0
       || entsize != gelf_fsize (ebl->elf, ELF_T_SYM, 1, EV_CURRENT))
     error (0, 0,
-	   _("%s: entry size in section %zd `%s' is not what we expect"),
+	   gettext ("%s: entry size in section %zd `%s' is not what we expect"),
 	   fullname, elf_ndxscn (scn),
 	   elf_strptr (ebl->elf, shstrndx, shdr->sh_name));
   else if (size % entsize != 0)
     error (0, 0,
-	   _("%s: size of section %zd `%s' is not multiple of entry size"),
+	   gettext ("%s: size of section %zd `%s' is not multiple of entry size"),
 	   fullname, elf_ndxscn (scn),
 	   elf_strptr (ebl->elf, shstrndx, shdr->sh_name));
 
@@ -1331,7 +1297,7 @@ show_symbols (int fd, Ebl *ebl, GElf_Ehdr *ehdr,
      is a 64 bit file.  */
   if (nentries > SIZE_MAX / sizeof (GElf_SymX))
     error (EXIT_FAILURE, 0,
-          _("%s: entries (%zd) in section %zd `%s' is too large"),
+          gettext ("%s: entries (%zd) in section %zd `%s' is too large"),
           fullname, nentries, elf_ndxscn (scn),
           elf_strptr (ebl->elf, shstrndx, shdr->sh_name));
   GElf_SymX *sym_mem;
@@ -1478,8 +1444,8 @@ show_symbols (int fd, Ebl *ebl, GElf_Ehdr *ehdr,
   /* Sort the entries according to the users wishes.  */
   if (sort == sort_name)
     {
-      sort_by_name_elf = ebl->elf;
-      sort_by_name_ndx = shdr->sh_link;
+      sort_by_name_strtab = elf_getdata (elf_getscn (ebl->elf, shdr->sh_link),
+					 NULL);
       qsort (sym_mem, nentries, sizeof (GElf_SymX), sort_by_name);
     }
   else if (sort == sort_numeric)
@@ -1544,17 +1510,8 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
   GElf_Ehdr *ehdr;
   Ebl *ebl;
 
-  /* Create the full name of the file.  */
-  if (prefix != NULL)
-    cp = mempcpy (cp, prefix, prefix_len);
-  cp = mempcpy (cp, fname, fname_len);
-  if (suffix != NULL)
-    memcpy (cp - 1, suffix, suffix_len + 1);
-
   /* Get the backend for this object file type.  */
   ebl = ebl_openbackend (elf);
-  if (ebl == NULL)
-    INTERNAL_ERROR (fullname);
 
   /* We need the ELF header in a few places.  */
   ehdr = gelf_getehdr (elf, &ehdr_mem);
@@ -1567,11 +1524,18 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
       && ehdr->e_type != ET_EXEC && ehdr->e_type != ET_DYN)
     {
       /* XXX Add machine specific object file types.  */
-      error (0, 0, _("%s%s%s%s: Invalid operation"),
+      error (0, 0, gettext ("%s%s%s%s: Invalid operation"),
 	     prefix ?: "", prefix ? "(" : "", fname, prefix ? ")" : "");
       result = 1;
       goto out;
     }
+
+  /* Create the full name of the file.  */
+  if (prefix != NULL)
+    cp = mempcpy (cp, prefix, prefix_len);
+  cp = mempcpy (cp, fname, fname_len);
+  if (suffix != NULL)
+    memcpy (cp - 1, suffix, suffix_len + 1);
 
   /* Find the symbol table.
 
@@ -1617,7 +1581,7 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 
   if (! any)
     {
-      error (0, 0, _("%s%s%s: no symbols"),
+      error (0, 0, gettext ("%s%s%s: no symbols"),
 	     prefix ?: "", prefix ? ":" : "", fname);
       result = 1;
     }

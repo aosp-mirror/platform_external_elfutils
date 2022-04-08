@@ -42,7 +42,7 @@ typedef struct Dwfl_Module Dwfl_Module;
 typedef struct Dwfl_Line Dwfl_Line;
 
 /* This holds information common for all the frames of one backtrace for
-   a particular thread/task/TID.  Several threads belong to one Dwfl.  */
+   a partical thread/task/TID.  Several threads belong to one Dwfl.  */
 typedef struct Dwfl_Thread Dwfl_Thread;
 
 /* This holds everything we know about the state of the frame at a particular
@@ -111,7 +111,7 @@ extern void dwfl_report_begin (Dwfl *dwfl);
 
 /* Report that segment NDX begins at PHDR->p_vaddr + BIAS.
    If NDX is < 0, the value succeeding the last call's NDX
-   is used instead (zero on the first call).  IDENT is ignored.
+   is used instead (zero on the first call).
 
    If nonzero, the smallest PHDR->p_align value seen sets the
    effective page size for the address space DWFL describes.
@@ -120,9 +120,21 @@ extern void dwfl_report_begin (Dwfl *dwfl);
 
    Returns -1 for errors, or NDX (or its assigned replacement) on success.
 
-   Reporting segments at all is optional.  Its only benefit to the caller is to
-   offer this quick lookup via dwfl_addrsegment, or use other segment-based
-   calls.  */
+   When NDX is the value succeeding the last call's NDX (or is implicitly
+   so as above), IDENT is nonnull and matches the value in the last call,
+   and the PHDR and BIAS values reflect a segment that would be contiguous,
+   in both memory and file, with the last segment reported, then this
+   segment may be coalesced internally with preceding segments.  When given
+   an address inside this segment, dwfl_addrsegment may return the NDX of a
+   preceding contiguous segment.  To prevent coalesced segments, always
+   pass a null pointer for IDENT.
+
+   The values passed are not stored (except to track coalescence).
+   The only information that can be extracted from DWFL later is the
+   mapping of an address to a segment index that starts at or below
+   it.  Reporting segments at all is optional.  Its only benefit to
+   the caller is to offer this quick lookup via dwfl_addrsegment,
+   or use other segment-based calls.  */
 extern int dwfl_report_segment (Dwfl *dwfl, int ndx,
 				const GElf_Phdr *phdr, GElf_Addr bias,
 				const void *ident);
@@ -471,7 +483,7 @@ extern const char *dwfl_module_addrname (Dwfl_Module *mod, GElf_Addr address);
 
 /* Find the symbol associated with ADDRESS.  Return its name or NULL
    when nothing was found.  If the architecture uses function
-   descriptors, and symbol st_value points to one, ADDRESS will be
+   descriptors, and symbol st_value points to one, ADDRESS wil be
    matched against either the adjusted st_value or the associated
    function entry value as described in dwfl_module_getsym_info.  If
    OFFSET is not NULL it will be filled in with the difference from
@@ -556,7 +568,7 @@ extern Dwarf_Die *dwfl_module_nextcu (Dwfl_Module *mod,
 extern Dwfl_Module *dwfl_cumodule (Dwarf_Die *cudie);
 
 
-/* Cache the source line information for the CU and return the
+/* Cache the source line information fo the CU and return the
    number of Dwfl_Line entries it has.  */
 extern int dwfl_getsrclines (Dwarf_Die *cudie, size_t *nlines);
 
@@ -789,7 +801,7 @@ int dwfl_getthread_frames (Dwfl *dwfl, pid_t tid,
 
 /* Return *PC (program counter) for thread-specific frame STATE.
    Set *ISACTIVATION according to DWARF frame "activation" definition.
-   Typically you need to subtract 1 from *PC if *ACTIVATION is false to safely
+   Typically you need to substract 1 from *PC if *ACTIVATION is false to safely
    find function of the caller.  ACTIVATION may be NULL.  PC must not be NULL.
    Function returns false if it failed to find *PC.  */
 bool dwfl_frame_pc (Dwfl_Frame *state, Dwarf_Addr *pc, bool *isactivation)

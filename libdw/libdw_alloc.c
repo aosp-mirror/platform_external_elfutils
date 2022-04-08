@@ -87,11 +87,6 @@ __libdw_alloc_tail (Dwarf *dbg)
   if (result == NULL)
     {
       result = malloc (dbg->mem_default_size);
-      if (result == NULL)
-	{
-	  pthread_rwlock_unlock (&dbg->mem_rwl);
-	  dbg->oom_handler();
-	}
       result->size = dbg->mem_default_size
                      - offsetof (struct libdw_memblock, mem);
       result->remaining = result->size;

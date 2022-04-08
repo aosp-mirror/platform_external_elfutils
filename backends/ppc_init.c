@@ -39,11 +39,16 @@
 #include "common-reloc.c"
 
 
-Ebl *
+const char *
 ppc_init (Elf *elf __attribute__ ((unused)),
 	  GElf_Half machine __attribute__ ((unused)),
-	  Ebl *eh)
+	  Ebl *eh,
+	  size_t ehlen)
 {
+  /* Check whether the Elf_BH object has a sufficent size.  */
+  if (ehlen < sizeof (Ebl))
+    return NULL;
+
   /* We handle it.  */
   ppc_init_reloc (eh);
   HOOK (eh, reloc_simple_type);
@@ -54,6 +59,7 @@ ppc_init (Elf *elf __attribute__ ((unused)),
   HOOK (eh, bss_plt_p);
   HOOK (eh, return_value_location);
   HOOK (eh, register_info);
+  HOOK (eh, syscall_abi);
   HOOK (eh, core_note);
   HOOK (eh, auxv_info);
   HOOK (eh, check_object_attribute);
@@ -63,5 +69,5 @@ ppc_init (Elf *elf __attribute__ ((unused)),
   HOOK (eh, set_initial_registers_tid);
   HOOK (eh, dwarf_to_regno);
 
-  return eh;
+  return MODVERSION;
 }

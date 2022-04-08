@@ -32,7 +32,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "system.h"
 
 
 int
@@ -69,7 +68,7 @@ main (void)
   (void) __fsetlocking (stdout, FSETLOCKING_BYCALLER);
 
   /* Open the file.  */
-  int fd = open (fname, O_RDWR | O_CREAT | O_TRUNC, DEFFILEMODE);
+  int fd = open (fname, O_RDWR | O_CREAT | O_TRUNC, 0666);
   if (fd == -1)
     {
       printf ("cannot open `%s': %m\n", fname);

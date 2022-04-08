@@ -19,6 +19,4 @@
 
 # Make sure varlocs doesn't crash, doesn't trigger self-check/asserts
 # or leaks running under valgrind.
-testrun_on_self_exe ${abs_top_builddir}/tests/varlocs -e
-testrun_on_self_lib ${abs_top_builddir}/tests/varlocs -e
-testrun_on_self_obj ${abs_top_builddir}/tests/varlocs --exprlocs -e
+testrun_on_self_quiet ${abs_top_builddir}/tests/varlocs -e

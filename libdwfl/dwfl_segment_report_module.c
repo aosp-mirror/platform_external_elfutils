@@ -54,21 +54,6 @@
 # define MY_ELFDATA	ELFDATA2MSB
 #endif
 
-struct elf_build_id
-{
-  void *memory;
-  size_t len;
-  GElf_Addr vaddr;
-};
-
-struct read_state
-{
-  Dwfl *dwfl;
-  Dwfl_Memory_Callback *memory_callback;
-  void *memory_callback_arg;
-  void **buffer;
-  size_t *buffer_available;
-};
 
 /* Return user segment index closest to ADDR but not above it.
    If NEXT, return the closest to ADDR but not below it.  */
@@ -221,16 +206,16 @@ handle_file_note (GElf_Addr module_start, GElf_Addr module_end,
 
 static bool
 invalid_elf (Elf *elf, bool disk_file_has_build_id,
-             struct elf_build_id *build_id)
+	     const void *build_id, size_t build_id_len)
 {
-  if (! disk_file_has_build_id && build_id->len > 0)
+  if (! disk_file_has_build_id && build_id_len > 0)
     {
       /* Module found in segments with build-id is more reliable
 	 than a module found via DT_DEBUG on disk without any
 	 build-id.   */
       return true;
     }
-  if (disk_file_has_build_id && build_id->len > 0)
+  if (disk_file_has_build_id && build_id_len > 0)
     {
       const void *elf_build_id;
       ssize_t elf_build_id_len;
@@ -239,52 +224,11 @@ invalid_elf (Elf *elf, bool disk_file_has_build_id,
       elf_build_id_len = INTUSE(dwelf_elf_gnu_build_id) (elf, &elf_build_id);
       if (elf_build_id_len > 0)
 	{
-	  if (build_id->len != (size_t) elf_build_id_len
-	      || memcmp (build_id->memory, elf_build_id, build_id->len) != 0)
+	  if (build_id_len != (size_t) elf_build_id_len
+	      || memcmp (build_id, elf_build_id, build_id_len) != 0)
 	    return true;
 	}
     }
-  return false;
-}
-
-static void
-finish_portion (struct read_state *read_state,
-		void **data, size_t *data_size)
-{
-  if (*data_size != 0 && *data != NULL)
-    (*read_state->memory_callback) (read_state->dwfl, -1, data, data_size,
-				    0, 0, read_state->memory_callback_arg);
-}
-
-static inline bool
-read_portion (struct read_state *read_state,
-	      void **data, size_t *data_size,
-	      GElf_Addr start, size_t segment,
-	      GElf_Addr vaddr, size_t filesz)
-{
-  /* Check whether we will have to read the segment data, or if it
-     can be returned from the existing buffer.  */
-  if (filesz > *read_state->buffer_available
-      || vaddr - start > *read_state->buffer_available - filesz
-      /* If we're in string mode, then don't consider the buffer we have
-	 sufficient unless it contains the terminator of the string.  */
-      || (filesz == 0 && memchr (vaddr - start + *read_state->buffer, '\0',
-				 (*read_state->buffer_available
-				  - (vaddr - start))) == NULL))
-    {
-      *data = NULL;
-      *data_size = filesz;
-      return !(*read_state->memory_callback) (read_state->dwfl,
-					      addr_segndx (read_state->dwfl,
-							   segment, vaddr,
-							   false),
-					      data, data_size, vaddr, filesz,
-					      read_state->memory_callback_arg);
-    }
-
-  /* We already have this whole note segment from our initial read.  */
-  *data = vaddr - start + (*read_state->buffer);
-  *data_size = 0;
   return false;
 }
 
@@ -298,7 +242,6 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 			    const struct r_debug_info *r_debug_info)
 {
   size_t segment = ndx;
-  struct read_state read_state;
 
   if (segment >= dwfl->lookup_elts)
     segment = dwfl->lookup_elts - 1;
@@ -314,6 +257,20 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 
   GElf_Addr start = dwfl->lookup_addr[segment];
 
+  inline bool segment_read (int segndx,
+			    void **buffer, size_t *buffer_available,
+			    GElf_Addr addr, size_t minread)
+  {
+    return ! (*memory_callback) (dwfl, segndx, buffer, buffer_available,
+				 addr, minread, memory_callback_arg);
+  }
+
+  inline void release_buffer (void **buffer, size_t *buffer_available)
+  {
+    if (*buffer != NULL)
+      (void) segment_read (-1, buffer, buffer_available, 0, 0);
+  }
+
   /* First read in the file header and check its sanity.  */
 
   void *buffer = NULL;
@@ -321,20 +278,55 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   Elf *elf = NULL;
   int fd = -1;
 
-  read_state.dwfl = dwfl;
-  read_state.memory_callback = memory_callback;
-  read_state.memory_callback_arg = memory_callback_arg;
-  read_state.buffer = &buffer;
-  read_state.buffer_available = &buffer_available;
-
   /* We might have to reserve some memory for the phdrs.  Set to NULL
      here so we can always safely free it.  */
   void *phdrsp = NULL;
 
-  if (! (*memory_callback) (dwfl, ndx, &buffer, &buffer_available,
-			    start, sizeof (Elf64_Ehdr), memory_callback_arg)
+  inline int finish (void)
+  {
+    free (phdrsp);
+    release_buffer (&buffer, &buffer_available);
+    if (elf != NULL)
+      elf_end (elf);
+    if (fd != -1)
+      close (fd);
+    return ndx;
+  }
+
+  if (segment_read (ndx, &buffer, &buffer_available,
+		    start, sizeof (Elf64_Ehdr))
       || memcmp (buffer, ELFMAG, SELFMAG) != 0)
-    goto out;
+    return finish ();
+
+  inline bool read_portion (void **data, size_t *data_size,
+			    GElf_Addr vaddr, size_t filesz)
+  {
+    /* Check whether we will have to read the segment data, or if it
+       can be returned from the existing buffer.  */
+    if (filesz > buffer_available
+	|| vaddr - start > buffer_available - filesz
+	/* If we're in string mode, then don't consider the buffer we have
+	   sufficient unless it contains the terminator of the string.  */
+	|| (filesz == 0 && memchr (vaddr - start + buffer, '\0',
+				   buffer_available - (vaddr - start)) == NULL))
+      {
+	*data = NULL;
+	*data_size = filesz;
+	return segment_read (addr_segndx (dwfl, segment, vaddr, false),
+			     data, data_size, vaddr, filesz);
+      }
+
+    /* We already have this whole note segment from our initial read.  */
+    *data = vaddr - start + buffer;
+    *data_size = 0;
+    return false;
+  }
+
+  inline void finish_portion (void **data, size_t *data_size)
+  {
+    if (*data_size != 0)
+      release_buffer (data, data_size);
+  }
 
   /* Extract the information we need from the file header.  */
   const unsigned char *e_ident;
@@ -371,17 +363,17 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
     case ELFCLASS32:
       xlatefrom.d_size = sizeof (Elf32_Ehdr);
       if (elf32_xlatetom (&xlateto, &xlatefrom, ei_data) == NULL)
-	goto out;
+	return finish ();
       e_type = ehdr.e32.e_type;
       phoff = ehdr.e32.e_phoff;
       phnum = ehdr.e32.e_phnum;
       phentsize = ehdr.e32.e_phentsize;
       if (phentsize != sizeof (Elf32_Phdr))
-	goto out;
+	return finish ();
       /* NOTE if the number of sections is > 0xff00 then e_shnum
 	 is zero and the actual number would come from the section
 	 zero sh_size field. We ignore this here because getting shdrs
-	 is just a nice bonus (see below in the type == PT_LOAD case
+	 is just a nice bonus (see below in consider_phdr PT_LOAD
 	 where we trim the last segment).  */
       shdrs_end = ehdr.e32.e_shoff + ehdr.e32.e_shnum * ehdr.e32.e_shentsize;
       break;
@@ -389,19 +381,19 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
     case ELFCLASS64:
       xlatefrom.d_size = sizeof (Elf64_Ehdr);
       if (elf64_xlatetom (&xlateto, &xlatefrom, ei_data) == NULL)
-	goto out;
+	return finish ();
       e_type = ehdr.e64.e_type;
       phoff = ehdr.e64.e_phoff;
       phnum = ehdr.e64.e_phnum;
       phentsize = ehdr.e64.e_phentsize;
       if (phentsize != sizeof (Elf64_Phdr))
-	goto out;
+	return finish ();
       /* See the NOTE above for shdrs_end and ehdr.e32.e_shnum.  */
       shdrs_end = ehdr.e64.e_shoff + ehdr.e64.e_shnum * ehdr.e64.e_shentsize;
       break;
 
     default:
-      goto out;
+      return finish ();
     }
 
   /* The file header tells where to find the program headers.
@@ -409,17 +401,16 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
      Without them, we don't have a module to report.  */
 
   if (phnum == 0)
-    goto out;
+    return finish ();
 
   xlatefrom.d_type = xlateto.d_type = ELF_T_PHDR;
   xlatefrom.d_size = phnum * phentsize;
 
   void *ph_buffer = NULL;
   size_t ph_buffer_size = 0;
-  if (read_portion (&read_state, &ph_buffer, &ph_buffer_size,
-		    start, segment,
+  if (read_portion (&ph_buffer, &ph_buffer_size,
 		    start + phoff, xlatefrom.d_size))
-    goto out;
+    return finish ();
 
   /* ph_buffer_size will be zero if we got everything from the initial
      buffer, otherwise it will be the size of the new buffer that
@@ -432,11 +423,11 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   bool class32 = ei_class == ELFCLASS32;
   size_t phdr_size = class32 ? sizeof (Elf32_Phdr) : sizeof (Elf64_Phdr);
   if (unlikely (phnum > SIZE_MAX / phdr_size))
-    goto out;
+    return finish ();
   const size_t phdrsp_bytes = phnum * phdr_size;
   phdrsp = malloc (phdrsp_bytes);
   if (unlikely (phdrsp == NULL))
-    goto out;
+    return finish ();
 
   xlateto.d_buf = phdrsp;
   xlateto.d_size = phdrsp_bytes;
@@ -461,189 +452,193 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   GElf_Xword dyn_filesz = 0;
 
   /* Collect the build ID bits here.  */
-  struct elf_build_id build_id;
-  build_id.memory = NULL;
-  build_id.len = 0;
-  build_id.vaddr =0;
+  void *build_id = NULL;
+  size_t build_id_len = 0;
+  GElf_Addr build_id_vaddr = 0;
 
-  Elf32_Phdr *p32 = phdrsp;
-  Elf64_Phdr *p64 = phdrsp;
-  if ((ei_class == ELFCLASS32
-       && elf32_xlatetom (&xlateto, &xlatefrom, ei_data) == NULL)
-      || (ei_class == ELFCLASS64
-          && elf64_xlatetom (&xlateto, &xlatefrom, ei_data) == NULL))
+  /* Consider a PT_NOTE we've found in the image.  */
+  inline void consider_notes (GElf_Addr vaddr, GElf_Xword filesz,
+			      GElf_Xword align)
+  {
+    /* If we have already seen a build ID, we don't care any more.  */
+    if (build_id != NULL || filesz == 0)
+      return;
+
+    void *data;
+    size_t data_size;
+    if (read_portion (&data, &data_size, vaddr, filesz))
+      return;
+
+    /* data_size will be zero if we got everything from the initial
+       buffer, otherwise it will be the size of the new buffer that
+       could be read.  */
+    if (data_size != 0)
+      filesz = data_size;
+
+    assert (sizeof (Elf32_Nhdr) == sizeof (Elf64_Nhdr));
+
+    void *notes;
+    if (ei_data == MY_ELFDATA)
+      notes = data;
+    else
+      {
+	notes = malloc (filesz);
+	if (unlikely (notes == NULL))
+	  return;
+	xlatefrom.d_type = xlateto.d_type = (align == 8
+					     ? ELF_T_NHDR8 : ELF_T_NHDR);
+	xlatefrom.d_buf = (void *) data;
+	xlatefrom.d_size = filesz;
+	xlateto.d_buf = notes;
+	xlateto.d_size = filesz;
+	if (elf32_xlatetom (&xlateto, &xlatefrom,
+			    ehdr.e32.e_ident[EI_DATA]) == NULL)
+	  goto done;
+      }
+
+    const GElf_Nhdr *nh = notes;
+    size_t len = 0;
+    while (filesz > len + sizeof (*nh))
+      {
+	const void *note_name;
+	const void *note_desc;
+
+	len += sizeof (*nh);
+	note_name = notes + len;
+
+	len += nh->n_namesz;
+	len = align == 8 ? NOTE_ALIGN8 (len) : NOTE_ALIGN4 (len);
+	note_desc = notes + len;
+
+	if (unlikely (filesz < len + nh->n_descsz))
+	  break;
+
+        if (nh->n_type == NT_GNU_BUILD_ID
+	    && nh->n_descsz > 0
+	    && nh->n_namesz == sizeof "GNU"
+	    && !memcmp (note_name, "GNU", sizeof "GNU"))
+	  {
+	    build_id_vaddr = note_desc - (const void *) notes + vaddr;
+	    build_id_len = nh->n_descsz;
+	    build_id = malloc (nh->n_descsz);
+	    if (likely (build_id != NULL))
+	      memcpy (build_id, note_desc, build_id_len);
+	    break;
+	  }
+
+	len += nh->n_descsz;
+	len = align == 8 ? NOTE_ALIGN8 (len) : NOTE_ALIGN4 (len);
+	nh = (void *) notes + len;
+      }
+
+  done:
+    if (notes != data)
+      free (notes);
+    finish_portion (&data, &data_size);
+  }
+
+  /* Consider each of the program headers we've read from the image.  */
+  inline void consider_phdr (GElf_Word type,
+			     GElf_Addr vaddr, GElf_Xword memsz,
+			     GElf_Off offset, GElf_Xword filesz,
+			     GElf_Xword align)
+  {
+    switch (type)
+      {
+      case PT_DYNAMIC:
+	dyn_vaddr = vaddr;
+	dyn_filesz = filesz;
+	break;
+
+      case PT_NOTE:
+	/* We calculate from the p_offset of the note segment,
+	   because we don't yet know the bias for its p_vaddr.  */
+	consider_notes (start + offset, filesz, align);
+	break;
+
+      case PT_LOAD:
+	align = dwfl->segment_align > 1 ? dwfl->segment_align : align ?: 1;
+
+	GElf_Addr vaddr_end = (vaddr + memsz + align - 1) & -align;
+	GElf_Addr filesz_vaddr = filesz < memsz ? vaddr + filesz : vaddr_end;
+	GElf_Off filesz_offset = filesz_vaddr - vaddr + offset;
+
+	if (file_trimmed_end < offset + filesz)
+	  {
+	    file_trimmed_end = offset + filesz;
+
+	    /* Trim the last segment so we don't bother with zeros
+	       in the last page that are off the end of the file.
+	       However, if the extra bit in that page includes the
+	       section headers, keep them.  */
+	    if (shdrs_end <= filesz_offset && shdrs_end > file_trimmed_end)
+	      {
+		filesz += shdrs_end - file_trimmed_end;
+		file_trimmed_end = shdrs_end;
+	      }
+	  }
+
+	total_filesz += filesz;
+
+	if (file_end < filesz_offset)
+	  {
+	    file_end = filesz_offset;
+	    if (filesz_vaddr - start == filesz_offset)
+	      contiguous = file_end;
+	  }
+
+	if (!found_bias && (offset & -align) == 0
+	    && likely (filesz_offset >= phoff + phnum * phentsize))
+	  {
+	    bias = start - vaddr;
+	    found_bias = true;
+	  }
+
+	if ((vaddr & -align) < module_start)
+	  {
+	    module_start = vaddr & -align;
+	    module_address_sync = vaddr + memsz;
+	  }
+
+	if (module_end < vaddr_end)
+	  module_end = vaddr_end;
+	break;
+      }
+  }
+
+  Elf32_Phdr (*p32)[phnum] = phdrsp;
+  Elf64_Phdr (*p64)[phnum] = phdrsp;
+  if (ei_class == ELFCLASS32)
     {
-      found_bias = false; /* Trigger error check */
+      if (elf32_xlatetom (&xlateto, &xlatefrom, ei_data) == NULL)
+	found_bias = false;	/* Trigger error check.  */
+      else
+	for (uint_fast16_t i = 0; i < phnum; ++i)
+	  consider_phdr ((*p32)[i].p_type,
+			 (*p32)[i].p_vaddr, (*p32)[i].p_memsz,
+			 (*p32)[i].p_offset, (*p32)[i].p_filesz,
+			 (*p32)[i].p_align);
     }
   else
     {
-      /* Consider each of the program headers we've read from the image.  */
-      for (uint_fast16_t i = 0; i < phnum; ++i)
-        {
-          bool is32 = (ei_class == ELFCLASS32);
-          GElf_Word type = is32 ? p32[i].p_type : p64[i].p_type;
-          GElf_Addr vaddr = is32 ? p32[i].p_vaddr : p64[i].p_vaddr;
-          GElf_Xword memsz = is32 ? p32[i].p_memsz : p64[i].p_memsz;
-          GElf_Off offset = is32 ? p32[i].p_offset : p64[i].p_offset;
-          GElf_Xword filesz = is32 ? p32[i].p_filesz : p64[i].p_filesz;
-          GElf_Xword align = is32 ? p32[i].p_align : p64[i].p_align;
-
-          if (type == PT_DYNAMIC)
-            {
-              dyn_vaddr = vaddr;
-              dyn_filesz = filesz;
-            }
-          else if (type == PT_NOTE)
-            {
-              /* If we have already seen a build ID, we don't care any more.  */
-              if (build_id.memory != NULL || filesz == 0)
-                continue; /* Next header */
-
-              /* We calculate from the p_offset of the note segment,
-               because we don't yet know the bias for its p_vaddr.  */
-              const GElf_Addr note_vaddr = start + offset;
-              void *data;
-              size_t data_size;
-              if (read_portion (&read_state, &data, &data_size,
-				start, segment, note_vaddr, filesz))
-                continue; /* Next header */
-
-              /* data_size will be zero if we got everything from the initial
-                 buffer, otherwise it will be the size of the new buffer that
-                 could be read.  */
-              if (data_size != 0)
-                filesz = data_size;
-
-              assert (sizeof (Elf32_Nhdr) == sizeof (Elf64_Nhdr));
-
-              void *notes;
-              if (ei_data == MY_ELFDATA)
-                notes = data;
-              else
-                {
-                  const unsigned int xencoding = ehdr.e32.e_ident[EI_DATA];
-
-                  notes = malloc (filesz);
-                  if (unlikely (notes == NULL))
-                    continue; /* Next header */
-                  xlatefrom.d_type = xlateto.d_type = (align == 8
-                                                       ? ELF_T_NHDR8
-						       : ELF_T_NHDR);
-                  xlatefrom.d_buf = (void *) data;
-                  xlatefrom.d_size = filesz;
-                  xlateto.d_buf = notes;
-                  xlateto.d_size = filesz;
-                  if (elf32_xlatetom (&xlateto, &xlatefrom, xencoding) == NULL)
-                    {
-                      free (notes);
-                      finish_portion (&read_state, &data, &data_size);
-                      continue;
-                    }
-                }
-
-              const GElf_Nhdr *nh = notes;
-              size_t len = 0;
-              while (filesz > len + sizeof (*nh))
-                {
-                  const void *note_name;
-                  const void *note_desc;
-
-                  len += sizeof (*nh);
-                  note_name = notes + len;
-
-                  len += nh->n_namesz;
-                  len = align == 8 ? NOTE_ALIGN8 (len) : NOTE_ALIGN4 (len);
-                  note_desc = notes + len;
-
-                  if (unlikely (filesz < len + nh->n_descsz))
-                    break;
-
-                  if (nh->n_type == NT_GNU_BUILD_ID
-                      && nh->n_descsz > 0
-                      && nh->n_namesz == sizeof "GNU"
-                      && !memcmp (note_name, "GNU", sizeof "GNU"))
-                    {
-                      build_id.vaddr = (note_desc
-					- (const void *) notes
-					+ note_vaddr);
-                      build_id.len = nh->n_descsz;
-                      build_id.memory = malloc (build_id.len);
-                      if (likely (build_id.memory != NULL))
-                        memcpy (build_id.memory, note_desc, build_id.len);
-                      break;
-                    }
-
-                  len += nh->n_descsz;
-                  len = align == 8 ? NOTE_ALIGN8 (len) : NOTE_ALIGN4 (len);
-                  nh = (void *) notes + len;
-                }
-
-              if (notes != data)
-                free (notes);
-              finish_portion (&read_state, &data, &data_size);
-            }
-          else if (type == PT_LOAD)
-            {
-              align = (dwfl->segment_align > 1
-                       ? dwfl->segment_align : (align ?: 1));
-
-              GElf_Addr vaddr_end = (vaddr + memsz + align - 1) & -align;
-              GElf_Addr filesz_vaddr = (filesz < memsz
-                                        ? vaddr + filesz : vaddr_end);
-              GElf_Off filesz_offset = filesz_vaddr - vaddr + offset;
-
-              if (file_trimmed_end < offset + filesz)
-                {
-                  file_trimmed_end = offset + filesz;
-
-                  /* Trim the last segment so we don't bother with zeros
-                     in the last page that are off the end of the file.
-                     However, if the extra bit in that page includes the
-                     section headers, keep them.  */
-                  if (shdrs_end <= filesz_offset
-                      && shdrs_end > file_trimmed_end)
-                    {
-                      filesz += shdrs_end - file_trimmed_end;
-                      file_trimmed_end = shdrs_end;
-                    }
-                }
-
-              total_filesz += filesz;
-
-              if (file_end < filesz_offset)
-                {
-                  file_end = filesz_offset;
-                  if (filesz_vaddr - start == filesz_offset)
-                    contiguous = file_end;
-                }
-
-              if (!found_bias && (offset & -align) == 0
-                  && likely (filesz_offset >= phoff + phnum * phentsize))
-                {
-                  bias = start - vaddr;
-                  found_bias = true;
-                }
-
-              if ((vaddr & -align) < module_start)
-                {
-                  module_start = vaddr & -align;
-                  module_address_sync = vaddr + memsz;
-                }
-
-              if (module_end < vaddr_end)
-                module_end = vaddr_end;
-            }
-        }
+      if (elf64_xlatetom (&xlateto, &xlatefrom, ei_data) == NULL)
+	found_bias = false;	/* Trigger error check.  */
+      else
+	for (uint_fast16_t i = 0; i < phnum; ++i)
+	  consider_phdr ((*p64)[i].p_type,
+			 (*p64)[i].p_vaddr, (*p64)[i].p_memsz,
+			 (*p64)[i].p_offset, (*p64)[i].p_filesz,
+			 (*p64)[i].p_align);
     }
 
-  finish_portion (&read_state, &ph_buffer, &ph_buffer_size);
+  finish_portion (&ph_buffer, &ph_buffer_size);
 
   /* We must have seen the segment covering offset 0, or else the ELF
      header we read at START was not produced by these program headers.  */
   if (unlikely (!found_bias))
     {
-      free (build_id.memory);
-      goto out;
+      free (build_id);
+      return finish ();
     }
 
   /* Now we know enough to report a module for sure: its bounds.  */
@@ -697,7 +692,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 	  {
 	    if (module->elf != NULL
 	        && invalid_elf (module->elf, module->disk_file_has_build_id,
-				&build_id))
+				build_id, build_id_len))
 	      {
 		elf_end (module->elf);
 		close (module->fd);
@@ -713,8 +708,8 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 	  }
       if (skip_this_module)
 	{
-	  free (build_id.memory);
-	  goto out;
+	  free (build_id);
+	  return finish ();
 	}
     }
 
@@ -732,7 +727,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 	  Dwfl_Error error = __libdw_open_file (&fd, &elf, true, false);
 	  if (error == DWFL_E_NOERROR)
 	    invalid = invalid_elf (elf, true /* disk_file_has_build_id */,
-                                   &build_id);
+				   build_id, build_id_len);
 	}
       if (invalid)
 	{
@@ -760,13 +755,39 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   GElf_Addr dynstr_vaddr = 0;
   GElf_Xword dynstrsz = 0;
   bool execlike = false;
+  inline bool consider_dyn (GElf_Sxword tag, GElf_Xword val)
+  {
+    switch (tag)
+      {
+      default:
+	return false;
+
+      case DT_DEBUG:
+	execlike = true;
+	break;
+
+      case DT_SONAME:
+	soname_stroff = val;
+	break;
+
+      case DT_STRTAB:
+	dynstr_vaddr = val;
+	break;
+
+      case DT_STRSZ:
+	dynstrsz = val;
+	break;
+      }
+
+    return soname_stroff != 0 && dynstr_vaddr != 0 && dynstrsz != 0;
+  }
+
   const size_t dyn_entsize = (ei_class == ELFCLASS32
 			      ? sizeof (Elf32_Dyn) : sizeof (Elf64_Dyn));
   void *dyn_data = NULL;
   size_t dyn_data_size = 0;
   if (dyn_filesz != 0 && dyn_filesz % dyn_entsize == 0
-      && ! read_portion (&read_state, &dyn_data, &dyn_data_size,
-			 start, segment, dyn_vaddr, dyn_filesz))
+      && ! read_portion (&dyn_data, &dyn_data_size, dyn_vaddr, dyn_filesz))
     {
       /* dyn_data_size will be zero if we got everything from the initial
          buffer, otherwise it will be the size of the new buffer that
@@ -775,10 +796,10 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 	dyn_filesz = dyn_data_size;
 
       void *dyns = malloc (dyn_filesz);
-      Elf32_Dyn *d32 = dyns;
-      Elf64_Dyn *d64 = dyns;
+      Elf32_Dyn (*d32)[dyn_filesz / sizeof (Elf32_Dyn)] = dyns;
+      Elf64_Dyn (*d64)[dyn_filesz / sizeof (Elf64_Dyn)] = dyns;
       if (unlikely (dyns == NULL))
-	goto out;
+	return finish ();
 
       xlatefrom.d_type = xlateto.d_type = ELF_T_DYN;
       xlatefrom.d_buf = (void *) dyn_data;
@@ -786,36 +807,23 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
       xlateto.d_buf = dyns;
       xlateto.d_size = dyn_filesz;
 
-      bool is32 = (ei_class == ELFCLASS32);
-      if ((is32 && elf32_xlatetom (&xlateto, &xlatefrom, ei_data) != NULL)
-          || (!is32 && elf64_xlatetom (&xlateto, &xlatefrom, ei_data) != NULL))
-        {
-          size_t n = (is32
-		      ? (dyn_filesz / sizeof (Elf32_Dyn))
-		      : (dyn_filesz / sizeof (Elf64_Dyn)));
-          for (size_t i = 0; i < n; ++i)
-            {
-              GElf_Sxword tag = is32 ? d32[i].d_tag : d64[i].d_tag;
-              GElf_Xword val = is32 ? d32[i].d_un.d_val : d64[i].d_un.d_val;
-
-              if (tag == DT_DEBUG)
-                execlike = true;
-              else if (tag == DT_SONAME)
-                soname_stroff = val;
-              else if (tag == DT_STRTAB)
-                dynstr_vaddr = val;
-              else if (tag == DT_STRSZ)
-                dynstrsz = val;
-              else
-                continue;
-
-              if (soname_stroff != 0 && dynstr_vaddr != 0 && dynstrsz != 0)
-                break;
-            }
-        }
+      if (ei_class == ELFCLASS32)
+	{
+	  if (elf32_xlatetom (&xlateto, &xlatefrom, ei_data) != NULL)
+	    for (size_t i = 0; i < dyn_filesz / sizeof (Elf32_Dyn); ++i)
+	      if (consider_dyn ((*d32)[i].d_tag, (*d32)[i].d_un.d_val))
+		break;
+	}
+      else
+	{
+	  if (elf64_xlatetom (&xlateto, &xlatefrom, ei_data) != NULL)
+	    for (size_t i = 0; i < dyn_filesz / sizeof (Elf64_Dyn); ++i)
+	      if (consider_dyn ((*d64)[i].d_tag, (*d64)[i].d_un.d_val))
+		break;
+	}
       free (dyns);
     }
-  finish_portion (&read_state, &dyn_data, &dyn_data_size);
+  finish_portion (&dyn_data, &dyn_data_size);
 
   /* We'll use the name passed in or a stupid default if not DT_SONAME.  */
   if (name == NULL)
@@ -847,8 +855,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 
       /* Try to get the DT_SONAME string.  */
       if (soname_stroff != 0 && soname_stroff + 1 < dynstrsz
-	  && ! read_portion (&read_state, &soname, &soname_size,
-			     start, segment,
+	  && ! read_portion (&soname, &soname_size,
 			     dynstr_vaddr + soname_stroff, 0))
 	name = soname;
     }
@@ -864,11 +871,11 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   if (mod != NULL && (execlike || ehdr.e32.e_type == ET_EXEC))
     mod->is_executable = true;
 
-  if (likely (mod != NULL) && build_id.memory != NULL
+  if (likely (mod != NULL) && build_id != NULL
       && unlikely (INTUSE(dwfl_module_report_build_id) (mod,
-							build_id.memory,
-							build_id.len,
-							build_id.vaddr)))
+							build_id,
+							build_id_len,
+							build_id_vaddr)))
     {
       mod->gc = true;
       mod = NULL;
@@ -876,13 +883,13 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 
   /* At this point we do not need BUILD_ID or NAME any more.
      They have been copied.  */
-  free (build_id.memory);
-  finish_portion (&read_state, &soname, &soname_size);
+  free (build_id);
+  finish_portion (&soname, &soname_size);
 
   if (unlikely (mod == NULL))
     {
       ndx = -1;
-      goto out;
+      return finish ();
     }
 
   /* We have reported the module.  Now let the caller decide whether we
@@ -906,31 +913,36 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 
       void *contents = calloc (1, file_trimmed_end);
       if (unlikely (contents == NULL))
-	goto out;
+	return finish ();
+
+      inline void final_read (size_t offset, GElf_Addr vaddr, size_t size)
+      {
+	void *into = contents + offset;
+	size_t read_size = size;
+	(void) segment_read (addr_segndx (dwfl, segment, vaddr, false),
+			     &into, &read_size, vaddr, size);
+      }
 
       if (contiguous < file_trimmed_end)
 	{
 	  /* We can't use the memory image verbatim as the file image.
 	     So we'll be reading into a local image of the virtual file.  */
-          for (uint_fast16_t i = 0; i < phnum; ++i)
-            {
-              bool is32 = (ei_class == ELFCLASS32);
-              GElf_Word type = is32 ? p32[i].p_type : p64[i].p_type;
 
-              if (type != PT_LOAD)
-                continue;
+	  inline void read_phdr (GElf_Word type, GElf_Addr vaddr,
+				 GElf_Off offset, GElf_Xword filesz)
+	  {
+	    if (type == PT_LOAD)
+	      final_read (offset, vaddr + bias, filesz);
+	  }
 
-              GElf_Addr vaddr = is32 ? p32[i].p_vaddr : p64[i].p_vaddr;
-              GElf_Off offset = is32 ? p32[i].p_offset : p64[i].p_offset;
-              GElf_Xword filesz = is32 ? p32[i].p_filesz : p64[i].p_filesz;
-
-              void *into = contents + offset;
-              size_t read_size = filesz;
-              (*memory_callback) (dwfl, addr_segndx (dwfl, segment,
-                                                     vaddr + bias, false),
-                                  &into, &read_size, vaddr + bias, read_size,
-                                  memory_callback_arg);
-            }
+	  if (ei_class == ELFCLASS32)
+	    for (uint_fast16_t i = 0; i < phnum; ++i)
+	      read_phdr ((*p32)[i].p_type, (*p32)[i].p_vaddr,
+			 (*p32)[i].p_offset, (*p32)[i].p_filesz);
+	  else
+	    for (uint_fast16_t i = 0; i < phnum; ++i)
+	      read_phdr ((*p64)[i].p_type, (*p64)[i].p_vaddr,
+			 (*p64)[i].p_offset, (*p64)[i].p_filesz);
 	}
       else
 	{
@@ -941,15 +953,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 	  memcpy (contents, buffer, have);
 
 	  if (have < file_trimmed_end)
-            {
-	      void *into = contents + have;
-	      size_t read_size = file_trimmed_end - have;
-	      (*memory_callback) (dwfl,
-				  addr_segndx (dwfl, segment,
-					       start + have, false),
-				  &into, &read_size, start + have,
-				  read_size, memory_callback_arg);
-            }
+	    final_read (have, start + have, file_trimmed_end - have);
 	}
 
       elf = elf_memory (contents, file_trimmed_end);
@@ -971,15 +975,5 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
       mod->main_bias = bias;
     }
 
-out:
-  free (phdrsp);
-  if (buffer != NULL)
-    (*memory_callback) (dwfl, -1, &buffer, &buffer_available, 0, 0,
-                        memory_callback_arg);
-
-  if (elf != NULL)
-    elf_end (elf);
-  if (fd != -1)
-    close (fd);
-  return ndx;
+  return finish ();
 }

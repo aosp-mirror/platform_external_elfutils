@@ -39,11 +39,16 @@
 #include "common-reloc.c"
 
 
-Ebl *
+const char *
 sh_init (Elf *elf __attribute__ ((unused)),
 	 GElf_Half machine __attribute__ ((unused)),
-	 Ebl *eh)
+	 Ebl *eh,
+	 size_t ehlen)
 {
+  /* Check whether the Elf_BH object has a sufficent size.  */
+  if (ehlen < sizeof (Ebl))
+    return NULL;
+
   /* We handle it.  */
   sh_init_reloc (eh);
   HOOK (eh, reloc_simple_type);
@@ -53,5 +58,5 @@ sh_init (Elf *elf __attribute__ ((unused)),
   HOOK (eh, register_info);
   HOOK (eh, return_value_location);
 
-  return eh;
+  return MODVERSION;
 }

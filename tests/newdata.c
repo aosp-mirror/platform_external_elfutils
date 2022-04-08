@@ -26,7 +26,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "system.h"
 
 #include ELFUTILS_HEADER(elf)
 #include <gelf.h>
@@ -244,7 +243,7 @@ check_elf (int class, int use_mmap)
 
   printf ("\ncheck_elf: %s\n", fname);
 
-  int fd = open (fname, O_RDWR|O_CREAT|O_TRUNC, DEFFILEMODE);
+  int fd = open (fname, O_RDWR|O_CREAT|O_TRUNC, 00666);
   if (fd == -1)
     {
       printf ("cannot create `%s': %s\n", fname, strerror (errno));

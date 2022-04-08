@@ -20,7 +20,6 @@
 #endif
 
 #include ELFUTILS_HEADER(asm)
-#include ELFUTILS_HEADER(ebl)
 #include <libelf.h>
 #include <stdio.h>
 #include <stdlib.h>

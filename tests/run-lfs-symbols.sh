@@ -1,4 +1,4 @@
-#! /usr/bin/env bash
+#! /bin/bash
 # Copyright (C) 2015 Red Hat, Inc.
 # This file is part of elfutils.
 #
@@ -18,7 +18,7 @@
 . $srcdir/test-subr.sh
 
 if ! grep -q -F '#define _FILE_OFFSET_BITS' ${abs_top_builddir}/config.h; then
-  echo "LFS testing is irrelevant on this system"
+  echo "LFS testing is irrelevent on this system"
   exit 77
 fi
 
@@ -46,44 +46,41 @@ makeprint() {
 }
 
 testrun_lfs() {
-  echo "checking $1"
-  if [ -e "$1" ]; then
-    bad=$(testrun ${abs_top_builddir}/src/nm -u "$1" | awk "$LFS")
-    if [ -n "$bad" ]; then
-      echo "$1 contains non-lfs symbols:" $bad
-      exit_status=1
-    fi
-  else
-    echo "$1 doesn't exist"
+  bad=$(testrun ${abs_top_builddir}/src/nm -u "$1" | awk "$LFS")
+  if [ -n "$bad" ]; then
+    echo "$1 contains non-lfs symbols:" $bad
     exit_status=1
   fi
 }
 
-echo First sanity-check that LFS detection works.
+# First sanity-check that LFS detection works.
 exit_status=0
 testrun_lfs ./testfile-nolfs
 if [ $exit_status -eq 0 ]; then
   echo "Didn't detect any problem with testfile-nolfs!"
   exit 99
 fi
-echo
 
 exit_status=0
 
-echo Check all normal build targets.
+# Check all normal build targets.
 for dir in libelf libdw libasm libcpu src; do
   dir=${abs_top_builddir}/$dir
   for program in $(makeprint PROGRAMS $dir); do
     testrun_lfs $dir/$program
   done
 done
-echo
 
-echo Check all test programs.
+# Check all libebl modules.
+dir=${abs_top_builddir}/backends
+for module in $(makeprint modules $dir); do
+  testrun_lfs $dir/libebl_$module.so
+done
+
+# Check all test programs.
 dir=${abs_builddir}
 for program in $(makeprint check_PROGRAMS $dir); do
   testrun_lfs $dir/$program
 done
-echo
 
 exit $exit_status

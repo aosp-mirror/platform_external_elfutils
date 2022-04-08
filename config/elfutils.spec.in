@@ -1,16 +1,16 @@
 # -*- rpm-spec-*-
+Summary: A collection of utilities and DSOs to handle ELF files and DWARF data
 Name: elfutils
 Version: @PACKAGE_VERSION@
 Release: 1
 URL: http://elfutils.org/
 License: GPLv3+ and (GPLv2+ or LGPLv3+) and GFDL
 Source: ftp://sourceware.org/pub/elfutils/%{version}/elfutils-%{version}.tar.bz2
-Summary: A collection of utilities and DSOs to handle ELF files and DWARF data
 
 Requires: elfutils-libelf = %{version}-%{release}
 Requires: elfutils-libs = %{version}-%{release}
 # Can be a Recommends if rpm supports that
-Requires: elfutils-debuginfod-client = %{version}-%{release}
+Requires: elfutils-debuginfod-client
 
 BuildRequires: gcc
 # For libstdc++ demangle support
@@ -24,7 +24,6 @@ BuildRequires: flex
 BuildRequires: zlib-devel
 BuildRequires: bzip2-devel
 BuildRequires: xz-devel
-BuildRequires: libzstd-devel
 
 # For debuginfod
 BuildRequires: pkgconfig(libmicrohttpd) >= 0.9.33
@@ -34,10 +33,8 @@ BuildRequires: pkgconfig(libarchive) >= 3.1.2
 
 # For tests need to bunzip2 test files.
 BuildRequires: bzip2
-BuildRequires: zstd
 # For the run-debuginfod-find.sh test case in %check for /usr/sbin/ss
 BuildRequires: iproute
-BuildRequires: bsdtar
 BuildRequires: curl
 
 %define _gnu %{nil}
@@ -57,7 +54,7 @@ License: GPLv2+ or LGPLv3+
 Requires: elfutils-libelf = %{version}-%{release}
 Requires: default-yama-scope
 # Can be a Recommends if rpm supports that
-Requires: elfutils-debuginfod-client = %{version}-%{release}
+Requires: elfutils-debuginfod-client
 
 %description libs
 The elfutils-libs package contains libraries which implement DWARF, ELF,
@@ -71,8 +68,11 @@ Summary: Development libraries to handle compiled objects
 License: GPLv2+ or LGPLv3+
 Requires: elfutils-libs = %{version}-%{release}
 Requires: elfutils-libelf-devel = %{version}-%{release}
-# Can be a Recommends if rpm supports that
-Requires: elfutils-debuginfod-client-devel = %{version}-%{release}
+%if 0%{?rhel} >= 8 || 0%{?fedora} >= 20
+Recommends: elfutils-debuginfod-client-devel
+%else
+Requires: elfutils-debuginfod-client-devel
+%endif
 
 %description devel
 The elfutils-devel package contains the libraries to create
@@ -87,8 +87,8 @@ Requires: elfutils-devel = %{version}-%{release}
 Requires: elfutils-libelf-devel-static = %{version}-%{release}
 
 %description devel-static
-The elfutils-devel-static package contains the static archives
-with the code to handle compiled objects.
+The elfutils-devel-static archive contains the static archives
+with the code the handle compiled objects.
 
 %package libelf
 Summary: Library to read and write ELF files
@@ -144,21 +144,17 @@ License: GPLv3+ and (GPLv2+ or LGPLv3+)
 %package debuginfod-client-devel
 Summary: Libraries and headers to build debuginfod client applications
 License: GPLv2+ or LGPLv3+
-Requires: elfutils-debuginfod-client = %{version}-%{release}
 
 %package debuginfod
 Summary: HTTP ELF/DWARF file server addressed by build-id
 License: GPLv3+
-Requires: elfutils-libs = %{version}-%{release}
-Requires: elfutils-libelf = %{version}-%{release}
-Requires: elfutils-debuginfod-client = %{version}-%{release}
 BuildRequires: systemd
 Requires(post):   systemd
 Requires(preun):  systemd
 Requires(postun): systemd
 Requires(pre): shadow-utils
-# To extract .deb files with a bsdtar (= libarchive) subshell
-Requires: bsdtar
+# For /usr/bin/cpio2rpm
+Requires: rpm
 
 %description debuginfod-client
 The elfutils-debuginfod-client package contains shared libraries
@@ -181,7 +177,7 @@ such servers to download those files on demand.
 %setup -q
 
 %build
-%configure --program-prefix=%{_programprefix} --enable-debuginfod --enable-debuginfod-urls
+%configure --program-prefix=%{_programprefix} --enable-debuginfod
 make -s %{?_smp_mflags}
 
 %install
@@ -191,8 +187,6 @@ mkdir -p ${RPM_BUILD_ROOT}%{_prefix}
 %make_install
 
 chmod +x ${RPM_BUILD_ROOT}%{_prefix}/%{_lib}/lib*.so*
-mkdir -p ${RPM_BUILD_ROOT}%{_localstatedir}/cache/debuginfod
-touch ${RPM_BUILD_ROOT}%{_localstatedir}/cache/debuginfod/debuginfod.sqlite
 
 # XXX Nuke unpackaged files
 ( cd ${RPM_BUILD_ROOT}
@@ -295,28 +289,26 @@ fi
 %files debuginfod-client
 %defattr(-,root,root)
 %{_libdir}/libdebuginfod-%{version}.so
-%{_libdir}/libdebuginfod.so.*
 %{_bindir}/debuginfod-find
 %{_mandir}/man1/debuginfod-find.1*
-%config(noreplace) %{_sysconfdir}/profile.d/*
-  
+
 %files debuginfod-client-devel
 %defattr(-,root,root)
 %{_libdir}/pkgconfig/libdebuginfod.pc
 %{_mandir}/man3/debuginfod_*.3*
 %{_includedir}/elfutils/debuginfod.h
-%{_libdir}/libdebuginfod.so
+%{_libdir}/libdebuginfod.so*
 
 %files debuginfod
 %defattr(-,root,root)
 %{_bindir}/debuginfod
-%config(noreplace) %{_sysconfdir}/sysconfig/debuginfod
+%config(noreplace) %verify(not md5 size mtime) %{_sysconfdir}/sysconfig/debuginfod
 %{_unitdir}/debuginfod.service
 %{_sysconfdir}/sysconfig/debuginfod
 %{_mandir}/man8/debuginfod.8*
 
 %dir %attr(0700,debuginfod,debuginfod) %{_localstatedir}/cache/debuginfod
-%ghost %attr(0600,debuginfod,debuginfod) %{_localstatedir}/cache/debuginfod/debuginfod.sqlite
+%verify(not md5 size mtime) %attr(0600,debuginfod,debuginfod) %{_localstatedir}/cache/debuginfod/debuginfod.sqlite
 
 %pre debuginfod
 getent group debuginfod >/dev/null || groupadd -r debuginfod
@@ -332,73 +324,6 @@ exit 0
 %systemd_postun_with_restart debuginfod.service
 
 %changelog
-* Fri Feb  5 2021 Mark Wielaard <mark@klomp.org> 0.183-1
-- debuginfod: New thread-busy metric and more detailed error metrics.
-  New --fdcache-mintmp and tracking of filesystem freespace.
-- debigonfod-client: DEBUGINFOD_SONAME macro added to debuginfod.h can
-  be used to dlopen the libdebuginfod.so library.
-  New function debuginfod_set_verbose_fd and DEBUGINFOD_VERBOSE
-  environment variable.
-- config: profile.sh and profile.csh won't export DEBUGINFOD_URLS
-  unless configured --enable-debuginfod-urls[=URLS]
-- elflint, readelf: Recognize SHF_GNU_RETAIN.
-  Handle SHT_X86_64_UNWIND as valid relocation target type.
-
-* Sat Oct 31 2020 Mark Wielaard <mark@klomp.org> 0.182-1
-- backends: Support for tilegx has been removed.
-- config: New /etc/profile.d files to provide default $DEBUGINFOD_URLS.
-- debuginfod: More efficient package traversal, tolerate various
-  errors during scanning, grooming progress is more visible and
-  interruptible, more prometheus metrics.
-- debuginfod-client: Now supports compressed (kernel) ELF images.
-- libdwfl: Add ZSTD compression support.
-
-* Tue Sep  8 2020 Mark Wielaard <mark@klomp.org> 0.181-1
-- libelf: elf_update now compensates (fixes up) a bad sh_addralign
-  for SHF_COMPRESSED sections.
-- libdebuginfod: configure now takes --enable-libdebuginfod=dummy or
-  --disable-libdebuginfod for bootstrapping.
-  DEBUGINFOD_URLS now accepts "scheme-free" urls
-  (guessing at what the user meant, either http:// or file://)
-- readelf, elflint: Handle aarch64 bti, pac bits in dynamic table and
-  gnu property notes.
-- libdw, readelf: Recognize DW_CFA_AARCH64_negate_ra_state. Allows
-  unwinding on arm64 for code that is compiled for PAC
-  (Pointer Authentication Code) as long as it isn't enabled.
-
-* Thu Jun 11 2020 Mark Wielaard <mark@klomp.org> 0.180-1
-- elflint: Allow SHF_EXCLUDE as generic section flag when --gnu is given.
-- libdw, readelf: Handle GCC LTO .gnu.debuglto_ prefix.
-- libdw: Use correct CU to resolve file names in dwarf_decl_file.
-- libdwfl: Handle debugaltlink in dwfl_standard_find_debuginfo.
-- size: Also obey radix printing for bsd format.
-- nm: Explicitly print weak 'V' or 'T' and common 'C' symbols.
-
-* Mon Mar 30 2020 Mark Wielaard <mark@klomp.org> 0.179-1
-- debuginfod-client: When DEBUGINFOD_PROGRESS is set and the program
-  doesn't install its own debuginfod_progressfn_t show download
-  progress on stderr.
-  DEBUGINFOD_TIMEOUT is now defined as seconds to get at least 100K,
-  defaults to 90 seconds.
-  Default to $XDG_CACHE_HOME/debuginfod_client.
-  New functions debuginfod_set_user_data, debuginfod_get_user_data,
-  debuginfod_get_url and debuginfod_add_http_header.
-  Support for file:// URLs.
-- debuginfod: Uses libarchive directly for reading rpm archives.
-  Support for indexing .deb/.ddeb archives through dpkg-deb or bsdtar.
-  Generic archive support through -Z EXT[=CMD]. Which can be used for
-  example for arch-linux pacman files by using -Z '.tar.zst=zstdcat'.
-  Better logging using User-Agent and X-Forwarded-For headers.
-  More prometheus metrics.
-  Support for eliding dots or extraneous slashes in path names.
-- debuginfod-find: Accept /path/names in place of buildid hex.
-- libelf: Handle PN_XNUM in elf_getphdrnum before shdr 0 is cached.
-  Ensure zlib resource cleanup on failure.
-- libdwfl: dwfl_linux_kernel_find_elf and dwfl_linux_kernel_report_offline
-  now find and handle a compressed vmlinuz image.
-- readelf, elflint: Handle PT_GNU_PROPERTY.
-- translations: Updated Ukrainian translation.
-
 * Tue Nov 26 2019 Mark Wielaard <mark@klomp.org> 0.178-1
 - debuginfod: New server, client tool and library to index and fetch
               ELF/DWARF files addressed by build-id through HTTP.
@@ -433,7 +358,7 @@ exit 0
         CVE-2019-7664, CVE-2019-7665.
 
 * Wed Nov 14 2018 Mark Wielaard <mark@klomp.org> 0.175-1
-- readelf: Handle multiple .debug_macro sections.
+- readelf: Handle mutliple .debug_macro sections.
   Recognize and parse GNU Property notes, NT_VERSION notes and
   GNU Build Attribute ELF Notes.
 - strip: Handle SHT_GROUP correctly.
@@ -792,7 +717,7 @@ exit 0
 
 * Mon Feb 16 2009 Ulrich Drepper <drepper@redhat.com> 0.140-1
 - libelf: Fix regression in creation of section header
-- libdwfl: Less strict behavior if DWARF reader is just used to
+- libdwfl: Less strict behavior if DWARF reader ist just used to
   display data
 
 * Thu Jan 22 2009 Ulrich Drepper <drepper@redhat.com> 0.139-1
@@ -851,8 +776,8 @@ ET_REL
 * Mon Oct 15 2007 Ulrich Drepper <drepper@redhat.com> 0.130-1
 - readelf: -p option can take an argument like -x for one section,
 	 or no argument (as before) for all SHF_STRINGS sections;
-	 new option --archive-index (or -c);	 improved -n output for
-core files, on many machines
+	 new option --archive-index (or -c);	 improved -n output fo
+r core files, on many machines
 - libelf: new function elf_getdata_rawchunk, replaces gelf_rawchunk;
 	new functions gelf_getnote, gelf_getauxv, gelf_update_auxv
 - readelf, elflint: handle SHT_NOTE sections without requiring phdrs
@@ -1018,7 +943,7 @@ symbols.
 - readelf: improve DWARF output format
 
 * Mon Apr  4 2005 Ulrich Drepper <drepper@redhat.com> 0.106-1
-- libdw: Updated dwarf.h from DWARF3 speclibdw: add new functions dwarf_f
+- libdw: Updated dwarf.h from DWARF3 speclibdw: add new funtions dwarf_f
 unc_entrypc, dwarf_func_file, dwarf_func_line,dwarf_func_col, dwarf_ge
 tsrc_file
 
@@ -1116,7 +1041,7 @@ tsrc_file
 * Wed Jan 22 2003 Jakub Jelinek <jakub@redhat.com> 0.72-4
 - fix arguments to gelf_getsymshndx and elf_getshstrndx
 - fix other warnings
-- re-enable checks on s390x
+- reenable checks on s390x
 
 * Sat Jan 11 2003 Karsten Hopp <karsten@redhat.de> 0.72-3
 - temporarily disable checks on s390x, until someone has

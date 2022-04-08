@@ -40,11 +40,16 @@
 extern __typeof (s390_core_note) s390x_core_note;
 
 
-Ebl *
+const char *
 s390_init (Elf *elf __attribute__ ((unused)),
 	   GElf_Half machine __attribute__ ((unused)),
-	   Ebl *eh)
+	   Ebl *eh,
+	   size_t ehlen)
 {
+  /* Check whether the Elf_BH object has a sufficent size.  */
+  if (ehlen < sizeof (Ebl))
+    return NULL;
+
   /* We handle it.  */
   s390_init_reloc (eh);
   HOOK (eh, reloc_simple_type);
@@ -70,5 +75,5 @@ s390_init (Elf *elf __attribute__ ((unused)),
   if (eh->class == ELFCLASS64)
     eh->sysvhash_entrysize = sizeof (Elf64_Xword);
 
-  return eh;
+  return MODVERSION;
 }

@@ -52,9 +52,8 @@
 # define rwlock_unlock(lock) ((void) (lock))
 #endif	/* USE_LOCKS */
 
-/* gettext helper macros.  */
+/* gettext helper macro.  */
 #define N_(Str) Str
-#define _(Str) dgettext ("elfutils", Str)
 
 /* Compiler-specific definitions.  */
 #define strong_alias(name, aliasname) \

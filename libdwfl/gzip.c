@@ -48,12 +48,6 @@
 # define inflateInit(z)	lzma_auto_decoder (z, 1 << 30, 0)
 # define do_inflate(z)	lzma_code (z, LZMA_RUN)
 # define inflateEnd(z)	lzma_end (z)
-#elif defined ZSTD
-# define USE_INFLATE	1
-# include <zstd.h>
-# define unzip		__libdw_unzstd
-# define DWFL_E_ZLIB	DWFL_E_ZSTD
-# define MAGIC		"\x28\xb5\x2f\xfd"
 #elif defined BZLIB
 # define USE_INFLATE	1
 # include <bzlib.h>
@@ -125,7 +119,6 @@ fail (struct unzip_state *state, Dwfl_Error failure)
   return failure;
 }
 
-#ifndef ZSTD
 static inline Dwfl_Error
 zlib_fail (struct unzip_state *state, int result)
 {
@@ -139,7 +132,6 @@ zlib_fail (struct unzip_state *state, int result)
       return fail (state, DWFL_E_ZLIB);
     }
 }
-#endif
 
 #if !USE_INFLATE
 static Dwfl_Error
@@ -161,7 +153,7 @@ open_stream (int fd, off_t start_offset, struct unzip_state *state)
     if (unlikely (state->zf == NULL))
       {
 	close (d);
-	return DWFL_E_NOMEM;
+	return zlib_fail (state, Z (MEM_ERROR));
       }
 
     /* From here on, zlib will close D.  */
@@ -205,7 +197,7 @@ unzip (int fd, off_t start_offset,
 
 	  ssize_t n = pread_retry (fd, state.input_buffer, READ_SIZE, start_offset);
 	  if (unlikely (n < 0))
-	    return fail (&state, DWFL_E_ERRNO);
+	    return zlib_fail (&state, Z (ERRNO));
 
 	  state.input_pos = n;
 	  mapped = state.input_buffer;
@@ -231,74 +223,7 @@ unzip (int fd, off_t start_offset,
     /* Not a compressed file.  */
     return DWFL_E_BADELF;
 
-#ifdef ZSTD
-  /* special case for libzstd since it is slightly different from the
-     API provided by bzlib and liblzma.  */
-
-  void *next_in = mapped;
-  size_t avail_in = state.mapped_size;
-  void *next_out = NULL;
-  size_t avail_out = 0;
-  size_t total_out = 0;
-
-  size_t result;
-  ZSTD_DCtx *dctx = ZSTD_createDCtx();
-  if (dctx == NULL)
-    return fail (&state, DWFL_E_NOMEM);
-
-  do
-    {
-      if (avail_in == 0 && state.input_buffer != NULL)
-	{
-	  ssize_t n = pread_retry (fd, state.input_buffer, READ_SIZE,
-				   start_offset + state.input_pos);
-	  if (unlikely (n < 0))
-	    {
-	      ZSTD_freeDCtx (dctx);
-	      return fail (&state, DWFL_E_ERRNO);
-	    }
-	  next_in = state.input_buffer;
-	  avail_in = n;
-	  state.input_pos += n;
-	}
-      if (avail_out == 0)
-	{
-	  ptrdiff_t pos = (void *) next_out - state.buffer;
-	  if (!bigger_buffer (&state, avail_in))
-	    {
-	      ZSTD_freeDCtx (dctx);
-	      return fail (&state, DWFL_E_NOMEM);
-	    }
-	  next_out = state.buffer + pos;
-	  avail_out = state.size - pos;
-	}
-
-      ZSTD_inBuffer input = { next_in, avail_in, 0 };
-      ZSTD_outBuffer output = { next_out, avail_out, 0 };
-      result = ZSTD_decompressStream (dctx, &output, &input);
-
-      if (! ZSTD_isError (result))
-	{
-	  total_out += output.pos;
-	  next_out += output.pos;
-	  avail_out -= output.pos;
-	  next_in += input.pos;
-	  avail_in -= input.pos;
-	}
-
-      if (result == 0)
-	break;
-    }
-  while (avail_in > 0 && ! ZSTD_isError (result));
-
-  ZSTD_freeDCtx (dctx);
-
-  if (ZSTD_isError (result))
-    return fail (&state, DWFL_E_ZSTD);
-
-  smaller_buffer (&state, total_out);
-
-#elif USE_INFLATE
+#if USE_INFLATE
 
   /* This style actually only works with bzlib and liblzma.
      The stupid zlib interface has nothing to grok the

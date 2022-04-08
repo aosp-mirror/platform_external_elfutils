@@ -1,4 +1,4 @@
-#! /usr/bin/env bash
+#! /bin/bash
 
 if [ "x$1" = "x-v" ]; then
   verbose=yes

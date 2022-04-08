@@ -37,7 +37,8 @@
 #define EBLHOOK_2(a, b)	a##b
 
 /* Constructor.  */
-extern Ebl *EBLHOOK(init) (Elf *elf, GElf_Half machine, Ebl *eh);
+extern const char *EBLHOOK(init) (Elf *elf, GElf_Half machine,
+				  Ebl *eh, size_t ehlen);
 
 #include "ebl-hooks.h"
 

@@ -41,21 +41,22 @@
 #include <system.h>
 #include <libeblP.h>
 
-Ebl *i386_init (Elf *, GElf_Half, Ebl *);
-Ebl *sh_init (Elf *, GElf_Half, Ebl *);
-Ebl *x86_64_init (Elf *, GElf_Half, Ebl *);
-Ebl *ia64_init (Elf *, GElf_Half, Ebl *);
-Ebl *alpha_init (Elf *, GElf_Half, Ebl *);
-Ebl *arm_init (Elf *, GElf_Half, Ebl *);
-Ebl *aarch64_init (Elf *, GElf_Half, Ebl *);
-Ebl *sparc_init (Elf *, GElf_Half, Ebl *);
-Ebl *ppc_init (Elf *, GElf_Half, Ebl *);
-Ebl *ppc64_init (Elf *, GElf_Half, Ebl *);
-Ebl *s390_init (Elf *, GElf_Half, Ebl *);
-Ebl *m68k_init (Elf *, GElf_Half, Ebl *);
-Ebl *bpf_init (Elf *, GElf_Half, Ebl *);
-Ebl *riscv_init (Elf *, GElf_Half, Ebl *);
-Ebl *csky_init (Elf *, GElf_Half, Ebl *);
+const char *i386_init (Elf *, GElf_Half, Ebl *, size_t);
+const char *sh_init (Elf *, GElf_Half, Ebl *, size_t);
+const char *x86_64_init (Elf *, GElf_Half, Ebl *, size_t);
+const char *ia64_init (Elf *, GElf_Half, Ebl *, size_t);
+const char *alpha_init (Elf *, GElf_Half, Ebl *, size_t);
+const char *arm_init (Elf *, GElf_Half, Ebl *, size_t);
+const char *aarch64_init (Elf *, GElf_Half, Ebl *, size_t);
+const char *sparc_init (Elf *, GElf_Half, Ebl *, size_t);
+const char *ppc_init (Elf *, GElf_Half, Ebl *, size_t);
+const char *ppc64_init (Elf *, GElf_Half, Ebl *, size_t);
+const char *s390_init (Elf *, GElf_Half, Ebl *, size_t);
+const char *tilegx_init (Elf *, GElf_Half, Ebl *, size_t);
+const char *m68k_init (Elf *, GElf_Half, Ebl *, size_t);
+const char *bpf_init (Elf *, GElf_Half, Ebl *, size_t);
+const char *riscv_init (Elf *, GElf_Half, Ebl *, size_t);
+const char *csky_init (Elf *, GElf_Half, Ebl *, size_t);
 
 /* This table should contain the complete list of architectures as far
    as the ELF specification is concerned.  */
@@ -78,6 +79,7 @@ static const struct
   { x86_64_init, "elf_x86_64", "x86_64", 6, EM_X86_64, ELFCLASS64, ELFDATA2LSB },
   { ppc_init, "elf_ppc", "ppc", 3, EM_PPC, ELFCLASS32, ELFDATA2MSB },
   { ppc64_init, "elf_ppc64", "ppc64", 5, EM_PPC64, ELFCLASS64, ELFDATA2MSB },
+  { tilegx_init, "elf_tilegx", "tilegx", 6, EM_TILEGX, ELFCLASS64, ELFDATA2LSB },
   // XXX class and machine fields need to be filled in for all archs.
   { sh_init, "elf_sh", "sh", 2, EM_SH, 0, 0 },
   { arm_init, "ebl_arm", "arm", 3, EM_ARM, 0, 0 },
@@ -86,7 +88,6 @@ static const struct
   { sparc_init, "elf_sparcv8plus", "sparc", 5, EM_SPARC32PLUS, 0, 0 },
   { s390_init, "ebl_s390", "s390", 4, EM_S390, 0, 0 },
 
-  { NULL, "elf_tilegx", "tilegx", 6, EM_TILEGX, ELFCLASS64, ELFDATA2LSB },
   { NULL, "elf_m32", "m32", 3, EM_M32, 0, 0 },
   { m68k_init, "elf_m68k", "m68k", 4, EM_68K, ELFCLASS32, ELFDATA2MSB },
   { NULL, "elf_m88k", "m88k", 4, EM_88K, 0, 0 },
@@ -213,6 +214,8 @@ static ssize_t default_register_info (Ebl *ebl,
 				      const char **prefix,
 				      const char **setname,
 				      int *bits, int *type);
+static int default_syscall_abi (Ebl *ebl, int *sp, int *pc,
+				int *callno, int args[6]);
 static bool default_check_object_attribute (Ebl *ebl, const char *vendor,
 					    int tag, uint64_t value,
 					    const char **tag_name,
@@ -256,6 +259,7 @@ fill_defaults (Ebl *result)
   result->bss_plt_p = default_bss_plt_p;
   result->return_value_location = default_return_value_location;
   result->register_info = default_register_info;
+  result->syscall_abi = default_syscall_abi;
   result->check_object_attribute = default_check_object_attribute;
   result->check_reloc_target_type = default_check_reloc_target_type;
   result->disasm = NULL;
@@ -326,7 +330,7 @@ openbackend (Elf *elf, const char *emulation, GElf_Half machine)
 	  }
 
         if (machines[cnt].init &&
-            machines[cnt].init (elf, machine, result))
+            machines[cnt].init (elf, machine, result, sizeof(Ebl)))
           {
             result->elf = elf;
             /* A few entries are mandatory.  */
@@ -617,9 +621,7 @@ default_debugscn_p (const char *name)
   for (size_t cnt = 0; cnt < ndwarf_scn_names; ++cnt)
     if (strcmp (name, dwarf_scn_names[cnt]) == 0
 	|| (strncmp (name, ".zdebug", strlen (".zdebug")) == 0
-	    && strcmp (&name[2], &dwarf_scn_names[cnt][1]) == 0)
-	|| (strncmp (name, ".gnu.debuglto_", strlen (".gnu.debuglto_")) == 0
-	    && strcmp (&name[14], dwarf_scn_names[cnt]) == 0))
+	    && strcmp (&name[2], &dwarf_scn_names[cnt][1]) == 0))
       return true;
 
   return false;
@@ -684,6 +686,20 @@ default_register_info (Ebl *ebl __attribute__ ((unused)),
   *bits = -1;
   *type = DW_ATE_void;
   return snprintf (name, namelen, "reg%d", regno);
+}
+
+static int
+default_syscall_abi (Ebl *ebl __attribute__ ((unused)),
+		     int *sp, int *pc, int *callno, int args[6])
+{
+  *sp = *pc = *callno = -1;
+  args[0] = -1;
+  args[1] = -1;
+  args[2] = -1;
+  args[3] = -1;
+  args[4] = -1;
+  args[5] = -1;
+  return -1;
 }
 
 static bool

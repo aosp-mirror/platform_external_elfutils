@@ -31,9 +31,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <gelf.h>
 
-typedef struct ebl Ebl;
+#include <libebl.h>
 
 
 /* Opaque type for the assembler context descriptor.  */

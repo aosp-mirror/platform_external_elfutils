@@ -27,7 +27,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "system.h"
 
 #include ELFUTILS_HEADER(elf)
 #include <gelf.h>
@@ -202,7 +201,7 @@ check_elf (const char *fname, int class, int use_mmap)
   printf ("\nfname: %s\n", fname);
   stridx = 0; // Reset strtab strings index
 
-  int fd = open (fname, O_RDWR | O_CREAT | O_TRUNC, DEFFILEMODE);
+  int fd = open (fname, O_RDWR | O_CREAT | O_TRUNC, 0666);
   if (fd == -1)
     {
       printf ("cannot open `%s': %s\n", fname, strerror (errno));
@@ -267,7 +266,7 @@ check_elf (const char *fname, int class, int use_mmap)
 
   /* Reread the ELF from disk now.  */
   printf ("Rereading %s\n", fname);
-  fd = open (fname, O_RDWR);
+  fd = open (fname, O_RDWR, 0666);
   if (fd == -1)
     {
       printf ("cannot (re)open `%s': %s\n", fname, strerror (errno));
@@ -348,7 +347,7 @@ check_elf (const char *fname, int class, int use_mmap)
 
   // And read it in one last time.
   printf ("Rereading %s again\n", fname);
-  fd = open (fname, O_RDONLY);
+  fd = open (fname, O_RDONLY, 0666);
   if (fd == -1)
     {
       printf ("cannot open `%s' read-only: %s\n", fname, strerror (errno));

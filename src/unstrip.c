@@ -52,6 +52,10 @@
 #include "libeu.h"
 #include "printversion.h"
 
+#ifndef _
+# define _(str) gettext (str)
+#endif
+
 /* Name and version of program.  */
 ARGP_PROGRAM_VERSION_HOOK_DEF = print_version;
 
@@ -307,18 +311,12 @@ make_directories (const char *path)
   if (lastslash == path)
     return;
 
-  char *dir = strndup (path, lastslash - path);
-  if (dir == NULL)
-    error(EXIT_FAILURE, errno, _("memory exhausted"));
-
-  while (mkdir (dir, ACCESSPERMS) < 0 && errno != EEXIST)
-    {
-      if (errno == ENOENT)
-        make_directories (dir);
-      else
-        error (EXIT_FAILURE, errno, _("cannot create directory '%s'"), dir);
-    }
-  free (dir);
+  char *dir = strndupa (path, lastslash - path);
+  while (mkdir (dir, 0777) < 0 && errno != EEXIST)
+    if (errno == ENOENT)
+      make_directories (dir);
+    else
+      error (EXIT_FAILURE, errno, _("cannot create directory '%s'"), dir);
 }
 
 /* Keep track of new section data we are creating, so we can free it
@@ -502,8 +500,7 @@ adjust_relocs (Elf_Scn *outscn, Elf_Scn *inscn, const GElf_Shdr *shdr,
 	  error (EXIT_FAILURE, 0, "Symbol table cannot have zero sh_entsize");
 	const size_t nsym = symshdr->sh_size / symshdr->sh_entsize;
 	const size_t onent = shdr->sh_size / shdr->sh_entsize;
-	if (data->d_size != shdr->sh_size)
-	  error (EXIT_FAILURE, 0, "HASH section has inconsistent size");
+	assert (data->d_size == shdr->sh_size);
 
 #define CONVERT_HASH(Hash_Word)						      \
 	{								      \
@@ -512,8 +509,7 @@ adjust_relocs (Elf_Scn *outscn, Elf_Scn *inscn, const GElf_Shdr *shdr,
 	  const size_t nchain = old_hash[1];				      \
 	  const Hash_Word *const old_bucket = &old_hash[2];		      \
 	  const Hash_Word *const old_chain = &old_bucket[nbucket];	      \
-	  if (onent != 2 + nbucket + nchain)				      \
-	    error (EXIT_FAILURE, 0, "HASH section has inconsistent entsize"); \
+	  assert (onent == 2 + nbucket + nchain);			      \
 									      \
 	  const size_t nent = 2 + nbucket + nsym;			      \
 	  Hash_Word *const new_hash = xcalloc (nent, sizeof new_hash[0]);     \
@@ -2188,8 +2184,7 @@ DWARF data in '%s' not adjusted for prelinking bias; consider prelink -u"),
 
       /* Copy the unstripped file and then modify it.  */
       int outfd = open (output_file, O_RDWR | O_CREAT,
-			(stripped_ehdr->e_type == ET_REL
-			 ? DEFFILEMODE : ACCESSPERMS));
+			  stripped_ehdr->e_type == ET_REL ? 0666 : 0777);
       if (outfd < 0)
 	error (EXIT_FAILURE, errno, _("cannot open '%s'"), output_file);
       Elf *outelf = elf_begin (outfd, ELF_C_WRITE, NULL);
@@ -2474,7 +2469,8 @@ match_module (Dwfl_Module *mod,
       const char *file;
       const char *check = dwfl_module_info (mod, NULL, NULL, NULL,
 					    NULL, NULL, &file, NULL);
-      if (check == NULL || strcmp (check, name) != 0 || file == NULL)
+      assert (check == name);
+      if (file == NULL)
 	return DWARF_CB_OK;
 
       name = file;

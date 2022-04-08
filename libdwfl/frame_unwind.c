@@ -562,11 +562,7 @@ handle_cfi (Dwfl_Frame *state, Dwarf_Addr pc, Dwarf_CFI *cfi, Dwarf_Addr bias)
   /* The return register is special for setting the unwound->pc_state.  */
   unsigned ra = frame->fde->cie->return_address_register;
   bool ra_set = false;
-  if (! ebl_dwarf_to_regno (ebl, &ra))
-    {
-      __libdwfl_seterrno (DWFL_E_INVALID_REGISTER);
-      return;
-    }
+  ebl_dwarf_to_regno (ebl, &ra);
 
   for (unsigned regno = 0; regno < nregs; regno++)
     {
@@ -723,8 +719,7 @@ __libdwfl_frame_unwind (Dwfl_Frame *state)
      which would deadlock us.  */
   Dwarf_Addr pc;
   bool ok = INTUSE(dwfl_frame_pc) (state, &pc, NULL);
-  if (!ok)
-    return;
+  assert (ok);
   /* Check whether this is the initial frame or a signal frame.
      Then we need to unwind from the original, unadjusted PC.  */
   if (! state->initial_frame && ! state->signal_frame)

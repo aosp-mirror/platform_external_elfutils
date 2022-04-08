@@ -39,11 +39,16 @@
 #include "common-reloc.c"
 
 
-Ebl *
+const char *
 arm_init (Elf *elf __attribute__ ((unused)),
 	  GElf_Half machine __attribute__ ((unused)),
-	  Ebl *eh)
+	  Ebl *eh,
+	  size_t ehlen)
 {
+  /* Check whether the Elf_BH object has a sufficent size.  */
+  if (ehlen < sizeof (Ebl))
+    return NULL;
+
   /* We handle it.  */
   arm_init_reloc (eh);
   HOOK (eh, segment_type_name);
@@ -67,5 +72,5 @@ arm_init (Elf *elf __attribute__ ((unused)),
   /* Bit zero encodes whether an function address is THUMB or ARM. */
   eh->func_addr_mask = ~(GElf_Addr)1;
 
-  return eh;
+  return MODVERSION;
 }

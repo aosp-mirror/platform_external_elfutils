@@ -47,7 +47,7 @@
 static int
 text_end (AsmCtx_t *ctx __attribute__ ((unused)))
 {
-  if (fflush (ctx->out.file) != 0)
+  if (fclose (ctx->out.file) != 0)
     {
       __libasm_seterrno (ASM_E_IOERROR);
       return -1;
@@ -257,7 +257,7 @@ binary_end (AsmCtx_t *ctx)
 		    xndxdata->d_off = 0;
 		  }
 
-		/* Store the real section index in the extended section
+		/* Store the real section index in the extended setion
 		   index table.  */
 		assert ((size_t) ptr < ctx->nsymbol_tab + 1);
 		xshndx[ptr] = ndx;

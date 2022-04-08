@@ -65,8 +65,6 @@ ebl_segment_type_name (Ebl *ebl, int segment, char *buf, size_t len)
 	res = "GNU_STACK";
       else if (segment == PT_GNU_RELRO)
 	res = "GNU_RELRO";
-      else if (segment == PT_GNU_PROPERTY)
-	res = "GNU_PROPERTY";
       else if (segment == PT_SUNWBSS)
 	res = "SUNWBSS";
       else if (segment == PT_SUNWSTACK)
@@ -78,7 +76,7 @@ ebl_segment_type_name (Ebl *ebl, int segment, char *buf, size_t len)
 	  else if (segment >= PT_LOPROC && segment <= PT_HIPROC)
 	    snprintf (buf, len, "LOPROC+%d", segment - PT_LOPROC);
 	  else
-	    snprintf (buf, len, "%s: %d", _("<unknown>"), segment);
+	    snprintf (buf, len, "%s: %d", gettext ("<unknown>"), segment);
 
 	  res = buf;
 	}

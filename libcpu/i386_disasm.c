@@ -407,8 +407,7 @@ i386_disasm (Ebl *ebl __attribute__((unused)),
 
 	      ++curr;
 
-	      if (last_prefix_bit == 0)
-		goto invalid_op;
+	      assert (last_prefix_bit != 0);
 	      correct_prefix = last_prefix_bit;
 	    }
 
@@ -446,8 +445,8 @@ i386_disasm (Ebl *ebl __attribute__((unused)),
 	       the input data.  */
 	    goto do_ret;
 
-	  if (correct_prefix != 0 && (prefixes & correct_prefix) == 0)
-	    goto invalid_op;
+	  assert (correct_prefix == 0
+		  || (prefixes & correct_prefix) != 0);
 	  prefixes ^= correct_prefix;
 
 	  if (0)
@@ -474,8 +473,7 @@ i386_disasm (Ebl *ebl __attribute__((unused)),
 
 	      if (data == end)
 		{
-		  if (prefixes == 0)
-		    goto invalid_op;
+		  assert (prefixes != 0);
 		  goto print_prefix;
 		}
 
@@ -588,7 +586,7 @@ i386_disasm (Ebl *ebl __attribute__((unused)),
 	    }
 
 	  /* We have a match.  First determine how many bytes are
-	     needed for the addressing mode.  */
+	     needed for the adressing mode.  */
 	  param_start = codep;
 	  if (instrtab[cnt].modrm)
 	    {
@@ -1127,7 +1125,6 @@ i386_disasm (Ebl *ebl __attribute__((unused)),
 	}
 
       /* Invalid (or at least unhandled) opcode.  */
-    invalid_op:
       if (prefixes != 0)
 	goto print_prefix;
       /* Make sure we get past the unrecognized opcode if we haven't yet.  */

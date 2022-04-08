@@ -181,8 +181,7 @@ core_set_initial_registers (Dwfl_Thread *thread, void *thread_arg_voidp)
   size_t getnote_err = gelf_getnote (note_data, offset, &nhdr, &name_offset,
 				     &desc_offset);
   /* __libdwfl_attach_state_for_core already verified the note is there.  */
-  if (getnote_err == 0)
-    return false;
+  assert (getnote_err != 0);
   /* Do not check NAME for now, help broken Linux kernels.  */
   const char *name = (nhdr.n_namesz == 0
 		      ? "" : note_data->d_buf + name_offset);
@@ -196,8 +195,8 @@ core_set_initial_registers (Dwfl_Thread *thread, void *thread_arg_voidp)
 				     &regs_offset, &nregloc, &reglocs,
 				     &nitems, &items);
   /* __libdwfl_attach_state_for_core already verified the note is there.  */
-  if (core_note_err == 0 || nhdr.n_type != NT_PRSTATUS)
-    return false;
+  assert (core_note_err != 0);
+  assert (nhdr.n_type == NT_PRSTATUS);
   const Ebl_Core_Item *item;
   for (item = items; item < items + nitems; item++)
     if (strcmp (item->name, "pid") == 0)

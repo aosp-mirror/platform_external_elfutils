@@ -227,7 +227,7 @@ TESTS += run-debuginfod-dlopen.sh \
 	 run-debuginfod-file.sh \
 	 run-debuginfod-sizetime.sh \
 	 run-debuginfod-malformed.sh \
-	 run-debuginfod-000-permission.sh \
+	 run-debuginfod-negative-cache.sh \
 	 run-debuginfod-tmp-home.sh \
 	 run-debuginfod-writable.sh \
 	 run-debuginfod-no-urls.sh \
@@ -529,7 +529,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-debuginfod-sizetime.sh \
 	     run-debuginfod-dlopen.sh \
 	     run-debuginfod-malformed.sh \
-	     run-debuginfod-000-permission.sh \
+	     run-debuginfod-negative-cache.sh \
 	     run-debuginfod-tmp-home.sh \
 	     run-debuginfod-writable.sh \
 	     run-debuginfod-no-urls.sh \

@@ -1,3 +1,14 @@
+2022-04-13  Aaron Merey  <amerey@redhat.com>
+
+	* Makefile.am (TESTS): Remove run-debuginfod-000-permission.sh
+	and add run-debuginfod-negative-cache.sh.
+	(EXTRA_DIST): Likewise.
+	* run-debuginfod-federation-link.sh: Update comments about
+	negative-hit file.
+	* run-debuginfod-federation-metrics.sh: Likewise.
+	* run-debuginfod-federation-sqlite.sh: Likewise.
+	* run-debuginfod-tmp-home.sh: Likewise.
+
 2022-03-20  Mark Wielaard  <mark@klomp.org>
 
 	* run-large-elf-file.sh: Check elf class of addsections binary.

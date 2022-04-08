@@ -138,7 +138,7 @@ static const char *cache_clean_interval_filename = "cache_clean_interval_s";
 static const long cache_clean_default_interval_s = 86400; /* 1 day */
 
 /* The cache_miss_default_s within the debuginfod cache specifies how
-   frequently the 000-permision file should be released.*/
+   frequently the empty file should be released.*/
 static const long cache_miss_default_s = 600; /* 10 min */
 static const char *cache_miss_filename = "cache_miss_s";
 
@@ -767,42 +767,66 @@ debuginfod_query_server (debuginfod_client *c,
   if (rc != 0)
     goto out;
 
-  struct stat st;
-  /* Check if the file exists and it's of permission 000; must check
-     explicitly rather than trying to open it first (PR28240). */
-  if (stat(target_cache_path, &st) == 0
-      && (st.st_mode & 0777) == 0)
-    {
-      time_t cache_miss;
-
-      rc = debuginfod_config_cache(cache_miss_path, cache_miss_default_s, &st);
-      if (rc < 0)
-        goto out;
-
-      cache_miss = (time_t)rc;
-      if (time(NULL) - st.st_mtime <= cache_miss)
-        {
-         rc = -ENOENT;
-         goto out;
-       }
-      else
-        /* TOCTOU non-problem: if another task races, puts a working
-           download or a 000 file in its place, unlinking here just
-           means WE will try to download again as uncached. */
-        unlink(target_cache_path);
-    }
-  
-  /* If the target is already in the cache (known not-000 - PR28240), 
-     then we are done. */
-  int fd = open (target_cache_path, O_RDONLY);
+  /* Check if the target is already in the cache. */
+  int fd = open(target_cache_path, O_RDONLY);
   if (fd >= 0)
     {
-      /* Success!!!! */
-      if (path != NULL)
-        *path = strdup(target_cache_path);
-      rc = fd;
-      goto out;
+      struct stat st;
+      if (fstat(fd, &st) != 0)
+        {
+          rc = -errno;
+          close (fd);
+          goto out;
+        }
+
+      /* If the file is non-empty, then we are done. */
+      if (st.st_size > 0)
+        {
+          if (path != NULL)
+            {
+              *path = strdup(target_cache_path);
+              if (*path == NULL)
+                {
+                  rc = -errno;
+                  close (fd);
+                  goto out;
+                }
+            }
+          /* Success!!!! */
+          rc = fd;
+          goto out;
+        }
+      else
+        {
+          /* The file is empty. Attempt to download only if enough time
+             has passed since the last attempt. */
+          time_t cache_miss;
+          time_t target_mtime = st.st_mtime;
+          rc = debuginfod_config_cache(cache_miss_path,
+                                       cache_miss_default_s, &st);
+          if (rc < 0)
+            {
+              close(fd);
+              goto out;
+            }
+
+          cache_miss = (time_t)rc;
+          if (time(NULL) - target_mtime <= cache_miss)
+            {
+              close(fd);
+              rc = -ENOENT;
+              goto out;
+            }
+          else
+            /* TOCTOU non-problem: if another task races, puts a working
+               download or an empty file in its place, unlinking here just
+               means WE will try to download again as uncached. */
+            unlink(target_cache_path);
+        }
     }
+  else if (errno == EACCES)
+    /* Ensure old 000-permission files are not lingering in the cache. */
+    unlink(target_cache_path);
 
   long timeout = default_timeout;
   const char* timeout_envvar = getenv(DEBUGINFOD_TIMEOUT_ENV_VAR);
@@ -1298,11 +1322,11 @@ debuginfod_query_server (debuginfod_client *c,
         }
     } while (num_msg > 0);
 
-  /* Create a 000-permission file named as $HOME/.cache if the query
-     fails with ENOENT.*/
+  /* Create an empty file named as $HOME/.cache if the query fails
+     with ENOENT.*/
   if (rc == -ENOENT)
     {
-      int efd = open (target_cache_path, O_CREAT|O_EXCL, 0000);
+      int efd = open (target_cache_path, O_CREAT|O_EXCL, DEFFILEMODE);
       if (efd >= 0)
         close(efd);
     }

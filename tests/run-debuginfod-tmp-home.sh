@@ -104,7 +104,7 @@ fi
 # priority over $HOME/.cache, $XDG_CACHE_HOME.
 cp -vr $DEBUGINFOD_CACHE_PATH tmphome/.debuginfod_client_cache || true
 # ||true is for tolerating errors, such a valgrind or something else
-#        leaving 000-perm files in there
+#        leaving negative-hit files in there
 
 # Add a file that doesn't exist in $HOME/.cache, $XDG_CACHE_HOME.
 mkdir tmphome/.debuginfod_client_cache/deadbeef

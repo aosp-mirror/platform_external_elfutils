@@ -1,3 +1,8 @@
+2022-04-14  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfod-federation-sqlite.sh: Don't try to corrupt
+	sqlite database.
+
 2022-04-13  Aaron Merey  <amerey@redhat.com>
 
 	* Makefile.am (TESTS): Remove run-debuginfod-000-permission.sh

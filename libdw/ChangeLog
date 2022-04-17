@@ -1,3 +1,7 @@
+2022-04-16  Mark Wielaard  <mark@klomp.org>
+
+	* libdwP.h: Remove atomics.h include.
+
 2022-04-13  Mark Wielaard  <mark@klomp.org>
 
 	* dwarf.h: Add DWARF5 package file section identifiers,

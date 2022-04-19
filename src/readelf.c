@@ -1776,10 +1776,10 @@ static size_t
 get_dyn_ents (Elf_Data * dyn_data)
 {
   GElf_Dyn *dyn;
+  GElf_Dyn dyn_mem;
   size_t dyn_idx = 0;
   do
     {
-      GElf_Dyn dyn_mem;
       dyn = gelf_getdyn(dyn_data, dyn_idx, &dyn_mem);
       if (dyn != NULL)
 	++dyn_idx;

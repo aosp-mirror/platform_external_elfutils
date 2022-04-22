@@ -1,6 +1,6 @@
 /* Retrieve ELF / DWARF / source files from the debuginfod.
    Copyright (C) 2019-2021 Red Hat, Inc.
-   Copyright (C) 2021 Mark J. Wielaard <mark@klomp.org>
+   Copyright (C) 2021, 2022 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -97,6 +97,16 @@ void debuginfod_end (debuginfod_client *c) { }
   #include <sys/types.h>
   #include <fts.h>
 #endif
+
+#include <pthread.h>
+
+static pthread_once_t init_control = PTHREAD_ONCE_INIT;
+
+static void
+libcurl_init(void)
+{
+  curl_global_init(CURL_GLOBAL_DEFAULT);
+}
 
 struct debuginfod_client
 {
@@ -1475,6 +1485,9 @@ debuginfod_query_server (debuginfod_client *c,
 debuginfod_client  *
 debuginfod_begin (void)
 {
+  /* Initialize libcurl lazily, but only once.  */
+  pthread_once (&init_control, libcurl_init);
+
   debuginfod_client *client;
   size_t size = sizeof (struct debuginfod_client);
   client = calloc (1, size);
@@ -1606,20 +1619,6 @@ void
 debuginfod_set_verbose_fd(debuginfod_client *client, int fd)
 {
   client->verbose_fd = fd;
-}
-
-
-/* NB: these are thread-unsafe. */
-__attribute__((constructor)) attribute_hidden void libdebuginfod_ctor(void)
-{
-  curl_global_init(CURL_GLOBAL_DEFAULT);
-}
-
-/* NB: this is very thread-unsafe: it breaks other threads that are still in libcurl */
-__attribute__((destructor)) attribute_hidden void libdebuginfod_dtor(void)
-{
-  /* ... so don't do this: */
-  /* curl_global_cleanup(); */
 }
 
 #endif /* DUMMY_LIBDEBUGINFOD */

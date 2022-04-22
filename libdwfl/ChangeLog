@@ -1,3 +1,10 @@
+2022-04-22  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (init_control): New static pthread_once_t.
+	(get_client): Use pthread_once to call __libdwfl_debuginfod_init.
+	(__libdwfl_debuginfod_init): Make static, remove attribute
+	constructor.
+
 2022-02-18  Mark Wielaard  <mark@klomp.org>
 
 	* image-header.c (__libdw_image_header): Assign header values for

@@ -1,3 +1,13 @@
+2022-04-22  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (libdebuginfod): Add -lpthread.
+	(libdebuginfod_so_LDLIBS): Likewise.
+	* debuginfod-client.c (init_control): New static pthread_once_t.
+	(libcurl_init): New static function.
+	(debuginfod_begin): Use ptrace_once to call libcurl_init.
+	(libdebuginfod_ctor): Removed.
+	(libdebuginfod_dtor): Likewise.
+
 2022-04-24  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod.cxx (main): Add MHD_USE_ITC to MHD_start_daemon flags.

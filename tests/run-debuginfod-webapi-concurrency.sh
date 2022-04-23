@@ -47,12 +47,13 @@ do
     wait_ready $PORT1 'thread_busy{role="scan"}' 0
 
     # Do a bunch of lookups in parallel
-    for jobs in `seq 100`; do
+    lookup_nr=64
+    for jobs in `seq $lookup_nr`; do
         curl -s http://localhost:$PORT1/buildid/cee13b2ea505a7f37bd20d271c6bc7e5f8d2dfcb/debuginfo > /dev/null &
     done
 
-    # all 100 curls should succeed
-    wait_ready $PORT1 'http_responses_transfer_bytes_count{code="200",type="debuginfo"}' 100
+    # all curls should succeed
+    wait_ready $PORT1 'http_responses_transfer_bytes_count{code="200",type="debuginfo"}' $lookup_nr
     
     (sleep 5;
      curl -s http://localhost:$PORT1/metrics | egrep 'error|responses';

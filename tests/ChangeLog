@@ -1,3 +1,7 @@
+2022-04-23  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfod-webapi-concurrency.sh: Lower parallel lookups.
+
 2022-03-01  Di Chen <dichen@redhat.com>
 
 	* alldts.c (dtflags): Put DT_NULL last.

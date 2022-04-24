@@ -62,6 +62,8 @@ do
     PID1=0
 done
 
-xfail "grep Server.reached.connection vlog$PORT1" # PR18661
+# Note this xfail comes too late, the above wait_ready for
+# http_responses_transfer_bytes_count will have failed.
+xfail "grep Server.reached.connection vlog$PORT1" # PR28661
 
 exit 0

@@ -1,3 +1,7 @@
+2022-04-24  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod.cxx (main): Add MHD_USE_ITC to MHD_start_daemon flags.
+
 2022-04-13  Aaron Merey  <amerey@redhat.com>
 
 	* debuginfod-client.c (debuginfod_query_server):

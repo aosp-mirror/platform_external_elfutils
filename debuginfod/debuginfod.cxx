@@ -3910,6 +3910,9 @@ main (int argc, char *argv[])
                                      | MHD_USE_EPOLL
 #endif
                                      | MHD_USE_DUAL_STACK
+#if MHD_VERSION >= 0x00095200
+                                     | MHD_USE_ITC
+#endif
                                      | MHD_USE_DEBUG, /* report errors to stderr */
                                      http_port,
                                      NULL, NULL, /* default accept policy */

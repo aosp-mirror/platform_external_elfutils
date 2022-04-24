@@ -1,3 +1,7 @@
+2022-04-24  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfod-webapi-concurrency.sh: Fix PR number in xfail.
+
 2022-04-23  Mark Wielaard  <mark@klomp.org>
 
 	* run-debuginfod-webapi-concurrency.sh: Lower parallel lookups.

@@ -435,7 +435,10 @@ AC_CHECK_DECLS([reallocarray],[],[],
                [#define _GNU_SOURCE
                 #include <stdlib.h>])
 
-AC_CHECK_FUNCS([process_vm_readv])
+AC_CHECK_FUNCS([process_vm_readv mremap])
+
+AS_IF([test "x$ac_cv_func_mremap" = "xno"],
+      [AC_MSG_WARN([elf_update needs mremap to support ELF_C_RDWR_MMAP])])
 
 AC_CHECK_HEADERS([error.h])
 AC_CHECK_HEADERS([err.h])

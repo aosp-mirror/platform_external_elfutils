@@ -1,3 +1,7 @@
+2022-04-24  Mark Wielaard  <mark@klomp.org>
+
+	* elfclassify.c (main): Use classify_flag_no_stdin for no-std in options.
+
 2022-04-19  Mark Wielaard  <mark@klomp.org>
 
 	* readelf.c (get_dyn_ents): Define dyn_mem outside the while loop.

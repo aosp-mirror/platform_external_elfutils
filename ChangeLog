@@ -1,3 +1,8 @@
+2022-04-25  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac (AC_INIT): Set version to 0.187.
+	* NEWS: Add some more 0.187 items.
+
 2022-04-24  Frank Ch. Eigler  <fche@redhat.com>
 
 	* AUTHORS.sh, .mailmap: New files.

@@ -1,3 +1,7 @@
+2022-04-25  Mark Wielaard  <mark@klomp.org>
+
+	* elfutils.spec.in: Update for 0.187.
+
 2022-01-19  Ahelenia Ziemiańska <nabijaczleweli@nabijaczleweli.xyz>
 
 	* profile.csh.in: Set DEBUGINFOD_URLS directly. Use "$0" and :

@@ -1790,7 +1790,7 @@ handle_buildid_r_match (bool internal_req_p,
           add_mhd_response_header (r, "Content-Type",
                                    "application/octet-stream");
           add_mhd_response_header (r, "X-DEBUGINFOD-SIZE",
-                                   to_string(fs.st_size).c_str());
+                                   to_string(archive_entry_size(e)).c_str());
           add_mhd_response_header (r, "X-DEBUGINFOD-ARCHIVE",
                                    b_source0.c_str());
           add_mhd_response_header (r, "X-DEBUGINFOD-FILE", file.c_str());

@@ -198,7 +198,8 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	msg_tst system-elf-libelf-test \
 	$(asm_TESTS) run-disasm-bpf.sh run-low_high_pc-dw-form-indirect.sh \
 	run-nvidia-extended-linemap-libdw.sh run-nvidia-extended-linemap-readelf.sh \
-	run-readelf-dw-form-indirect.sh run-strip-largealign.sh
+	run-readelf-dw-form-indirect.sh run-strip-largealign.sh \
+	run-readelf-Dd.sh
 
 if !BIARCH
 export ELFUTILS_DISABLE_BIARCH = 1
@@ -381,6 +382,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile56.bz2 testfile57.bz2 testfile58.bz2 \
 	     run-typeiter.sh testfile59.bz2 \
 	     run-readelf-d.sh testlib_dynseg.so.bz2 \
+	     run-readelf-Dd.sh \
 	     testfile-s390x-hash-both.bz2 \
 	     run-readelf-gdb_index.sh testfilegdbindex5.bz2 \
 	     testfilegdbindex7.bz2 \

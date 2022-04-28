@@ -1,3 +1,16 @@
+2022-04-28  Di Chen  <dichen@redhat.com>
+
+	* readelf.c (options): Add use-dynamic 'D'.
+	(use_dynamic_segment): New static bool.
+	(enum dyn_idx): New.
+	(get_dynscn_strtab): New function.
+	(get_dynscn_addrs): Likewise.
+	(find_offsets): Likewise.
+	(parse_opt): Handle 'D'.
+	(handle_dynamic): New argument phdr. Get data either through the shdr
+	or phdr.  Print segment info when use_dynamic_segment. Use
+	get_dynscn_strtab. Get library name and paths through strtab_data.
+
 2022-05-09  Mark Wielaard  <mark@klomp.org>
 
 	* strip.c (remove_debug_relocations): Check gelf_getshdr, gelf_getrela,

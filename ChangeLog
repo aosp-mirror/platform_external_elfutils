@@ -1,3 +1,7 @@
+2022-04-28  Di Chen  <dichen@redhat.com>
+
+	* NEWS: Add readefl -D, --use-dynamic.
+
 2022-07-28  Di Chen  <dichen@redhat.com>
 
 	* NEWS: Add dwfl_frame_reg.

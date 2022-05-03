@@ -6,7 +6,7 @@
 
 if (! $?DEBUGINFOD_URLS) then
     set prefix="@prefix@"
-    set DEBUGINFOD_URLS=`sh -c 'cat "$0"/*.urls; :' "@sysconfdir@/debuginfod" 2>/dev/null | tr '\n' ' '`
+    set DEBUGINFOD_URLS=`sh -c 'cat "$0"/*.urls 2>/dev/null; :' "@sysconfdir@/debuginfod" | tr '\n' ' '`
     if ( "$DEBUGINFOD_URLS" != "" ) then
         setenv DEBUGINFOD_URLS "$DEBUGINFOD_URLS"
     else

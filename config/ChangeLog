@@ -1,3 +1,7 @@
+2022-05-03  Mark Wielaard  <mark@klomp.org>
+
+	* profile.csh.in: Move the 2>/dev/null inside the sh -c '' quotes.
+
 2022-04-25  Mark Wielaard  <mark@klomp.org>
 
 	* elfutils.spec.in: Update for 0.187.

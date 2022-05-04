@@ -1,3 +1,12 @@
+2022-05-04  Frank Ch. Eigler <fche@redhat.com>
+	    Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (debuginfod_query_server): Correct fd leak
+	for cache negative-hit unlink case.
+	(debuginfod_config_cache, debuginfod_init_cache): Correct
+	minor fd leaks.
+	* debuginfod-find.c  (main): Ditto.
+
 2022-04-22  Mark Wielaard  <mark@klomp.org>
 
 	* Makefile.am (libdebuginfod): Add -lpthread.

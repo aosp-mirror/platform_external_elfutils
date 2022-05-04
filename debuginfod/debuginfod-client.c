@@ -243,7 +243,13 @@ debuginfod_config_cache(char *config_path,
         return -errno;
 
       if (dprintf(fd, "%ld", cache_config_default_s) < 0)
-        return -errno;
+	{
+	  int ret = -errno;
+	  close (fd);
+	  return ret;
+	}
+
+      close (fd);
     }
 
   long cache_config;
@@ -284,7 +290,13 @@ debuginfod_init_cache (char *cache_path, char *interval_path, char *maxage_path)
     return -errno;
 
   if (dprintf(fd, "%ld", cache_clean_default_interval_s) < 0)
-    return -errno;
+    {
+      int ret = -errno;
+      close (fd);
+      return ret;
+    }
+
+  close (fd);
 
   /* init max age config file.  */
   if (stat(maxage_path, &st) != 0
@@ -292,8 +304,13 @@ debuginfod_init_cache (char *cache_path, char *interval_path, char *maxage_path)
     return -errno;
 
   if (dprintf(fd, "%ld", cache_default_max_unused_age_s) < 0)
-    return -errno;
+    {
+      int ret = -errno;
+      close (fd);
+      return ret;
+    }
 
+  close (fd);
   return 0;
 }
 
@@ -812,18 +829,17 @@ debuginfod_query_server (debuginfod_client *c,
              has passed since the last attempt. */
           time_t cache_miss;
           time_t target_mtime = st.st_mtime;
+
+          close(fd); /* no need to hold onto the negative-hit file descriptor */
+          
           rc = debuginfod_config_cache(cache_miss_path,
                                        cache_miss_default_s, &st);
           if (rc < 0)
-            {
-              close(fd);
-              goto out;
-            }
+            goto out;
 
           cache_miss = (time_t)rc;
           if (time(NULL) - target_mtime <= cache_miss)
             {
-              close(fd);
               rc = -ENOENT;
               goto out;
             }

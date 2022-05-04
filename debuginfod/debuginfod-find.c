@@ -231,6 +231,8 @@ main(int argc, char** argv)
       fprintf(stderr, "Server query failed: %s\n", strerror(-rc));
       return 1;
     }
+  else
+    close (rc);
 
   printf("%s\n", cache_name);
   free (cache_name);

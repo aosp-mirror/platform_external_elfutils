@@ -1,6 +1,6 @@
 /* Debuginfo-over-http server.
    Copyright (C) 2019-2021 Red Hat, Inc.
-   Copyright (C) 2021 Mark J. Wielaard <mark@klomp.org>
+   Copyright (C) 2021, 2022 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -3906,7 +3906,14 @@ main (int argc, char *argv[])
         }
     }
 
-  unsigned int mhd_flags = ((connection_pool
+  /* Note that MHD_USE_EPOLL and MHD_USE_THREAD_PER_CONNECTION don't
+     work together.  */
+  unsigned int use_epoll = 0;
+#if MHD_VERSION >= 0x00095100
+  use_epoll = MHD_USE_EPOLL;
+#endif
+
+  unsigned int mhd_flags = ((connection_pool || use_epoll
 			     ? 0 : MHD_USE_THREAD_PER_CONNECTION)
 #if MHD_VERSION >= 0x00095300
 			    | MHD_USE_INTERNAL_POLLING_THREAD
@@ -3914,9 +3921,7 @@ main (int argc, char *argv[])
 			    | MHD_USE_SELECT_INTERNALLY
 #endif
 			    | MHD_USE_DUAL_STACK
-#ifdef MHD_USE_EPOLL
-			    | MHD_USE_EPOLL
-#endif
+			    | use_epoll
 #if MHD_VERSION >= 0x00095200
 			    | MHD_USE_ITC
 #endif

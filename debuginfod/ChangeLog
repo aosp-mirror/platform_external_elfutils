@@ -1,3 +1,10 @@
+2022-05-05  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod.cxx (main): Define mhd_flags. Use mhd_flags for
+	MHD_start_daemon. Try again with MHD_USE_DUAL_STACK removed if
+	that fails. Update clog to say either IPV4 or IPV4 and IPV6.
+	stop either ithe d46 or d4 daemonr.
+
 2022-05-09  Noah Sanci  <nsanci@redhat.com>
 
 	* debuginfod.cxx (main): Set nonzero defaults for fdcache.

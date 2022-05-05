@@ -3906,40 +3906,67 @@ main (int argc, char *argv[])
         }
     }
 
-  // Start httpd server threads.  Use a single dual-homed pool.
-  MHD_Daemon *d46 = MHD_start_daemon ((connection_pool ? 0 : MHD_USE_THREAD_PER_CONNECTION)
+  unsigned int mhd_flags = ((connection_pool
+			     ? 0 : MHD_USE_THREAD_PER_CONNECTION)
 #if MHD_VERSION >= 0x00095300
-                                     | MHD_USE_INTERNAL_POLLING_THREAD
+			    | MHD_USE_INTERNAL_POLLING_THREAD
 #else
-                                     | MHD_USE_SELECT_INTERNALLY
+			    | MHD_USE_SELECT_INTERNALLY
 #endif
+			    | MHD_USE_DUAL_STACK
 #ifdef MHD_USE_EPOLL
-                                     | MHD_USE_EPOLL
+			    | MHD_USE_EPOLL
 #endif
-                                     | MHD_USE_DUAL_STACK
 #if MHD_VERSION >= 0x00095200
-                                     | MHD_USE_ITC
+			    | MHD_USE_ITC
 #endif
-                                     | MHD_USE_DEBUG, /* report errors to stderr */
-                                     http_port,
-                                     NULL, NULL, /* default accept policy */
-                                     handler_cb, NULL, /* handler callback */
-                                     MHD_OPTION_EXTERNAL_LOGGER, error_cb, NULL,
-                                     (connection_pool ? MHD_OPTION_THREAD_POOL_SIZE : MHD_OPTION_END),
-                                     (connection_pool ? (int)connection_pool : MHD_OPTION_END),
-                                     MHD_OPTION_END);
+			    | MHD_USE_DEBUG); /* report errors to stderr */
 
+  // Start httpd server threads.  Use a single dual-homed pool.
+  MHD_Daemon *d46 = MHD_start_daemon (mhd_flags, http_port,
+				      NULL, NULL, /* default accept policy */
+				      handler_cb, NULL, /* handler callback */
+				      MHD_OPTION_EXTERNAL_LOGGER,
+				      error_cb, NULL,
+				      (connection_pool
+				       ? MHD_OPTION_THREAD_POOL_SIZE
+				       : MHD_OPTION_END),
+				      (connection_pool
+				       ? (int)connection_pool
+				       : MHD_OPTION_END),
+				      MHD_OPTION_END);
+
+  MHD_Daemon *d4 = NULL;
   if (d46 == NULL)
     {
-      sqlite3 *database = db;
-      sqlite3 *databaseq = dbq;
-      db = dbq = 0; // for signal_handler not to freak
-      sqlite3_close (databaseq);
-      sqlite3_close (database);
-      error (EXIT_FAILURE, 0, "cannot start http server at port %d", http_port);
-    }
+      // Cannot use dual_stack, use ipv4 only
+      mhd_flags &= ~(MHD_USE_DUAL_STACK);
+      d4 = MHD_start_daemon (mhd_flags, http_port,
+			     NULL, NULL, /* default accept policy */
+			     handler_cb, NULL, /* handler callback */
+			     MHD_OPTION_EXTERNAL_LOGGER,
+			     error_cb, NULL,
+			     (connection_pool
+			      ? MHD_OPTION_THREAD_POOL_SIZE
+			      : MHD_OPTION_END),
+			     (connection_pool
+			      ? (int)connection_pool
+			      : MHD_OPTION_END),
+			     MHD_OPTION_END);
+      if (d4 == NULL)
+	{
+	  sqlite3 *database = db;
+	  sqlite3 *databaseq = dbq;
+	  db = dbq = 0; // for signal_handler not to freak
+	  sqlite3_close (databaseq);
+	  sqlite3_close (database);
+	  error (EXIT_FAILURE, 0, "cannot start http server at port %d",
+		 http_port);
+	}
 
-  obatched(clog) << "started http server on IPv4 IPv6 "
+    }
+  obatched(clog) << "started http server on"
+                 << (d4 != NULL ? " IPv4 " : " IPv4 IPv6 ")
                  << "port=" << http_port << endl;
 
   // add maxigroom sql if -G given
@@ -4060,6 +4087,7 @@ main (int argc, char *argv[])
 
   /* Stop all the web service threads. */
   if (d46) MHD_stop_daemon (d46);
+  if (d4) MHD_stop_daemon (d4);
 
   if (! passive_p)
     {

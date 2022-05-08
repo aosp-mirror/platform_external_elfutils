@@ -297,6 +297,11 @@ debuginfod_clean_cache(debuginfod_client *c,
     /* Interval has not passed, skip cleaning.  */
     return 0;
 
+  /* Update timestamp representing when the cache was last cleaned.
+     Do it at the start to reduce the number of threads trying to do a
+     cleanup simultaniously.  */
+  utime (interval_path, NULL);
+
   /* Read max unused age value from config file.  */
   rc = debuginfod_config_cache(max_unused_path,
 			       cache_default_max_unused_age_s, &st);
@@ -351,8 +356,6 @@ debuginfod_clean_cache(debuginfod_client *c,
   fts_close (fts);
   regfree (&re);
 
-  /* Update timestamp representing when the cache was last cleaned.  */
-  utime (interval_path, NULL);
   return 0;
 }
 

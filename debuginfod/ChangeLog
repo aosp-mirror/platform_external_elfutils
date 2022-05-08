@@ -1,5 +1,10 @@
 2022-05-09  Mark Wielaard  <mark@klomp.org>
 
+	* debuginfod-client.c (debuginfod_clean_cache): Move utime call to
+	before fts traversal.
+
+2022-05-09  Mark Wielaard  <mark@klomp.org>
+
 	* debuginfod-client.c (debuginfod_init_cache): Remove.
 	(debuginfod_query_server): Don't call debuginfod_init_cache, call
 	mkdir then debuginfod_clean_cache.

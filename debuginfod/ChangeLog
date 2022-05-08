@@ -1,5 +1,11 @@
 2022-05-09  Mark Wielaard  <mark@klomp.org>
 
+	* debuginfod-client.c (debuginfod_init_cache): Remove.
+	(debuginfod_query_server): Don't call debuginfod_init_cache, call
+	mkdir then debuginfod_clean_cache.
+
+2022-05-09  Mark Wielaard  <mark@klomp.org>
+
 	* debuginfod-client.c (debuginfod_config_cache): Always open with
 	O_CREATE first, then use fstat, only write the cache_config_default_s
 	value if st_size == 0, otherwise read value from file.

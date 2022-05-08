@@ -274,55 +274,6 @@ debuginfod_config_cache(char *config_path,
   return cache_config;
 }
 
-/* Create the cache and interval file if they do not already exist.
-   Return 0 if cache and config file are initialized, otherwise return
-   the appropriate error code.  */
-static int
-debuginfod_init_cache (char *cache_path, char *interval_path, char *maxage_path)
-{
-  struct stat st;
-
-  /* If the cache and config file already exist then we are done.  */
-  if (stat(cache_path, &st) == 0 && stat(interval_path, &st) == 0)
-    return 0;
-
-  /* Create the cache and config files as necessary.  */
-  if (stat(cache_path, &st) != 0 && mkdir(cache_path, ACCESSPERMS) < 0)
-    return -errno;
-
-  int fd = -1;
-
-  /* init cleaning interval config file.  */
-  fd = open(interval_path, O_CREAT | O_RDWR, DEFFILEMODE);
-  if (fd < 0)
-    return -errno;
-
-  if (dprintf(fd, "%ld", cache_clean_default_interval_s) < 0)
-    {
-      int ret = -errno;
-      close (fd);
-      return ret;
-    }
-
-  close (fd);
-
-  /* init max age config file.  */
-  if (stat(maxage_path, &st) != 0
-      && (fd = open(maxage_path, O_CREAT | O_RDWR, DEFFILEMODE)) < 0)
-    return -errno;
-
-  if (dprintf(fd, "%ld", cache_default_max_unused_age_s) < 0)
-    {
-      int ret = -errno;
-      close (fd);
-      return ret;
-    }
-
-  close (fd);
-  return 0;
-}
-
-
 /* Delete any files that have been unmodied for a period
    longer than $DEBUGINFOD_CACHE_CLEAN_INTERVAL_S.  */
 static int
@@ -795,9 +746,15 @@ debuginfod_query_server (debuginfod_client *c,
   if (vfd >= 0)
     dprintf (vfd, "checking cache dir %s\n", cache_path);
 
-  rc = debuginfod_init_cache(cache_path, interval_path, maxage_path);
-  if (rc != 0)
-    goto out;
+  /* Make sure cache dir exists. debuginfo_clean_cache will then make
+     sure the interval, cache_miss and maxage files exist.  */
+  if (mkdir (cache_path, ACCESSPERMS) != 0
+      && errno != EEXIST)
+    {
+      rc = -errno;
+      goto out;
+    }
+
   rc = debuginfod_clean_cache(c, cache_path, interval_path, maxage_path);
   if (rc != 0)
     goto out;

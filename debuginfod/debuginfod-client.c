@@ -235,14 +235,19 @@ debuginfod_config_cache(char *config_path,
 			long cache_config_default_s,
 			struct stat *st)
 {
-  int fd;
-  /* if the config file doesn't exist, create one with DEFFILEMODE*/
-  if(stat(config_path, st) == -1)
-    {
-      fd = open(config_path, O_CREAT | O_RDWR, DEFFILEMODE);
-      if (fd < 0)
-        return -errno;
+  int fd = open(config_path, O_CREAT | O_RDWR, DEFFILEMODE);
+  if (fd < 0)
+    return -errno;
 
+  if (fstat (fd, st) < 0)
+    {
+      int ret = -errno;
+      close (fd);
+      return ret;
+    }
+
+  if (st->st_size == 0)
+    {
       if (dprintf(fd, "%ld", cache_config_default_s) < 0)
 	{
 	  int ret = -errno;
@@ -251,10 +256,11 @@ debuginfod_config_cache(char *config_path,
 	}
 
       close (fd);
+      return cache_config_default_s;
     }
 
   long cache_config;
-  FILE *config_file = fopen(config_path, "r");
+  FILE *config_file = fdopen(fd, "r");
   if (config_file)
     {
       if (fscanf(config_file, "%ld", &cache_config) != 1)
@@ -264,6 +270,7 @@ debuginfod_config_cache(char *config_path,
   else
     cache_config = cache_config_default_s;
 
+  close (fd);
   return cache_config;
 }
 

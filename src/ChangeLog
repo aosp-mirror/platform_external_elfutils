@@ -1,3 +1,8 @@
+2022-05-09  Mark Wielaard  <mark@klomp.org>
+
+	* strip.c (remove_debug_relocations): Check gelf_getshdr, gelf_getrela,
+	gelf_getrel and gelf_getsymshndx don't return NULL.
+
 2022-05-10  Mark Wielaard  <mark@klomp.org>
 
 	* elfcompress.c (process_file): Sanity check shstrtab_name,

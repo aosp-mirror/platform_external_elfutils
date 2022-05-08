@@ -1,5 +1,9 @@
 2022-05-09  Mark Wielaard  <mark@klomp.org>
 
+	* debuginfod.cxx (conninfo): Always provide servname to getnameinfo.
+
+2022-05-09  Mark Wielaard  <mark@klomp.org>
+
 	* debuginfod-client.c (debuginfod_query_server): Add
 	curl_easy_setopt_ck macro, use it for all curl_easy_setopt calls.
 

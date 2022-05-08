@@ -1060,8 +1060,10 @@ conninfo (struct MHD_Connection * conn)
   struct sockaddr *so = u ? u->client_addr : 0;
 
   if (so && so->sa_family == AF_INET) {
-    sts = getnameinfo (so, sizeof (struct sockaddr_in), hostname, sizeof (hostname), servname,
-                       sizeof (servname), NI_NUMERICHOST | NI_NUMERICSERV);
+    sts = getnameinfo (so, sizeof (struct sockaddr_in),
+                       hostname, sizeof (hostname),
+                       servname, sizeof (servname),
+                       NI_NUMERICHOST | NI_NUMERICSERV);
   } else if (so && so->sa_family == AF_INET6) {
     struct sockaddr_in6* addr6 = (struct sockaddr_in6*) so;
     if (IN6_IS_ADDR_V4MAPPED(&addr6->sin6_addr)) {
@@ -1071,11 +1073,14 @@ conninfo (struct MHD_Connection * conn)
       addr4.sin_port = addr6->sin6_port;
       memcpy (&addr4.sin_addr.s_addr, addr6->sin6_addr.s6_addr+12, sizeof(addr4.sin_addr.s_addr));
       sts = getnameinfo ((struct sockaddr*) &addr4, sizeof (addr4),
-                         hostname, sizeof (hostname), servname, sizeof (servname),
+                         hostname, sizeof (hostname),
+                         servname, sizeof (servname),
                          NI_NUMERICHOST | NI_NUMERICSERV);
     } else {
-      sts = getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname), NULL, 0,
-                         NI_NUMERICHOST);
+      sts = getnameinfo (so, sizeof (struct sockaddr_in6),
+                         hostname, sizeof (hostname),
+                         servname, sizeof (servname),
+                         NI_NUMERICHOST | NI_NUMERICSERV);
     }
   }
   

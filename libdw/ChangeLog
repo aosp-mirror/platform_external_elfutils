@@ -1,3 +1,7 @@
+2022-05-09  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_getlocation.c (store_implicit_value): Check block length.
+
 2022-04-16  Mark Wielaard  <mark@klomp.org>
 
 	* libdwP.h: Remove atomics.h include.

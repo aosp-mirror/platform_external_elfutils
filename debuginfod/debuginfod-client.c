@@ -1032,43 +1032,60 @@ debuginfod_query_server (debuginfod_client *c,
       if (vfd >= 0)
 	dprintf (vfd, "url %d %s\n", i, data[i].url);
 
+      /* Some boilerplate for checking curl_easy_setopt.  */
+#define curl_easy_setopt_ck(H,O,P) do {			\
+      CURLcode curl_res = curl_easy_setopt (H,O,P);	\
+      if (curl_res != CURLE_OK)				\
+	{						\
+	  if (vfd >= 0)					\
+	    dprintf (vfd,				\
+	             "Bad curl_easy_setopt: %s\n",	\
+		     curl_easy_strerror(curl_res));	\
+	  rc = -EINVAL;					\
+	  goto out2;					\
+	}						\
+      } while (0)
+
       /* Only allow http:// + https:// + file:// so we aren't being
 	 redirected to some unsupported protocol.  */
-      curl_easy_setopt(data[i].handle, CURLOPT_PROTOCOLS,
-		       CURLPROTO_HTTP | CURLPROTO_HTTPS | CURLPROTO_FILE);
-      curl_easy_setopt(data[i].handle, CURLOPT_URL, data[i].url);
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_PROTOCOLS,
+			  (CURLPROTO_HTTP | CURLPROTO_HTTPS | CURLPROTO_FILE));
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_URL, data[i].url);
       if (vfd >= 0)
-	curl_easy_setopt(data[i].handle, CURLOPT_ERRORBUFFER, data[i].errbuf);
-      curl_easy_setopt(data[i].handle,
-                       CURLOPT_WRITEFUNCTION,
-                       debuginfod_write_callback);
-      curl_easy_setopt(data[i].handle, CURLOPT_WRITEDATA, (void*)&data[i]);
+	curl_easy_setopt_ck(data[i].handle, CURLOPT_ERRORBUFFER,
+			    data[i].errbuf);
+      curl_easy_setopt_ck(data[i].handle,
+			  CURLOPT_WRITEFUNCTION,
+			  debuginfod_write_callback);
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_WRITEDATA, (void*)&data[i]);
       if (timeout > 0)
 	{
 	  /* Make sure there is at least some progress,
 	     try to get at least 100K per timeout seconds.  */
-	  curl_easy_setopt (data[i].handle, CURLOPT_LOW_SPEED_TIME,
-			    timeout);
-	  curl_easy_setopt (data[i].handle, CURLOPT_LOW_SPEED_LIMIT,
-			    100 * 1024L);
+	  curl_easy_setopt_ck (data[i].handle, CURLOPT_LOW_SPEED_TIME,
+			       timeout);
+	  curl_easy_setopt_ck (data[i].handle, CURLOPT_LOW_SPEED_LIMIT,
+			       100 * 1024L);
 	}
       data[i].response_data = NULL;
       data[i].response_data_size = 0;
-      curl_easy_setopt(data[i].handle, CURLOPT_FILETIME, (long) 1);
-      curl_easy_setopt(data[i].handle, CURLOPT_FOLLOWLOCATION, (long) 1);
-      curl_easy_setopt(data[i].handle, CURLOPT_FAILONERROR, (long) 1);
-      curl_easy_setopt(data[i].handle, CURLOPT_NOSIGNAL, (long) 1);
-      curl_easy_setopt(data[i].handle, CURLOPT_HEADERFUNCTION, header_callback);
-      curl_easy_setopt(data[i].handle, CURLOPT_HEADERDATA, (void *) &(data[i]));
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_FILETIME, (long) 1);
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_FOLLOWLOCATION, (long) 1);
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_FAILONERROR, (long) 1);
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_NOSIGNAL, (long) 1);
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_HEADERFUNCTION,
+			  header_callback);
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_HEADERDATA,
+			  (void *) &(data[i]));
 #if LIBCURL_VERSION_NUM >= 0x072a00 /* 7.42.0 */
-      curl_easy_setopt(data[i].handle, CURLOPT_PATH_AS_IS, (long) 1);
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_PATH_AS_IS, (long) 1);
 #else
       /* On old curl; no big deal, canonicalization here is almost the
          same, except perhaps for ? # type decorations at the tail. */
 #endif
-      curl_easy_setopt(data[i].handle, CURLOPT_AUTOREFERER, (long) 1);
-      curl_easy_setopt(data[i].handle, CURLOPT_ACCEPT_ENCODING, "");
-      curl_easy_setopt(data[i].handle, CURLOPT_HTTPHEADER, c->headers);
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_AUTOREFERER, (long) 1);
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_ACCEPT_ENCODING, "");
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_HTTPHEADER, c->headers);
 
       curl_multi_add_handle(curlm, data[i].handle);
     }

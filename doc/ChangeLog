@@ -1,3 +1,7 @@
+2022-05-09  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.8: Tweak prefetch descriptions.
+
 2022-01-31  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod-client-config.7: Elaborate DEBUGINFOD_URLS.

@@ -232,34 +232,36 @@ loops in the symbolic directory tree might lead to \fIinfinite
 traversal\fP.
 
 .TP
-.B "\-\-fdcache\-fds=NUM"  "\-\-fdcache\-mbs=MB"  "\-\-fdcache\-prefetch=NUM2"
+.B "\-\-fdcache\-fds=NUM"  "\-\-fdcache\-mbs=MB"
 Configure limits on a cache that keeps recently extracted files from
 archives.  Up to NUM requested files and up to a total of MB megabytes
 will be kept extracted, in order to avoid having to decompress their
-archives over and over again.  In addition, up to NUM2 other files
-from an archive may be prefetched into the cache before they are even
-requested.  The default NUM, NUM2, and MB values depend on the
-concurrency of the system, and on the available disk space on the
+archives over and over again. The default NUM and MB values depend on
+the concurrency of the system, and on the available disk space on the
 $TMPDIR or \fB/tmp\fP filesystem.  This is because that is where the
-most recently used extracted files are kept.  Grooming cleans this
+most recently used extracted files are kept.  Grooming cleans out this
 cache.
 
 .TP
 .B "\-\-fdcache\-\-prefetch\-fds=NUM"  "\-\-fdcache\-\-prefetch\-mbs=MB"
-Configure how many file descriptors (fds) and megabytes (mbs) are
-allocated to the prefetch fdcache. If unspecified, values of
-\fB\-\-prefetch\-fds\fP and \fB\-\-prefetch\-mbs\fP depend
-on concurrency of the system and on the available disk space on
-the $TMPDIR. Allocating more to the prefetch cache will improve
-performance in environments where different parts of several large
-archives are being accessed.
+.B "\-\-fdcache\-prefetch=NUM2"
+
+In addition to the main fdcache, up to NUM2 other files from an
+archive may be prefetched into another cache before they are even
+requested.  Configure how many file descriptors (fds) and megabytes
+(mbs) are allocated to the prefetch fdcache. If unspecified, these
+values depend on concurrency of the system and on the available disk
+space on the $TMPDIR.  Allocating more to the prefetch cache will
+improve performance in environments where different parts of several
+large archives are being accessed.  This cache is also cleaned out
+during grooming.
 
 .TP
 .B "\-\-fdcache\-mintmp=NUM"
-Configure a disk space threshold for emergency flushing of the cache.
-The filesystem holding the cache is checked periodically.  If the
-available space falls below the given percentage, the cache is
-flushed, and the fdcache will stay disabled until the next groom
+Configure a disk space threshold for emergency flushing of the caches.
+The filesystem holding the caches is checked periodically.  If the
+available space falls below the given percentage, the caches are
+flushed, and the fdcaches will stay disabled until the next groom
 cycle.  This mechanism, along a few associated /metrics on the webapi,
 are intended to give an operator notice about storage scarcity - which
 can translate to RAM scarcity if the disk happens to be on a RAM

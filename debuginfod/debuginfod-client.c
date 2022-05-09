@@ -213,8 +213,9 @@ debuginfod_write_callback (char *ptr, size_t size, size_t nmemb, void *data)
       *d->target_handle = d->handle;
       /* update the client object */
       const char *url = NULL;
-      (void) curl_easy_getinfo (d->handle, CURLINFO_EFFECTIVE_URL, &url);
-      if (url)
+      CURLcode curl_res = curl_easy_getinfo (d->handle,
+                                             CURLINFO_EFFECTIVE_URL, &url);
+      if (curl_res == CURLE_OK && url)
         {
           free (d->client->url);
           d->client->url = strdup(url); /* ok if fails */

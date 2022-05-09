@@ -1,3 +1,8 @@
+2022-05-09  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (debuginfod_write_callback): Check result
+	of curl_easy_getinfo.
+
 2022-05-05  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod.cxx (main): Define use_epoll. Set to MHD_USE_EPOLL

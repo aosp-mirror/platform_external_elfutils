@@ -3826,6 +3826,13 @@ main (int argc, char *argv[])
       error (EXIT_FAILURE, 0,
              "unexpected argument: %s", argv[remaining]);
 
+  // Make the prefetch cache spaces a fraction of the main fdcache if
+  // unspecified.
+  if (fdcache_prefetch_fds == 0)
+    fdcache_prefetch_fds = fdcache_fds / 2;
+  if (fdcache_prefetch_mbs == 0)
+    fdcache_prefetch_mbs = fdcache_mbs / 2;
+
   if (scan_archives.size()==0 && !scan_files && source_paths.size()>0)
     obatched(clog) << "warning: without -F -R -U -Z, ignoring PATHs" << endl;
 

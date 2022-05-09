@@ -1,3 +1,7 @@
+2022-05-09  Noah Sanci  <nsanci@redhat.com>
+
+	* debuginfod.cxx (main): Set nonzero defaults for fdcache.
+
 2022-05-04  Frank Ch. Eigler <fche@redhat.com>
 	    Mark Wielaard  <mark@klomp.org>
 

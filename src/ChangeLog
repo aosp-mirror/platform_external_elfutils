@@ -1,3 +1,185 @@
+2021-10-20  John M Mellor-Crummey  <johnmc@rice.edu>
+
+	* readelf.c (print_debug_line_section): Try to read
+	debug_str_offset if available.  Handle DW_LNE_NVIDIA_inlined_call
+	and DW_LNE_NVIDIA_set_function_name.
+
+2021-10-06  Mark Wielaard  <mark@klomp.org>
+
+	* elflint.c (check_sections): Don't dereference databits if bad.
+
+2021-09-09  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* findtextrel.c: Include "libeu.h".
+	(open_rootdir_file): New function.
+	(process_file): Use it to open file inside rootdir.
+	* Makefile.am (findtextrel_no_Wstack_usage): Remove.
+
+2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* objdump.c (show_disasm): Replace asprintf followed by
+	error(EXIT_FAILURE) with xasprintf.
+	* readelf.c (handle_gnu_hash): Likewise.
+	* unstrip.c (handle_output_dir_module, main): Likewise.
+
+	* elflint.c (check_sections): Remove cast of xcalloc return value.
+	* findtextrel.c (process_file): Remove casts of malloc and realloc
+	return values.
+	* nm.c (get_local_names, show_symbols_sysv, show_symbols): Remove
+	casts of xmalloc return values.
+	* readelf.c (print_hash_info, handle_sysv_hash, handle_sysv_hash64,
+	handle_gnu_hash): Remove cast of xcalloc return value.
+	(print_debug_units): Remove casts of xmalloc return values.
+	* strip.c (handle_elf): Remove casts of xcalloc and xmalloc return
+	values.
+
+2021-09-05  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* Makefile.am (AM_LDFLAGS): Add $(STACK_USAGE_NO_ERROR).
+
+2021-08-20  Saleem Abdulrasool  <abdulras@google.com>
+
+	* elfclassify.c: Remove error.h include.
+
+2021-03-18  Timm Bäder  <tbaeder@redhat.com>
+
+	* readelf.c (run_advance_pc): New static inline function
+	lifted from...
+	(print_debug_line_section): ... here. Define advance_pc
+	using run_advance_pc.
+
+2021-07-03  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (compare_listptr): Fix dwarf_attr_name argument.
+
+2021-06-18  Mark Wielaard  <mark@klomp.org>
+
+	* unstrip.c (adjust_relocs): Check gelf_getrel and geld_getrela.
+
+2021-06-18  Mark Wielaard  <mark@klomp.org>
+
+	* strip.c (remove_debug_relocations): Check gelf_update results.
+	(update_section_size): Likewise.
+
+2021-06-06  Sergei Trofimovich  <slyfox@gentoo.org>
+
+	* elflint.c (buffer_left): Mark as 'static' to avoid external linkage
+	failure.
+
+2021-05-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	* elfcompress.c (process_file): Return 1 instead of -1 in case of an
+	error.
+
+	* elfcompress.c (process_file): Remove redundant assignment in case of
+	"Nothing to do".
+
+	* elfcompress.c (process_file): Set res to 0 in case of "Nothing to do".
+
+2021-04-19  Martin Liska  <mliska@suse.cz>
+
+	* elfclassify.c (run_classify): Use startswith.
+	* elfcompress.c (process_file): Likewise.
+	* nm.c (show_symbols_sysv): Likewise.
+	* readelf.c (print_debug): Likewise.
+	(handle_notes_data): Likewise.
+	(dump_data_section): Likewise.
+	(print_string_section): Likewise.
+	* strip.c (remove_debug_relocations): Likewise.
+
+2021-04-03  Mark Wielaard  <mark@klomp.org>
+
+	* nm.c (show_symbols): close dwfl_fd if dwfl_begin fails.
+
+2021-04-03  Mark Wielaard  <mark@klomp.org>
+
+	* unstrip.c (handle_output_dir_module): Free output_file when done.
+
+2021-04-03  Mark Wielaard  <mark@klomp.org>
+
+	* ar.c (do_oper_insert): Always close newfd.
+
+2021-03-03  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (handle_symtab): Sanity check verneed vna_next,
+	vn_next and verdef vd_next offsets.
+
+2021-03-02  Timm Bäder  <tbaeder@redhat.com>
+
+	* elfcompress.c (process_file): Remove cleanup() function and
+	replace it with a cleanup label at the end of the function.
+	Initialize res to -1.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
+	* elfcompress.c (process_file): Move get_sections function...
+	(get_section): ...to top-level static function taking an
+	sections array and shnum.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
+	* elfcompress.c (process_file): Move get_section function...
+	(get_section): ...to top-level static function taking an
+	sections array.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
+	* elfcompress.c (process_file): Move set_section function...
+	(set_section): ...to top-level static function taking a
+	section array.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
+	* unstrip.c (handle_implicit_modules): Inline the next function
+	in three places. This is simply dwfl_getmodules with match_module
+	callback providing mmi.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
+	* unstrip.c (handle_explicit_files): Move warn function...
+	(warn): ...here as top-level static function taking stripped,
+	unstripped files and force flag as extra arguments.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
+	* unstrip.c (copy_elided_sections): Inline find_unalloc_section
+	function into calling location. The sec pointer is set to NULL
+	before the if-else statement and only set when match is found.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
+	* unstrip.c (find_alloc_sections_prelink): Move check_match to...
+	(check_match): Adjusted to return whether there was no match,
+	which indicates a failure. So callers are adjusted to or the
+	result into a local fail boolean.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
+	* unstrip.c (adjust_relocs): Move adjust_reloc function to...
+	(adjust_reloc): ... here as static top-level function taking
+	a map array and size as extra arguments.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
+	* elflint.c (check_attributes): Rename and move left function...
+	(buffer_left): ...as static toplevel function taking both an
+	Elf_Data pointer argument and the unsigned char pointer p.
+
+2021-02-17  Timm Bäder  <tbaeder@redhat.com>
+
+	* elflint.c (check_attributes): Rename and move pos function...
+	(buffer_pos): ...as static toplevel function taking an extra
+	Elf_Data pointer argument.
+
+2021-02-12  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (print_debug_units): Type DIE offset is from start CU.
+
+2021-02-12  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (attr_callback): Don't handle blocks as expression
+	blocks for DWARF version 4 or higher.
+
 2021-02-03 Timm Bäder <tbaeder@redhat.com>
 
 	* ar.c (do_oper_extract): Extract should_truncate_fname function

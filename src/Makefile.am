@@ -23,7 +23,7 @@ AM_CPPFLAGS += -I$(srcdir)/../libelf -I$(srcdir)/../libebl \
 	    -I$(srcdir)/../libdw -I$(srcdir)/../libdwelf \
 	    -I$(srcdir)/../libdwfl -I$(srcdir)/../libasm
 
-AM_LDFLAGS = -Wl,-rpath-link,../libelf:../libdw
+AM_LDFLAGS = -Wl,-rpath-link,../libelf:../libdw $(STACK_USAGE_NO_ERROR)
 
 bin_PROGRAMS = readelf nm size strip elflint findtextrel addr2line \
 	       elfcmp objdump ranlib strings ar unstrip stack elfcompress \
@@ -61,7 +61,6 @@ nm_no_Wstack_usage = yes
 size_no_Wstack_usage = yes
 strip_no_Wstack_usage = yes
 elflint_no_Wstack_usage = yes
-findtextrel_no_Wstack_usage = yes
 elfcmp_no_Wstack_usage = yes
 objdump_no_Wstack_usage = yes
 ranlib_no_Wstack_usage = yes

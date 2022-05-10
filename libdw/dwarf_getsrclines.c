@@ -93,6 +93,8 @@ struct line_state
   struct linelist *linelist;
   size_t nlinelist;
   unsigned int end_sequence;
+  unsigned int context;
+  unsigned int function_name;
 };
 
 static inline void
@@ -139,6 +141,8 @@ add_new_line (struct line_state *state, struct linelist *new_line)
   SET (epilogue_begin);
   SET (isa);
   SET (discriminator);
+  SET (context);
+  SET (function_name);
 
 #undef SET
 
@@ -161,7 +165,7 @@ read_srclines (Dwarf *dbg,
      the stack.  Stack allocate some entries, only dynamically malloc
      when more than MAX.  */
 #define MAX_STACK_ALLOC 4096
-#define MAX_STACK_LINES MAX_STACK_ALLOC
+#define MAX_STACK_LINES (MAX_STACK_ALLOC / 2)
 #define MAX_STACK_FILES (MAX_STACK_ALLOC / 4)
 #define MAX_STACK_DIRS  (MAX_STACK_ALLOC / 16)
 
@@ -180,7 +184,9 @@ read_srclines (Dwarf *dbg,
       .prologue_end = false,
       .epilogue_begin = false,
       .isa = 0,
-      .discriminator = 0
+      .discriminator = 0,
+      .context = 0,
+      .function_name = 0
     };
 
   /* The dirs normally go on the stack, but if there are too many
@@ -372,7 +378,7 @@ read_srclines (Dwarf *dbg,
     {
       if (ndirlist > SIZE_MAX / sizeof (*dirarray))
 	goto no_mem;
-      dirarray = (struct dirlist *) malloc (ndirlist * sizeof (*dirarray));
+      dirarray = malloc (ndirlist * sizeof (*dirarray));
       if (unlikely (dirarray == NULL))
 	{
 	no_mem:
@@ -648,6 +654,13 @@ read_srclines (Dwarf *dbg,
 	}
     }
 
+  unsigned int debug_str_offset = 0;
+  if (unlikely (linep == header_start + header_length - 4))
+    {
+      /* CUBINs contain an unsigned 4-byte offset */
+      debug_str_offset = read_4ubyte_unaligned_inc (dbg, linep);
+    }
+
   /* Consistency check.  */
   if (unlikely (linep != header_start + header_length))
     {
@@ -753,6 +766,8 @@ read_srclines (Dwarf *dbg,
 	      state.epilogue_begin = false;
 	      state.isa = 0;
 	      state.discriminator = 0;
+	      state.context = 0;
+	      state.function_name = 0;
 	      break;
 
 	    case DW_LNE_set_address:
@@ -829,6 +844,23 @@ read_srclines (Dwarf *dbg,
 	      if (unlikely (linep >= lineendp))
 		goto invalid_data;
 	      get_uleb128 (state.discriminator, linep, lineendp);
+	      break;
+
+	    case DW_LNE_NVIDIA_inlined_call:
+	      if (unlikely (linep >= lineendp))
+		goto invalid_data;
+	      get_uleb128 (state.context, linep, lineendp);
+	      if (unlikely (linep >= lineendp))
+		goto invalid_data;
+	      get_uleb128 (state.function_name, linep, lineendp);
+	      state.function_name += debug_str_offset;
+	      break;
+
+	    case DW_LNE_NVIDIA_set_function_name:
+	      if (unlikely (linep >= lineendp))
+		goto invalid_data;
+	      get_uleb128 (state.function_name, linep, lineendp);
+	      state.function_name += debug_str_offset;
 	      break;
 
 	    default:

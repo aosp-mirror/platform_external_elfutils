@@ -1,0 +1,42 @@
+diff --git b/config.h a/config.h
+index f929481176ba..ea86194416c7 100644
+--- b/config.h
++++ a/config.h
+@@ -29,7 +29,7 @@
+ /* #undef HAVE_CFPREFERENCESCOPYAPPVALUE */
+ 
+ /* define if the compiler supports basic C++11 syntax */
+-/* #undef HAVE_CXX11 */
++#define HAVE_CXX11 1
+ 
+ /* Define if the GNU dcgettext() function is already present or preinstalled.
+    */
+@@ -60,7 +60,9 @@
+ #define HAVE_DECL_STRERROR_R 1
+ 
+ /* Define to 1 if you have the <error.h> header file. */
++#if defined(__BIONIC__) || defined(__GLIBC__)
+ #define HAVE_ERROR_H 1
++#endif
+ 
+ /* Define to 1 if you have the <err.h> header file. */
+ #define HAVE_ERR_H 1
+@@ -69,7 +71,7 @@
+ #define HAVE_FALLTHROUGH 1
+ 
+ /* Defined if __attribute__((gcc_struct)) is supported */
+-#define HAVE_GCC_STRUCT 1
++/* #undef HAVE_GCC_STRUCT */
+ 
+ /* Define if the GNU gettext() function is already present or preinstalled. */
+ #define HAVE_GETTEXT 1
+@@ -152,7 +154,9 @@
+ #define STDC_HEADERS 1
+ 
+ /* Define to 1 if strerror_r returns char *. */
++#if defined(__GLIBC__) || defined(__BIONIC__)
+ #define STRERROR_R_CHAR_P 1
++#endif
+ 
+ /* Support bzip2 decompression via -lbz2. */
+ /* #undef USE_BZLIB */

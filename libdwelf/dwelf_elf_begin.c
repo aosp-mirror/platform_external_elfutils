@@ -36,6 +36,7 @@
 
 #include <unistd.h>
 
+NEW_VERSION (dwelf_elf_begin, ELFUTILS_0.177)
 Elf *
 dwelf_elf_begin (int fd)
 {
@@ -61,4 +62,3 @@ dwelf_elf_begin (int fd)
   return NULL;
 }
 OLD_VERSION (dwelf_elf_begin, ELFUTILS_0.175)
-NEW_VERSION (dwelf_elf_begin, ELFUTILS_0.177)

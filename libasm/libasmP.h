@@ -302,6 +302,6 @@ extern int __disasm_cb_internal (DisasmCtx_t *ctx, const uint8_t **startp,
 // XXX The second part should probably be controlled by an option which
 // isn't implemented yet
 // XXX Also, the format will change with the backend.
-#define asm_emit_symbol_p(name) (strncmp (name, ".L", 2) != 0)
+#define asm_emit_symbol_p(name) (!startswith (name, ".L"))
 
 #endif	/* libasmP.h */

@@ -36,6 +36,7 @@
 #include <unistd.h>
 
 #include <printversion.h>
+#include "libeu.h"
 #include "system.h"
 
 struct segments
@@ -181,30 +182,31 @@ noop (void *arg __attribute__ ((unused)))
 
 
 static int
+open_rootdir_file (const char *fname)
+{
+  char *new_fname = NULL;
+  const char *real_fname = fname;
+
+  if (fname[0] == '/' && (rootdir[0] != '/' || rootdir[1] != '\0'))
+    real_fname = new_fname = xasprintf ("%s/%s", rootdir, fname);
+
+  int fd = open (real_fname, O_RDONLY);
+  if (fd == -1)
+    error (0, errno, _("cannot open '%s'"), fname);
+
+  free (new_fname);
+  return fd;
+}
+
+
+static int
 process_file (const char *fname, bool more_than_one)
 {
   int result = 0;
   void *knownsrcs = NULL;
-
-  size_t fname_len = strlen (fname);
-  size_t rootdir_len = strlen (rootdir);
-  const char *real_fname = fname;
-  if (fname[0] == '/' && (rootdir[0] != '/' || rootdir[1] != '\0'))
-    {
-      /* Prepend the user-provided root directory.  */
-      char *new_fname = alloca (rootdir_len + fname_len + 2);
-      *((char *) mempcpy (stpcpy (mempcpy (new_fname, rootdir, rootdir_len),
-				  "/"),
-			  fname, fname_len)) = '\0';
-      real_fname = new_fname;
-    }
-
-  int fd = open (real_fname, O_RDONLY);
+  int fd = open_rootdir_file (fname);
   if (fd == -1)
-    {
-      error (0, errno, _("cannot open '%s'"), fname);
-      return 1;
-    }
+    return 1;
 
   Elf *elf = elf_begin (fd, ELF_C_READ_MMAP, NULL);
   if (elf == NULL)
@@ -304,8 +306,7 @@ process_file (const char *fname, bool more_than_one)
   /* Get the address ranges for the loaded segments.  */
   size_t nsegments_max = 10;
   size_t nsegments = 0;
-  struct segments *segments
-    = (struct segments *) malloc (nsegments_max * sizeof (segments[0]));
+  struct segments *segments = malloc (nsegments_max * sizeof (segments[0]));
   if (segments == NULL)
     error (1, errno, _("while reading ELF file"));
 
@@ -334,9 +335,7 @@ process_file (const char *fname, bool more_than_one)
 	    {
 	      nsegments_max *= 2;
 	      segments
-		= (struct segments *) realloc (segments,
-					       nsegments_max
-					       * sizeof (segments[0]));
+		= realloc (segments, nsegments_max * sizeof (segments[0]));
 	      if (segments == NULL)
 		{
 		  error (0, 0, _("\
@@ -362,18 +361,10 @@ cannot get program header index at offset %zd: %s"),
 	 is specified with an absolute path.  */
       if (dw == NULL && fname[0] == '/')
 	{
-	  size_t debuginfo_rootlen = strlen (debuginfo_root);
-	  char *difname = (char *) alloca (rootdir_len + debuginfo_rootlen
-					   + fname_len + 8);
-	  strcpy (mempcpy (stpcpy (mempcpy (mempcpy (difname, rootdir,
-						     rootdir_len),
-					    debuginfo_root,
-					    debuginfo_rootlen),
-				   "/"),
-			   fname, fname_len),
-		  ".debug");
-
+	  char *difname =
+	    xasprintf("%s%s/%s.debug", rootdir, debuginfo_root, fname);
 	  fd2 = open (difname, O_RDONLY);
+	  free (difname);
 	  if (fd2 != -1
 	      && (elf2 = elf_begin (fd2, ELF_C_READ_MMAP, NULL)) != NULL)
 	    dw = dwarf_begin_elf (elf2, DWARF_C_READ, NULL);

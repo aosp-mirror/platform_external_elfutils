@@ -11,4 +11,5 @@ DEBUGINFOD_PATHS="-t43200 -F -R /usr/lib/debug /usr/bin /usr/libexec /usr/sbin /
 # upstream debuginfods
 #DEBUGINFOD_URLS="http://secondhost:8002 http://thirdhost:8002"
 #DEBUGINFOD_TIMEOUT="5"
+#DEBUGINFOD_RETRY_LIMIT="2"
 #DEBUGINFOD_CACHE_DIR=""

@@ -355,7 +355,7 @@ INIT(NAME) (NAME *htab, size_t init_size)
 
   pthread_rwlock_init(&htab->resize_rwl, NULL);
 
-  htab->table = (void *) malloc ((init_size + 1) * sizeof (htab->table[0]));
+  htab->table = malloc ((init_size + 1) * sizeof (htab->table[0]));
   if (htab->table == NULL)
       return -1;
 

@@ -125,8 +125,8 @@ pass_by_flattened_arg (const Dwarf_Op **locp __attribute__ ((unused)),
 }
 
 int
-riscv_return_value_location_lp64d (Dwarf_Die *functypedie,
-				   const Dwarf_Op **locp)
+riscv_return_value_location_lp64ifd (int fp, Dwarf_Die *functypedie,
+                                     const Dwarf_Op **locp)
 {
   /* Start with the function's type, and get the DW_AT_type attribute,
      which is the type of the return value.  */
@@ -211,10 +211,29 @@ riscv_return_value_location_lp64d (Dwarf_Die *functypedie,
 	      switch (size)
 		{
 		case 4: /* single */
-		case 8: /* double */
-		  return pass_in_fpr_lp64d (locp, size);
+                  switch (fp)
+                    {
+                    case EF_RISCV_FLOAT_ABI_DOUBLE:
+                    case EF_RISCV_FLOAT_ABI_SINGLE:
+                      return pass_in_fpr_lp64d (locp, size);
+                    case EF_RISCV_FLOAT_ABI_SOFT:
+                      return pass_in_gpr_lp64 (locp, size);
+                    default:
+                      return -2;
+                    }
+                case 8: /* double */
+                  switch (fp)
+                    {
+                    case EF_RISCV_FLOAT_ABI_DOUBLE:
+                      return pass_in_fpr_lp64d (locp, size);
+                    case EF_RISCV_FLOAT_ABI_SINGLE:
+                    case EF_RISCV_FLOAT_ABI_SOFT:
+                      return pass_in_gpr_lp64 (locp, size);
+                    default:
+                      return -2;
+                    }
 
-		case 16: /* quad */
+                case 16: /* quad */
 		  return pass_in_gpr_lp64 (locp, size);
 
 		default:
@@ -227,12 +246,31 @@ riscv_return_value_location_lp64d (Dwarf_Die *functypedie,
 	      switch (size)
 		{
 		case 8: /* float _Complex */
-		  return pass_in_fpr_lp64f (locp, size);
+                  switch (fp)
+                    {
+                    case EF_RISCV_FLOAT_ABI_DOUBLE:
+                    case EF_RISCV_FLOAT_ABI_SINGLE:
+                      return pass_in_fpr_lp64f (locp, size);
+                    case EF_RISCV_FLOAT_ABI_SOFT:
+                      /* Double the size so the vals are two registers. */
+                      return pass_in_gpr_lp64 (locp, size * 2);
+                    default:
+                      return -2;
+                    }
 
-		case 16: /* double _Complex */
-		  return pass_in_fpr_lp64d (locp, size);
+                case 16: /* double _Complex */
+                  switch (fp)
+                    {
+                    case EF_RISCV_FLOAT_ABI_DOUBLE:
+                      return pass_in_fpr_lp64d (locp, size);
+                    case EF_RISCV_FLOAT_ABI_SINGLE:
+                    case EF_RISCV_FLOAT_ABI_SOFT:
+                      return pass_in_gpr_lp64 (locp, size);
+                    default:
+                      return -2;
+                    }
 
-		case 32: /* long double _Complex */
+                case 32: /* long double _Complex */
 		  return pass_by_ref (locp);
 
 		default:
@@ -248,4 +286,28 @@ riscv_return_value_location_lp64d (Dwarf_Die *functypedie,
 
   *locp = NULL;
   return 0;
+}
+
+int
+riscv_return_value_location_lp64d (Dwarf_Die *functypedie,
+                                   const Dwarf_Op **locp)
+{
+  return riscv_return_value_location_lp64ifd (EF_RISCV_FLOAT_ABI_DOUBLE,
+                                              functypedie, locp);
+}
+
+int
+riscv_return_value_location_lp64f (Dwarf_Die *functypedie,
+                                   const Dwarf_Op **locp)
+{
+  return riscv_return_value_location_lp64ifd (EF_RISCV_FLOAT_ABI_SINGLE,
+                                              functypedie, locp);
+}
+
+int
+riscv_return_value_location_lp64 (Dwarf_Die *functypedie,
+                                  const Dwarf_Op **locp)
+{
+  return riscv_return_value_location_lp64ifd (EF_RISCV_FLOAT_ABI_SOFT,
+                                              functypedie, locp);
 }

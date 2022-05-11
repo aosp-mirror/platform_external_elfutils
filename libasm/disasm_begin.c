@@ -49,7 +49,7 @@ disasm_begin (Ebl *ebl, Elf *elf, DisasmGetSymCB_t symcb)
       return NULL;
     }
 
-  DisasmCtx_t *ctx = (DisasmCtx_t *) malloc (sizeof (DisasmCtx_t));
+  DisasmCtx_t *ctx = malloc (sizeof (DisasmCtx_t));
   if (ctx == NULL)
     {
       __libasm_seterrno (ASM_E_NOMEM);

@@ -22,10 +22,17 @@
 set -x
 unset VALGRIND_CMD
 
-FDCACHE_FDS=100
-FDCACHE_MBS=100
-PREFETCH_FDS=100
-PREFETCH_MBS=100
+mkdir R
+cp -rvp ${abs_srcdir}/debuginfod-rpms R
+if [ "$zstd" = "false" ]; then  # nuke the zstd fedora 31 ones
+    rm -vrf R/debuginfod-rpms/fedora31
+fi
+
+FDCACHE_MBS=$((1/1024/1024))
+FDCACHE_FDS=1
+PREFETCH_MBS=$((1/1024/1024))
+PREFETCH_FDS=2
+PREFETCH=1
 # This variable is essential and ensures no time-race for claiming ports occurs
 # set base to a unique multiple of 100 not used in any other 'run-debuginfod-*' test
 base=8800
@@ -35,30 +42,128 @@ DB=${PWD}/.debuginfod_tmp.sqlite
 tempfiles $DB
 export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
 
-echo $PORT1
+######
+# Test fd limits of fd and prefetch cache
+######
+rm -rf $DEBUGINFOD_CACHE_PATH
+rm -rf $DB
+# Set mb values to ensure the caches certainly have enough space
+# To store the test files
 env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -p $PORT1 -d $DB \
-    --fdcache-mbs=$FDCACHE_MDS --fdcache-fds=$FDCACHE_FDS --fdcache-prefetch-mbs=$PREFETCH_MBS \
-    --fdcache-prefetch-fds=$PREFETCH_FDS --fdcache-mintmp 0 -v -F F > vlog$PORT1 2>&1 &
+    --fdcache-fds=$FDCACHE_FDS --fdcache-prefetch-fds=$PREFETCH_FDS --fdcache-mintmp 0 -vvvvv -g 0 -t 0 -R R \
+    --fdcache-mbs=50  --fdcache-prefetch-mbs=50 \
+    --fdcache-prefetch=$PREFETCH  > vlog$PORT1 2>&1 &
 PID1=$!
 tempfiles vlog$PORT1
 errfiles vlog$PORT1
 # Server must become ready
 wait_ready $PORT1 'ready' 1
+########################################################################
+cp -rvp ${abs_srcdir}/debuginfod-rpms R
+if [ "$zstd" = "false" ]; then  # nuke the zstd fedora 31 ones
+    rm -vrf R/debuginfod-rpms/fedora31
+fi
+kill -USR1 $PID1
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
+# All rpms need to be in the index, except the dummy permission-000 one
+rpms=$(find R -name \*rpm | grep -v nothing | wc -l)
+wait_ready $PORT1 'scanned_files_total{source=".rpm archive"}' $rpms
+kill -USR1 $PID1  # two hits of SIGUSR1 may be needed to resolve .debug->dwz->srefs
+# Wait till both files are in the index and scan/index fully finished
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 2
+export DEBUGINFOD_URLS="http://127.0.0.1:"$PORT1
 
-grep 'fdcache fds ' vlog$PORT1 #$FDCACHE_FDS
-grep 'fdcache mbs ' vlog$PORT1 #$FDCACHE_MBS
-grep 'prefetch fds ' vlog$PORT1 #$PREFETCH_FDS
-grep 'prefetch mbs ' vlog$PORT1 #$PREFETCH_MBS
-# search the vlog to find what metric counts should be and check the correct metrics
-# were incrimented
-enqueue_nr=$(grep -c 'interned.*front=1' vlog$PORT1 || true)
-wait_ready $PORT1 'fdcache_op_count{op="enqueue"}' $enqueue_nr
-evict_nr=$(grep -c 'evicted a=.*' vlog$PORT1 || true)
-wait_ready $PORT1 'fdcache_op_count{op="evict"}' $evict_nr
-prefetch_enqueue_nr=$(grep -c 'interned.*front=0' vlog$PORT1 || true)
-wait_ready $PORT1 'fdcache_op_count{op="prefetch_enqueue"}' $prefetch_enqueue_nr
-prefetch_evict_nr=$(grep -c 'evicted from prefetch a=.*front=0' vlog$PORT1 || true)
-wait_ready $PORT1 'fdcache_op_count{op="prefetch_evict"}' $prefetch_evict_nr
+archive_hits=5
+SHA=f4a1a8062be998ae93b8f1cd744a398c6de6dbb1
+for i in $archive_hits
+do
+  archive_test c36708a78618d597dee15d0dc989f093ca5f9120 /usr/src/debug/hello2-1.0-2.x86_64/hello.c $SHA
+done
+metrics=$(curl http://127.0.0.1:$PORT1/metrics)
+regex="fdcache_op_count\{op=\"enqueue\"\} ([0-9]+).*fdcache_op_count\{op=\"evict\"\} ([0-9]+).*"
+enqueue=0
+if [[ $metrics =~ $regex ]]
+then
+   enqueue=${BASH_REMATCH[1]}
+   evict=${BASH_REMATCH[2]}
+else
+   err
+fi
+# This is an ad-hoc test than only works when FDCACHE_FDS < "archive_test"s above (5)
+# otherwise there will be no eviction
+if [[ $(( $enqueue-$FDCACHE_FDS )) -ne $evict ]]
+then
+   err
+fi
+# Test prefetch cache
+archive_test bc1febfd03ca05e030f0d205f7659db29f8a4b30 /usr/src/debug/hello-1.0/hello.c $SHA
+metrics=$(curl http://127.0.0.1:$PORT1/metrics)
+regex="fdcache_prefetch_count ([0-9])+"
+pf_count=0
+for i in $FDCACHE_FDS
+do
+  if [[ $metrics =~ $regex ]]; then
+
+    if [[ $(( $pf_count+$PREFETCH )) -ne ${BASH_REMATCH[1]} ]]; then
+      err
+    else
+      pf_count=${BASH_REMATCH[1]}
+    fi
+
+  else
+    err
+  fi
+done
+
+kill $PID1
+wait $PID1
+PID1=0
+
+
+#########
+# Test mb limit on fd and prefetch cache
+#########
+
+rm -rf $DEBUGINFOD_CACHE_PATH
+rm -rf $DB
+env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -p $PORT1 -d $DB \
+    --fdcache-mbs=1 --fdcache-prefetch-mbs=1 --fdcache-mintmp 0 -vvvvv -g 0 -t 0 -R R \
+    > vlog2$PORT1 2>&1 &
+PID1=$!
+tempfiles vlog2$PORT1
+errfiles vlog2$PORT1
+wait_ready $PORT1 'ready' 1
+########################################################################
+kill -USR1 $PID1
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
+# All rpms need to be in the index, except the dummy permission-000 one
+rpms=$(find R -name \*rpm | grep -v nothing | wc -l)
+wait_ready $PORT1 'scanned_files_total{source=".rpm archive"}' $rpms
+kill -USR1 $PID1  # two hits of SIGUSR1 may be needed to resolve .debug->dwz->srefs
+# Wait till both files are in the index and scan/index fully finished
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 2
+
+archive_test c36708a78618d597dee15d0dc989f093ca5f9120 /usr/src/debug/hello2-1.0-2.x86_64/hello.c $SHA
+archive_test bc1febfd03ca05e030f0d205f7659db29f8a4b30 /usr/src/debug/hello-1.0/hello.c $SHA
+archive_test c36708a78618d597dee15d0dc989f093ca5f9120 /usr/src/debug/hello2-1.0-2.x86_64/hello.c $SHA
+archive_test 41a236eb667c362a1c4196018cc4581e09722b1b /usr/src/debug/hello2-1.0-2.x86_64/hello.c $SHA
+archive_test bc1febfd03ca05e030f0d205f7659db29f8a4b30 /usr/src/debug/hello-1.0/hello.c $SHA
+archive_test f0aa15b8aba4f3c28cac3c2a73801fefa644a9f2 /usr/src/debug/hello-1.0/hello.c $SHA
+archive_test bbbf92ebee5228310e398609c23c2d7d53f6e2f9 /usr/src/debug/hello-1.0/hello.c $SHA
+archive_test d44d42cbd7d915bc938c81333a21e355a6022fb7 /usr/src/debug/hello-1.0/hello.c $SHA
+
+metrics=$(curl http://127.0.0.1:$PORT1/metrics)
+regex="fdcache_bytes ([0-9]+).*fdcache_prefetch_bytes ([0-9]+)"
+mb=$((1024*1024))
+if [[ $metrics =~ $regex ]]; then
+  fdbytes=${BASH_REMATCH[1]}
+  pfbytes=${BASH_REMATCH[2]}
+  if [ $fdbytes -gt $mb ] || [ $pfbytes -gt $mb ]; then
+    err
+  fi
+else
+  err
+fi
 
 kill $PID1
 wait $PID1

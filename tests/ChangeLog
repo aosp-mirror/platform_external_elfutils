@@ -1,3 +1,7 @@
+2022-05-13  Noah Sanci  <nsanci@redhat.com>
+
+	* run-debuginfod-fd-prefetch-caches.sh: Rewritten.
+
 2022-06-02  Mark Wielaard  <mark@klomp.org>
 
 	* Makefile.am (TESTS): Add run-debuginfod-federation-metrics.sh

@@ -473,26 +473,26 @@ extern const char *dwfl_module_addrname (Dwfl_Module *mod, GElf_Addr address);
    when nothing was found.  If the architecture uses function
    descriptors, and symbol st_value points to one, ADDRESS will be
    matched against either the adjusted st_value or the associated
-   function entry value as described in dwfl_module_getsym_info.  If
-   OFFSET is not NULL it will be filled in with the difference from
-   the start of the symbol (or function entry).  If SYM is not NULL it
-   is filled in with the symbol associated with the matched ADDRESS.
-   The SYM->ST_VALUE itself isn't adjusted in any way.  Fills in ELFP,
-   if not NULL, with the ELF file the symbol originally came from.
-   Note that symbols can come from either the main, debug or auxiliary
-   ELF symbol file (either dynsym or symtab).  If SHNDXP is non-null,
-   it's set with the section index (whether from st_shndx or extended
-   index table).  Fills in BIAS, if not NULL, with the difference
-   between addresses within the loaded module and those in symbol
-   table of the ELF file.  Note that the address matched against the
-   symbol might be in a different section than the returned symbol.
-   The section in the main elf file in ADDRESS falls can be found with
-   dwfl_module_address_section.  */
+   function entry value as described in dwfl_module_getsym_info.
+   OFFSET will be filled in with the difference from the start of the
+   symbol (or function entry), OFFSET cannot be NULL.  SYM is filled
+   in with the symbol associated with the matched ADDRESS, SYM cannot
+   be NULL.  The SYM->ST_VALUE itself isn't adjusted in any way.
+   Fills in ELFP, if not NULL, with the ELF file the symbol originally
+   came from.  Note that symbols can come from either the main, debug
+   or auxiliary ELF symbol file (either dynsym or symtab).  If SHNDXP
+   is non-null, it's set with the section index (whether from st_shndx
+   or extended index table).  Fills in BIAS, if not NULL, with the
+   difference between addresses within the loaded module and those in
+   symbol table of the ELF file.  Note that the address matched
+   against the symbol might be in a different section than the
+   returned symbol.  The section in the main elf file in ADDRESS falls
+   can be found with dwfl_module_address_section.  */
 extern const char *dwfl_module_addrinfo (Dwfl_Module *mod, GElf_Addr address,
 					 GElf_Off *offset, GElf_Sym *sym,
 					 GElf_Word *shndxp, Elf **elfp,
 					 Dwarf_Addr *bias)
-  __nonnull_attribute__ (3);
+  __nonnull_attribute__ (3, 4);
 
 /* Find the symbol that ADDRESS lies inside, and return detailed
    information as for dwfl_module_getsym (above).  Note that like

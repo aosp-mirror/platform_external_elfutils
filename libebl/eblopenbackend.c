@@ -169,7 +169,7 @@ static const char *default_section_type_name (int ignore, char *buf,
 					      size_t len);
 static const char *default_section_name (int ignore, int ignore2, char *buf,
 					 size_t len);
-static const char *default_machine_flag_name (Elf64_Word *ignore);
+static const char *default_machine_flag_name (Elf64_Word orig, Elf64_Word *ignore);
 static bool default_machine_flag_check (Elf64_Word flags);
 static bool default_machine_section_flag_check (GElf_Xword flags);
 static const char *default_symbol_type_name (int ignore, char *buf,
@@ -450,7 +450,8 @@ default_section_name (int ignore __attribute__ ((unused)),
 }
 
 static const char *
-default_machine_flag_name (Elf64_Word *ignore __attribute__ ((unused)))
+default_machine_flag_name (Elf64_Word orig __attribute__ ((unused)),
+			   Elf64_Word *ignore __attribute__ ((unused)))
 {
   return NULL;
 }

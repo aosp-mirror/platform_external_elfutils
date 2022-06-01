@@ -164,6 +164,7 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-backtrace-core-aarch64.sh run-backtrace-core-sparc.sh \
 	run-backtrace-demangle.sh run-stack-d-test.sh run-stack-i-test.sh \
 	run-stack-demangled-test.sh run-readelf-zx.sh run-readelf-zp.sh \
+	run-readelf-arm-flags.sh \
 	run-readelf-addr.sh run-readelf-str.sh \
 	run-readelf-multi-noline.sh \
 	run-readelf-types.sh \
@@ -347,6 +348,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-readelf-dwz-multi.sh libtestfile_multi_shared.so.bz2 \
 	     testfile_multi.dwz.bz2 testfile_multi_main.bz2 \
 	     testfile-dwzstr.bz2 testfile-dwzstr.multi.bz2 \
+	     run-readelf-arm-flags.sh testfile-arm-flags.bz2 \
 	     run-readelf-addr.sh run-readelf-str.sh \
 	     run-readelf-multi-noline.sh testfile_multi_noline.bz2 \
 	     run-readelf-types.sh \

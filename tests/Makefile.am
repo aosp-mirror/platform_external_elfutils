@@ -238,12 +238,16 @@ TESTS += run-debuginfod-dlopen.sh \
 	 run-debuginfod-archive-test.sh \
 	 run-debuginfod-federation-sqlite.sh \
 	 run-debuginfod-federation-link.sh \
-	 run-debuginfod-federation-metrics.sh \
          run-debuginfod-percent-escape.sh \
          run-debuginfod-x-forwarded-for.sh \
          run-debuginfod-response-headers.sh \
          run-debuginfod-extraction-passive.sh \
 	 run-debuginfod-webapi-concurrency.sh
+endif
+if !OLD_LIBMICROHTTPD
+# Will crash on too old libmicrohttpd
+# Too many open file descriptors confuses libmicrohttpd < 0.9.51
+TESTS += run-debuginfod-federation-metrics.sh
 endif
 endif
 

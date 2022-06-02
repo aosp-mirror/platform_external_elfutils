@@ -783,6 +783,7 @@ AS_IF([test "x$enable_debuginfod" != "xno"], [
     enable_debuginfod=yes # presume success
     PKG_PROG_PKG_CONFIG
     PKG_CHECK_MODULES([libmicrohttpd],[libmicrohttpd >= 0.9.33],[],[enable_debuginfod=no])
+    PKG_CHECK_MODULES([oldlibmicrohttpd],[libmicrohttpd < 0.9.51],[old_libmicrohttpd=yes],[old_libmicrohttpd=no])
     PKG_CHECK_MODULES([sqlite3],[sqlite3 >= 3.7.17],[],[enable_debuginfod=no])
     PKG_CHECK_MODULES([libarchive],[libarchive >= 3.1.2],[],[enable_debuginfod=no])
     if test "x$enable_debuginfod" = "xno"; then
@@ -792,6 +793,7 @@ AS_IF([test "x$enable_debuginfod" != "xno"], [
 
 AS_IF([test "x$enable_debuginfod" != "xno"],AC_DEFINE([ENABLE_DEBUGINFOD],[1],[Build debuginfod]))
 AM_CONDITIONAL([DEBUGINFOD],[test "x$enable_debuginfod" = "xyes"])
+AM_CONDITIONAL([OLD_LIBMICROHTTPD],[test "x$old_libmicrohttpd" = "xyes"])
 
 dnl for /etc/profile.d/elfutils.{csh,sh}
 default_debuginfod_urls=""

@@ -1,3 +1,8 @@
+2022-06-02  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (TESTS): Add run-debuginfod-federation-metrics.sh
+	only when OLD_LIBMICROHTTPD conditional is not set.
+
 2022-04-24  Mark Wielaard  <mark@klomp.org>
 
 	* run-debuginfod-webapi-concurrency.sh: Fix PR number in xfail.

@@ -27,7 +27,7 @@ if DEBUGINFOD
 if !LIBDEBUGINFOD
 notrans_dist_man7_MANS += debuginfod-client-config.7
 endif
-notrans_dist_man8_MANS += debuginfod.8
+notrans_dist_man8_MANS += debuginfod.8 debuginfod.service.8
 endif
 
 if LIBDEBUGINFOD

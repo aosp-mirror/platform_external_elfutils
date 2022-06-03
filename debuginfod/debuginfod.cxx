@@ -381,6 +381,8 @@ static const struct argp_option options[] =
    {"forwarded-ttl-limit", ARGP_KEY_FORWARDED_TTL_LIMIT, "NUM", 0, "Limit of X-Forwarded-For hops, default 8.", 0},
 #define ARGP_KEY_PASSIVE 0x1008
    { "passive", ARGP_KEY_PASSIVE, NULL, 0, "Do not scan or groom, read-only database.", 0 },
+#define ARGP_KEY_DISABLE_SOURCE_SCAN 0x1009
+   { "disable-source-scan", ARGP_KEY_DISABLE_SOURCE_SCAN, NULL, 0, "Do not scan dwarf source info.", 0 },
    { NULL, 0, NULL, 0, NULL, 0 },
   };
 
@@ -430,6 +432,7 @@ static long fdcache_mintmp;
 static long fdcache_prefetch_mbs;
 static long fdcache_prefetch_fds;
 static unsigned forwarded_ttl_limit = 8;
+static bool scan_source_info = true;
 static string tmpdir;
 static bool passive_p = false;
 
@@ -631,6 +634,9 @@ parse_opt (int key, char *arg,
           || traverse_logical)
         // other conflicting options tricky to check
         argp_failure(state, 1, EINVAL, "inconsistent options with passive mode");
+      break;
+    case ARGP_KEY_DISABLE_SOURCE_SCAN:
+      scan_source_info = false;
       break;
       // case 'h': argp_state_help (state, stderr, ARGP_HELP_LONG|ARGP_HELP_EXIT_OK);
     default: return ARGP_ERR_UNKNOWN;
@@ -2705,7 +2711,8 @@ elf_classify (int fd, bool &executable_p, bool &debuginfo_p, string &buildid, se
               startswith (section_name, ".zdebug_line"))
             {
               debuginfo_p = true;
-              dwarf_extract_source_paths (elf, debug_sourcefiles);
+              if (scan_source_info)
+                dwarf_extract_source_paths (elf, debug_sourcefiles);
               break; // expecting only one .*debug_line, so no need to look for others
             }
           else if (startswith (section_name, ".debug_") ||

@@ -274,6 +274,12 @@ exceeds N hops, it will not delegate a local lookup miss to
 upstream debuginfods. The default limit is 8.
 
 .TP
+.B "\-\-disable\-source\-scan"
+Disable scan of the dwarf source info of debuginfo sections.
+If a setup has no access to source code, the source info is not
+required.
+
+.TP
 .B "\-v"
 Increase verbosity of logging to the standard error file descriptor.
 May be repeated to increase details.  The default verbosity is 0.

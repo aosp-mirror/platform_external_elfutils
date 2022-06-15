@@ -40,7 +40,7 @@ get_type (Dwarf_Die *die, Dwarf_Attribute *attr_mem, Dwarf_Die *type_mem)
   Dwarf_Die *type = INTUSE(dwarf_formref_die)
     (INTUSE(dwarf_attr_integrate) (die, DW_AT_type, attr_mem), type_mem);
 
-  if (type == NULL || INTUSE(dwarf_peel_type) (type, type) != 0)
+  if (INTUSE(dwarf_peel_type) (type, type) != 0)
     return NULL;
 
   return type;
@@ -83,51 +83,19 @@ array_size (Dwarf_Die *die, Dwarf_Word *size,
 	    }
 	  else
 	    {
-	      bool is_signed = true;
-	      if (INTUSE(dwarf_attr) (get_type (&child, attr_mem, &type_mem),
-				      DW_AT_encoding, attr_mem) != NULL)
-		{
-		  Dwarf_Word encoding;
-		  if (INTUSE(dwarf_formudata) (attr_mem, &encoding) == 0)
-		    is_signed = (encoding == DW_ATE_signed
-				 || encoding == DW_ATE_signed_char);
-		}
-
 	      Dwarf_Sword upper;
 	      Dwarf_Sword lower;
-	      if (is_signed)
-		{
-		  if (INTUSE(dwarf_formsdata) (INTUSE(dwarf_attr_integrate)
-					       (&child, DW_AT_upper_bound,
-						attr_mem), &upper) != 0)
-		    return -1;
-		}
-	      else
-		{
-		  Dwarf_Word unsigned_upper;
-		  if (INTUSE(dwarf_formudata) (INTUSE(dwarf_attr_integrate)
-					       (&child, DW_AT_upper_bound,
-						attr_mem), &unsigned_upper) != 0)
-		    return -1;
-		  upper = unsigned_upper;
-		}
+	      if (INTUSE(dwarf_formsdata) (INTUSE(dwarf_attr_integrate)
+					   (&child, DW_AT_upper_bound,
+					    attr_mem), &upper) != 0)
+		return -1;
 
 	      /* Having DW_AT_lower_bound is optional.  */
 	      if (INTUSE(dwarf_attr_integrate) (&child, DW_AT_lower_bound,
 						attr_mem) != NULL)
 		{
-		  if (is_signed)
-		    {
-		      if (INTUSE(dwarf_formsdata) (attr_mem, &lower) != 0)
-			return -1;
-		    }
-		  else
-		    {
-		      Dwarf_Word unsigned_lower;
-		      if (INTUSE(dwarf_formudata) (attr_mem, &unsigned_lower) != 0)
-			return -1;
-		      lower = unsigned_lower;
-		    }
+		  if (INTUSE(dwarf_formsdata) (attr_mem, &lower) != 0)
+		    return -1;
 		}
 	      else
 		{
@@ -241,7 +209,6 @@ aggregate_size (Dwarf_Die *die, Dwarf_Word *size,
   return -1;
 }
 
-NEW_VERSION (dwarf_aggregate_size, ELFUTILS_0.161)
 int
 dwarf_aggregate_size (Dwarf_Die *die, Dwarf_Word *size)
 {
@@ -252,5 +219,6 @@ dwarf_aggregate_size (Dwarf_Die *die, Dwarf_Word *size)
 
   return aggregate_size (&die_mem, size, &type_mem, 0);
 }
-NEW_INTDEF (dwarf_aggregate_size)
+INTDEF (dwarf_aggregate_size)
 OLD_VERSION (dwarf_aggregate_size, ELFUTILS_0.144)
+NEW_VERSION (dwarf_aggregate_size, ELFUTILS_0.161)

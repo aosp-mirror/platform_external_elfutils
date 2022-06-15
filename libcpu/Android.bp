@@ -49,11 +49,6 @@ cc_binary_host {
     static_libs: [
         "libeu",
     ],
-    target: {
-        musl: {
-            static_libs: ["libobstack"],
-        },
-    },
 }
 
 genrule {
@@ -62,7 +57,7 @@ genrule {
         "defs/i386",
     ],
     out: ["i386_dis.h"],
-    cmd: "$(location m4) -Di386 -DDISASSEMBLER $(in) > $(genDir)/i386_defs && $(location i386_gendis) $(genDir)/i386_defs > $(out)",
+    cmd: "$(location m4) -Di386 -DDISASSEMBLER $(in) > i386_defs && $(location i386_gendis) i386_defs > $(out)",
     tools: [
         "i386_gendis",
         "m4",
@@ -75,7 +70,7 @@ genrule {
         "defs/i386",
     ],
     out: ["x86_64_dis.h"],
-    cmd: "$(location m4) -Dx86_64 -DDISASSEMBLER $(in) > $(genDir)/x86_64_defs && $(location i386_gendis) $(genDir)/x86_64_defs > $(out)",
+    cmd: "$(location m4) -Dx86_64 -DDISASSEMBLER $(in) > x86_64_defs && $(location i386_gendis) x86_64_defs > $(out)",
     tools: [
         "i386_gendis",
         "m4",

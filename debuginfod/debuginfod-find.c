@@ -215,6 +215,9 @@ main(int argc, char** argv)
 
   if (verbose)
     {
+      const char* headers = debuginfod_get_headers(client);
+      if (headers)
+        fprintf(stderr, "Headers:\n%s", headers);
       const char* url = debuginfod_get_url (client);
       if (url != NULL)
         fprintf(stderr, "Downloaded from %s\n", url);

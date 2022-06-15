@@ -1,3 +1,8 @@
+2022-07-15  Noah Sanci  <nsanci@redhat.com>
+	* debuginfod_find_debuginfo.3: Explained debuginfod_get_headers
+	usage.
+	* debuginfod_get_headers.3: Created.
+
 2022-09-02  Aaron Merey  <amerey@redhat.com>
 
 	* debuginfod.8 (-C): Update description.

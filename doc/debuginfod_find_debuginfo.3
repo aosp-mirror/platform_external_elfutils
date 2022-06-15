@@ -58,6 +58,7 @@ OPTIONAL FUNCTIONS
 .BI "const char* debuginfod_get_url(debuginfod_client *" client ");"
 .BI "int debuginfod_add_http_header(debuginfod_client *" client ","
 .BI "                               const char* " header ");"
+.BI "const char* debuginfod_get_headers(debuginfod_client *" client ");"
 
 .SH DESCRIPTION
 
@@ -197,6 +198,18 @@ server for logging purposes only.
 By default, the library adds a descriptive \fIUser-Agent:\fP
 header to outgoing requests.  If the client application adds
 a header with the same name, this default is suppressed.
+
+.BR \%debuginfod_get_headers ()
+may be called with a debuginfod client. This function will return the
+http response headers prefixed with
+.BR X-DEBUGINFOD
+received from the first handle to get a response from a debuginfod server.
+Note that all other http headers aren't stored in the libcurl header
+callback function since they aren't of as much interest. The caller should
+copy the returned string if it is needed beyond the release of the client object.
+The returned string may be NULL if no headers are prefixed with
+.BR X-DEBUGINFOD
+\.
 
 .SH "MACROS"
 

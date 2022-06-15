@@ -1,3 +1,9 @@
+2022-07-15  Noah Sanci  <nsanci@redhat.com>
+
+	* run-debuginfod-response-headers.sh: Added test
+	to ensure that federated servers pass headers down to
+	queried server.
+
 2022-08-04  Sergei Trofimovich  <slyich@gmail.com>
 
 	* low_high_pc.c (handle_die): Drop redundant 'lx' suffix.

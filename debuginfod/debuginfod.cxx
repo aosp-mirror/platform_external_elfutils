@@ -2093,6 +2093,24 @@ and will not query the upstream servers");
             {
               add_mhd_response_header (r, "Content-Type",
 				       "application/octet-stream");
+              const char * hdrs = debuginfod_get_headers(client);
+              string header_dup;
+              if (hdrs)
+                header_dup = string(hdrs);
+              size_t pos = 0;
+              // Clean winning headers to add all X-DEBUGINFOD lines to the package we'll send
+              while( (pos = header_dup.find("X-DEBUGINFOD")) != string::npos)
+                {
+                  // Focus on where X-DEBUGINFOD- begins
+                  header_dup = header_dup.substr(pos);
+                  size_t newline =  header_dup.find('\n');
+                  if (newline == string::npos)
+                    break;
+                  add_mhd_response_header(r, header_dup.substr(0,header_dup.find(':')).c_str(),
+                                             header_dup.substr(header_dup.find(':')).c_str());
+                  header_dup = header_dup.substr(newline);
+                }
+
               add_mhd_last_modified (r, s.st_mtime);
               if (verbose > 1)
                 obatched(clog) << "serving file from upstream debuginfod/cache" << endl;

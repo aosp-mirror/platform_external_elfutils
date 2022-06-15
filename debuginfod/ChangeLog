@@ -1,3 +1,17 @@
+2022-07-15  Noah Sanci  <nsanci@redhat.com>
+
+	* debuginfod-client.c (header_callback): Handle headers without
+	X-DEBUGINFOD prefix.
+	(debuginfod_query_server): Removed verbose printing headers when
+	undesired.
+	(debuginfod_get_headers): Created.
+	* debuginfod-find.c (main): Verboes printing headers.
+	* debuginfod.cxx (handle_buildid): Add headers prefixed with
+	X-DEBUGINFOD from federated servers to this server's response
+	headers.
+	* debuginfod.h.in (debuginfod_get_headers): Created.
+	* libdebuginfod.map: New elfutils version added.
+
 2022-09-02  Aaron Merey  <amerey@redhat.com>
 
 	* debuginfod.cxx (parse_opt): If '-C' is given with no arg, do not

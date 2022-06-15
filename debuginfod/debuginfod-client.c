@@ -501,6 +501,12 @@ header_callback (char * buffer, size_t size, size_t numitems, void * userdata)
 {
   if (size != 1)
     return 0;
+  // X-DEBUGINFOD is 11 characters long.
+  // Some basic checks to ensure the headers received are of the expected format
+  if ( strncmp(buffer, "X-DEBUGINFOD", 11) || buffer[numitems-1] != '\n'
+       || (buffer == strstr(buffer, ":")) ){
+    return numitems;
+  }
   /* Temporary buffer for realloc */
   char *temp = NULL;
   struct handle_data *data = (struct handle_data *) userdata;
@@ -1111,8 +1117,6 @@ debuginfod_query_server (debuginfod_client *c,
                 if (c->winning_headers == NULL)
                   {
                     c->winning_headers = data[committed_to].response_data;
-                    if (vfd >= 0 && c->winning_headers != NULL)
-                      dprintf(vfd, "\n%s", c->winning_headers);
                     data[committed_to].response_data = NULL;
                     data[committed_to].response_data_size = 0;
                   }
@@ -1540,6 +1544,12 @@ const char *
 debuginfod_get_url(debuginfod_client *client)
 {
   return client->url;
+}
+
+const char *
+debuginfod_get_headers(debuginfod_client *client)
+{
+  return client->winning_headers;
 }
 
 void

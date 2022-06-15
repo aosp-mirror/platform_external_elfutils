@@ -73,17 +73,21 @@ rm -rf $DEBUGINFOD_CACHE_PATH
 env DEBUGINFOD_URLS="http://127.0.0.1:"$PORT1 LD_LIBRARY_PATH=$ldpath ${abs_top_builddir}/debuginfod/debuginfod-find\
     -vvv executable F/prog > vlog-find$PORT1.1 2>&1
 tempfiles vlog-find$PORT1.1
-grep 'Content-Length: ' vlog-find$PORT1.1
-grep 'X-DEBUGINFOD-FILE: ' vlog-find$PORT1.1
-grep 'X-DEBUGINFOD-SIZE: ' vlog-find$PORT1.1
+errfiles vlog-find$PORT1.1
+cat vlog-find$PORT1.1
+grep 'Headers:' vlog-find$PORT1.1
+grep 'X-DEBUGINFOD-FILE: prog' vlog-find$PORT1.1
+grep 'X-DEBUGINFOD-SIZE: '     vlog-find$PORT1.1
 
 # Check to see if an executable file located in an archive prints the file's description and archive
 env DEBUGINFOD_URLS="http://127.0.0.1:"$PORT1 LD_LIBRARY_PATH=$ldpath ${abs_top_builddir}/debuginfod/debuginfod-find\
     -vvv executable c36708a78618d597dee15d0dc989f093ca5f9120 > vlog-find$PORT1.2 2>&1
 tempfiles vlog-find$PORT1.2
-grep 'Content-Length: ' vlog-find$PORT1.2
-grep 'X-DEBUGINFOD-FILE: ' vlog-find$PORT1.2
-grep 'X-DEBUGINFOD-SIZE: ' vlog-find$PORT1.2
+errfiles vlog-find$PORT1.2
+cat vlog-find$PORT1.2
+grep 'Headers:'               vlog-find$PORT1.2
+grep 'X-DEBUGINFOD-FILE: '    vlog-find$PORT1.2
+grep 'X-DEBUGINFOD-SIZE: '    vlog-find$PORT1.2
 grep 'X-DEBUGINFOD-ARCHIVE: ' vlog-find$PORT1.2
 
 # Check that X-DEBUGINFOD-SIZE matches the size of each file
@@ -93,6 +97,38 @@ do
     x_debuginfod_size=$(grep 'X-DEBUGINFOD-SIZE' $file | egrep -o '[0-9]+')
     test $st_size -eq $x_debuginfod_size
 done
+
+rm -rf $DEBUGINFOD_CACHE_PATH
+BUILDID=`env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../src/readelf \
+          -a F/prog | grep 'Build ID' | cut -d ' ' -f 7`
+netcat_dir="buildid/$BUILDID/"
+mkdir -p ${PWD}/$netcat_dir
+cp F/prog ${PWD}/$netcat_dir/executable
+tempfiles F/prog
+
+# Netcat dies after answering the request
+nc -l -p $PORT2 -c 'echo -e "HTTP/1.1 200 OK\nX-DEBUGINFOD-SIZE: ba:d_size\nX-DEBUGINFOD-\rFILE:\=\+ \r213\n\n $(date)"' & < ${PWD}/$netcat_dir"executable" &
+# Wait until the netcat port is in use. Otherwise debuginfod-find can query
+# before netcat is ready.
+SECONDS=0
+nc_start=$SECONDS
+while [ ! $(lsof -i -P -n | grep LISTEN | grep "nc.*$PORT2")  ]
+do
+  # If it takes longer than 5 seconds for netcat to start up, then fail
+  duration=$(( SECONDS - nc_start ))
+  if [ $SECONDS -gt 5 ]
+  then
+    err
+  fi
+done
+
+env DEBUGINFOD_URLS="http://127.0.0.1:"$PORT2 LD_LIBRARY_PATH=$ldpath ${abs_top_builddir}/debuginfod/debuginfod-find\
+    -vvv executable $BUILDID > vlog-find$PORT2 2>&1
+errfiles vlog-find$PORT2
+tempfiles vlog-find$PORT2
+cat vlog-find$PORT2 | grep "X-DEBUGINFOD-"
+rm -f "$netcat_dir"executable
+rmdir -p $netcat_dir
 
 kill $PID1
 wait $PID1

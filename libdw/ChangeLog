@@ -1,3 +1,12 @@
+2022-04-16  Mark Wielaard  <mark@klomp.org>
+
+	* libdwP.h: Remove atomics.h include.
+
+2022-04-13  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf.h: Add DWARF5 package file section identifiers,
+	DW_SECT_*.
+
 2021-10-20  John M Mellor-Crummey  <johnmc@rice.edu>
 
 	* dwarf_linecontext.c: New file.

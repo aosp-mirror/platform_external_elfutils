@@ -101,6 +101,9 @@ ebl_object_note_type_name (Ebl *ebl, const char *name, uint32_t type,
 	  return buf;
 	}
 
+      if (strcmp (name, "FDO") == 0 && type == NT_FDO_PACKAGING_METADATA)
+	return "FDO_PACKAGING_METADATA";
+
       if (strcmp (name, "GNU") != 0)
 	{
 	  /* NT_VERSION is special, all data is in the name.  */

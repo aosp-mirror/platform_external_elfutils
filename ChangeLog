@@ -1,3 +1,40 @@
+2022-04-25  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac (AC_INIT): Set version to 0.187.
+	* NEWS: Add some more 0.187 items.
+
+2022-04-24  Frank Ch. Eigler  <fche@redhat.com>
+
+	* AUTHORS.sh, .mailmap: New files.
+	* AUTHORS: Regenerated to cover entire history of elfutils.
+
+2022-04-24  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac (AC_CHECK_FUNCS): Add mremap.
+
+2021-03-20  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac: Remove -m64 on 32bit target comments for
+	utrace_BIARCH check.
+
+2021-03-14  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac: Use AS_HELP_STRING instead of AC_HELP_STRING.
+
+2021-03-11  Mark Wielaard  <mark@klomp.org>
+
+	* NEWS: Document new --relative option for addr2line.
+
+2022-03-10  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac: Move AC_PROG_CXX earlier. Check for both
+	-D_FORTIFY_SOURCE=3 and -D_FORTIFY_SOURCE=2 support. Also
+	set CXXFLAGS. Output final CFLAGS and CXXFLAGS setting.
+
+2021-12-04  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac: Add --enable-sanitize-address.
+
 2021-11-10  Mark Wielaard  <mark@klomp.org>
 
 	* configure.ac (AC_INIT): Set version to 0.186.

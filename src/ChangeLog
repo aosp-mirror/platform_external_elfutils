@@ -1,3 +1,46 @@
+2022-04-24  Mark Wielaard  <mark@klomp.org>
+
+	* elfclassify.c (main): Use classify_flag_no_stdin for no-std in options.
+
+2022-04-19  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (get_dyn_ents): Define dyn_mem outside the while loop.
+
+2022-03-01  Di Chen  <dichen@redhat.com>
+
+	* readelf.c (get_dyn_ents): New function.
+	(handle_dynamic): Use get_dyn_ents to get the actual number of
+	Dynamic entries in the section.
+
+2022-03-27  Mark Wielaard  <mark@klomp.org>
+
+	* addr2line.c: Replace error (EXIT_FAILURE, ...) with error_exit(...).
+	* ar.c: Likewise.
+	* arlib.c: Likewise.
+	* elfcompress.c: Likewise.
+	* nm.c: Likewise.
+	* objdump.c: Likewise.
+	* readelf.c: Likewise.
+	* size.c: Likewise.
+	* strings.c: Likewise.
+	* strip.c: Likewise.
+	* unstrip.c: Likewise.
+
+2022-03-24  Mark Wielaard  <mark@klomp.org>
+
+	* elflint.c (check_note_data): Recognize NT_FDO_PACKAGING_METADATA.
+
+2022-03-11  Mark Wielaard  <mark@klomp.org>
+
+	* addr2line.c (OPT_RELATIVE): New constant.
+	(options): Add --relative.
+	(use_comp_dir): Initialize to true.
+	(parse_opt): Handle OPT_RELATIVE.
+
+2021-12-04  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (print_ehdr): Pass sizeof (buf) - 1 to strncpy.
+
 2021-10-20  John M Mellor-Crummey  <johnmc@rice.edu>
 
 	* readelf.c (print_debug_line_section): Try to read

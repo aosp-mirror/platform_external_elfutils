@@ -1,3 +1,8 @@
+2022-03-24  Mark Wielaard  <mark@klomp.org>
+
+	* dwelf_elf_e_machine_string.c (dwelf_elf_e_machine_string): Add
+	EM_INTELGT Intel Graphics Technology.
+
 2021-02-14  Alexander Miller  <alex.miller@gmx.de>
 
 	* dwelf_elf_begin.c (dwelf_elf_begin): Move NEW_VERSION before

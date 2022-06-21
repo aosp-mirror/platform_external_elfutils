@@ -28,13 +28,13 @@ biarch_CC="$biarch_CC $utrace_biarch"])])
 AC_DEFUN([utrace_BIARCH], [AC_REQUIRE([utrace_HOST64])
 utrace_biarch_forced=no
 AC_ARG_WITH([biarch],
-	    AC_HELP_STRING([--with-biarch],
+	    AS_HELP_STRING([--with-biarch],
 			   [enable biarch tests despite build problems]),
 	    [AS_IF([test "x$with_biarch" != xno], [utrace_biarch_forced=yes])])
 AS_IF([test $utrace_biarch_forced = yes], [dnl
 utrace_cv_cc_biarch=yes
 AC_MSG_NOTICE([enabling biarch tests regardless using $biarch_CC])], [dnl
-AS_IF([test x$utrace_cv_CC_m32 != xnone], [dnl
+AS_IF([test x$utrace_cv_CC_m32 != xnone -a x$utrace_cv_host64 != xno], [dnl
 AC_CACHE_CHECK([whether $biarch_CC makes executables we can run],
 	       utrace_cv_cc_biarch, [dnl
 save_CC="$CC"

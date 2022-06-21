@@ -137,8 +137,8 @@ static int handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 
 
 #define INTERNAL_ERROR(fname) \
-  error (EXIT_FAILURE, 0, _("%s: INTERNAL ERROR %d (%s): %s"),      \
-	 fname, __LINE__, PACKAGE_VERSION, elf_errmsg (-1))
+  error_exit (0, _("%s: INTERNAL ERROR %d (%s): %s"),      \
+	      fname, __LINE__, PACKAGE_VERSION, elf_errmsg (-1))
 
 
 /* Internal representation of symbols.  */
@@ -378,7 +378,7 @@ process_file (const char *fname, bool more_than_one)
 	    INTERNAL_ERROR (fname);
 
 	  if (close (fd) != 0)
-	    error (EXIT_FAILURE, errno, _("while closing '%s'"), fname);
+	    error_exit (errno, _("while closing '%s'"), fname);
 
 	  return result;
 	}
@@ -390,7 +390,7 @@ process_file (const char *fname, bool more_than_one)
 	    INTERNAL_ERROR (fname);
 
 	  if (close (fd) != 0)
-	    error (EXIT_FAILURE, errno, _("while closing '%s'"), fname);
+	    error_exit (errno, _("while closing '%s'"), fname);
 
 	  return result;
 	}
@@ -700,8 +700,7 @@ get_local_names (Dwarf *dbg)
 	    struct local_name **tres = tsearch (newp, &local_root,
 						local_compare);
 	    if (tres == NULL)
-              error (EXIT_FAILURE, errno,
-                     _("cannot create search tree"));
+              error_exit (errno, _("cannot create search tree"));
 	    else if (*tres != newp)
 	      free (newp);
 	  }
@@ -741,8 +740,7 @@ show_symbols_sysv (Ebl *ebl, GElf_Word strndx, const char *fullname,
   /* Get the section header string table index.  */
   size_t shstrndx;
   if (elf_getshdrstrndx (ebl->elf, &shstrndx) < 0)
-    error (EXIT_FAILURE, 0,
-	   _("cannot get section header string table index"));
+    error_exit (0, _("cannot get section header string table index"));
 
   /* Cache the section names.  */
   Elf_Scn *scn = NULL;
@@ -1234,8 +1232,7 @@ show_symbols (int fd, Ebl *ebl, GElf_Ehdr *ehdr,
   /* Get the section header string table index.  */
   size_t shstrndx;
   if (elf_getshdrstrndx (ebl->elf, &shstrndx) < 0)
-    error (EXIT_FAILURE, 0,
-	   _("cannot get section header string table index"));
+    error_exit (0, _("cannot get section header string table index"));
 
   /* The section is that large.  */
   size_t size = shdr->sh_size;
@@ -1331,10 +1328,9 @@ show_symbols (int fd, Ebl *ebl, GElf_Ehdr *ehdr,
      can use the data memory instead of copying again if what we read
      is a 64 bit file.  */
   if (nentries > SIZE_MAX / sizeof (GElf_SymX))
-    error (EXIT_FAILURE, 0,
-          _("%s: entries (%zd) in section %zd `%s' is too large"),
-          fullname, nentries, elf_ndxscn (scn),
-          elf_strptr (ebl->elf, shstrndx, shdr->sh_name));
+    error_exit (0, _("%s: entries (%zd) in section %zd `%s' is too large"),
+		fullname, nentries, elf_ndxscn (scn),
+		elf_strptr (ebl->elf, shstrndx, shdr->sh_name));
   GElf_SymX *sym_mem;
   if (nentries * sizeof (GElf_SymX) < MAX_STACK_ALLOC)
     sym_mem = (GElf_SymX *) alloca (nentries * sizeof (GElf_SymX));

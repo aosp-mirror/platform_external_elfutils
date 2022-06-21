@@ -37,9 +37,6 @@ errfiles vlog$PORT1
 wait_ready $PORT1 'ready' 1
 export DEBUGINFOD_URLS=http://127.0.0.1:$PORT1/   # or without trailing /
 
-# Be patient when run on a busy machine things might take a bit.
-export DEBUGINFOD_TIMEOUT=10
-
 # Check thread comm names
 ps -q $PID1 -e -L -o '%p %c %a' | grep groom
 ps -q $PID1 -e -L -o '%p %c %a' | grep scan
@@ -49,15 +46,15 @@ ps -q $PID1 -e -L -o '%p %c %a' | grep traverse
 # PR25628
 rm -rf $DEBUGINFOD_CACHE_PATH # clean it from previous tests
 
-# The query is designed to fail, while the 000-permission file should be created.
+# The query is designed to fail, while the empty file should be created.
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo 01234567 || true
 if [ ! -f $DEBUGINFOD_CACHE_PATH/01234567/debuginfo ]; then
   echo "could not find cache in $DEBUGINFOD_CACHE_PATH"
   err
 fi
 
-if [ `stat -c "%A" $DEBUGINFOD_CACHE_PATH/01234567/debuginfo` != "----------" ]; then
-  echo "The cache $DEBUGINFOD_CACHE_PATH/01234567/debuginfo is readable"
+if [ `stat -c "%s" $DEBUGINFOD_CACHE_PATH/01234567/debuginfo` != 0 ]; then
+  echo "The cache $DEBUGINFOD_CACHE_PATH/01234567/debuginfo is not empty"
   err
 fi
 

@@ -44,7 +44,7 @@ main (void)
   Dwelf_Strent *shstrtabse;
   const Elf32_Sword dtflags[] =
     {
-      DT_NULL, DT_NEEDED, DT_PLTRELSZ, DT_PLTGOT,
+      DT_NEEDED, DT_PLTRELSZ, DT_PLTGOT,
       DT_HASH, DT_STRTAB, DT_SYMTAB, DT_RELA,
       DT_RELASZ, DT_RELAENT, DT_STRSZ, DT_SYMENT,
       DT_INIT, DT_FINI, DT_SONAME, DT_RPATH,
@@ -61,7 +61,8 @@ main (void)
       DT_GNU_LIBLIST, DT_CONFIG, DT_DEPAUDIT, DT_AUDIT,
       DT_PLTPAD, DT_MOVETAB, DT_SYMINFO, DT_RELACOUNT,
       DT_RELCOUNT, DT_FLAGS_1, DT_VERDEF, DT_VERDEFNUM,
-      DT_VERNEED, DT_VERNEEDNUM, DT_AUXILIARY, DT_FILTER
+      DT_VERNEED, DT_VERNEEDNUM, DT_AUXILIARY, DT_FILTER,
+      DT_NULL
     };
   const int ndtflags = sizeof (dtflags) / sizeof (dtflags[0]);
 

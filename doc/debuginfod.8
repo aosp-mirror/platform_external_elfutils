@@ -206,6 +206,23 @@ an ELF file and especially decompressing archives.  The default is the
 number of processors on the system; the minimum is 1.
 
 .TP
+.B "\-C" "\-C=NUM" "\-\-connection\-pool" "\-\-connection\-pool=NUM"
+Set the size of the pool of threads serving webapi queries.  The
+following table summarizes the interpretaton of this option and its
+optional NUM parameter.
+.TS
+l l.
+no option	clone new thread for every request, no fixed pool
+\-C	use a fixed thread pool sized automatically
+\-C=NUM	use a fixed thread pool sized NUM, minimum 2
+.TE
+
+The first mode is useful for friendly bursty traffic.  The second mode
+is a simple and safe configuration based on the number of processors.
+The third mode is suitable for tuned load-limiting configurations
+facing unruly traffic.
+
+.TP
 .B "\-L"
 Traverse symbolic links encountered during traversal of the PATHs,
 including across devices - as in \fIfind\ -L\fP.  The default is to

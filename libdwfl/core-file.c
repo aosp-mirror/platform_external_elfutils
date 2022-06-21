@@ -1,5 +1,6 @@
 /* Core file handling.
    Copyright (C) 2008-2010, 2013, 2015 Red Hat, Inc.
+   Copyright (C) 2021 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -320,7 +321,7 @@ dwfl_elf_phdr_memory_callback (Dwfl *dwfl, int ndx,
   (void) more (*buffer_available);
 
   /* If it's already on hand anyway, use as much as there is.  */
-  if (elf->map_address != NULL)
+  if (elf->map_address != NULL && start < elf->maximum_size)
     (void) more (elf->maximum_size - start);
 
   /* Make sure we don't look past the end of the actual file,
@@ -330,6 +331,9 @@ dwfl_elf_phdr_memory_callback (Dwfl *dwfl, int ndx,
 
   /* If the file is too small, there is nothing at all to get.  */
   if (unlikely (start >= end))
+    return false;
+
+  if (end - start < minread)
     return false;
 
   if (elf->map_address != NULL)
@@ -559,6 +563,7 @@ dwfl_core_file_report (Dwfl *dwfl, Elf *elf, const char *executable)
       int seg = dwfl_segment_report_module (dwfl, ndx, NULL,
 					    &dwfl_elf_phdr_memory_callback, elf,
 					    core_file_read_eagerly, elf,
+					    elf->maximum_size,
 					    note_file, note_file_size,
 					    &r_debug_info);
       if (unlikely (seg < 0))

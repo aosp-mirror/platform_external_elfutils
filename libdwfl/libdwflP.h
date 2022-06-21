@@ -698,6 +698,7 @@ extern int dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 				       void *memory_callback_arg,
 				       Dwfl_Module_Callback *read_eagerly,
 				       void *read_eagerly_arg,
+				       size_t maxread,
 				       const void *note_file,
 				       size_t note_file_size,
 				       const struct r_debug_info *r_debug_info);

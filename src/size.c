@@ -102,8 +102,8 @@ static void handle_elf (Elf *elf, const char *fullname, const char *fname);
 static void show_bsd_totals (void);
 
 #define INTERNAL_ERROR(fname) \
-  error (EXIT_FAILURE, 0, _("%s: INTERNAL ERROR %d (%s): %s"),      \
-	 fname, __LINE__, PACKAGE_VERSION, elf_errmsg (-1))
+  error_exit (0, _("%s: INTERNAL ERROR %d (%s): %s"),      \
+	      fname, __LINE__, PACKAGE_VERSION, elf_errmsg (-1))
 
 
 /* User-selectable options.  */
@@ -237,7 +237,7 @@ parse_opt (int key, char *arg,
       else if (likely (strcmp (arg, "sysv") == 0))
 	format = format_sysv;
       else
-	error (EXIT_FAILURE, 0, _("Invalid format: %s"), arg);
+	error_exit (0, _("Invalid format: %s"), arg);
       break;
 
     case OPT_RADIX:
@@ -248,7 +248,7 @@ parse_opt (int key, char *arg,
       else if (strcmp (arg, "o") == 0 || strcmp (arg, "8") == 0)
 	radix = radix_octal;
       else
-	error (EXIT_FAILURE, 0, _("Invalid radix: %s"), arg);
+	error_exit (0, _("Invalid radix: %s"), arg);
       break;
 
     case 't':
@@ -285,7 +285,7 @@ process_file (const char *fname)
 	    INTERNAL_ERROR (fname);
 
 	  if (unlikely (close (fd) != 0))
-	    error (EXIT_FAILURE, errno, _("while closing '%s'"), fname);
+	    error_exit (errno, _("while closing '%s'"), fname);
 
 	  return 0;
 	}
@@ -294,7 +294,7 @@ process_file (const char *fname)
 	  int result = handle_ar (fd, elf, NULL, fname);
 
 	  if (unlikely  (close (fd) != 0))
-	    error (EXIT_FAILURE, errno, _("while closing '%s'"), fname);
+	    error_exit (errno, _("while closing '%s'"), fname);
 
 	  return result;
 	}
@@ -305,7 +305,7 @@ process_file (const char *fname)
     }
 
   if (unlikely (close (fd) != 0))
-    error (EXIT_FAILURE, errno, _("while closing '%s'"), fname);
+    error_exit (errno, _("while closing '%s'"), fname);
 
   error (0, 0, _("%s: file format not recognized"), fname);
 
@@ -394,8 +394,7 @@ show_sysv (Elf *elf, const char *prefix, const char *fname,
   /* Get the section header string table index.  */
   size_t shstrndx;
   if (unlikely (elf_getshdrstrndx (elf, &shstrndx) < 0))
-    error (EXIT_FAILURE, 0,
-	   _("cannot get section header string table index"));
+    error_exit (0, _("cannot get section header string table index"));
 
   /* First round over the sections: determine the longest section name.  */
   Elf_Scn *scn = NULL;
@@ -466,8 +465,7 @@ show_sysv_one_line (Elf *elf)
   /* Get the section header string table index.  */
   size_t shstrndx;
   if (unlikely (elf_getshdrstrndx (elf, &shstrndx) < 0))
-    error (EXIT_FAILURE, 0,
-	   _("cannot get section header string table index"));
+    error_exit (0, _("cannot get section header string table index"));
 
   /* Iterate over all sections.  */
   GElf_Off total = 0;
@@ -479,7 +477,7 @@ show_sysv_one_line (Elf *elf)
       GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
 
       if (unlikely (shdr == NULL))
-	error (EXIT_FAILURE, 0, _("cannot get section header"));
+	error_exit (0, _("cannot get section header"));
 
       /* Ignore all sections which are not used at runtime.  */
       if ((shdr->sh_flags & SHF_ALLOC) == 0)

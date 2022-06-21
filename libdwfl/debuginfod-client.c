@@ -1,5 +1,6 @@
 /* Try to get an ELF or debug file through the debuginfod.
    Copyright (C) 2019 Red Hat, Inc.
+   Copyright (C) 2022 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -31,12 +32,17 @@
 #endif
 
 #include "libdwflP.h"
+#include <pthread.h>
 #include <dlfcn.h>
 
 static __typeof__ (debuginfod_begin) *fp_debuginfod_begin;
 static __typeof__ (debuginfod_find_executable) *fp_debuginfod_find_executable;
 static __typeof__ (debuginfod_find_debuginfo) *fp_debuginfod_find_debuginfo;
 static __typeof__ (debuginfod_end) *fp_debuginfod_end;
+
+static void __libdwfl_debuginfod_init (void);
+
+static pthread_once_t init_control = PTHREAD_ONCE_INIT;
 
 /* NB: this is slightly thread-unsafe */
 
@@ -45,6 +51,8 @@ get_client (Dwfl *dwfl)
 {
   if (dwfl->debuginfod != NULL)
     return dwfl->debuginfod;
+
+  pthread_once (&init_control, __libdwfl_debuginfod_init);
 
   if (fp_debuginfod_begin != NULL)
     {
@@ -96,9 +104,9 @@ __libdwfl_debuginfod_end (debuginfod_client *c)
     (*fp_debuginfod_end) (c);
 }
 
-/* Try to get the libdebuginfod library functions to make sure
-   everything is initialized early.  */
-void __attribute__ ((constructor))
+/* Try to get the libdebuginfod library functions.
+   Only needs to be called once from get_client.  */
+static void
 __libdwfl_debuginfod_init (void)
 {
   void *debuginfod_so = dlopen(DEBUGINFOD_SONAME, RTLD_LAZY);

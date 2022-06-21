@@ -158,3 +158,13 @@ PORT1=0
 PORT2=0
 PID1=0
 PID2=0
+
+
+# run $1 as a sh -c command, invert result code
+xfail() {
+    if sh -c "$1"; then
+        false
+    else
+        true
+    fi
+}

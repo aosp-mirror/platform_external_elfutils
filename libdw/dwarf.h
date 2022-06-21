@@ -934,6 +934,19 @@ enum
     DW_LLE_GNU_start_length_entry = 0x3
   };
 
+/* DWARF5 package file section identifiers.  */
+enum
+  {
+    DW_SECT_INFO = 1,
+    /* Reserved = 2, */
+    DW_SECT_ABBREV = 3,
+    DW_SECT_LINE = 4,
+    DW_SECT_LOCLISTS = 5,
+    DW_SECT_STR_OFFSETS = 6,
+    DW_SECT_MACRO = 7,
+    DW_SECT_RNGLISTS = 8,
+  };
+
 
 /* DWARF call frame instruction encodings.  */
 enum

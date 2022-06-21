@@ -1,3 +1,12 @@
+2022-01-31  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod-client-config.7: Elaborate DEBUGINFOD_URLS.
+
+2021-12-08  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR28661
+	* debuginfod.8 (-C): Document new flag.
+
 2021-11-05  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR28430

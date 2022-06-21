@@ -2,6 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Configure input file for elfutils.                     -*-autoconf-*-
 dnl
 dnl Copyright (C) 1996-2019 Red Hat, Inc.
+dnl Copyright (C) 2022 Mark J. Wielaard <mark@klomp.org>
 dnl
 dnl This file is part of elfutils.
 dnl
@@ -17,7 +18,7 @@ dnl  GNU General Public License for more details.
 dnl
 dnl  You should have received a copy of the GNU General Public License
 dnl  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-AC_INIT([elfutils],[0.186],[https://sourceware.org/bugzilla],[elfutils],[http://elfutils.org/])
+AC_INIT([elfutils],[0.187],[https://sourceware.org/bugzilla],[elfutils],[http://elfutils.org/])
 
 dnl Workaround for older autoconf < 2.64
 m4_ifndef([AC_PACKAGE_URL],
@@ -44,7 +45,7 @@ fi
 AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_FILES([config/Makefile])
 
-AC_COPYRIGHT([Copyright (C) 1996-2021 The elfutils developers.])
+AC_COPYRIGHT([Copyright (C) 1996-2022 The elfutils developers.])
 AC_PREREQ(2.63)			dnl Minimum Autoconf version required.
 
 dnl We use GNU make extensions; automake 1.10 defaults to -Wportability.
@@ -88,6 +89,7 @@ AS_IF([test "$use_locks" = yes],
 AH_TEMPLATE([USE_LOCKS], [Defined if libraries should be thread-safe.])
 
 AC_PROG_CC_C99
+AC_PROG_CXX
 AC_PROG_RANLIB
 AC_PROG_YACC
 AM_PROG_LEX
@@ -231,25 +233,38 @@ AC_CACHE_CHECK([whether fts.h is bad when included (with LFS)], ac_cv_bad_fts,
 AS_IF([test "x$ac_cv_bad_fts" = "xyes"],
       [CFLAGS="$CFLAGS -DBAD_FTS=1" CXXFLAGS="$CXXFLAGS -DBAD_FTS=1"])
 
-# See if we can add -D_FORTIFY_SOURCE=2. Don't do it if it is already
+# See if we can add -D_FORTIFY_SOURCE=2 or =3. Don't do it if it is already
 # (differently) defined or if it generates warnings/errors because we
 # don't use the right optimisation level (string.h will warn about that).
-AC_MSG_CHECKING([whether to add -D_FORTIFY_SOURCE=2 to CFLAGS])
+AC_MSG_CHECKING([whether to add -D_FORTIFY_SOURCE=2 or =3 to CFLAGS])
 case "$CFLAGS" in
-  *-D_FORTIFY_SOURCE=2*)
+  *-D_FORTIFY_SOURCE=*)
     AC_MSG_RESULT([no, already there])
     ;;
   *)
     save_CFLAGS="$CFLAGS"
-    CFLAGS="-D_FORTIFY_SOURCE=2 $CFLAGS -Werror"
+    # Try 3 first.
+    CFLAGS="-D_FORTIFY_SOURCE=3 $save_CFLAGS -Werror"
+    fortified_cflags=""
     AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
       #include <string.h>
       int main() { return 0; }
-    ]])], [ AC_MSG_RESULT([yes])
-            CFLAGS="-D_FORTIFY_SOURCE=2 $save_CFLAGS" ],
-          [ AC_MSG_RESULT([no])
-            CFLAGS="$save_CFLAGS"])
-  ;;
+    ]])], [ AC_MSG_RESULT([yes -D_FORTIFY_SOURCE=3])
+            fortified_cflags="-D_FORTIFY_SOURCE=3" ], [])
+
+    # If that didn't work, try 2.
+    if test -z "$fortified_cflags"; then
+      CFLAGS="-D_FORTIFY_SOURCE=2 $save_CFLAGS -Werror"
+      AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+        #include <string.h>
+        int main() { return 0; }
+      ]])], [ AC_MSG_RESULT([yes -D_FORTIFY_SOURCE=2])
+              fortified_cflags="-D_FORTIFY_SOURCE=2" ],
+              [ AC_MSG_RESULT([no, cannot be used])])
+    fi
+    CFLAGS="$fortified_cflags $save_CFLAGS"
+    CXXFLAGS="$fortified_cflags $CXXFLAGS"
+    ;;
 esac
 
 dnl enable debugging of branch prediction.
@@ -307,10 +322,34 @@ esac
 AC_DEFINE_UNQUOTED(CHECK_UNDEFINED, $check_undefined_val,
 		   [Building with -fsanitize=undefined or not])
 
+AC_ARG_ENABLE([sanitize-address],
+              AS_HELP_STRING([--enable-sanitize-address],
+                             [Use gcc address sanitizer]),
+                             [use_address=$enableval], [use_address=no])
+if test "$use_address" = yes; then
+  old_CFLAGS="$CFLAGS"
+  old_CXXFLAGS="$CXXFLAGS"
+  old_LDFLAGS="$LDFLAGS"
+  # We want to fail immediately on first error, don't try to recover.
+  CFLAGS="$CFLAGS -fsanitize=address -fno-sanitize-recover"
+  CXXFLAGS="$CXXFLAGS -fsanitize=address -fno-sanitize-recover"
+  # Some compilers don't handle -fsanatize=address correctly with --no-undefined
+  LDFLAGS="-Wl,-z,defs -shared"
+  AC_LINK_IFELSE([AC_LANG_SOURCE([int main (int argc, char **argv) { return 0; }])], use_address=yes, use_address=no)
+  AS_IF([test "x$use_address" != xyes],
+        AC_MSG_WARN([gcc address sanitizer not available])
+        CFLAGS="$old_CFLAGS" CXXFLAGS="$old_CXXFLAGS")
+  LDFLAGS="$old_LDFLAGS"
+fi
+AM_CONDITIONAL(USE_ADDRESS_SANITIZER, test "$use_address" = yes)
+
 AC_ARG_ENABLE([valgrind],
 AS_HELP_STRING([--enable-valgrind],[run all tests under valgrind]),
 [use_valgrind=$enableval], [use_valgrind=no])
 if test "$use_valgrind" = yes; then
+  if test "$use_address" = yes; then
+    AC_MSG_ERROR([cannot enable valgrind and sanitize address together])
+  fi
   AC_CHECK_PROG(HAVE_VALGRIND, valgrind, yes, no)
   if test "$HAVE_VALGRIND" = "no"; then
     AC_MSG_ERROR([valgrind not found])
@@ -396,7 +435,10 @@ AC_CHECK_DECLS([reallocarray],[],[],
                [#define _GNU_SOURCE
                 #include <stdlib.h>])
 
-AC_CHECK_FUNCS([process_vm_readv])
+AC_CHECK_FUNCS([process_vm_readv mremap])
+
+AS_IF([test "x$ac_cv_func_mremap" = "xno"],
+      [AC_MSG_WARN([elf_update needs mremap to support ELF_C_RDWR_MMAP])])
 
 AC_CHECK_HEADERS([error.h])
 AC_CHECK_HEADERS([err.h])
@@ -667,9 +709,7 @@ if test "$sys_user_has_user_regs" = "yes"; then
 fi
 
 # On a 64-bit host where can can use $CC -m32, we'll run two sets of tests.
-# Likewise in a 32-bit build on a host where $CC -m64 works.
 utrace_BIARCH
-# `$utrace_biarch' will be `-m64' even on an uniarch i386 machine.
 CC_BIARCH="$CC $utrace_biarch"
 AC_SUBST([CC_BIARCH])
 
@@ -705,7 +745,7 @@ AC_CHECK_PROG(HAVE_ZSTD, zstd, yes, no)
 AM_CONDITIONAL([HAVE_ZSTD],[test "x$HAVE_ZSTD" = "xyes"])
 
 # Look for libcurl for libdebuginfod minimum version as per rhel7.
-AC_ARG_ENABLE([libdebuginfod],AC_HELP_STRING([--enable-libdebuginfod], [Build debuginfod client library (can be =dummy)]))
+AC_ARG_ENABLE([libdebuginfod],AS_HELP_STRING([--enable-libdebuginfod], [Build debuginfod client library (can be =dummy)]))
 AS_IF([test "x$enable_libdebuginfod" != "xno"], [
     if test "x$enable_libdebuginfod" != "xdummy"; then
       AC_MSG_NOTICE([checking libdebuginfod dependencies, --disable-libdebuginfod or --enable-libdebuginfo=dummy to skip])
@@ -732,8 +772,7 @@ AM_CONDITIONAL([DUMMY_LIBDEBUGINFOD],[test "x$enable_libdebuginfod" = "xdummy"])
 
 # Look for libmicrohttpd, libarchive, sqlite for debuginfo server
 # minimum versions as per rhel7.
-AC_ARG_ENABLE([debuginfod],AC_HELP_STRING([--enable-debuginfod], [Build debuginfod server]))
-AC_PROG_CXX
+AC_ARG_ENABLE([debuginfod],AS_HELP_STRING([--enable-debuginfod], [Build debuginfod server]))
 AS_IF([test "x$enable_debuginfod" != "xno"], [
     AC_MSG_NOTICE([checking debuginfod C++11 support, --disable-debuginfod to skip])
     AX_CXX_COMPILE_STDCXX(11, noext, mandatory)
@@ -780,6 +819,9 @@ AC_MSG_NOTICE([
     Maintainer mode                    : ${enable_maintainer_mode}
     build arch                         : ${ac_cv_build}
 
+    CFLAGS=${CFLAGS}
+    CXXFLAGS=${CXXFLAGS}
+
   RECOMMENDED FEATURES (should all be yes)
     gzip support                       : ${with_zlib}
     bzip2 support                      : ${with_bzlib}
@@ -809,6 +851,7 @@ AC_MSG_NOTICE([
     gcov support                       : ${use_gcov}
     run all tests under valgrind       : ${use_valgrind}
     gcc undefined behaviour sanitizer  : ${use_undefined}
+    gcc address sanitizer              : ${use_address}
     use rpath in tests                 : ${tests_use_rpath}
     test biarch                        : ${utrace_cv_cc_biarch}
 ])

@@ -1,3 +1,100 @@
+2022-04-22  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (libdebuginfod): Add -lpthread.
+	(libdebuginfod_so_LDLIBS): Likewise.
+	* debuginfod-client.c (init_control): New static pthread_once_t.
+	(libcurl_init): New static function.
+	(debuginfod_begin): Use ptrace_once to call libcurl_init.
+	(libdebuginfod_ctor): Removed.
+	(libdebuginfod_dtor): Likewise.
+
+2022-04-24  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod.cxx (main): Add MHD_USE_ITC to MHD_start_daemon flags.
+
+2022-04-13  Aaron Merey  <amerey@redhat.com>
+
+	* debuginfod-client.c (debuginfod_query_server):
+	Drop st_mode check. Add st_size > 0 check.
+	Save target_mtime before calling
+	debuginfod_config_cache. unlink target_cache_path
+	on EACCESS. Create target_cache_path with DEFFILEMODE.
+
+2022-04-03  Frank Ch. Eigler <fche@redhat.com>
+
+	* debuginfod.cxx (main): Use single dual-stack daemon setup,
+	rather than duplicate ipv4 and ipv6.
+	(conninfo, handle_buildid): Represent ipv4-mapped ipv6 addresses
+	in their native ipv4 form for logging and X-F-F: purposes.
+	* debuginfod-client.c (debuginfod_add_http_header): Tolerate
+	colons in http header values.
+
+2022-04-03  Frank Ch. Eigler <fche@redhat.com>
+
+	* debuginfod.cxx (main): Use MHD_USE_EPOLL for libmicrohttpd, to
+	encourage more round-robin dispatch of incoming connections.
+
+2021-12-09  Alexander Kanavin <alex@linutronix.de>
+
+	* debuginfod-client.c (cache_clean_default_interval_s): Change type to
+	long from time_t.
+	(cache_miss_default_s): Likewise.
+	(cache_default_max_unused_age_s): Likewise.
+
+2021-12-09  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod.cxx (database_stats_report): Don't format clog
+	using 'right' and 'setw(20)'.
+
+2021-12-08  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.cxx (connection_pool): New global.
+	(parse_opt): Parse & check -C option to set it.
+	(error_cb): New callback for libmicrohttpd error counting.
+	(main): Activate MHD_OPTION_THREAD_POOL_SIZE if appropriate.
+	Activate error_cb.
+
+2021-12-04  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod.cxx (main): Call debuginfod_pool_groom before exit.
+
+2021-12-08  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod.cxx (add_mhd_response_header): New function.
+	(reportable_exception::mhd_send_response): Call
+	MHD_add_response_header.
+	(add_mhd_last_modified): Likewise.
+	(handle_buildid_f_match): Likewise.
+	(handle_buildid_r_match): Likewise.
+	(handle_metrics): Likewise. And check MHD_Response was actually
+	created.
+	(handle_root): Likewise.
+
+2021-12-08  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.cxx (intern): Call set_metrics() holding the fdcache mutex.
+
+2021-12-04  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (debuginfod_query_server): Free winning_headers.
+	Reset response_data_size when clearing response_data.
+
+2021-12-01  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (debuginfod_query_server): Free tmp_url on
+	realloc error. curl_free escaped_string on error. Fix error out
+	goto on curl_easy_init failure. Only cleanup data[i] handle and
+	response_data if it was initialized.
+
+2021-12-01  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (timestamp): Use gmtime_r instead of gmtime.
+	(add_mhd_last_modified): Likewise.
+
+2021-11-10  Érico N. Rolim  <erico.erc@gmail.com>
+
+	* debuginfod.cxx: include "system.h" under 'extern "C"' block.
+
 2021-11-05  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR28430

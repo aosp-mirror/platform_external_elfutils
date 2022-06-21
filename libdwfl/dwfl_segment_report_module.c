@@ -1,5 +1,6 @@
 /* Sniff out modules from ELF headers visible in memory segments.
    Copyright (C) 2008-2012, 2014, 2015, 2018 Red Hat, Inc.
+   Copyright (C) 2021 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -294,6 +295,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 			    void *memory_callback_arg,
 			    Dwfl_Module_Callback *read_eagerly,
 			    void *read_eagerly_arg,
+			    size_t maxread,
 			    const void *note_file, size_t note_file_size,
 			    const struct r_debug_info *r_debug_info)
 {
@@ -331,6 +333,12 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
      here so we can always safely free it.  */
   void *phdrsp = NULL;
 
+  /* Collect the build ID bits here.  */
+  struct elf_build_id build_id;
+  build_id.memory = NULL;
+  build_id.len = 0;
+  build_id.vaddr = 0;
+
   if (! (*memory_callback) (dwfl, ndx, &buffer, &buffer_available,
 			    start, sizeof (Elf64_Ehdr), memory_callback_arg)
       || memcmp (buffer, ELFMAG, SELFMAG) != 0)
@@ -366,6 +374,20 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   e_ident = ((const unsigned char *) buffer);
   ei_class = e_ident[EI_CLASS];
   ei_data = e_ident[EI_DATA];
+  /* buffer may be unaligned, in which case xlatetom would not work.
+     xlatetom does work when the in and out d_buf are equal (but not
+     for any other overlap).  */
+  size_t ehdr_align = (ei_class == ELFCLASS32
+		       ? __alignof__ (Elf32_Ehdr)
+		       : __alignof__ (Elf64_Ehdr));
+  if (((uintptr_t) buffer & (ehdr_align - 1)) != 0)
+    {
+      memcpy (&ehdr, buffer,
+	      (ei_class == ELFCLASS32
+	       ? sizeof (Elf32_Ehdr)
+	       : sizeof (Elf64_Ehdr)));
+      xlatefrom.d_buf = &ehdr;
+    }
   switch (ei_class)
     {
     case ELFCLASS32:
@@ -383,7 +405,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 	 zero sh_size field. We ignore this here because getting shdrs
 	 is just a nice bonus (see below in the type == PT_LOAD case
 	 where we trim the last segment).  */
-      shdrs_end = ehdr.e32.e_shoff + ehdr.e32.e_shnum * ehdr.e32.e_shentsize;
+      shdrs_end = ehdr.e32.e_shoff + ehdr.e32.e_shnum * sizeof (Elf32_Shdr);
       break;
 
     case ELFCLASS64:
@@ -397,7 +419,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
       if (phentsize != sizeof (Elf64_Phdr))
 	goto out;
       /* See the NOTE above for shdrs_end and ehdr.e32.e_shnum.  */
-      shdrs_end = ehdr.e64.e_shoff + ehdr.e64.e_shnum * ehdr.e64.e_shentsize;
+      shdrs_end = ehdr.e64.e_shoff + ehdr.e64.e_shnum * sizeof (Elf64_Shdr);
       break;
 
     default:
@@ -425,7 +447,12 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
      buffer, otherwise it will be the size of the new buffer that
      could be read.  */
   if (ph_buffer_size != 0)
-    xlatefrom.d_size = ph_buffer_size;
+    {
+      phnum = ph_buffer_size / phentsize;
+      if (phnum == 0)
+	goto out;
+      xlatefrom.d_size = ph_buffer_size;
+    }
 
   xlatefrom.d_buf = ph_buffer;
 
@@ -440,6 +467,18 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 
   xlateto.d_buf = phdrsp;
   xlateto.d_size = phdrsp_bytes;
+
+  /* ph_ buffer may be unaligned, in which case xlatetom would not work.
+     xlatetom does work when the in and out d_buf are equal (but not
+     for any other overlap).  */
+  size_t phdr_align = (class32
+		       ? __alignof__ (Elf32_Phdr)
+		       : __alignof__ (Elf64_Phdr));
+  if (((uintptr_t) ph_buffer & (phdr_align - 1)) != 0)
+    {
+      memcpy (phdrsp, ph_buffer, phdrsp_bytes);
+      xlatefrom.d_buf = phdrsp;
+    }
 
   /* Track the bounds of the file visible in memory.  */
   GElf_Off file_trimmed_end = 0; /* Proper p_vaddr + p_filesz end.  */
@@ -459,12 +498,6 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   /* If we see PT_DYNAMIC, record it here.  */
   GElf_Addr dyn_vaddr = 0;
   GElf_Xword dyn_filesz = 0;
-
-  /* Collect the build ID bits here.  */
-  struct elf_build_id build_id;
-  build_id.memory = NULL;
-  build_id.len = 0;
-  build_id.vaddr =0;
 
   Elf32_Phdr *p32 = phdrsp;
   Elf64_Phdr *p64 = phdrsp;
@@ -514,15 +547,23 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
               if (data_size != 0)
                 filesz = data_size;
 
+	      if (filesz > SIZE_MAX / sizeof (Elf32_Nhdr))
+		continue;
+
               assert (sizeof (Elf32_Nhdr) == sizeof (Elf64_Nhdr));
 
               void *notes;
-              if (ei_data == MY_ELFDATA)
+              if (ei_data == MY_ELFDATA
+		  && (uintptr_t) data == (align == 8
+					  ? NOTE_ALIGN8 ((uintptr_t) data)
+					  : NOTE_ALIGN4 ((uintptr_t) data)))
                 notes = data;
               else
                 {
                   const unsigned int xencoding = ehdr.e32.e_ident[EI_DATA];
 
+		  if (filesz > SIZE_MAX / sizeof (Elf32_Nhdr))
+		    continue;
                   notes = malloc (filesz);
                   if (unlikely (notes == NULL))
                     continue; /* Next header */
@@ -533,6 +574,18 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
                   xlatefrom.d_size = filesz;
                   xlateto.d_buf = notes;
                   xlateto.d_size = filesz;
+
+		  /* data may be unaligned, in which case xlatetom would not work.
+		     xlatetom does work when the in and out d_buf are equal (but not
+		     for any other overlap).  */
+		  if ((uintptr_t) data != (align == 8
+					   ? NOTE_ALIGN8 ((uintptr_t) data)
+					   : NOTE_ALIGN4 ((uintptr_t) data)))
+		    {
+		      memcpy (notes, data, filesz);
+		      xlatefrom.d_buf = notes;
+		    }
+
                   if (elf32_xlatetom (&xlateto, &xlatefrom, xencoding) == NULL)
                     {
                       free (notes);
@@ -543,40 +596,48 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 
               const GElf_Nhdr *nh = notes;
               size_t len = 0;
-              while (filesz > len + sizeof (*nh))
+              while (filesz - len > sizeof (*nh))
                 {
-                  const void *note_name;
-                  const void *note_desc;
+		  len += sizeof (*nh);
 
-                  len += sizeof (*nh);
-                  note_name = notes + len;
+		  size_t namesz = nh->n_namesz;
+		  namesz = align == 8 ? NOTE_ALIGN8 (namesz) : NOTE_ALIGN4 (namesz);
+		  if (namesz > filesz - len || len + namesz < namesz)
+		    break;
 
-                  len += nh->n_namesz;
-                  len = align == 8 ? NOTE_ALIGN8 (len) : NOTE_ALIGN4 (len);
-                  note_desc = notes + len;
+		  void *note_name = notes + len;
+		  len += namesz;
 
-                  if (unlikely (filesz < len + nh->n_descsz))
-                    break;
+		  size_t descsz = nh->n_descsz;
+		  descsz = align == 8 ? NOTE_ALIGN8 (descsz) : NOTE_ALIGN4 (descsz);
+		  if (descsz > filesz - len || len + descsz < descsz)
+		    break;
 
-                  if (nh->n_type == NT_GNU_BUILD_ID
-                      && nh->n_descsz > 0
-                      && nh->n_namesz == sizeof "GNU"
-                      && !memcmp (note_name, "GNU", sizeof "GNU"))
-                    {
-                      build_id.vaddr = (note_desc
+		  void *note_desc = notes + len;
+		  len += descsz;
+
+		  /* We don't handle very short or really large build-ids.  We need at
+		     at least 3 and allow for up to 64 (normally ids are 20 long).  */
+#define MIN_BUILD_ID_BYTES 3
+#define MAX_BUILD_ID_BYTES 64
+		  if (nh->n_type == NT_GNU_BUILD_ID
+		      && nh->n_descsz >= MIN_BUILD_ID_BYTES
+		      && nh->n_descsz <= MAX_BUILD_ID_BYTES
+		      && nh->n_namesz == sizeof "GNU"
+		      && !memcmp (note_name, "GNU", sizeof "GNU"))
+		    {
+		      build_id.vaddr = (note_desc
 					- (const void *) notes
 					+ note_vaddr);
-                      build_id.len = nh->n_descsz;
-                      build_id.memory = malloc (build_id.len);
-                      if (likely (build_id.memory != NULL))
-                        memcpy (build_id.memory, note_desc, build_id.len);
-                      break;
-                    }
+		      build_id.len = nh->n_descsz;
+		      build_id.memory = malloc (build_id.len);
+		      if (likely (build_id.memory != NULL))
+			memcpy (build_id.memory, note_desc, build_id.len);
+		      break;
+		    }
 
-                  len += nh->n_descsz;
-                  len = align == 8 ? NOTE_ALIGN8 (len) : NOTE_ALIGN4 (len);
-                  nh = (void *) notes + len;
-                }
+		  nh = (void *) notes + len;
+		}
 
               if (notes != data)
                 free (notes);
@@ -641,10 +702,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   /* We must have seen the segment covering offset 0, or else the ELF
      header we read at START was not produced by these program headers.  */
   if (unlikely (!found_bias))
-    {
-      free (build_id.memory);
-      goto out;
-    }
+    goto out;
 
   /* Now we know enough to report a module for sure: its bounds.  */
   module_start += bias;
@@ -712,10 +770,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 	      }
 	  }
       if (skip_this_module)
-	{
-	  free (build_id.memory);
-	  goto out;
-	}
+	goto out;
     }
 
   const char *file_note_name = handle_file_note (module_start, module_end,
@@ -774,6 +829,9 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
       if (dyn_data_size != 0)
 	dyn_filesz = dyn_data_size;
 
+      if ((dyn_filesz / dyn_entsize) == 0
+	  || dyn_filesz > (SIZE_MAX / dyn_entsize))
+	goto out;
       void *dyns = malloc (dyn_filesz);
       Elf32_Dyn *d32 = dyns;
       Elf64_Dyn *d64 = dyns;
@@ -786,7 +844,19 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
       xlateto.d_buf = dyns;
       xlateto.d_size = dyn_filesz;
 
+      /* dyn_data may be unaligned, in which case xlatetom would not work.
+	 xlatetom does work when the in and out d_buf are equal (but not
+	 for any other overlap).  */
       bool is32 = (ei_class == ELFCLASS32);
+      size_t dyn_align = (is32
+			  ? __alignof__ (Elf32_Dyn)
+			  : __alignof__ (Elf64_Dyn));
+      if (((uintptr_t) dyn_data & (dyn_align - 1)) != 0)
+	{
+	  memcpy (dyns, dyn_data, dyn_filesz);
+	  xlatefrom.d_buf = dyns;
+	}
+
       if ((is32 && elf32_xlatetom (&xlateto, &xlatefrom, ei_data) != NULL)
           || (!is32 && elf64_xlatetom (&xlateto, &xlatefrom, ei_data) != NULL))
         {
@@ -877,6 +947,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
   /* At this point we do not need BUILD_ID or NAME any more.
      They have been copied.  */
   free (build_id.memory);
+  build_id.memory = NULL;
   finish_portion (&read_state, &soname, &soname_size);
 
   if (unlikely (mod == NULL))
@@ -904,6 +975,9 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
       /* The caller wants to read the whole file in right now, but hasn't
 	 done it for us.  Fill in a local image of the virtual file.  */
 
+      if (file_trimmed_end > maxread)
+	file_trimmed_end = maxread;
+
       void *contents = calloc (1, file_trimmed_end);
       if (unlikely (contents == NULL))
 	goto out;
@@ -924,8 +998,12 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
               GElf_Off offset = is32 ? p32[i].p_offset : p64[i].p_offset;
               GElf_Xword filesz = is32 ? p32[i].p_filesz : p64[i].p_filesz;
 
+              /* Don't try to read beyond the actual end of file.  */
+              if (offset >= file_trimmed_end)
+                continue;
+
               void *into = contents + offset;
-              size_t read_size = filesz;
+              size_t read_size = MIN (filesz, file_trimmed_end - offset);
               (*memory_callback) (dwfl, addr_segndx (dwfl, segment,
                                                      vaddr + bias, false),
                                   &into, &read_size, vaddr + bias, read_size,
@@ -959,7 +1037,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 	elf->flags |= ELF_F_MALLOCED;
     }
 
-  if (elf != NULL)
+  if (elf != NULL && mod->main.elf == NULL)
     {
       /* Install the file in the module.  */
       mod->main.elf = elf;
@@ -972,6 +1050,8 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
     }
 
 out:
+  if (build_id.memory != NULL)
+    free (build_id.memory);
   free (phdrsp);
   if (buffer != NULL)
     (*memory_callback) (dwfl, -1, &buffer, &buffer_available, 0, 0,

@@ -1,3 +1,8 @@
+2022-02-16  Mark Wielaard  <mark@klomp.org>
+
+	* ppc_initreg.c (ppc_set_initial_registers_tid): Define struct
+	pt_regs32. Use PTRACE_GETREGSET.
+
 2021-09-29  William Cohen  <wcohen@redhat.com>
 
 	* riscv_init.c (riscv_return_value_location_lp64f): New function

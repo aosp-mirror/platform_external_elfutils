@@ -1,5 +1,6 @@
 /* Debuginfo-over-http server.
    Copyright (C) 2019-2021 Red Hat, Inc.
+   Copyright (C) 2021 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -33,11 +34,11 @@
 
 extern "C" {
 #include "printversion.h"
+#include "system.h"
 }
 
 #include "debuginfod.h"
 #include <dwarf.h>
-#include <system.h>
 
 #include <argp.h>
 #ifdef __GNUC__
@@ -352,7 +353,9 @@ static const struct argp_option options[] =
    { "rescan-time", 't', "SECONDS", 0, "Number of seconds to wait between rescans, 0=disable.", 0 },
    { "groom-time", 'g', "SECONDS", 0, "Number of seconds to wait between database grooming, 0=disable.", 0 },
    { "maxigroom", 'G', NULL, 0, "Run a complete database groom/shrink pass at startup.", 0 },
-   { "concurrency", 'c', "NUM", 0, "Limit scanning thread concurrency to NUM.", 0 },
+   { "concurrency", 'c', "NUM", 0, "Limit scanning thread concurrency to NUM, default=#CPUs.", 0 },
+   { "connection-pool", 'C', "NUM", OPTION_ARG_OPTIONAL,
+     "Use webapi connection pool with NUM threads, default=unlim.", 0 },
    { "include", 'I', "REGEX", 0, "Include files matching REGEX, default=all.", 0 },
    { "exclude", 'X', "REGEX", 0, "Exclude files matching REGEX, default=none.", 0 },
    { "port", 'p', "NUM", 0, "HTTP port to listen on, default 8002.", 0 },
@@ -411,6 +414,7 @@ static unsigned rescan_s = 300;
 static unsigned groom_s = 86400;
 static bool maxigroom = false;
 static unsigned concurrency = std::thread::hardware_concurrency() ?: 1;
+static int connection_pool = 0;
 static set<string> source_paths;
 static bool scan_files = false;
 static map<string,string> scan_archives;
@@ -557,6 +561,16 @@ parse_opt (int key, char *arg,
       concurrency = (unsigned) atoi(arg);
       if (concurrency < 1) concurrency = 1;
       break;
+    case 'C':
+      if (arg)
+        {
+          connection_pool = atoi(arg);
+          if (connection_pool < 2)
+            argp_failure(state, 1, EINVAL, "-C NUM minimum 2");
+        }
+      else // arg not given
+        connection_pool = std::thread::hardware_concurrency() * 2 ?: 2;
+      break;
     case 'I':
       // NB: no problem with unconditional free here - an earlier failed regcomp would exit program
       if (passive_p)
@@ -629,6 +643,9 @@ parse_opt (int key, char *arg,
 ////////////////////////////////////////////////////////////////////////
 
 
+static void add_mhd_response_header (struct MHD_Response *r,
+				     const char *h, const char *v);
+
 // represent errors that may get reported to an ostream and/or a libmicrohttpd connection
 
 struct reportable_exception
@@ -646,7 +663,7 @@ struct reportable_exception
     MHD_Response* r = MHD_create_response_from_buffer (message.size(),
                                                        (void*) message.c_str(),
                                                        MHD_RESPMEM_MUST_COPY);
-    MHD_add_response_header (r, "Content-Type", "text/plain");
+    add_mhd_response_header (r, "Content-Type", "text/plain");
     MHD_RESULT rc = MHD_queue_response (c, code, r);
     MHD_destroy_response (r);
     return rc;
@@ -852,10 +869,11 @@ timestamp (ostream &o)
   char datebuf[80];
   char *now2 = NULL;
   time_t now_t = time(NULL);
-  struct tm *now = gmtime (&now_t);
-  if (now)
+  struct tm now;
+  struct tm *nowp = gmtime_r (&now_t, &now);
+  if (nowp)
     {
-      (void) strftime (datebuf, sizeof (datebuf), "%c", now);
+      (void) strftime (datebuf, sizeof (datebuf), "%c", nowp);
       now2 = datebuf;
     }
 
@@ -1045,9 +1063,22 @@ conninfo (struct MHD_Connection * conn)
     sts = getnameinfo (so, sizeof (struct sockaddr_in), hostname, sizeof (hostname), servname,
                        sizeof (servname), NI_NUMERICHOST | NI_NUMERICSERV);
   } else if (so && so->sa_family == AF_INET6) {
-    sts = getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname),
-                       servname, sizeof (servname), NI_NUMERICHOST | NI_NUMERICSERV);
+    struct sockaddr_in6* addr6 = (struct sockaddr_in6*) so;
+    if (IN6_IS_ADDR_V4MAPPED(&addr6->sin6_addr)) {
+      struct sockaddr_in addr4;
+      memset (&addr4, 0, sizeof(addr4));
+      addr4.sin_family = AF_INET;
+      addr4.sin_port = addr6->sin6_port;
+      memcpy (&addr4.sin_addr.s_addr, addr6->sin6_addr.s6_addr+12, sizeof(addr4.sin_addr.s_addr));
+      sts = getnameinfo ((struct sockaddr*) &addr4, sizeof (addr4),
+                         hostname, sizeof (hostname), servname, sizeof (servname),
+                         NI_NUMERICHOST | NI_NUMERICSERV);
+    } else {
+      sts = getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname), NULL, 0,
+                         NI_NUMERICHOST);
+    }
   }
+  
   if (sts != 0) {
     hostname[0] = servname[0] = '\0';
   }
@@ -1066,20 +1097,31 @@ conninfo (struct MHD_Connection * conn)
 
 ////////////////////////////////////////////////////////////////////////
 
+/* Wrapper for MHD_add_response_header that logs an error if we
+   couldn't add the specified header.  */
+static void
+add_mhd_response_header (struct MHD_Response *r,
+			 const char *h, const char *v)
+{
+  if (MHD_add_response_header (r, h, v) == MHD_NO)
+    obatched(clog) << "Error: couldn't add '" << h << "' header" << endl;
+}
 
 static void
 add_mhd_last_modified (struct MHD_Response *resp, time_t mtime)
 {
-  struct tm *now = gmtime (&mtime);
-  if (now != NULL)
+  struct tm now;
+  struct tm *nowp = gmtime_r (&mtime, &now);
+  if (nowp != NULL)
     {
       char datebuf[80];
-      size_t rc = strftime (datebuf, sizeof (datebuf), "%a, %d %b %Y %T GMT", now);
+      size_t rc = strftime (datebuf, sizeof (datebuf), "%a, %d %b %Y %T GMT",
+                            nowp);
       if (rc > 0 && rc < sizeof (datebuf))
-        (void) MHD_add_response_header (resp, "Last-Modified", datebuf);
+        add_mhd_response_header (resp, "Last-Modified", datebuf);
     }
 
-  (void) MHD_add_response_header (resp, "Cache-Control", "public");
+  add_mhd_response_header (resp, "Cache-Control", "public");
 }
 
 
@@ -1125,10 +1167,11 @@ handle_buildid_f_match (bool internal_req_t,
     }
   else
     {
-      MHD_add_response_header (r, "Content-Type", "application/octet-stream");
       std::string file = b_source0.substr(b_source0.find_last_of("/")+1, b_source0.length());
-      MHD_add_response_header (r, "X-DEBUGINFOD-SIZE", to_string(s.st_size).c_str() );
-      MHD_add_response_header (r, "X-DEBUGINFOD-FILE", file.c_str() );
+      add_mhd_response_header (r, "Content-Type", "application/octet-stream");
+      add_mhd_response_header (r, "X-DEBUGINFOD-SIZE",
+			       to_string(s.st_size).c_str());
+      add_mhd_response_header (r, "X-DEBUGINFOD-FILE", file.c_str());
       add_mhd_last_modified (r, s.st_mtime);
       if (verbose > 1)
         obatched(clog) << "serving file " << b_source0 << endl;
@@ -1351,8 +1394,9 @@ public:
       if (verbose > 3)
         obatched(clog) << "fdcache interned a=" << a << " b=" << b
                        << " fd=" << fd << " mb=" << mb << " front=" << front_p << endl;
+      
+      set_metrics();
     }
-    set_metrics();
 
     // NB: we age the cache at lookup time too
     if (statfs_free_enough_p(tmpdir, "tmpdir", fdcache_mintmp))
@@ -1597,10 +1641,11 @@ handle_buildid_r_match (bool internal_req_p,
 
       inc_metric ("http_responses_total","result","archive fdcache");
 
-      MHD_add_response_header (r, "Content-Type", "application/octet-stream");
-      MHD_add_response_header (r, "X-DEBUGINFOD-SIZE", to_string(fs.st_size).c_str());
-      MHD_add_response_header (r, "X-DEBUGINFOD-ARCHIVE", b_source0.c_str());
-      MHD_add_response_header (r, "X-DEBUGINFOD-FILE", b_source1.c_str());
+      add_mhd_response_header (r, "Content-Type", "application/octet-stream");
+      add_mhd_response_header (r, "X-DEBUGINFOD-SIZE",
+			       to_string(fs.st_size).c_str());
+      add_mhd_response_header (r, "X-DEBUGINFOD-ARCHIVE", b_source0.c_str());
+      add_mhd_response_header (r, "X-DEBUGINFOD-FILE", b_source1.c_str());
       add_mhd_last_modified (r, fs.st_mtime);
       if (verbose > 1)
         obatched(clog) << "serving fdcache archive " << b_source0 << " file " << b_source1 << endl;
@@ -1741,12 +1786,14 @@ handle_buildid_r_match (bool internal_req_p,
         }
       else
         {
-          MHD_add_response_header (r, "Content-Type", "application/octet-stream");
           std::string file = b_source1.substr(b_source1.find_last_of("/")+1, b_source1.length());
-          MHD_add_response_header (r, "X-DEBUGINFOD-SIZE", to_string(fs.st_size).c_str());
-          MHD_add_response_header (r, "X-DEBUGINFOD-ARCHIVE", b_source0.c_str());
-          MHD_add_response_header (r, "X-DEBUGINFOD-FILE", file.c_str());
-
+          add_mhd_response_header (r, "Content-Type",
+                                   "application/octet-stream");
+          add_mhd_response_header (r, "X-DEBUGINFOD-SIZE",
+                                   to_string(archive_entry_size(e)).c_str());
+          add_mhd_response_header (r, "X-DEBUGINFOD-ARCHIVE",
+                                   b_source0.c_str());
+          add_mhd_response_header (r, "X-DEBUGINFOD-FILE", file.c_str());
           add_mhd_last_modified (r, archive_entry_mtime(e));
           if (verbose > 1)
             obatched(clog) << "serving archive " << b_source0 << " file " << b_source1 << endl;
@@ -1974,13 +2021,26 @@ and will not query the upstream servers");
                                                                        MHD_CONNECTION_INFO_CLIENT_ADDRESS);
           struct sockaddr *so = u ? u->client_addr : 0;
           char hostname[256] = ""; // RFC1035
-          if (so && so->sa_family == AF_INET)
+          if (so && so->sa_family == AF_INET) {
             (void) getnameinfo (so, sizeof (struct sockaddr_in), hostname, sizeof (hostname), NULL, 0,
                                 NI_NUMERICHOST);
-          else if (so && so->sa_family == AF_INET6)
-            (void) getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname), NULL, 0,
-                                NI_NUMERICHOST);
-
+          } else if (so && so->sa_family == AF_INET6) {
+            struct sockaddr_in6* addr6 = (struct sockaddr_in6*) so;
+            if (IN6_IS_ADDR_V4MAPPED(&addr6->sin6_addr)) {
+              struct sockaddr_in addr4;
+              memset (&addr4, 0, sizeof(addr4));
+              addr4.sin_family = AF_INET;
+              addr4.sin_port = addr6->sin6_port;
+              memcpy (&addr4.sin_addr.s_addr, addr6->sin6_addr.s6_addr+12, sizeof(addr4.sin_addr.s_addr));
+              (void) getnameinfo ((struct sockaddr*) &addr4, sizeof (addr4),
+                                  hostname, sizeof (hostname), NULL, 0,
+                                  NI_NUMERICHOST);
+            } else {
+              (void) getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname), NULL, 0,
+                                  NI_NUMERICHOST);
+            }
+          }
+          
           string xff_complete = string("X-Forwarded-For: ")+xff+string(hostname);
           debuginfod_add_http_header (client, xff_complete.c_str());
         }
@@ -2012,7 +2072,8 @@ and will not query the upstream servers");
           auto r = MHD_create_response_from_fd ((uint64_t) s.st_size, fd);
           if (r)
             {
-              MHD_add_response_header (r, "Content-Type", "application/octet-stream");
+              add_mhd_response_header (r, "Content-Type",
+				       "application/octet-stream");
               add_mhd_last_modified (r, s.st_mtime);
               if (verbose > 1)
                 obatched(clog) << "serving file from upstream debuginfod/cache" << endl;
@@ -2163,8 +2224,11 @@ handle_metrics (off_t* size)
   MHD_Response* r = MHD_create_response_from_buffer (os.size(),
                                                      (void*) os.c_str(),
                                                      MHD_RESPMEM_MUST_COPY);
-  *size = os.size();
-  MHD_add_response_header (r, "Content-Type", "text/plain");
+  if (r != NULL)
+    {
+      *size = os.size();
+      add_mhd_response_header (r, "Content-Type", "text/plain");
+    }
   return r;
 }
 
@@ -2176,8 +2240,11 @@ handle_root (off_t* size)
   MHD_Response* r = MHD_create_response_from_buffer (version.size (),
 						     (void *) version.c_str (),
 						     MHD_RESPMEM_PERSISTENT);
-  *size = version.size ();
-  MHD_add_response_header (r, "Content-Type", "text/plain");
+  if (r != NULL)
+    {
+      *size = version.size ();
+      add_mhd_response_header (r, "Content-Type", "text/plain");
+    }
   return r;
 }
 
@@ -3442,7 +3509,7 @@ database_stats_report()
         throw sqlite_exception(rc, "step");
 
       obatched(clog)
-        << right << setw(20) << ((const char*) sqlite3_column_text(ps_query, 0) ?: (const char*) "NULL")
+        << ((const char*) sqlite3_column_text(ps_query, 0) ?: (const char*) "NULL")
         << " "
         << (sqlite3_column_text(ps_query, 1) ?: (const unsigned char*) "NULL")
         << endl;
@@ -3681,7 +3748,15 @@ sigusr2_handler (int /* sig */)
 }
 
 
-
+static void // error logging callback from libmicrohttpd internals
+error_cb (void *arg, const char *fmt, va_list ap)
+{
+  (void) arg;
+  inc_metric("error_count","libmicrohttpd",fmt);
+  char errmsg[512];
+  (void) vsnprintf (errmsg, sizeof(errmsg), fmt, ap); // ok if slightly truncated
+  obatched(cerr) << "libmicrohttpd error: " << errmsg; // MHD_DLOG calls already include \n
+}
 
 
 // A user-defined sqlite function, to score the sharedness of the
@@ -3704,7 +3779,7 @@ static void sqlite3_sharedprefix_fn (sqlite3_context* c, int argc, sqlite3_value
       const unsigned char* a = sqlite3_value_text (argv[0]);
       const unsigned char* b = sqlite3_value_text (argv[1]);
       int i = 0;
-      while (*a++ == *b++)
+      while (*a != '\0' && *b != '\0' && *a++ == *b++)
         i++;
       sqlite3_result_int (c, i);
     }
@@ -3824,33 +3899,30 @@ main (int argc, char *argv[])
         }
     }
 
-  // Start httpd server threads.  Separate pool for IPv4 and IPv6, in
-  // case the host only has one protocol stack.
-  MHD_Daemon *d4 = MHD_start_daemon (MHD_USE_THREAD_PER_CONNECTION
+  // Start httpd server threads.  Use a single dual-homed pool.
+  MHD_Daemon *d46 = MHD_start_daemon ((connection_pool ? 0 : MHD_USE_THREAD_PER_CONNECTION)
 #if MHD_VERSION >= 0x00095300
                                      | MHD_USE_INTERNAL_POLLING_THREAD
 #else
                                      | MHD_USE_SELECT_INTERNALLY
 #endif
-                                     | MHD_USE_DEBUG, /* report errors to stderr */
-                                     http_port,
-                                     NULL, NULL, /* default accept policy */
-                                     handler_cb, NULL, /* handler callback */
-                                     MHD_OPTION_END);
-  MHD_Daemon *d6 = MHD_start_daemon (MHD_USE_THREAD_PER_CONNECTION
-#if MHD_VERSION >= 0x00095300
-                                     | MHD_USE_INTERNAL_POLLING_THREAD
-#else
-                                     | MHD_USE_SELECT_INTERNALLY
+#ifdef MHD_USE_EPOLL
+                                     | MHD_USE_EPOLL
 #endif
-                                     | MHD_USE_IPv6
+                                     | MHD_USE_DUAL_STACK
+#if MHD_VERSION >= 0x00095200
+                                     | MHD_USE_ITC
+#endif
                                      | MHD_USE_DEBUG, /* report errors to stderr */
                                      http_port,
                                      NULL, NULL, /* default accept policy */
                                      handler_cb, NULL, /* handler callback */
+                                     MHD_OPTION_EXTERNAL_LOGGER, error_cb, NULL,
+                                     (connection_pool ? MHD_OPTION_THREAD_POOL_SIZE : MHD_OPTION_END),
+                                     (connection_pool ? (int)connection_pool : MHD_OPTION_END),
                                      MHD_OPTION_END);
 
-  if (d4 == NULL && d6 == NULL) // neither ipv4 nor ipv6? boo
+  if (d46 == NULL)
     {
       sqlite3 *database = db;
       sqlite3 *databaseq = dbq;
@@ -3860,9 +3932,7 @@ main (int argc, char *argv[])
       error (EXIT_FAILURE, 0, "cannot start http server at port %d", http_port);
     }
 
-  obatched(clog) << "started http server on "
-                 << (d4 != NULL ? "IPv4 " : "")
-                 << (d6 != NULL ? "IPv6 " : "")
+  obatched(clog) << "started http server on IPv4 IPv6 "
                  << "port=" << http_port << endl;
 
   // add maxigroom sql if -G given
@@ -3901,6 +3971,8 @@ main (int argc, char *argv[])
 
   if (! passive_p)
     obatched(clog) << "search concurrency " << concurrency << endl;
+  obatched(clog) << "webapi connection pool " << connection_pool
+                 << (connection_pool ? "" : " (unlimited)") << endl;
   if (! passive_p)
     obatched(clog) << "rescan time " << rescan_s << endl;
   obatched(clog) << "fdcache fds " << fdcache_fds << endl;
@@ -3980,8 +4052,7 @@ main (int argc, char *argv[])
     pthread_join (it, NULL);
 
   /* Stop all the web service threads. */
-  if (d4) MHD_stop_daemon (d4);
-  if (d6) MHD_stop_daemon (d6);
+  if (d46) MHD_stop_daemon (d46);
 
   if (! passive_p)
     {
@@ -3993,6 +4064,8 @@ main (int argc, char *argv[])
                  "warning: cannot run database cleanup ddl: %s", sqlite3_errmsg(db));
         }
     }
+
+  debuginfod_pool_groom ();
 
   // NB: no problem with unconditional free here - an earlier failed regcomp would exit program
   (void) regfree (& file_include_regex);

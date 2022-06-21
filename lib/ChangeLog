@@ -1,3 +1,11 @@
+2022-04-25  Mark Wielaard  <mark@klomp.org>
+
+	* printversion.c (print_version): Update copyright year.
+
+2022-03-27  Mark Wielaard  <mark@klomp.org>
+
+	* system.h: define error_exit.
+
 2021-02-14  Alexander Miller  <alex.miller@gmx.de>
 
 	* eu-config.h (used_in_asm): New macro.

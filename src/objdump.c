@@ -100,8 +100,8 @@ static int handle_elf (Elf *elf, const char *prefix, const char *fname,
 
 
 #define INTERNAL_ERROR(fname) \
-  error (EXIT_FAILURE, 0, _("%s: INTERNAL ERROR %d (%s): %s"),      \
-	 fname, __LINE__, PACKAGE_VERSION, elf_errmsg (-1))
+  error_exit (0, _("%s: INTERNAL ERROR %d (%s): %s"),      \
+	      fname, __LINE__, PACKAGE_VERSION, elf_errmsg (-1))
 
 
 /* List of sections which should be used.  */
@@ -255,7 +255,7 @@ process_file (const char *fname, bool more_than_one)
 	    INTERNAL_ERROR (fname);
 
 	  if (close (fd) != 0)
-	    error (EXIT_FAILURE, errno, _("while close `%s'"), fname);
+	    error_exit (errno, _("while close `%s'"), fname);
 
 	  return result;
 	}
@@ -267,7 +267,7 @@ process_file (const char *fname, bool more_than_one)
 	    INTERNAL_ERROR (fname);
 
 	  if (close (fd) != 0)
-	    error (EXIT_FAILURE, errno, _("while close `%s'"), fname);
+	    error_exit (errno, _("while close `%s'"), fname);
 
 	  return result;
 	}
@@ -684,7 +684,7 @@ show_disasm (Ebl *ebl, const char *fname, uint32_t shstrndx)
 {
   DisasmCtx_t *ctx = disasm_begin (ebl, ebl->elf, NULL /* XXX TODO */);
   if (ctx == NULL)
-    error (EXIT_FAILURE, 0, _("cannot disassemble"));
+    error_exit (0, _("cannot disassemble"));
 
   Elf_Scn *scn = NULL;
   while ((scn = elf_nextscn (ebl->elf, scn)) != NULL)
@@ -755,8 +755,7 @@ handle_elf (Elf *elf, const char *prefix, const char *fname,
   /* Get the backend for this object file type.  */
   Ebl *ebl = ebl_openbackend (elf);
   if (ebl == NULL)
-    error (EXIT_FAILURE, 0,
-	   _("cannot create backend for elf file"));
+    error_exit (0, _("cannot create backend for elf file"));
 
   printf ("%s: elf%d-%s\n\n",
 	  fname, gelf_getclass (elf) == ELFCLASS32 ? 32 : 64,
@@ -777,8 +776,7 @@ handle_elf (Elf *elf, const char *prefix, const char *fname,
   /* Get the section header string table index.  */
   size_t shstrndx;
   if (elf_getshdrstrndx (ebl->elf, &shstrndx) < 0)
-    error (EXIT_FAILURE, 0,
-	   _("cannot get section header string table index"));
+    error_exit (0, _("cannot get section header string table index"));
 
   int result = 0;
   if (print_disasm)

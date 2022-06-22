@@ -1342,12 +1342,11 @@ main (int argc, char **argv)
   /* Should already be handled by ARGP_KEY_NO_ARGS case above,
      just sanity check.  */
   if (remaining >= argc)
-    error (EXIT_FAILURE, 0, N_("No input file given"));
+    error_exit (0, N_("No input file given"));
 
   /* Likewise for the ARGP_KEY_ARGS case above, an extra sanity check.  */
   if (foutput != NULL && remaining + 1 < argc)
-    error (EXIT_FAILURE, 0,
-	   N_("Only one input file allowed together with '-o'"));
+    error_exit (0, N_("Only one input file allowed together with '-o'"));
 
   elf_version (EV_CURRENT);
 

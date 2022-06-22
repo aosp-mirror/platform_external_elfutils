@@ -1,5 +1,6 @@
 /* Linux kernel image support for libdwfl.
    Copyright (C) 2009-2011 Red Hat, Inc.
+   Copyright (C) 2022 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -80,17 +81,28 @@ __libdw_image_header (int fd, off_t *start_offset,
 	  header = header_buffer - H_START;
 	}
 
-      if (*(uint16_t *) (header + H_MAGIC1) == LE16 (MAGIC1)
-	  && *(uint32_t *) (header + H_MAGIC2) == LE32 (MAGIC2)
-	  && LE16 (*(uint16_t *) (header + H_VERSION)) >= MIN_VERSION)
+      uint16_t magic1;
+      uint32_t magic2;
+      uint16_t version;
+      memcpy (&magic1, header + H_MAGIC1, sizeof (uint16_t));
+      memcpy (&magic2, header + H_MAGIC2, sizeof (uint32_t));
+      memcpy (&version, header + H_VERSION, sizeof (uint16_t));
+      if (magic1 == LE16 (MAGIC1) && magic2 == LE32 (MAGIC2)
+	  && LE16 (version) >= MIN_VERSION)
 	{
 	  /* The magic numbers match and the version field is sufficient.
 	     Extract the payload bounds.  */
 
-	  uint32_t offset = LE32 (*(uint32_t *) (header + H_PAYLOAD_OFFSET));
-	  uint32_t length = LE32 (*(uint32_t *) (header + H_PAYLOAD_LENGTH));
+	  uint32_t offset;
+	  uint32_t length;
+	  uint8_t sects;
+	  memcpy (&offset, header + H_PAYLOAD_OFFSET, sizeof (uint32_t));
+	  memcpy (&length, header + H_PAYLOAD_LENGTH, sizeof (uint32_t));
+	  memcpy (&sects, header + H_SETUP_SECTS, sizeof (uint8_t));
+	  offset = LE32 (offset);
+	  length = LE32 (length);
 
-	  offset += ((*(uint8_t *) (header + H_SETUP_SECTS) ?: 4) + 1) * 512;
+	  offset += ((sects ?: 4) + 1) * 512;
 
 	  if (offset > H_END && offset < mapped_size
 	      && mapped_size - offset >= length)

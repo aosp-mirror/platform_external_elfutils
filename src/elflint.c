@@ -4384,6 +4384,13 @@ section [%2d] '%s': unknown core file note type %" PRIu32
 	    else
 	      goto unknown_note;
 
+	  case NT_FDO_PACKAGING_METADATA:
+	    if (nhdr.n_namesz == sizeof ELF_NOTE_FDO
+		&& strcmp (data->d_buf + name_offset, ELF_NOTE_FDO) == 0)
+	      break;
+	    else
+	      goto unknown_note;
+
 	  case 0:
 	    /* Linux vDSOs use a type 0 note for the kernel version word.  */
 	    if (nhdr.n_namesz == sizeof "Linux"

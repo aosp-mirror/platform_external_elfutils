@@ -946,7 +946,7 @@ separated by newlines"), 2 },
       { "stdin0", classify_flag_stdin0, NULL, 0,
         N_("Also read file names to process from standard input, \
 separated by ASCII NUL bytes"), 2 },
-      { "no-stdin", classify_flag_stdin, NULL, 0,
+      { "no-stdin", classify_flag_no_stdin, NULL, 0,
         N_("Do not read files from standard input (default)"), 2 },
       { "compressed", 'z', NULL, 0,
 	N_("Try to open compressed files or embedded (kernel) ELF images"),

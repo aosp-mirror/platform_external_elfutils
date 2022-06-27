@@ -42,7 +42,6 @@ wait_ready $PORT1 'ready' 1
 wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
 
 # Be patient when run on a busy machine things might take a bit.
-export DEBUGINFOD_TIMEOUT=10
 export DEBUGINFOD_URLS='http://127.0.0.1:'$PORT1
 
 # Check thread comm names

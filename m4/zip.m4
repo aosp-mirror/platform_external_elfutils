@@ -4,7 +4,7 @@ dnl and sets AC_DEFINE(USE_$2) and LIBS.
 
 AC_DEFUN([eu_ZIPLIB], [dnl
 AC_ARG_WITH([[$1]],
-AC_HELP_STRING([--with-[$1]], [support [$1] compression in libdwfl]),,
+AS_HELP_STRING([--with-[$1]], [support [$1] compression in libdwfl]),,
 	    [with_[$1]=default])
 if test $with_[$1] != no; then
   AC_SEARCH_LIBS([$4], [$3], [with_[$1]=yes],

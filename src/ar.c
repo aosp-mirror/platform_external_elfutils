@@ -386,8 +386,8 @@ open_archive (const char *arfname, int flags, int mode, Elf **elf,
       if (miss_allowed)
 	return -1;
 
-      error (EXIT_FAILURE, errno, _("cannot open archive '%s'"),
-	     arfname);
+      error_exit (errno, _("cannot open archive '%s'"),
+		  arfname);
     }
 
   if (elf != NULL)
@@ -396,16 +396,16 @@ open_archive (const char *arfname, int flags, int mode, Elf **elf,
 
       *elf = elf_begin (fd, cmd, NULL);
       if (*elf == NULL)
-	error (EXIT_FAILURE, 0, _("cannot open archive '%s': %s"),
-	       arfname, elf_errmsg (-1));
+	error_exit (0, _("cannot open archive '%s': %s"),
+		    arfname, elf_errmsg (-1));
 
       if (flags == O_RDONLY && elf_kind (*elf) != ELF_K_AR)
-	error (EXIT_FAILURE, 0, _("%s: not an archive file"), arfname);
+	error_exit (0, _("%s: not an archive file"), arfname);
     }
 
   if (st != NULL && fstat (fd, st) != 0)
-    error (EXIT_FAILURE, errno, _("cannot stat archive '%s'"),
-	   arfname);
+    error_exit (errno, _("cannot stat archive '%s'"),
+		arfname);
 
   return fd;
 }
@@ -469,14 +469,13 @@ do_oper_extract (int oper, const char *arfname, char **argv, int argc,
   int fd = open_archive (arfname, O_RDONLY, 0, &elf, NULL, false);
 
   if (hcreate (2 * argc) == 0)
-    error (EXIT_FAILURE, errno, _("cannot create hash table"));
+    error_exit (errno, _("cannot create hash table"));
 
   for (int cnt = 0; cnt < argc; ++cnt)
     {
       ENTRY entry = { .key = argv[cnt], .data = &argv[cnt] };
       if (hsearch (entry, ENTER) == NULL)
-	error (EXIT_FAILURE, errno,
-	       _("cannot insert into hash table"));
+	error_exit (errno, _("cannot insert into hash table"));
     }
 
   struct stat st;
@@ -924,14 +923,13 @@ do_oper_delete (const char *arfname, char **argv, int argc,
   int fd = open_archive (arfname, O_RDONLY, 0, &elf, &st, false);
 
   if (hcreate (2 * argc) == 0)
-    error (EXIT_FAILURE, errno, _("cannot create hash table"));
+    error_exit (errno, _("cannot create hash table"));
 
   for (int cnt = 0; cnt < argc; ++cnt)
     {
       ENTRY entry = { .key = argv[cnt], .data = &argv[cnt] };
       if (hsearch (entry, ENTER) == NULL)
-	error (EXIT_FAILURE, errno,
-	       _("cannot insert into hash table"));
+	error_exit (errno, _("cannot insert into hash table"));
     }
 
   arlib_init ();
@@ -1131,7 +1129,7 @@ do_oper_insert (int oper, const char *arfname, char **argv, int argc,
   if (oper != oper_qappend)
     {
       if (hcreate (2 * argc) == 0)
-	error (EXIT_FAILURE, errno, _("cannot create hash table"));
+	error_exit (errno, _("cannot create hash table"));
 
       for (int cnt = 0; cnt < argc; ++cnt)
 	{
@@ -1139,8 +1137,7 @@ do_oper_insert (int oper, const char *arfname, char **argv, int argc,
 	  entry.key = full_path ? argv[cnt] : basename (argv[cnt]);
 	  entry.data = &argv[cnt];
 	  if (hsearch (entry, ENTER) == NULL)
-	    error (EXIT_FAILURE, errno,
-		   _("cannot insert into hash table"));
+	    error_exit (errno, _("cannot insert into hash table"));
 	}
     }
 
@@ -1214,7 +1211,7 @@ do_oper_insert (int oper, const char *arfname, char **argv, int argc,
     next:
       cmd = elf_next (subelf);
       if (elf_end (subelf) != 0)
-	error (EXIT_FAILURE, 0, "%s: %s", arfname, elf_errmsg (-1));
+	error_exit (0, "%s: %s", arfname, elf_errmsg (-1));
     }
 
   if (oper != oper_qappend)
@@ -1222,8 +1219,8 @@ do_oper_insert (int oper, const char *arfname, char **argv, int argc,
 
  no_old:
   if (member != NULL)
-    error (EXIT_FAILURE, 0, _("position member %s not found"),
-	   member);
+    error_exit (0, _("position member %s not found"),
+		member);
 
   if (oper == oper_move)
     {
@@ -1305,8 +1302,8 @@ do_oper_insert (int oper, const char *arfname, char **argv, int argc,
 	      found[cnt]->mem = elf_rawfile (newelf, &found[cnt]->size);
 	      if (found[cnt]->mem == NULL
 		  || elf_cntl (newelf, ELF_C_FDDONE) != 0)
-		error (EXIT_FAILURE, 0, _("cannot read %s: %s"),
-		       argv[cnt], elf_errmsg (-1));
+		error_exit (0, _("cannot read %s: %s"),
+			    argv[cnt], elf_errmsg (-1));
 
 	      close (newfd);
 
@@ -1374,7 +1371,7 @@ do_oper_insert (int oper, const char *arfname, char **argv, int argc,
 		|| (arhdr = elf_getarhdr (subelf)) == NULL)
 	      /* This should never happen since we already looked at the
 		 archive content.  But who knows...  */
-	      error (EXIT_FAILURE, 0, "%s: %s", arfname, elf_errmsg (-1));
+	      error_exit (0, "%s: %s", arfname, elf_errmsg (-1));
 
 	    arlib_add_symbols (subelf, arfname, arhdr->ar_name, cur_off);
 

@@ -12,12 +12,12 @@ third_party {
     type: GIT
     value: "git://sourceware.org/git/elfutils.git"
   }
-  version: "elfutils-0.183"
+  version: "elfutils-0.187"
   license_type: BY_EXCEPTION_ONLY
   license_note: "Would be RESTRICTED save for doc/COPYING-GFDL"
   last_upgrade_date {
-    year: 2021
-    month: 2
-    day: 16
+    year: 2022
+    month: 6
+    day: 17
   }
 }

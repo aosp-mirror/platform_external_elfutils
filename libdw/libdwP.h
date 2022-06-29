@@ -35,7 +35,6 @@
 
 #include <libdw.h>
 #include <dwarf.h>
-#include "atomics.h"
 
 
 /* Known location expressions already decoded.  */

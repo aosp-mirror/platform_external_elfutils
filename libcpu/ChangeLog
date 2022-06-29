@@ -1,3 +1,8 @@
+2021-12-04  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (GENDIS_ENV): New variable, depends on
+	USE_ADDRESS_SANITIZER.
+
 2020-12-20  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* .gitignore: New file.

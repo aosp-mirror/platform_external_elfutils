@@ -360,6 +360,8 @@ dwelf_elf_e_machine_string (int machine)
       return "XMOS xCORE";
     case EM_MCHP_PIC:
       return "Microchip 8-bit PIC";
+    case EM_INTELGT:
+      return "Intel Graphics Technology";
     case EM_KM32:
       return "KM211 KM32";
     case EM_KMX32:

@@ -47,7 +47,7 @@ libelf = ../libelf/libelf.a -lz
 if DUMMY_LIBDEBUGINFOD
 libdebuginfod = ./libdebuginfod.a
 else
-libdebuginfod = ./libdebuginfod.a $(libcurl_LIBS)
+libdebuginfod = ./libdebuginfod.a -lpthread $(libcurl_LIBS)
 endif
 else
 libasm = ../libasm/libasm.so
@@ -97,7 +97,7 @@ libdebuginfod_so_LIBS = libdebuginfod_pic.a
 if DUMMY_LIBDEBUGINFOD
 libdebuginfod_so_LDLIBS =
 else
-libdebuginfod_so_LDLIBS = $(libcurl_LIBS) $(fts_LIBS)
+libdebuginfod_so_LDLIBS = -lpthread $(libcurl_LIBS) $(fts_LIBS)
 endif
 $(LIBDEBUGINFOD_SONAME): $(srcdir)/libdebuginfod.map $(libdebuginfod_so_LIBS)
 	$(AM_V_CCLD)$(LINK) $(dso_LDFLAGS) -o $@ \

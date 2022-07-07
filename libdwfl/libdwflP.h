@@ -786,6 +786,7 @@ INTDECL (dwfl_getthread_frames)
 INTDECL (dwfl_getthreads)
 INTDECL (dwfl_thread_getframes)
 INTDECL (dwfl_frame_pc)
+INTDECL (dwfl_get_debuginfod_client)
 
 /* Leading arguments standard to callbacks passed a Dwfl_Module.  */
 #define MODCB_ARGS(mod)	(mod), &(mod)->userdata, (mod)->name, (mod)->low_addr

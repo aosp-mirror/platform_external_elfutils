@@ -32,6 +32,9 @@
 #endif
 
 #include "libdwflP.h"
+
+#ifdef ENABLE_LIBDEBUGINFOD
+
 #include <pthread.h>
 #include <dlfcn.h>
 
@@ -46,8 +49,8 @@ static pthread_once_t init_control = PTHREAD_ONCE_INIT;
 
 /* NB: this is slightly thread-unsafe */
 
-static debuginfod_client *
-get_client (Dwfl *dwfl)
+debuginfod_client *
+dwfl_get_debuginfod_client (Dwfl *dwfl)
 {
   if (dwfl->debuginfod != NULL)
     return dwfl->debuginfod;
@@ -71,7 +74,7 @@ __libdwfl_debuginfod_find_executable (Dwfl *dwfl,
   int fd = -1;
   if (build_id_len > 0)
     {
-      debuginfod_client *c = get_client (dwfl);
+      debuginfod_client *c = dwfl_get_debuginfod_client (dwfl);
       if (c != NULL)
 	fd = (*fp_debuginfod_find_executable) (c, build_id_bits,
 					       build_id_len, NULL);
@@ -88,7 +91,7 @@ __libdwfl_debuginfod_find_debuginfo (Dwfl *dwfl,
   int fd = -1;
   if (build_id_len > 0)
     {
-      debuginfod_client *c = get_client (dwfl);
+      debuginfod_client *c = dwfl_get_debuginfod_client (dwfl);
       if (c != NULL)
 	fd = (*fp_debuginfod_find_debuginfo) (c, build_id_bits,
 					      build_id_len, NULL);
@@ -105,7 +108,7 @@ __libdwfl_debuginfod_end (debuginfod_client *c)
 }
 
 /* Try to get the libdebuginfod library functions.
-   Only needs to be called once from get_client.  */
+   Only needs to be called once from dwfl_get_debuginfod_client.  */
 static void
 __libdwfl_debuginfod_init (void)
 {
@@ -134,3 +137,13 @@ __libdwfl_debuginfod_init (void)
 	}
     }
 }
+
+#else // ENABLE_LIBDEBUGINFOD
+
+debuginfod_client *
+dwfl_get_debuginfod_client (Dwfl *)
+{
+  return NULL;
+}
+
+#endif // ENABLE_LIBDEBUGINFOD

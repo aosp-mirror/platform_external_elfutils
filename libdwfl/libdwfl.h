@@ -49,6 +49,9 @@ typedef struct Dwfl_Thread Dwfl_Thread;
    PC location described by an FDE belonging to Dwfl_Thread.  */
 typedef struct Dwfl_Frame Dwfl_Frame;
 
+/* Handle for debuginfod-client connection.  */
+typedef struct debuginfod_client debuginfod_client;
+
 /* Callbacks.  */
 typedef struct
 {
@@ -794,6 +797,13 @@ int dwfl_getthread_frames (Dwfl *dwfl, pid_t tid,
    Function returns false if it failed to find *PC.  */
 bool dwfl_frame_pc (Dwfl_Frame *state, Dwarf_Addr *pc, bool *isactivation)
   __nonnull_attribute__ (1, 2);
+
+/* Return the internal debuginfod-client connection handle for the DWFL session.
+   When the client connection has not yet been initialized, it will be done on the
+   first call to this function. If elfutils is compiled without support for debuginfod,
+   NULL will be returned.
+ */
+extern debuginfod_client *dwfl_get_debuginfod_client (Dwfl *dwfl);
 
 #ifdef __cplusplus
 }

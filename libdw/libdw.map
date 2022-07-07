@@ -366,3 +366,8 @@ ELFUTILS_0.186 {
     dwarf_linecontext;
     dwarf_linefunctionname;
 } ELFUTILS_0.177;
+
+ELFUTILS_0.187 {
+  global:
+    dwfl_get_debuginfod_client;
+} ELFUTILS_0.186;

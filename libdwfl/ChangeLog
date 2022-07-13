@@ -1,3 +1,10 @@
+2022-07-13  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (dwfl_get_debuginfod_client): Add INTDEF.
+	(__libdwfl_debuginfod_find_executable): Use
+	INTUSE (dwfl_get_debuginfod_client).
+	(__libdwfl_debuginfod_find_debuginfo): Likewise.
+
 2022-06-22  Milian Wolff <mail@milianw.de>
 
 	* libdwfl.h, debuginfod-client.c (dwfl_get_debuginfod_client):

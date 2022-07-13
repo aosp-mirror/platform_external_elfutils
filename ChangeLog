@@ -1,3 +1,7 @@
+2022-07-13  Mark Wielaard  <mark@klomp.org>
+
+	* NEWS: Add dwfl_get_debuginfod_client.
+
 2022-06-02  Mark Wielaard  <mark@klomp.org>
 
 	* configure.ac (OLD_LIBMICROHTTPD): New AM_CONDITIONAL based on

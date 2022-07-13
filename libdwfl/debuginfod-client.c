@@ -65,6 +65,7 @@ dwfl_get_debuginfod_client (Dwfl *dwfl)
 
   return NULL;
 }
+INTDEF(dwfl_get_debuginfod_client)
 
 int
 __libdwfl_debuginfod_find_executable (Dwfl *dwfl,
@@ -74,7 +75,7 @@ __libdwfl_debuginfod_find_executable (Dwfl *dwfl,
   int fd = -1;
   if (build_id_len > 0)
     {
-      debuginfod_client *c = dwfl_get_debuginfod_client (dwfl);
+      debuginfod_client *c = INTUSE (dwfl_get_debuginfod_client) (dwfl);
       if (c != NULL)
 	fd = (*fp_debuginfod_find_executable) (c, build_id_bits,
 					       build_id_len, NULL);
@@ -91,7 +92,7 @@ __libdwfl_debuginfod_find_debuginfo (Dwfl *dwfl,
   int fd = -1;
   if (build_id_len > 0)
     {
-      debuginfod_client *c = dwfl_get_debuginfod_client (dwfl);
+      debuginfod_client *c = INTUSE (dwfl_get_debuginfod_client) (dwfl);
       if (c != NULL)
 	fd = (*fp_debuginfod_find_debuginfo) (c, build_id_bits,
 					      build_id_len, NULL);

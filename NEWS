@@ -2,6 +2,8 @@ Version 0.188 some time after 0.187
 
 debuginfod: Add --disable-source-scan option.
 
+libdwfl: Add new function dwfl_get_debuginfod_client.
+
 Version 0.187
 
 debuginfod: Support -C option for connection thread pooling.

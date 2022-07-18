@@ -1,3 +1,8 @@
+2022-07-18  Shahab Vahedi  <shahab@synopsys.com>
+
+	* debuginfod-client.c (dwfl_get_debuginfod_client stub):
+	Add a name to the sole parameter.
+
 2022-07-13  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod-client.c (dwfl_get_debuginfod_client): Add INTDEF.

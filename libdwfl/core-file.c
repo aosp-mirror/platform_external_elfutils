@@ -75,26 +75,32 @@ elf_begin_rand (Elf *parent, off_t offset, off_t size, off_t *next)
      from the archive header to override SIZE.  */
   if (parent->kind == ELF_K_AR)
     {
-      struct ar_hdr h = { .ar_size = "" };
+      /* File size, in ASCII decimal, right-padded with ASCII spaces.
+         Max 10 characters. Not zero terminated. So make this ar_size
+         array one larger and explicitly zero terminate it.  As needed
+         for strtoll.  */
+      #define AR_SIZE_CHARS 10
+      char ar_size[AR_SIZE_CHARS + 1];
+      ar_size[AR_SIZE_CHARS] = '\0';
 
-      if (unlikely (parent->maximum_size - offset < sizeof h))
+      if (unlikely (parent->maximum_size - offset < sizeof (struct ar_hdr)))
 	return fail (ELF_E_RANGE);
 
       if (parent->map_address != NULL)
-	memcpy (h.ar_size, parent->map_address + parent->start_offset + offset,
-		sizeof h.ar_size);
+	memcpy (ar_size, parent->map_address + parent->start_offset + offset,
+		AR_SIZE_CHARS);
       else if (unlikely (pread_retry (parent->fildes,
-				      h.ar_size, sizeof (h.ar_size),
+				      ar_size, AR_SIZE_CHARS,
 				      parent->start_offset + offset
 				      + offsetof (struct ar_hdr, ar_size))
-			 != sizeof (h.ar_size)))
+			 != AR_SIZE_CHARS))
 	return fail (ELF_E_READ_ERROR);
 
-      offset += sizeof h;
+      offset += sizeof (struct ar_hdr);
 
       char *endp;
-      size = strtoll (h.ar_size, &endp, 10);
-      if (unlikely (endp == h.ar_size)
+      size = strtoll (ar_size, &endp, 10);
+      if (unlikely (endp == ar_size)
 	  || unlikely ((off_t) parent->maximum_size - offset < size))
 	return fail (ELF_E_INVALID_ARCHIVE);
     }

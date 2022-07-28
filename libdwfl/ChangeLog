@@ -1,3 +1,8 @@
+2022-07-28  Mark Wielaard  <mark@klomp.org>
+
+	* core-file.c (elf_begin_rand): Replace struct ar_hdr h with
+	a char ar_size[AR_SIZE_CHARS + 1] array to read size.
+
 2022-07-18  Shahab Vahedi  <shahab@synopsys.com>
 
 	* debuginfod-client.c (dwfl_get_debuginfod_client stub):

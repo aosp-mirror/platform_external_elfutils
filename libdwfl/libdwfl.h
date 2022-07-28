@@ -798,6 +798,12 @@ int dwfl_getthread_frames (Dwfl *dwfl, pid_t tid,
 bool dwfl_frame_pc (Dwfl_Frame *state, Dwarf_Addr *pc, bool *isactivation)
   __nonnull_attribute__ (1, 2);
 
+/* Get the value of the DWARF register number in the given frame.
+   Returns zero on success, -1 on error (invalid DWARF register
+   number) or 1 if the value of the register in the frame is unknown.  */
+int dwfl_frame_reg (Dwfl_Frame *state, unsigned regno, Dwarf_Word *val)
+  __nonnull_attribute__ (1);
+
 /* Return the internal debuginfod-client connection handle for the DWFL session.
    When the client connection has not yet been initialized, it will be done on the
    first call to this function. If elfutils is compiled without support for debuginfod,

@@ -1,3 +1,7 @@
+2022-07-28  Di Chen  <dichen@redhat.com>
+
+	* libdw.map (ELFUTILS_0.188): Add dwfl_frame_reg.
+
 2022-07-13  Mark Wielaard  <mark@klomp.org>
 
 	* libdw.map (ELFUTILS_0.187): Renamed to...

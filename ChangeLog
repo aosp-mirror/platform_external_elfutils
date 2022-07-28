@@ -1,3 +1,7 @@
+2022-07-28  Di Chen  <dichen@redhat.com>
+
+	* NEWS: Add dwfl_frame_reg.
+
 2022-07-13  Mark Wielaard  <mark@klomp.org>
 
 	* NEWS: Add dwfl_get_debuginfod_client.

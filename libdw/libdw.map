@@ -370,4 +370,5 @@ ELFUTILS_0.186 {
 ELFUTILS_0.188 {
   global:
     dwfl_get_debuginfod_client;
+    dwfl_frame_reg;
 } ELFUTILS_0.186;

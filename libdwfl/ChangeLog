@@ -1,3 +1,18 @@
+2022-07-28  Di Chen  <dichen@redhat.com>
+
+	* libdwfl.h (dwfl_frame_reg): New function.
+	* libdwflP.h (DWFL_E_REGISTER_VAL_UNKNOWN): New error code.
+	(__libdwfl_frame_reg_get): Return an int.
+	(dwfl_frame_reg): INTDECL.
+	* dwfl_frame_regs.c (dwfl_frame_reg): New function.
+	* frame_unwind.c (__libdwfl_frame_reg_get): Return an int.
+	(state_get_reg): Removed.
+	(expr_eval): Use INTUSE (dwfl_frame_reg) instead of state_get_reg.
+	(handle_cfi): Likewise.
+	(getfunc): Likewise.
+	* linux-core-attach.c (core_set_initial_registers): Check
+	__libdwfl_frame_reg_get returns zero.
+
 2022-07-28  Mark Wielaard  <mark@klomp.org>
 
 	* core-file.c (elf_begin_rand): Replace struct ar_hdr h with

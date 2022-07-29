@@ -1,3 +1,7 @@
+2022-07-29  Josef Cejka <jcejka@suse.de>
+
+	* debuginfod.cxx: Create db indexes for fast delete while grooming.
+
 2022-06-03  Michael Trapp <michael.trapp@sap.com>
 
 	* debuginfod.cxx (scan_source_info): New global.

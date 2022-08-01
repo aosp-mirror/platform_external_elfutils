@@ -1,3 +1,7 @@
+2022-08-01  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfod-percent-escape.sh: Add initial scan wait_ready.
+
 2022-04-28  Di Chen  <dichen@redhat.com>
 
 	* run-readelf-Dd.sh: New test.

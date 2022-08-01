@@ -1905,10 +1905,10 @@ handle_dynamic (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, GElf_Phdr *phdr)
 	{
 	  if (! use_dynamic_segment)
 	    name = elf_strptr (ebl->elf, shdr->sh_link, dyn->d_un.d_val);
-	  else if (dyn->d_un.d_ptr < strtab_data->d_size
-		   && memrchr (strtab_data->d_buf + strtab_data->d_size - 1, '\0',
-			       strtab_data->d_size - 1 - dyn->d_un.d_ptr) != NULL)
-	    name = ((char *) strtab_data->d_buf) + dyn->d_un.d_ptr;
+	  else if (dyn->d_un.d_val < strtab_data->d_size
+		   && memrchr (strtab_data->d_buf + dyn->d_un.d_val, '\0',
+			       strtab_data->d_size - 1 - dyn->d_un.d_val) != NULL)
+	    name = ((char *) strtab_data->d_buf) + dyn->d_un.d_val;
 	}
 
       switch (dyn->d_tag)

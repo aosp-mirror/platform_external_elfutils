@@ -1,3 +1,8 @@
+2022-08-01  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (handle_dynamic): Pass start of buffer to memrchr.
+	Use dyn->d_un.d_val for offsets instead of d_ptr.
+
 2022-04-28  Di Chen  <dichen@redhat.com>
 
 	* readelf.c (options): Add use-dynamic 'D'.

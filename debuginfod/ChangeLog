@@ -1,3 +1,7 @@
+2022-08-02  Josef Cejka <jcejka@suse.de>
+
+	* debuginfod.cxx (groom): Don't evaluate regex unless needed.
+
 2022-07-29  Josef Cejka <jcejka@suse.de>
 
 	* debuginfod.cxx: Create db indexes for fast delete while grooming.

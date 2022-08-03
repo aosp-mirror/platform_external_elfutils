@@ -3580,11 +3580,17 @@ void groom()
       int64_t fileid = sqlite3_column_int64 (files, 1);
       const char* filename = ((const char*) sqlite3_column_text (files, 2) ?: "");
       struct stat s;
-      bool reg_include = !regexec (&file_include_regex, filename, 0, 0, 0);
-      bool reg_exclude = !regexec (&file_exclude_regex, filename, 0, 0, 0);
+      bool regex_file_drop = 0;
+
+      if (regex_groom)
+        {
+          bool reg_include = !regexec (&file_include_regex, filename, 0, 0, 0);
+          bool reg_exclude = !regexec (&file_exclude_regex, filename, 0, 0, 0);
+          regex_file_drop = reg_exclude && !reg_include;
+        }
 
       rc = stat(filename, &s);
-      if ( (regex_groom && reg_exclude && !reg_include) ||  rc < 0 || (mtime != (int64_t) s.st_mtime) )
+      if ( regex_file_drop ||  rc < 0 || (mtime != (int64_t) s.st_mtime) )
         {
           if (verbose > 2)
             obatched(clog) << "groom: stale file=" << filename << " mtime=" << mtime << endl;

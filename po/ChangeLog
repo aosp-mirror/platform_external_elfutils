@@ -1,3 +1,10 @@
+2022-08-05  Mark Wielaard  <mark@klomp.org>
+
+	* de.po: Set Project-Id-Version: to elfutils.
+	* es.po: Likewise.
+	* ja.po: Likewise.
+	* uk.po: Likewise.
+
 2022-04-25  Mark Wielaard  <mark@klomp.org>
 
 	* *.po: Update for 0.187.

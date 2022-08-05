@@ -1,3 +1,11 @@
+2022-08-05  Mark Wielaard  <mark@klomp.org>
+
+	* dynamicsizehash_concurrent.c (resize_helper): Add documentation.
+	(resize_master): Renamed to...
+	(resize_coordinator): ...this. And add documentation.
+	(resize_worker): Add documentation.
+	(FIND): Add documentation.
+
 2022-04-25  Mark Wielaard  <mark@klomp.org>
 
 	* printversion.c (print_version): Update copyright year.

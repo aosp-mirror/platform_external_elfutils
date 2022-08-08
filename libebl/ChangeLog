@@ -1,3 +1,8 @@
+2022-08-08  Andreas Schwab  <schwab@suse.de>
+
+	* ebldynamictagname.c (ebl_dynamic_tag_name): Handle DT_RELRSZ,
+	DT_RELR, DT_RELRENT.
+
 2022-06-01  Ulrich Drepper  <drepper@redhat.com>
 
 	* eblopenbackend.c (default_machine_flag_name): Add original flag

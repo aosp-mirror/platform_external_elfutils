@@ -4731,7 +4731,10 @@ section [%2zu] '%s' must not be executable\n"),
 	}
 
       if (phdr->p_filesz > phdr->p_memsz
-	  && (phdr->p_memsz != 0 || phdr->p_type != PT_NOTE))
+	  && (phdr->p_memsz != 0
+	      || (phdr->p_type != PT_NOTE
+		  && !(ehdr->e_machine == EM_RISCV
+		       && phdr->p_type == PT_RISCV_ATTRIBUTES))))
 	ERROR (_("\
 program header entry %d: file size greater than memory size\n"),
 	       cnt);

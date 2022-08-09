@@ -1,3 +1,12 @@
+2022-08-09  Andreas Schwab  <schwab@suse.de>
+
+	* riscv_init.c (riscv_init): HOOK segment_type_name,
+	section_type_name, dynamic_tag_name and dynamic_tag_check.
+	* riscv_symbol.c (riscv_segment_type_name): New function.
+	(riscv_section_type_name): Likewise.
+	(riscv_dynamic_tag_name): Likewise.
+	(riscv_dynamic_tag_check): Likewise.
+
 2022-06-01  Ulrich Drepper  <drepper@redhat.com>
 
 	* Makefile.am (arm_SRCS): Add arm_machineflagname.c.

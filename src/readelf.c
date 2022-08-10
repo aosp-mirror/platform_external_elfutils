@@ -3672,7 +3672,9 @@ print_attributes (Ebl *ebl, const GElf_Ehdr *ehdr)
 			   && (shdr->sh_type != SHT_ARM_ATTRIBUTES
 			       || ehdr->e_machine != EM_ARM)
 			   && (shdr->sh_type != SHT_CSKY_ATTRIBUTES
-			       || ehdr->e_machine != EM_CSKY)))
+			       || ehdr->e_machine != EM_CSKY)
+			   && (shdr->sh_type != SHT_RISCV_ATTRIBUTES
+			       || ehdr->e_machine != EM_RISCV)))
 	continue;
 
       printf (_("\

@@ -1742,7 +1742,8 @@ handle_buildid_r_match (bool internal_req_p,
       if ((r == 0) && (fn != b_source1)) // stage 1
         continue;
 
-      if (fdcache.probe (b_source0, fn)) // skip if already interned
+      if (fdcache.probe (b_source0, fn) && // skip if already interned
+          fn != b_source1) // but only if we'd just be prefetching, PR29474
         continue;
 
       // extract this file to a temporary file

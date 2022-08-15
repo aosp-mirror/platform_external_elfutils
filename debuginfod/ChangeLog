@@ -1,3 +1,9 @@
+2022-08-15  Frank Ch. Eigler <fche@redhat.com>
+
+	PR29474
+	* debuginfod.cxx (handle_buildid_r_match): Don't trigger false-404's
+	for concurrently prefetched target files.
+
 2022-08-02  Josef Cejka <jcejka@suse.de>
 
 	* debuginfod.cxx (groom): Don't evaluate regex unless needed.

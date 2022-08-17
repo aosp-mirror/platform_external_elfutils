@@ -1,3 +1,7 @@
+2022-08-17  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.sysconfig: Clarify cmdline vs client-env variables.
+
 2022-05-03  Mark Wielaard  <mark@klomp.org>
 
 	* profile.csh.in: Move the 2>/dev/null inside the sh -c '' quotes.

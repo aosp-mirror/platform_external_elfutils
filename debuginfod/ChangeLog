@@ -1,3 +1,12 @@
+2022-08-17  Martin Liska  <mliska@suse.cz>
+
+	* debuginfod.cxx (handle_buildid): Update HTTP statistics only if
+	it comes from HTTP request.
+
+2022-08-17  Martin Liska  <mliska@suse.cz>
+
+	* debuginfod.cxx: Print filename for "cannot open archive".
+
 2022-08-15  Frank Ch. Eigler <fche@redhat.com>
 
 	PR29474

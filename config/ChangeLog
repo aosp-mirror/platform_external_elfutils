@@ -1,3 +1,14 @@
+2022-08-17  Martin Liska  <mliska@suse.cz>
+
+	* debuginfod.service: Add new debuginfod.sysconfig
+	value DEBUGINFOD_EXTRA_ARGS.
+	* debuginfod.sysconfig: Likewise.
+
+2022-08-16  Martin Liska  <mliska@suse.cz>
+
+	* profile.csh.in: Support nullglob in profile.*.in files.
+	* profile.sh.in: Likewise.
+
 2022-08-17  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod.sysconfig: Clarify cmdline vs client-env variables.

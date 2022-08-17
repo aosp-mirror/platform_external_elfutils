@@ -1714,7 +1714,10 @@ handle_buildid_r_match (bool internal_req_p,
 
   rc = archive_read_open_FILE (a, fp);
   if (rc != ARCHIVE_OK)
-    throw archive_exception(a, "cannot open archive from pipe");
+    {
+      obatched(clog) << "cannot open archive from pipe " << b_source0 << endl;
+      throw archive_exception(a, "cannot open archive from pipe");
+    }
 
   // archive traversal is in three stages, no, four stages:
   // 1) skip entries whose names do not match the requested one
@@ -2973,7 +2976,10 @@ archive_classify (const string& rps, string& archive_extension,
 
   rc = archive_read_open_FILE (a, fp);
   if (rc != ARCHIVE_OK)
-    throw archive_exception(a, "cannot open archive from pipe");
+    {
+      obatched(clog) << "cannot open archive from pipe " << rps << endl;
+      throw archive_exception(a, "cannot open archive from pipe");
+    }
 
   if (verbose > 3)
     obatched(clog) << "libarchive scanning " << rps << endl;

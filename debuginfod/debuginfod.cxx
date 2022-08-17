@@ -1921,7 +1921,8 @@ handle_buildid (MHD_Connection* conn,
     throw reportable_exception("invalid artifacttype");
   }
 
-  inc_metric("http_requests_total", "type", artifacttype);
+  if (conn != 0)
+    inc_metric("http_requests_total", "type", artifacttype);
   
   if (atype_code == "S" && suffix == "")
      throw reportable_exception("invalid source suffix");
@@ -2083,7 +2084,8 @@ and will not query the upstream servers");
 
   if (fd >= 0)
     {
-      inc_metric ("http_responses_total","result","upstream");
+      if (conn != 0)
+	inc_metric ("http_responses_total","result","upstream");
       struct stat s;
       int rc = fstat (fd, &s);
       if (rc == 0)

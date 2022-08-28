@@ -100,6 +100,7 @@ test-nlist$(EXEEXT): test-nlist.c
 	  $(test_nlist_CFLAGS) $(GCOV_FLAGS) -o $@ $< $(test_nlist_LDADD)
 
 TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
+	run-ar-N.sh \
 	update1 update2 update3 update4 \
 	run-show-die-info.sh run-get-files.sh run-get-lines.sh \
 	run-next-files.sh run-next-lines.sh \
@@ -254,6 +255,7 @@ endif
 endif
 
 EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
+	     run-ar-N.sh \
 	     run-show-die-info.sh run-get-files.sh run-get-lines.sh \
 	     run-next-files.sh run-next-lines.sh testfile-only-debug-line.bz2 \
 	     run-get-pubnames.sh run-get-aranges.sh \

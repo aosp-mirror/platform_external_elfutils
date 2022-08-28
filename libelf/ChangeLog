@@ -1,3 +1,8 @@
+2022-08-28  Mark Wielaard  <mark@klomp.org>
+
+	* elf_begin.c (__libelf_next_arhdr_wrlock): Add OCT_FIELD macro,
+	like INT_FIELD but use strtol with octal base 8. Use for ar_mode.
+
 2022-08-08  Andreas Schwab  <schwab@suse.de>
 
 	* elf.h: Update from glibc.

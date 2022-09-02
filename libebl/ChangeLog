@@ -1,3 +1,8 @@
+2021-12-21  Luca Boccassi  <bluca@debian.org>
+
+	* eblobjnote.c (ebl_object_note): Handle NT_FDO_PACKAGING_METADATA.
+	* eblobjnotetypename.c (ebl_object_note_type_name): Likewise.
+
 2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* eblopenbackend.c (openbackend): Remove cast of calloc return value.

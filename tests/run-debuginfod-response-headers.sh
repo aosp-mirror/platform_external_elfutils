@@ -86,6 +86,14 @@ grep 'X-DEBUGINFOD-FILE: ' vlog-find$PORT1.2
 grep 'X-DEBUGINFOD-SIZE: ' vlog-find$PORT1.2
 grep 'X-DEBUGINFOD-ARCHIVE: ' vlog-find$PORT1.2
 
+# Check that X-DEBUGINFOD-SIZE matches the size of each file
+for file in vlog-find$PORT1.1 vlog-find$PORT1.2
+do
+    st_size=$(stat -c%s $(tail -n 1 $file))
+    x_debuginfod_size=$(grep 'X-DEBUGINFOD-SIZE' $file | egrep -o '[0-9]+')
+    test $st_size -eq $x_debuginfod_size
+done
+
 kill $PID1
 wait $PID1
 PID1=0

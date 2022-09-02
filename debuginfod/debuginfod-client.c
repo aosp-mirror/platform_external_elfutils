@@ -1,5 +1,6 @@
 /* Retrieve ELF / DWARF / source files from the debuginfod.
    Copyright (C) 2019-2021 Red Hat, Inc.
+   Copyright (C) 2021, 2022 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -97,6 +98,16 @@ void debuginfod_end (debuginfod_client *c) { }
   #include <fts.h>
 #endif
 
+#include <pthread.h>
+
+static pthread_once_t init_control = PTHREAD_ONCE_INIT;
+
+static void
+libcurl_init(void)
+{
+  curl_global_init(CURL_GLOBAL_DEFAULT);
+}
+
 struct debuginfod_client
 {
   /* Progress/interrupt callback function. */
@@ -134,17 +145,17 @@ struct debuginfod_client
    how frequently the cache should be cleaned. The file's st_mtime represents
    the time of last cleaning.  */
 static const char *cache_clean_interval_filename = "cache_clean_interval_s";
-static const time_t cache_clean_default_interval_s = 86400; /* 1 day */
+static const long cache_clean_default_interval_s = 86400; /* 1 day */
 
 /* The cache_miss_default_s within the debuginfod cache specifies how
-   frequently the 000-permision file should be released.*/
-static const time_t cache_miss_default_s = 600; /* 10 min */
+   frequently the empty file should be released.*/
+static const long cache_miss_default_s = 600; /* 10 min */
 static const char *cache_miss_filename = "cache_miss_s";
 
 /* The cache_max_unused_age_s file within the debuginfod cache specifies the
    the maximum time since last access that a file will remain in the cache.  */
 static const char *cache_max_unused_age_filename = "max_unused_age_s";
-static const time_t cache_default_max_unused_age_s = 604800; /* 1 week */
+static const long cache_default_max_unused_age_s = 604800; /* 1 week */
 
 /* Location of the cache of files downloaded from debuginfods.
    The default parent directory is $HOME, or '/' if $HOME doesn't exist.  */
@@ -766,42 +777,66 @@ debuginfod_query_server (debuginfod_client *c,
   if (rc != 0)
     goto out;
 
-  struct stat st;
-  /* Check if the file exists and it's of permission 000; must check
-     explicitly rather than trying to open it first (PR28240). */
-  if (stat(target_cache_path, &st) == 0
-      && (st.st_mode & 0777) == 0)
-    {
-      time_t cache_miss;
-
-      rc = debuginfod_config_cache(cache_miss_path, cache_miss_default_s, &st);
-      if (rc < 0)
-        goto out;
-
-      cache_miss = (time_t)rc;
-      if (time(NULL) - st.st_mtime <= cache_miss)
-        {
-         rc = -ENOENT;
-         goto out;
-       }
-      else
-        /* TOCTOU non-problem: if another task races, puts a working
-           download or a 000 file in its place, unlinking here just
-           means WE will try to download again as uncached. */
-        unlink(target_cache_path);
-    }
-  
-  /* If the target is already in the cache (known not-000 - PR28240), 
-     then we are done. */
-  int fd = open (target_cache_path, O_RDONLY);
+  /* Check if the target is already in the cache. */
+  int fd = open(target_cache_path, O_RDONLY);
   if (fd >= 0)
     {
-      /* Success!!!! */
-      if (path != NULL)
-        *path = strdup(target_cache_path);
-      rc = fd;
-      goto out;
+      struct stat st;
+      if (fstat(fd, &st) != 0)
+        {
+          rc = -errno;
+          close (fd);
+          goto out;
+        }
+
+      /* If the file is non-empty, then we are done. */
+      if (st.st_size > 0)
+        {
+          if (path != NULL)
+            {
+              *path = strdup(target_cache_path);
+              if (*path == NULL)
+                {
+                  rc = -errno;
+                  close (fd);
+                  goto out;
+                }
+            }
+          /* Success!!!! */
+          rc = fd;
+          goto out;
+        }
+      else
+        {
+          /* The file is empty. Attempt to download only if enough time
+             has passed since the last attempt. */
+          time_t cache_miss;
+          time_t target_mtime = st.st_mtime;
+          rc = debuginfod_config_cache(cache_miss_path,
+                                       cache_miss_default_s, &st);
+          if (rc < 0)
+            {
+              close(fd);
+              goto out;
+            }
+
+          cache_miss = (time_t)rc;
+          if (time(NULL) - target_mtime <= cache_miss)
+            {
+              close(fd);
+              rc = -ENOENT;
+              goto out;
+            }
+          else
+            /* TOCTOU non-problem: if another task races, puts a working
+               download or an empty file in its place, unlinking here just
+               means WE will try to download again as uncached. */
+            unlink(target_cache_path);
+        }
     }
+  else if (errno == EACCES)
+    /* Ensure old 000-permission files are not lingering in the cache. */
+    unlink(target_cache_path);
 
   long timeout = default_timeout;
   const char* timeout_envvar = getenv(DEBUGINFOD_TIMEOUT_ENV_VAR);
@@ -882,6 +917,7 @@ debuginfod_query_server (debuginfod_client *c,
                                          sizeof(char*));
           if (realloc_ptr == NULL)
             {
+              free (tmp_url);
               rc = -ENOMEM;
               goto out1;
             }
@@ -909,7 +945,7 @@ debuginfod_query_server (debuginfod_client *c,
       goto out1;
     }
 
-  /* thereafter, goto out1 on error.  */
+  /* thereafter, goto out2 on error.  */
 
  /*The beginning of goto block query_in_parallel.*/
  query_in_parallel:
@@ -962,8 +998,9 @@ debuginfod_query_server (debuginfod_client *c,
       data[i].handle = curl_easy_init();
       if (data[i].handle == NULL)
         {
+          if (filename) curl_free (escaped_string);
           rc = -ENETUNREACH;
-          goto out1;
+          goto out2;
         }
       data[i].client = c;
 
@@ -1028,7 +1065,11 @@ debuginfod_query_server (debuginfod_client *c,
   int committed_to = -1;
   bool verbose_reported = false;
   struct timespec start_time, cur_time;
-  c->winning_headers = NULL;
+  if (c->winning_headers != NULL)
+    {
+      free (c->winning_headers);
+      c->winning_headers = NULL;
+    }
   if ( maxtime > 0 && clock_gettime(CLOCK_MONOTONIC_RAW, &start_time) == -1)
     {
       rc = errno;
@@ -1072,6 +1113,7 @@ debuginfod_query_server (debuginfod_client *c,
                     if (vfd >= 0 && c->winning_headers != NULL)
                       dprintf(vfd, "\n%s", c->winning_headers);
                     data[committed_to].response_data = NULL;
+                    data[committed_to].response_data_size = 0;
                   }
 
               }
@@ -1098,11 +1140,45 @@ debuginfod_query_server (debuginfod_client *c,
           goto out2;
         }
 
+      long dl_size = 0;
+      if (target_handle && (c->progressfn || maxsize > 0))
+        {
+          /* Get size of file being downloaded. NB: If going through
+             deflate-compressing proxies, this number is likely to be
+             unavailable, so -1 may show. */
+          CURLcode curl_res;
+#ifdef CURLINFO_CONTENT_LENGTH_DOWNLOAD_T
+          curl_off_t cl;
+          curl_res = curl_easy_getinfo(target_handle,
+                                       CURLINFO_CONTENT_LENGTH_DOWNLOAD_T,
+                                       &cl);
+          if (curl_res == CURLE_OK && cl >= 0)
+            dl_size = (cl > LONG_MAX ? LONG_MAX : (long)cl);
+#else
+          double cl;
+          curl_res = curl_easy_getinfo(target_handle,
+                                       CURLINFO_CONTENT_LENGTH_DOWNLOAD,
+                                       &cl);
+          if (curl_res == CURLE_OK)
+            dl_size = (cl >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)cl);
+#endif
+          /* If Content-Length is -1, try to get the size from
+             X-Debuginfod-Size */
+          if (dl_size == -1 && c->winning_headers != NULL)
+            {
+              long xdl;
+              char *hdr = strcasestr(c->winning_headers, "x-debuginfod-size");
+
+              if (hdr != NULL
+                  && sscanf(hdr, "x-debuginfod-size: %ld", &xdl) == 1)
+                dl_size = xdl;
+            }
+        }
+
       if (c->progressfn) /* inform/check progress callback */
         {
           loops ++;
-          long pa = loops; /* default params for progress callback */
-          long pb = 0; /* transfer_timeout tempting, but loops != elapsed-time */
+          long pa = loops; /* default param for progress callback */
           if (target_handle) /* we've committed to a server; report its download progress */
             {
               CURLcode curl_res;
@@ -1122,50 +1198,19 @@ debuginfod_query_server (debuginfod_client *c,
                 pa = (dl >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)dl);
 #endif
 
-              /* NB: If going through deflate-compressing proxies, this
-                 number is likely to be unavailable, so -1 may show. */
-#ifdef CURLINFO_CONTENT_LENGTH_DOWNLOAD_T
-              curl_off_t cl;
-              curl_res = curl_easy_getinfo(target_handle,
-                                           CURLINFO_CONTENT_LENGTH_DOWNLOAD_T,
-                                           &cl);
-              if (curl_res == 0 && cl >= 0)
-                pb = (cl > LONG_MAX ? LONG_MAX : (long)cl);
-#else
-              double cl;
-              curl_res = curl_easy_getinfo(target_handle,
-                                           CURLINFO_CONTENT_LENGTH_DOWNLOAD,
-                                           &cl);
-              if (curl_res == 0)
-                pb = (cl >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)cl);
-#endif
             }
 
-          if ((*c->progressfn) (c, pa, pb))
+          if ((*c->progressfn) (c, pa, dl_size))
             break;
         }
+
       /* Check to see if we are downloading something which exceeds maxsize, if set.*/
-      if (maxsize > 0 && target_handle)
+      if (target_handle && dl_size > maxsize && maxsize > 0)
         {
-          long dl_size = 0;
-#ifdef CURLINFO_SIZE_DOWNLOAD_T
-          curl_off_t download_size_t;
-          if (curl_easy_getinfo(target_handle, CURLINFO_CONTENT_LENGTH_DOWNLOAD_T,
-                                                    &download_size_t) == CURLE_OK)
-            dl_size = download_size_t >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)download_size_t;
-#else
-          double download_size;
-          if (curl_easy_getinfo(target_handle, CURLINFO_CONTENT_LENGTH_DOWNLOAD,
-                                                    &download_size) == CURLE_OK)
-            dl_size = download_size >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)download_size;
-#endif
-            if (dl_size > maxsize)
-              {
-                if (vfd >=0)
-                  dprintf(vfd, "Content-Length too large.\n");
-                rc = -EFBIG;
-                goto out2;
-              }
+          if (vfd >=0)
+            dprintf(vfd, "Content-Length too large.\n");
+          rc = -EFBIG;
+          goto out2;
         }
     } while (still_running);
 
@@ -1290,11 +1335,11 @@ debuginfod_query_server (debuginfod_client *c,
         }
     } while (num_msg > 0);
 
-  /* Create a 000-permission file named as $HOME/.cache if the query
-     fails with ENOENT.*/
+  /* Create an empty file named as $HOME/.cache if the query fails
+     with ENOENT.*/
   if (rc == -ENOENT)
     {
-      int efd = open (target_cache_path, O_CREAT|O_EXCL, 0000);
+      int efd = open (target_cache_path, O_CREAT|O_EXCL, DEFFILEMODE);
       if (efd >= 0)
         close(efd);
     }
@@ -1384,9 +1429,12 @@ debuginfod_query_server (debuginfod_client *c,
   /* remove all handles from multi */
   for (int i = 0; i < num_urls; i++)
     {
-      curl_multi_remove_handle(curlm, data[i].handle); /* ok to repeat */
-      curl_easy_cleanup (data[i].handle);
-      free (data[i].response_data);
+      if (data[i].handle != NULL)
+	{
+	  curl_multi_remove_handle(curlm, data[i].handle); /* ok to repeat */
+	  curl_easy_cleanup (data[i].handle);
+	  free (data[i].response_data);
+	}
     }
 
   unlink (target_cache_tmppath);
@@ -1440,6 +1488,9 @@ debuginfod_query_server (debuginfod_client *c,
 debuginfod_client  *
 debuginfod_begin (void)
 {
+  /* Initialize libcurl lazily, but only once.  */
+  pthread_once (&init_control, libcurl_init);
+
   debuginfod_client *client;
   size_t size = sizeof (struct debuginfod_client);
   client = calloc (1, size);
@@ -1537,13 +1588,13 @@ int debuginfod_find_source(debuginfod_client *client,
 int debuginfod_add_http_header (debuginfod_client *client, const char* header)
 {
   /* Sanity check header value is of the form Header: Value.
-     It should contain exactly one colon that isn't the first or
+     It should contain at least one colon that isn't the first or
      last character.  */
-  char *colon = strchr (header, ':');
-  if (colon == NULL
-      || colon == header
-      || *(colon + 1) == '\0'
-      || strchr (colon + 1, ':') != NULL)
+  char *colon = strchr (header, ':'); /* first colon */
+  if (colon == NULL /* present */
+      || colon == header /* not at beginning - i.e., have a header name */
+      || *(colon + 1) == '\0') /* not at end - i.e., have a value */
+    /* NB: but it's okay for a value to contain other colons! */
     return -EINVAL;
 
   struct curl_slist *temp = curl_slist_append (client->headers, header);
@@ -1571,20 +1622,6 @@ void
 debuginfod_set_verbose_fd(debuginfod_client *client, int fd)
 {
   client->verbose_fd = fd;
-}
-
-
-/* NB: these are thread-unsafe. */
-__attribute__((constructor)) attribute_hidden void libdebuginfod_ctor(void)
-{
-  curl_global_init(CURL_GLOBAL_DEFAULT);
-}
-
-/* NB: this is very thread-unsafe: it breaks other threads that are still in libcurl */
-__attribute__((destructor)) attribute_hidden void libdebuginfod_dtor(void)
-{
-  /* ... so don't do this: */
-  /* curl_global_cleanup(); */
 }
 
 #endif /* DUMMY_LIBDEBUGINFOD */

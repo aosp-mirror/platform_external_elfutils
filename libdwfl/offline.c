@@ -1,5 +1,6 @@
 /* Recover relocatibility for addresses computed from debug information.
    Copyright (C) 2005-2009, 2012 Red Hat, Inc.
+   Copyright (C) 2022 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -233,8 +234,11 @@ process_archive_member (Dwfl *dwfl, const char *name, const char *file_name,
   free (member_name);
   free (module_name);
 
-  if (*mod == NULL)		/* process_file called elf_end.  */
-    return ELF_C_NULL;
+  if (*mod == NULL)
+    {
+      elf_end (member);
+      return ELF_C_NULL;
+    }
 
   /* Advance the archive-reading offset for the next iteration.  */
   return elf_next (member);

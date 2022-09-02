@@ -93,8 +93,8 @@ void* debuginfod_get_user_data (debuginfod_client *client);
 /* Get the current or last active URL, if known.  */
 const char* debuginfod_get_url (debuginfod_client *client);
 
-/* Returns all headers sent to this client which were prefixed
- * with X-DEBUGINFOD */
+/* Returns set of x-debuginfod* header lines received from current or
+   last active transfer, \n separated, if known. */
 const char* debuginfod_get_headers(debuginfod_client *client);
 
 /* Add an outgoing HTTP request  "Header: Value".  Copies string.  */

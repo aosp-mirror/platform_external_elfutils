@@ -1,4 +1,9 @@
+2022-09-02  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod_find_debuginfo.3: Tweaked debuginfod_get_headers docs.
+
 2022-07-15  Noah Sanci  <nsanci@redhat.com>
+
 	* debuginfod_find_debuginfo.3: Explained debuginfod_get_headers
 	usage.
 	* debuginfod_get_headers.3: Created.

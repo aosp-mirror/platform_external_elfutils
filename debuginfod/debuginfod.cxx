@@ -2093,22 +2093,26 @@ and will not query the upstream servers");
             {
               add_mhd_response_header (r, "Content-Type",
 				       "application/octet-stream");
+              // Copy the incoming headers
               const char * hdrs = debuginfod_get_headers(client);
               string header_dup;
               if (hdrs)
                 header_dup = string(hdrs);
-              size_t pos = 0;
-              // Clean winning headers to add all X-DEBUGINFOD lines to the package we'll send
-              while( (pos = header_dup.find("X-DEBUGINFOD")) != string::npos)
+              // Parse the "header: value\n" lines into (h,v) tuples and pass on
+              while(1)
                 {
-                  // Focus on where X-DEBUGINFOD- begins
-                  header_dup = header_dup.substr(pos);
-                  size_t newline =  header_dup.find('\n');
-                  if (newline == string::npos)
-                    break;
-                  add_mhd_response_header(r, header_dup.substr(0,header_dup.find(':')).c_str(),
-                                             header_dup.substr(header_dup.find(':')).c_str());
-                  header_dup = header_dup.substr(newline);
+                  size_t newline = header_dup.find('\n');
+                  if (newline == string::npos) break;
+                  size_t colon = header_dup.find(':');
+                  if (colon == string::npos) break;
+                  string header = header_dup.substr(0,colon);
+                  string value = header_dup.substr(colon+1,newline-colon-1);
+                  // strip leading spaces from value
+                  size_t nonspace = value.find_first_not_of(" ");
+                  if (nonspace != string::npos)
+                    value = value.substr(nonspace);
+                  add_mhd_response_header(r, header.c_str(), value.c_str());
+                  header_dup = header_dup.substr(newline+1);
                 }
 
               add_mhd_last_modified (r, s.st_mtime);

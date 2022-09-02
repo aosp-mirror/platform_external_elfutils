@@ -1,3 +1,10 @@
+2022-09-02  Frank Ch. Eigler  <fche@redhat.com>
+
+	* run-debuginfod-response-headers.sh: Use case-insensitive
+	header name matches.  Use socat & sleep for greater
+	portability.
+	* run-debuginfod-sizetime.sh: Update for debuginfod-find -v -v.
+
 2022-07-15  Noah Sanci  <nsanci@redhat.com>
 
 	* run-debuginfod-response-headers.sh: Added test

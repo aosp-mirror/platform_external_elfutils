@@ -1,11 +1,21 @@
+2022-09-06  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod-client.c (header_callback): Don't copy \r in x-d headers.
+	Print all headers in verbose_fd mode.
+	* debuginfod-find.c (parse_opt): Set verbose_fd only at verbosity >= 2.
+	* debuginfod.cxx (handle_buildid): Clean up header forwarding
+	string processing.
+	* debuginfod.h.in: (debuginfod_get_headers): Tweak wording.
+	* libdebuginfod.map: Use ELFUTILS_0.188 for new function.
+
 2022-07-15  Noah Sanci  <nsanci@redhat.com>
 
-	* debuginfod-client.c (header_callback): Handle headers without
+	* debuginfod-client.c (header_callback): Ignore headers without
 	X-DEBUGINFOD prefix.
 	(debuginfod_query_server): Removed verbose printing headers when
 	undesired.
 	(debuginfod_get_headers): Created.
-	* debuginfod-find.c (main): Verboes printing headers.
+	* debuginfod-find.c (main): Verbose printing headers.
 	* debuginfod.cxx (handle_buildid): Add headers prefixed with
 	X-DEBUGINFOD from federated servers to this server's response
 	headers.

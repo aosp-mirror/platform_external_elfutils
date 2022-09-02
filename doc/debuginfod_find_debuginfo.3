@@ -199,17 +199,18 @@ By default, the library adds a descriptive \fIUser-Agent:\fP
 header to outgoing requests.  If the client application adds
 a header with the same name, this default is suppressed.
 
+During or after a lookup, a client application may call
 .BR \%debuginfod_get_headers ()
-may be called with a debuginfod client. This function will return the
-http response headers prefixed with
+to gather the subset of HTTP response headers received from the
+current or most recent debuginfod server.  Only those headers prefixed
+with
 .BR X-DEBUGINFOD
-received from the first handle to get a response from a debuginfod server.
-Note that all other http headers aren't stored in the libcurl header
-callback function since they aren't of as much interest. The caller should
-copy the returned string if it is needed beyond the release of the client object.
-The returned string may be NULL if no headers are prefixed with
-.BR X-DEBUGINFOD
-\.
+(case-insensitive) are kept.  They are returned as a single string,
+with each "header: value" terminated with a \\n (not \\r\\n as in
+HTTP).  It may be NULL.  The resulting string is owned by the library,
+and must not be modified or freed.  The caller should copy the
+returned string if it is needed beyond the release of the client
+object.
 
 .SH "MACROS"
 

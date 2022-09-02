@@ -18,6 +18,6 @@ ELFUTILS_0.179 {
 ELFUTILS_0.183 {
   debuginfod_set_verbose_fd;
 } ELFUTILS_0.179;
-ELFUTILS_0.189 {
+ELFUTILS_0.188 {
   debuginfod_get_headers;
 } ELFUTILS_0.183;

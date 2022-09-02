@@ -499,33 +499,37 @@ default_progressfn (debuginfod_client *c, long a, long b)
 static size_t
 header_callback (char * buffer, size_t size, size_t numitems, void * userdata)
 {
+  struct handle_data *data = (struct handle_data *) userdata;
   if (size != 1)
     return 0;
-  // X-DEBUGINFOD is 11 characters long.
+  if (data->client && data->client->verbose_fd >= 0)
+    dprintf (data->client->verbose_fd, "header %.*s", (int)numitems, buffer);
   // Some basic checks to ensure the headers received are of the expected format
-  if ( strncmp(buffer, "X-DEBUGINFOD", 11) || buffer[numitems-1] != '\n'
-       || (buffer == strstr(buffer, ":")) ){
+  if (strncasecmp(buffer, "X-DEBUGINFOD", 11)
+      || buffer[numitems-2] != '\r'
+      || buffer[numitems-1] != '\n'
+      || (buffer == strstr(buffer, ":")) ){
     return numitems;
   }
   /* Temporary buffer for realloc */
   char *temp = NULL;
-  struct handle_data *data = (struct handle_data *) userdata;
   if (data->response_data == NULL)
     {
-      temp = malloc(numitems+1);
+      temp = malloc(numitems);
       if (temp == NULL)
         return 0;
     }
   else
     {
-      temp = realloc(data->response_data, data->response_data_size + numitems + 1);
+      temp = realloc(data->response_data, data->response_data_size + numitems);
       if (temp == NULL)
         return 0;
     }
 
-  memcpy(temp + data->response_data_size, buffer, numitems);
+  memcpy(temp + data->response_data_size, buffer, numitems-1);
   data->response_data = temp;
-  data->response_data_size += numitems;
+  data->response_data_size += numitems-1;
+  data->response_data[data->response_data_size-1] = '\n';
   data->response_data[data->response_data_size] = '\0';
   return numitems;
 }
@@ -1072,11 +1076,9 @@ debuginfod_query_server (debuginfod_client *c,
   int committed_to = -1;
   bool verbose_reported = false;
   struct timespec start_time, cur_time;
-  if (c->winning_headers != NULL)
-    {
-      free (c->winning_headers);
-      c->winning_headers = NULL;
-    }
+
+  free (c->winning_headers);
+  c->winning_headers = NULL;
   if ( maxtime > 0 && clock_gettime(CLOCK_MONOTONIC_RAW, &start_time) == -1)
     {
       rc = errno;

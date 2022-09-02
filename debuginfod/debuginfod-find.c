@@ -99,7 +99,8 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
     {
     case 'v': verbose++;
       debuginfod_set_progressfn (client, & progressfn);
-      debuginfod_set_verbose_fd (client, STDERR_FILENO);
+      if (verbose > 1)
+        debuginfod_set_verbose_fd (client, STDERR_FILENO);
       break;
     default: return ARGP_ERR_UNKNOWN;
     }

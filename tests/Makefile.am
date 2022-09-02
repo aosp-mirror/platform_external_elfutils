@@ -87,7 +87,13 @@ endif
 
 # test_nlist checks its own symbol table, and expects various symbols
 # to be in the order as specified in the source file. Explicitly set
-# minimal CFLAGS
+# minimal CFLAGS. But add address sanitizer if in use.
+if USE_ADDRESS_SANITIZER
+EXTRA_NLIST_CFLAGS=-fsanitize=address
+else
+EXTRA_NLIST_CFLAGS=
+endif
+
 test-nlist$(EXEEXT): test-nlist.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	  $(AM_CPPFLAGS) $(CPPFLAGS) \
@@ -221,7 +227,7 @@ TESTS += run-debuginfod-dlopen.sh \
 	 run-debuginfod-file.sh \
 	 run-debuginfod-sizetime.sh \
 	 run-debuginfod-malformed.sh \
-	 run-debuginfod-000-permission.sh \
+	 run-debuginfod-negative-cache.sh \
 	 run-debuginfod-tmp-home.sh \
 	 run-debuginfod-writable.sh \
 	 run-debuginfod-no-urls.sh \
@@ -236,7 +242,8 @@ TESTS += run-debuginfod-dlopen.sh \
          run-debuginfod-percent-escape.sh \
          run-debuginfod-x-forwarded-for.sh \
          run-debuginfod-response-headers.sh \
-         run-debuginfod-extraction-passive.sh
+         run-debuginfod-extraction-passive.sh \
+	 run-debuginfod-webapi-concurrency.sh
 endif
 endif
 
@@ -522,7 +529,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-debuginfod-sizetime.sh \
 	     run-debuginfod-dlopen.sh \
 	     run-debuginfod-malformed.sh \
-	     run-debuginfod-000-permission.sh \
+	     run-debuginfod-negative-cache.sh \
 	     run-debuginfod-tmp-home.sh \
 	     run-debuginfod-writable.sh \
 	     run-debuginfod-no-urls.sh \
@@ -533,6 +540,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
              run-debuginfod-percent-escape.sh \
 	     run-debuginfod-response-headers.sh \
              run-debuginfod-extraction-passive.sh \
+             run-debuginfod-webapi-concurrency.sh \
 	     debuginfod-rpms/fedora30/hello2-1.0-2.src.rpm \
 	     debuginfod-rpms/fedora30/hello2-1.0-2.x86_64.rpm \
 	     debuginfod-rpms/fedora30/hello2-debuginfo-1.0-2.x86_64.rpm \
@@ -635,7 +643,7 @@ scnnames_LDADD = $(libelf)
 sectiondump_LDADD = $(libelf)
 showptable_LDADD = $(libelf)
 hash_LDADD = $(libelf)
-test_nlist_CFLAGS =-g -O0
+test_nlist_CFLAGS =-g -O0 $(EXTRA_NLIST_CFLAGS)
 test_nlist_LDADD = $(libelf)
 msg_tst_LDADD = $(libelf)
 newscn_LDADD = $(libelf)
@@ -717,7 +725,7 @@ strptr_LDADD = $(libelf)
 newdata_LDADD = $(libelf)
 elfstrtab_LDADD = $(libelf)
 dwfl_proc_attach_LDADD = $(libdw)
-dwfl_proc_attach_LDFLAGS = -pthread $(AM_LDFLAGS)
+dwfl_proc_attach_LDFLAGS = -pthread -rdynamic $(AM_LDFLAGS)
 elfshphehdr_LDADD =$(libelf)
 elfstrmerge_LDADD = $(libdw) $(libelf)
 dwelfgnucompressed_LDADD = $(libelf) $(libdw)

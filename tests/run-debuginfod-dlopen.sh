@@ -42,9 +42,6 @@ errfiles vlog$PORT1
 wait_ready $PORT1 'ready' 1
 export DEBUGINFOD_URLS=http://127.0.0.1:$PORT1/   # or without trailing /
 
-# Be patient when run on a busy machine things might take a bit.
-export DEBUGINFOD_TIMEOUT=10
-
 # Check thread comm names
 ps -q $PID1 -e -L -o '%p %c %a'
 ps -q $PID1 -e -L -o '%p %c %a' | grep groom

@@ -575,8 +575,6 @@ parse_opt (int key, char *arg,
           if (connection_pool < 2)
             argp_failure(state, 1, EINVAL, "-C NUM minimum 2");
         }
-      else // arg not given
-        connection_pool = std::thread::hardware_concurrency() * 2 ?: 2;
       break;
     case 'I':
       // NB: no problem with unconditional free here - an earlier failed regcomp would exit program
@@ -3937,6 +3935,11 @@ main (int argc, char *argv[])
         }
     }
 
+  /* If '-C' wasn't given or was given with no arg, pick a reasonable default
+     for the number of worker threads.  */
+  if (connection_pool == 0)
+    connection_pool = std::thread::hardware_concurrency() * 2 ?: 2;
+
   /* Note that MHD_USE_EPOLL and MHD_USE_THREAD_PER_CONNECTION don't
      work together.  */
   unsigned int use_epoll = 0;
@@ -3944,12 +3947,11 @@ main (int argc, char *argv[])
   use_epoll = MHD_USE_EPOLL;
 #endif
 
-  unsigned int mhd_flags = ((connection_pool || use_epoll
-			     ? 0 : MHD_USE_THREAD_PER_CONNECTION)
+  unsigned int mhd_flags = (
 #if MHD_VERSION >= 0x00095300
-			    | MHD_USE_INTERNAL_POLLING_THREAD
+			    MHD_USE_INTERNAL_POLLING_THREAD
 #else
-			    | MHD_USE_SELECT_INTERNALLY
+			    MHD_USE_SELECT_INTERNALLY
 #endif
 			    | MHD_USE_DUAL_STACK
 			    | use_epoll
@@ -3964,12 +3966,8 @@ main (int argc, char *argv[])
 				      handler_cb, NULL, /* handler callback */
 				      MHD_OPTION_EXTERNAL_LOGGER,
 				      error_cb, NULL,
-				      (connection_pool
-				       ? MHD_OPTION_THREAD_POOL_SIZE
-				       : MHD_OPTION_END),
-				      (connection_pool
-				       ? (int)connection_pool
-				       : MHD_OPTION_END),
+				      MHD_OPTION_THREAD_POOL_SIZE,
+				      (int)connection_pool,
 				      MHD_OPTION_END);
 
   MHD_Daemon *d4 = NULL;

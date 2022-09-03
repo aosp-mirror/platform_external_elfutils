@@ -1,3 +1,7 @@
+2022-09-02  Aaron Merey  <amerey@redhat.com>
+
+	* debuginfod.8 (-C): Update description.
+
 2022-06-03  Michael Trapp <michael.trapp@sap.com>
 
 	* debuginfod.8 (--disable-source-scan): Document.

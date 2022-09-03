@@ -212,15 +212,13 @@ following table summarizes the interpretaton of this option and its
 optional NUM parameter.
 .TS
 l l.
-no option	clone new thread for every request, no fixed pool
-\-C	use a fixed thread pool sized automatically
+no option, \-C	use a fixed thread pool sized automatically
 \-C=NUM	use a fixed thread pool sized NUM, minimum 2
 .TE
 
-The first mode is useful for friendly bursty traffic.  The second mode
-is a simple and safe configuration based on the number of processors.
-The third mode is suitable for tuned load-limiting configurations
-facing unruly traffic.
+The first mode is a simple and safe configuration based on the number
+of processors. The second mode is suitable for tuned load-limiting
+configurations facing unruly traffic.
 
 .TP
 .B "\-L"

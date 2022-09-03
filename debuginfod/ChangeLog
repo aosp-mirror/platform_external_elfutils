@@ -1,3 +1,10 @@
+2022-09-02  Aaron Merey  <amerey@redhat.com>
+
+	* debuginfod.cxx (parse_opt): If '-C' is given with no arg, do not
+	update connection_pool since it will be done at a later point.
+	(main): Use auto-sized connection_pool if '-C' isn't given with an
+	arg. Do not use MHD_USE_THREAD_PER_CONNECTION.
+
 2022-08-17  Martin Liska  <mliska@suse.cz>
 
 	* debuginfod.cxx (handle_buildid): Update HTTP statistics only if

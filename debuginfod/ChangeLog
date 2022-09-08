@@ -1,3 +1,8 @@
+2022-09-08  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod-client.c (debuginfod_query_server): Clear
+	->winning_headers along with ->url at the start of any new query.
+
 2022-09-08  Martin Liska  <mliska@suse.cz>
 
 	* debuginfod-client.c (debuginfod_get_headers): Add to DUMMY_LIBDEBUGINFOD.

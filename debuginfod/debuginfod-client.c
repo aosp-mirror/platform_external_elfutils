@@ -588,9 +588,11 @@ debuginfod_query_server (debuginfod_client *c,
       goto out;
     }
 
-  /* Clear the obsolete URL from a previous _find operation. */
+  /* Clear the obsolete data from a previous _find operation. */
   free (c->url);
   c->url = NULL;
+  free (c->winning_headers);
+  c->winning_headers = NULL;
 
   /* PR 27982: Add max size if DEBUGINFOD_MAXSIZE is set. */
   long maxsize = 0;

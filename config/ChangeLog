@@ -1,3 +1,7 @@
+2022-10-20  Mark Wielaard  <mark@klomp.org>
+
+	* elfutils.spec.in: Escape % in comments.
+
 2022-10-27  Mark Wielaard  <mark@klomp.org>
 
 	* eu.am: Use grep -F instead of fgrep.

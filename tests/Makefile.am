@@ -566,7 +566,8 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     debuginfod-rpms/fedora31/hello3-debugsource-1.0-2.x86_64.rpm \
 	     debuginfod-rpms/fedora31/hello3-two-1.0-2.x86_64.rpm \
 	     debuginfod-rpms/fedora31/hello3-two-debuginfo-1.0-2.x86_64.rpm \
-	     debuginfod-rpms/hello2.spec. \
+	     debuginfod-rpms/hello2.specfile \
+	     debuginfod-rpms/hello3.specfile \
 	     debuginfod-rpms/rhel6/hello2-1.0-2.i686.rpm \
 	     debuginfod-rpms/rhel6/hello2-1.0-2.src.rpm \
 	     debuginfod-rpms/rhel6/hello2-debuginfo-1.0-2.i686.rpm \

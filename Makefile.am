@@ -44,7 +44,7 @@ distcheck-hook:
 	chmod -R u+w $(distdir)
 
 rpm: dist
-	rpmbuild -ts --sign elfutils-@PACKAGE_VERSION@.tar.bz2
+	rpmbuild -ts elfutils-@PACKAGE_VERSION@.tar.bz2
 
 if GCOV
 

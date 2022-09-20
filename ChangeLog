@@ -1,3 +1,7 @@
+2022-10-20  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (rpm): Remove --sign.
+
 2022-10-22  Mark Wielaard  <mark@klomp.org>
 
 	* configure.ac: Use AC_PROG_CC with autoconf 2.70, or AC_PROG_CC_C99

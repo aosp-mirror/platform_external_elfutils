@@ -1,3 +1,12 @@
+2022-09-20  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* Makefile.am (EXTRA_DIST): Remove debuginfod-rpms/hello2.spec.
+	Add debuginfod-rpms/hello{2,3}.specfile.
+	* tests/debuginfod-rpms/hello2.spec.: Renamed to...
+	* tests/debuginfod-rpms/hello2.specfile: ...this.
+	* tests/debuginfod-rpms/hello3.spec.: Renamed to...
+	* tests/debuginfod-rpms/hello3.specfile: ...this.
+
 2022-10-28  Arsen Arsenović  <arsen@aarsen.me>
 
 	* run-readelf-s.sh: Add tests for the --syms alias.

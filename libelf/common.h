@@ -151,7 +151,7 @@ libelf_release_all (Elf *elf)
 		 : bswap_64 (Var))))
 
 
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if BYTE_ORDER == LITTLE_ENDIAN
 # define MY_ELFDATA	ELFDATA2LSB
 #else
 # define MY_ELFDATA	ELFDATA2MSB

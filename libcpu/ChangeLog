@@ -1,3 +1,8 @@
+2022-09-20  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* memory-access.h: Use BYTE_ORDER, LITTLE_ENDIAN and BIG_ENDIAN.
+	* riscv_disasm.c: Likewise.
+
 2021-12-04  Mark Wielaard  <mark@klomp.org>
 
 	* Makefile.am (GENDIS_ENV): New variable, depends on

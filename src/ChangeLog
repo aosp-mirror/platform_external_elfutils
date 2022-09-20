@@ -1,3 +1,7 @@
+2022-09-20  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* arlib.h: Use BYTE_ORDER, LITTLE_ENDIAN and BIG_ENDIAN.
+
 2022-08-28  Mark Wielaard  <mark@klomp.org>
 
 	* ar.c (do_oper_extract): Predecrement instance before compare

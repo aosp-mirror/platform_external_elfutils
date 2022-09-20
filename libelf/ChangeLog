@@ -1,3 +1,9 @@
+2022-09-20  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* elf32_checksum.c: Use BYTE_ORDER, LITTLE_ENDIAN and BIG_ENDIAN.
+	* elf32_xlatetof.c: Likewise.
+	* elf_getarsym.c: Likewise.
+
 2022-10-16  Yonggang Luo  <luoyonggang@gmail.com>
 
 	* common.h: Remove ar.h, byteswap.h and endian.h.

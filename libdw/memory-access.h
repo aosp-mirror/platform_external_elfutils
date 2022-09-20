@@ -355,10 +355,10 @@ read_8sbyte_unaligned_1 (bool other_byte_order, const void *p)
 static inline int
 file_byte_order (bool other_byte_order)
 {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-  return other_byte_order ? __BIG_ENDIAN : __LITTLE_ENDIAN;
+#if BYTE_ORDER == LITTLE_ENDIAN
+  return other_byte_order ? BIG_ENDIAN : LITTLE_ENDIAN;
 #else
-  return other_byte_order ? __LITTLE_ENDIAN : __BIG_ENDIAN;
+  return other_byte_order ? LITTLE_ENDIAN : BIG_ENDIAN;
 #endif
 }
 
@@ -372,7 +372,7 @@ read_3ubyte_unaligned (Dwarf *dbg, const unsigned char *p)
   } d;
   bool other_byte_order = dbg->other_byte_order;
 
-  if (file_byte_order (other_byte_order) == __BIG_ENDIAN)
+  if (file_byte_order (other_byte_order) == BIG_ENDIAN)
     {
       d.c[0] = 0x00;
       d.c[1] = p[0];

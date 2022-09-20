@@ -1,3 +1,7 @@
+2022-09-20  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* memory-access.h: Use BYTE_ORDER, LITTLE_ENDIAN and BIG_ENDIAN.
+
 2022-09-13  Aleksei Vetrov  <vvvvvv@google.com>
 
 	* libdw.map (ELFUTILS_0.188): Add dwfl_report_offline_memory.

@@ -159,6 +159,10 @@ extern Dwfl_Module *dwfl_report_elf (Dwfl *dwfl, const char *name,
 extern Dwfl_Module *dwfl_report_offline (Dwfl *dwfl, const char *name,
 					 const char *file_name, int fd);
 
+/* Similar, but report ELF from memory region.  */
+extern Dwfl_Module *dwfl_report_offline_memory (Dwfl *dwfl, const char *name,
+						const char *file_name,
+						char *data, size_t size);
 
 /* Finish reporting the current set of modules to the library.
    If REMOVED is not null, it's called for each module that

@@ -6,6 +6,7 @@ debuginfod: Add --disable-source-scan option.
 
 libdwfl: Add new function dwfl_get_debuginfod_client.
          Add new function dwfl_frame_reg.
+         Add new function dwfl_report_offline_memory.
 
 Version 0.187
 

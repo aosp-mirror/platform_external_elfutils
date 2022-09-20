@@ -631,6 +631,11 @@ extern Dwfl_Error __libdw_open_file (int *fdp, Elf **elfp,
 				     bool close_on_fail, bool archive_ok)
   internal_function;
 
+/* Same as __libdw_open_file, but opens Elf handle from memory region.  */
+extern Dwfl_Error __libdw_open_elf_memory (char *data, size_t size, Elf **elfp,
+					   bool archive_ok)
+  internal_function;
+
 /* Same as __libdw_open_file, but never closes the given file
    descriptor and ELF_K_AR is always an acceptable type.  */
 extern Dwfl_Error __libdw_open_elf (int fd, Elf **elfp) internal_function;
@@ -760,6 +765,7 @@ INTDECL (dwfl_report_begin_add)
 INTDECL (dwfl_report_module)
 INTDECL (dwfl_report_segment)
 INTDECL (dwfl_report_offline)
+INTDECL (dwfl_report_offline_memory)
 INTDECL (dwfl_report_end)
 INTDECL (dwfl_build_id_find_elf)
 INTDECL (dwfl_build_id_find_debuginfo)

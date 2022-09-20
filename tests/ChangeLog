@@ -1,3 +1,12 @@
+2022-09-13  Aleksei Vetrov  <vvvvvv@google.com>
+
+	* Makefile.am (check_PROGRAMS): Add dwfl-report-offline-memory.
+	(TESTS): Add run-dwfl-report-offline-memory.sh.
+	(EXTRA_DIST): Likewise.
+	(dwfl_report_offline_memory_LDADD): New variable.
+	* dwfl-report-offline-memory.c: New file.
+	* run-dwfl-report-offline-memory.sh: Likewise.
+
 2022-09-13  Khem Raj <raj.khem@gmail.com>
 
 	* Makefile.am (*_LDADD): Add libeu if needed for error.

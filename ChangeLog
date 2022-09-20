@@ -1,3 +1,7 @@
+2022-09-13  Aleksei Vetrov  <vvvvvv@google.com>
+
+	* NEWS (libdwfl): Add dwfl_report_offline_memory.
+
 2022-09-27  Taketo Kabe  <kabe@sra-tohoku.co.jp>
 
 	* debuginfod/debuginfod-client.c: Correctly get timestamp when

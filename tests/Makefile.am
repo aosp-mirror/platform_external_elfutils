@@ -47,6 +47,7 @@ check_PROGRAMS = arextract arsymtest newfile saridx scnnames sectiondump \
 		  alldts typeiter typeiter2 low_high_pc \
 		  test-elf_cntl_gelf_getshdr dwflsyms dwfllines \
 		  dwfl-report-elf-align dwfl-report-segment-contiguous \
+		  dwfl-report-offline-memory \
 		  varlocs backtrace backtrace-child \
 		  backtrace-data backtrace-dwarf debuglink debugaltlink \
 		  buildid deleted deleted-lib.so aggregate_size peel_type \
@@ -149,6 +150,7 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-readelf-mixed-corenote.sh run-dwfllines.sh \
 	run-readelf-variant.sh run-readelf-fat-lto.sh \
 	run-dwfl-report-elf-align.sh run-addr2line-test.sh \
+	run-dwfl-report-offline-memory.sh \
 	run-addr2line-i-test.sh run-addr2line-i-lex-test.sh \
 	run-addr2line-i-demangle-test.sh run-addr2line-alt-debugpath.sh \
 	run-varlocs.sh run-exprlocs.sh run-varlocs-vars.sh run-funcretval.sh \
@@ -413,6 +415,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile69.core.bz2 testfile69.so.bz2 \
 	     testfile70.core.bz2 testfile70.exec.bz2 testfile71.bz2 \
 	     run-dwfllines.sh run-dwfl-report-elf-align.sh \
+	     run-dwfl-report-offline-memory.sh \
 	     testfile-dwfl-report-elf-align-shlib.so.bz2 \
 	     testfilenolines.bz2 test-core-lib.so.bz2 test-core.core.bz2 \
 	     test-core.exec.bz2 run-addr2line-test.sh \
@@ -711,6 +714,7 @@ test_elf_cntl_gelf_getshdr_LDADD = $(libelf)
 dwflsyms_LDADD = $(libdw) $(libelf) $(argp_LDADD)
 dwfllines_LDADD = $(libeu) $(libdw) $(libelf) $(argp_LDADD)
 dwfl_report_elf_align_LDADD = $(libeu) $(libdw)
+dwfl_report_offline_memory_LDADD = $(libeu) $(libdw)
 dwfl_report_segment_contiguous_LDADD = $(libdw) $(libebl) $(libelf)
 varlocs_LDADD = $(libeu) $(libdw) $(libelf) $(argp_LDADD)
 backtrace_LDADD = $(libeu) $(libdw) $(libelf) $(argp_LDADD)

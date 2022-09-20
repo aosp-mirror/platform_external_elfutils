@@ -1,5 +1,6 @@
 /* Decompression support for libdwfl: zlib (gzip), bzlib (bzip2) or lzma (xz).
    Copyright (C) 2009, 2016 Red Hat, Inc.
+   Copyright (C) 2022 Google LLC
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -53,6 +54,9 @@ static Dwfl_Error
 decompress (int fd __attribute__ ((unused)), Elf **elf)
 {
   Dwfl_Error error = DWFL_E_BADELF;
+  /* ELF cannot be decompressed, if there is no file descriptor.  */
+  if (fd == -1)
+    return error;
   void *buffer = NULL;
   size_t size = 0;
 
@@ -124,11 +128,12 @@ what_kind (int fd, Elf **elfp, Elf_Kind *kind, bool *may_close_fd)
 
 static Dwfl_Error
 libdw_open_elf (int *fdp, Elf **elfp, bool close_on_fail, bool archive_ok,
-		bool never_close_fd, bool bad_elf_ok)
+		bool never_close_fd, bool bad_elf_ok, bool use_elfp)
 {
   bool may_close_fd = false;
 
-  Elf *elf = elf_begin (*fdp, ELF_C_READ_MMAP_PRIVATE, NULL);
+  Elf *elf =
+      use_elfp ? *elfp : elf_begin (*fdp, ELF_C_READ_MMAP_PRIVATE, NULL);
 
   Elf_Kind kind;
   Dwfl_Error error = what_kind (*fdp, &elf, &kind, &may_close_fd);
@@ -194,11 +199,28 @@ libdw_open_elf (int *fdp, Elf **elfp, bool close_on_fail, bool archive_ok,
 Dwfl_Error internal_function
 __libdw_open_file (int *fdp, Elf **elfp, bool close_on_fail, bool archive_ok)
 {
-  return libdw_open_elf (fdp, elfp, close_on_fail, archive_ok, false, false);
+  return libdw_open_elf (fdp, elfp, close_on_fail, archive_ok, false, false,
+			 false);
+}
+
+Dwfl_Error internal_function
+__libdw_open_elf_memory (char *data, size_t size, Elf **elfp, bool archive_ok)
+{
+  /* It is ok to use `fd == -1` here, because libelf uses it as a value for
+     "no file opened" and code supports working with this value, and also
+     `never_close_fd == false` is passed to prevent closing non-existant file.
+     The only caveat is in `decompress` method, which doesn't support
+     decompressing from memory, so reading compressed zImage using this method
+     won't work.  */
+  int fd = -1;
+  *elfp = elf_memory (data, size);
+  /* Allow using this ELF as reference for subsequent elf_begin calls.  */
+  (*elfp)->cmd = ELF_C_READ_MMAP_PRIVATE;
+  return libdw_open_elf (&fd, elfp, false, archive_ok, true, false, true);
 }
 
 Dwfl_Error internal_function
 __libdw_open_elf (int fd, Elf **elfp)
 {
-  return libdw_open_elf (&fd, elfp, false, true, true, true);
+  return libdw_open_elf (&fd, elfp, false, true, true, true, false);
 }

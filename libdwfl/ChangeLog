@@ -1,3 +1,16 @@
+2022-09-13  Aleksei Vetrov  <vvvvvv@google.com>
+
+	* libdwfl.h (dwfl_report_offline_memory): New function.
+	* libdwflP.h (__libdw_open_elf_memory): New internal function.
+	(dwfl_report_offline_memory): INTDECL.
+	* offline.c (dwfl_report_offline_memory): New function.
+	* open.c (decompress): Return DWFL_E_BADELF when fd is -1.
+	(libdw_open_elf): New argument use_elfp. Adding *elfp to elf if
+	true.
+	(__libdw_open_file): Pass false to libdw_open_elf.
+	(__libdw_open_elf_memory): New function.
+	(__libdw_open_elf): Pass false for libdw_open_elf.
+
 2022-07-28  Di Chen  <dichen@redhat.com>
 
 	* libdwfl.h (dwfl_frame_reg): New function.

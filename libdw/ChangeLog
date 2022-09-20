@@ -1,3 +1,7 @@
+2022-09-13  Aleksei Vetrov  <vvvvvv@google.com>
+
+	* libdw.map (ELFUTILS_0.188): Add dwfl_report_offline_memory.
+
 2022-08-09  Ulrich Drepper  <drepper@redhat.com>
 
 	* dwarf_next_cfi.c (dwarf_next_cfi): Don't skip processing the

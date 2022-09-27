@@ -1392,7 +1392,11 @@ debuginfod_query_server (debuginfod_client *c,
 
   /* we've got one!!!! */
   time_t mtime;
+#if defined(_TIME_BITS) && _TIME_BITS == 64
+  CURLcode curl_res = curl_easy_getinfo(verified_handle, CURLINFO_FILETIME_T, (void*) &mtime);
+#else
   CURLcode curl_res = curl_easy_getinfo(verified_handle, CURLINFO_FILETIME, (void*) &mtime);
+#endif
   if (curl_res != CURLE_OK)
     mtime = time(NULL); /* fall back to current time */
 

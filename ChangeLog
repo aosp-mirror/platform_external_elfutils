@@ -1,3 +1,8 @@
+2022-09-27  Taketo Kabe  <kabe@sra-tohoku.co.jp>
+
+	* debuginfod/debuginfod-client.c: Correctly get timestamp when
+	compiling with -D_TIME_BITS=64 on 32bit environment.
+
 2022-04-28  Di Chen  <dichen@redhat.com>
 
 	* NEWS: Add readefl -D, --use-dynamic.

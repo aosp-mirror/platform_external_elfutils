@@ -1085,7 +1085,7 @@ debuginfod_query_server (debuginfod_client *c,
   c->winning_headers = NULL;
   if ( maxtime > 0 && clock_gettime(CLOCK_MONOTONIC_RAW, &start_time) == -1)
     {
-      rc = errno;
+      rc = -errno;
       goto out2;
     }
   long delta = 0;
@@ -1096,7 +1096,7 @@ debuginfod_query_server (debuginfod_client *c,
         {
           if (clock_gettime(CLOCK_MONOTONIC_RAW, &cur_time) == -1)
             {
-              rc = errno;
+              rc = -errno;
               goto out2;
             }
           delta = cur_time.tv_sec - start_time.tv_sec;

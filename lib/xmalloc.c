@@ -30,7 +30,6 @@
 # include <config.h>
 #endif
 
-#include <libintl.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <sys/types.h>

@@ -28,7 +28,6 @@
 #include <fnmatch.h>
 #include <gelf.h>
 #include <libelf.h>
-#include <libintl.h>
 #include <locale.h>
 #include <stdbool.h>
 #include <stdio.h>

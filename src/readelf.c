@@ -30,7 +30,6 @@
 #include <langinfo.h>
 #include <libdw.h>
 #include <libdwfl.h>
-#include <libintl.h>
 #include <locale.h>
 #include <stdarg.h>
 #include <stdbool.h>

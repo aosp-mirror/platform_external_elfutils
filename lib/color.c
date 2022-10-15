@@ -32,7 +32,6 @@
 #endif
 
 #include <argp.h>
-#include <libintl.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>

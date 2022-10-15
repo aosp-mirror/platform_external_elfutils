@@ -35,13 +35,16 @@
 #include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <sys/param.h>
-#include <endian.h>
-#include <byteswap.h>
-#include <unistd.h>
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
+
+/* System dependend headers */
+#include <byteswap.h>
+#include <endian.h>
+#include <sys/mman.h>
+#include <sys/param.h>
+#include <unistd.h>
 
 #if defined(HAVE_ERROR_H)
 #include <error.h>

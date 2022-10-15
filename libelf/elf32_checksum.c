@@ -32,7 +32,6 @@
 #endif
 
 #include <assert.h>
-#include <endian.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>

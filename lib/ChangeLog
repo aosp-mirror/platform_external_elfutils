@@ -1,3 +1,13 @@
+2022-10-16  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* system.h: Add sys/mman.h as system dependend header.
+	* common.h: Remove ar.h, byteswap.h and endian.h.
+	* elf32_checksum.c: Remove endian.h.
+	* elf32_getphdr.c: Remove unistd.h and system.h.
+	* elf32_getshdr.c: Remove unistd.h.h and system.h.
+	* elf32_updatefile.c: Remove unistd.h, sys/mman.h and system.h.
+	* elf32_updatenull.c: Remove endian.h and system.h.
+
 2022-08-05  Mark Wielaard  <mark@klomp.org>
 
 	* dynamicsizehash_concurrent.c (resize_helper): Add documentation.

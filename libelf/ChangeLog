@@ -1,3 +1,28 @@
+2022-10-16  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* common.h: Remove ar.h, byteswap.h and endian.h.
+	* elf32_checksum.c: Remove endian.h.
+	* elf32_getphdr.c: Remove unistd.h and system.h.
+	* elf32_getshdr.c: Remove unistd.h.h and system.h.
+	* elf32_updatefile.c: Remove unistd.h, sys/mman.h and system.h.
+	* elf32_updatenull.c: Remove endian.h and system.h.
+	* elf32_xlatetof.c: Remove endian.h.
+	* elf32_xlatetom.c: Likewise.
+	* elf_begin.c: Remove unistd.h, sys/mman.h and system.h.
+	* elf_cntl.c: Remove unistd.h.
+	* elf_compress.c: Remove system.h and unistd.h.
+	* elf_end.c: Remove sys.mman.h.
+	* elf_getarsym.c: Remove byteswap.h, endian.h, unistd.h and
+	system.h.
+	* elf_getdata.c: Remove unistd.h and system.h.
+	* elf_getdata_rawchunk.c: Remove unistd.h and system.h.
+	* elf_getshdrstrndx.c: Likewise.
+	* elf_readall.c: Likewise.
+	* elf_update.c: Remove unistd.h and sys/mman.h.
+	* gelf_xlate.c: Remove byteswap.h.
+	* libelfP.h: Add system.h.
+	* nlist.c: Remove unistd.h.
+
 2022-08-28  Mark Wielaard  <mark@klomp.org>
 
 	* elf_begin.c (__libelf_next_arhdr_wrlock): Add OCT_FIELD macro,

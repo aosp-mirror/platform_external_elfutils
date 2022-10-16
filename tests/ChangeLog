@@ -1,3 +1,8 @@
+2022-10-16  Mark Wielaard  <mark@klomp.org>
+
+	* dwfl-report-offline-memory.c (main): Check lseek, read and malloc
+	results with correct types.
+
 2022-09-13  Aleksei Vetrov  <vvvvvv@google.com>
 
 	* Makefile.am (check_PROGRAMS): Add dwfl-report-offline-memory.

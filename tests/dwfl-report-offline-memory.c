@@ -62,10 +62,14 @@ main (int argc, char **argv)
   int fd = open (fname, O_RDONLY);
   if (fd < 0)
     error (-1, 0, "can't open file %s: %s", fname, strerror (errno));
-  size_t size = lseek (fd, 0, SEEK_END);
+  off_t size = lseek (fd, 0, SEEK_END);
+  if (size < 0)
+    error (-1, 0, "can't lseek file %s: %s", fname, strerror (errno));
   lseek (fd, 0, SEEK_SET);
   char *data = malloc (size);
-  size_t bytes_read = read (fd, data, size);
+  if (data == NULL)
+    error (-1, 0, "can't malloc: %s", strerror (errno));
+  ssize_t bytes_read = read (fd, data, size);
   assert (bytes_read == size);
   close (fd);
 

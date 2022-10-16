@@ -1,5 +1,9 @@
 2022-10-16  Mark Wielaard  <mark@klomp.org>
 
+	* dwfl-report-offline-memory.c: Include config.h first.
+
+2022-10-16  Mark Wielaard  <mark@klomp.org>
+
 	* dwfl-report-offline-memory.c (main): Check lseek, read and malloc
 	results with correct types.
 

@@ -3956,6 +3956,8 @@ main (int argc, char *argv[])
         }
     }
 
+  obatched(clog) << "libmicrohttpd version " << MHD_get_version() << endl;
+  
   /* If '-C' wasn't given or was given with no arg, pick a reasonable default
      for the number of worker threads.  */
   if (connection_pool == 0)

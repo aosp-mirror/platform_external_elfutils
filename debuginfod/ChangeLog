@@ -1,3 +1,8 @@
+2022-10-18  Daniel Thornburgh <dthorn@google.com>
+
+  * debuginfod-client.c (debuginfod_query_server): Add DEBUGINFOD_HEADERS_FILE
+  setting to supply outgoing HTTP headers.
+
 2022-10-17  Frank Ch. Eigler  <fche@redhat.com>
 
 	* debuginfod.cxx (main): Report libmicrohttpd version.

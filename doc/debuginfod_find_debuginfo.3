@@ -188,12 +188,18 @@ indicates success, but out-of-memory conditions may result in
 a non-zero \fI-ENOMEM\fP. If the string is in the wrong form
 \fI-EINVAL\fP will be returned.
 
+\fI$DEBUGINFOD_HEADERS_FILE\fP specifies a file to supply headers to
+outgoing requests. Each non-whitespace line of this file is handled
+as if
+.BR \%debuginfod_add_http_header ()
+were called on the contents.
+
 Note that the current debuginfod-client library implementation uses
 libcurl, but you shouldn't rely on that fact. Don't use this function
 for replacing any standard headers, except for the User-Agent mentioned
-below. The only supported usage of this function is for adding an
-optional header which might or might not be passed through to the
-server for logging purposes only.
+below. You can use this function to add authorization information for
+access control, or to provide optional headers to the server for
+logging purposes.
 
 By default, the library adds a descriptive \fIUser-Agent:\fP
 header to outgoing requests.  If the client application adds

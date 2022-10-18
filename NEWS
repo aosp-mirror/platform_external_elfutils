@@ -2,6 +2,9 @@ Version 0.188 some time after 0.187
 
 readelf: Add -D, --use-dynamic option.
 
+debuginfod-client: Add $DEBUGINFOD_HEADERS_FILE setting to supply outgoing
+                   HTTP headers.
+
 debuginfod: Add --disable-source-scan option.
 
 libdwfl: Add new function dwfl_get_debuginfod_client.

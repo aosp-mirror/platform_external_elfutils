@@ -42,6 +42,7 @@
 #include "config.h"
 #include "debuginfod.h"
 #include "system.h"
+#include <ctype.h>
 #include <errno.h>
 #include <stdlib.h>
 
@@ -447,6 +448,45 @@ add_default_headers(debuginfod_client *client)
   free (utspart);
 }
 
+/* Add HTTP headers found in the given file, one per line. Blank lines or invalid
+ * headers are ignored.
+ */
+static void
+add_headers_from_file(debuginfod_client *client, const char* filename)
+{
+  int vds = client->verbose_fd;
+  FILE *f = fopen (filename, "r");
+  if (f == NULL)
+    {
+      if (vds >= 0)
+	dprintf(vds, "header file %s: %s\n", filename, strerror(errno));
+      return;
+    }
+
+  while (1)
+    {
+      char buf[8192];
+      char *s = &buf[0];
+      if (feof(f))
+        break;
+      if (fgets (s, sizeof(buf), f) == NULL)
+        break;
+      for (char *c = s; *c != '\0'; ++c)
+        if (!isspace(*c))
+          goto nonempty;
+      continue;
+    nonempty:
+      ;
+      size_t last = strlen(s)-1;
+      if (s[last] == '\n')
+        s[last] = '\0';
+      int rc = debuginfod_add_http_header(client, s);
+      if (rc < 0 && vds >= 0)
+        dprintf(vds, "skipping bad header: %s\n", strerror(-rc));
+    }
+  fclose (f);
+}
+
 
 #define xalloc_str(p, fmt, args...)        \
   do                                       \
@@ -609,6 +649,11 @@ debuginfod_query_server (debuginfod_client *c,
     maxtime = atol (maxtime_envvar);
   if (maxtime && vfd >= 0)
     dprintf(vfd, "using max time %lds\n", maxtime);
+
+  const char *headers_file_envvar;
+  headers_file_envvar = getenv(DEBUGINFOD_HEADERS_FILE_ENV_VAR);
+  if (headers_file_envvar != NULL)
+    add_headers_from_file(c, headers_file_envvar);
 
   /* Maxsize is valid*/
   if (maxsize > 0)

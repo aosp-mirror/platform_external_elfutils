@@ -4185,6 +4185,8 @@ dwarf_loc_list_encoding_string (unsigned int kind)
 #define DWARF_ONE_KNOWN_DW_LLE(NAME, CODE) case CODE: return #NAME;
       DWARF_ALL_KNOWN_DW_LLE
 #undef DWARF_ONE_KNOWN_DW_LLE
+    /* DW_LLE_GNU_view_pair is special/incompatible with default codes.  */
+    case DW_LLE_GNU_view_pair: return "GNU_view_pair";
     default:
       return NULL;
     }
@@ -9742,6 +9744,16 @@ print_debug_loclists_section (Dwfl_Module *dwflmod,
 	      print_ops (dwflmod, dbg, 8, 8, version,
 			 address_size, offset_size, cu, len, readp);
 	      readp += len;
+	      break;
+
+	    case DW_LLE_GNU_view_pair:
+	      if ((uint64_t) (nexthdr - readp) < 1)
+		goto invalid_entry;
+	      get_uleb128 (op1, readp, nexthdr);
+	      if ((uint64_t) (nexthdr - readp) < 1)
+		goto invalid_entry;
+	      get_uleb128 (op2, readp, nexthdr);
+	      printf (" %" PRIx64 ", %" PRIx64 "\n", op1, op2);
 	      break;
 
 	    default:

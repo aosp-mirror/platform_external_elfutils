@@ -1,3 +1,9 @@
+2022-10-19  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (dwarf_loc_list_encoding_string): Handle
+	DW_LLE_GNU_view_pair.
+	(print_debug_loclists_section): Likewise.
+
 2022-09-20  Yonggang Luo  <luoyonggang@gmail.com>
 
 	* arlib.h: Use BYTE_ORDER, LITTLE_ENDIAN and BIG_ENDIAN.

@@ -29,11 +29,10 @@
 #ifndef _MEMORY_ACCESS_H
 #define _MEMORY_ACCESS_H 1
 
-#include <byteswap.h>
-#include <endian.h>
 #include <limits.h>
 #include <stdint.h>
 
+#include <system.h>
 
 /* Number decoding macros.  See 7.6 Variable Length Data.  */
 

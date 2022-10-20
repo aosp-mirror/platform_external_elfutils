@@ -1,3 +1,8 @@
+2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* memory-access.h: Include system.h instead of byteswap.h and
+	endian.h.
+
 2022-09-20  Yonggang Luo  <luoyonggang@gmail.com>
 
 	* memory-access.h: Use BYTE_ORDER, LITTLE_ENDIAN and BIG_ENDIAN.

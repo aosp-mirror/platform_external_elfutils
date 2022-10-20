@@ -1,3 +1,8 @@
+2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* eblclosebackend.c: Remove dlfcn.h include.
+	* eblopenbackend.c: Likewise.
+
 2022-08-08  Andreas Schwab  <schwab@suse.de>
 
 	* ebldynamictagname.c (ebl_dynamic_tag_name): Handle DT_RELRSZ,

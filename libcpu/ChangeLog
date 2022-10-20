@@ -1,5 +1,9 @@
 2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
 
+	* i386_data.h: Define FCT_mod$64r_m as FCT_mod$r_m for i386.
+
+2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
+
 	* i386_disasm.c: Don't include endian.h.
 	* memory-access.h: Don't include byteswap.h and endian.h.
 	Do include system.h.

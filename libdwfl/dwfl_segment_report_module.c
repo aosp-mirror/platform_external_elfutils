@@ -36,8 +36,6 @@
 #include <elf.h>
 #include <gelf.h>
 #include <inttypes.h>
-#include <endian.h>
-#include <unistd.h>
 #include <fcntl.h>
 
 #include <system.h>

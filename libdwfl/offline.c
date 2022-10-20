@@ -34,7 +34,6 @@
 
 #include "libdwflP.h"
 #include <fcntl.h>
-#include <unistd.h>
 
 /* Since dwfl_report_elf lays out the sections already, this will only be
    called when the section headers of the debuginfo file are being

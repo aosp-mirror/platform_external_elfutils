@@ -1,3 +1,10 @@
+2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* dwarf_begin_elf.h: Don't include unistd.h and endian.h.
+	* dwarf_end.c: Don't include unistd.h.
+	* dwarf_setalt.c: Likewise.
+	* libdw_find_split_unit.c: Likewise.
+
 2022-10-19  Mark Wielaard  <mark@klomp.org>
 
 	* dwarf.h (DW_LLE_GNU_view_pair): New constant.

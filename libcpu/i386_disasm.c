@@ -34,7 +34,6 @@
 #include <assert.h>
 #include <config.h>
 #include <ctype.h>
-#include <endian.h>
 #include <errno.h>
 #include <gelf.h>
 #include <stddef.h>

@@ -29,11 +29,10 @@
 #ifndef _MEMORY_ACCESS_H
 #define _MEMORY_ACCESS_H 1
 
-#include <byteswap.h>
-#include <endian.h>
 #include <limits.h>
 #include <stdint.h>
 
+#include <system.h>
 
 /* When loading this file we require the macro MACHINE_ENCODING to be
    defined to signal the endianness of the architecture which is

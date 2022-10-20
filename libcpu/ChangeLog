@@ -1,3 +1,9 @@
+2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* i386_disasm.c: Don't include endian.h.
+	* memory-access.h: Don't include byteswap.h and endian.h.
+	Do include system.h.
+
 2022-09-20  Yonggang Luo  <luoyonggang@gmail.com>
 
 	* memory-access.h: Use BYTE_ORDER, LITTLE_ENDIAN and BIG_ENDIAN.

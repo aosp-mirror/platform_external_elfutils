@@ -1,5 +1,26 @@
 2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
 
+	* argp-std.c: Don't include unistd.h.
+	* core-file.c: Don't include unistd.h, endian.h, byteswap.h and
+	system.h.
+	* dwfl_build_id_find_debuginfo.c: Don't include unistd.h.
+	* dwfl_build_id_find_elf.c: Likewise.
+	* dwfl_end.c: Likewise.
+	* dwfl_frame.c: Likewise.
+	* dwfl_module.c: Likewise.
+	* dwfl_module_getdwarf.c: Likewise.
+	* dwfl_report_elf.c: Likewise.
+	* dwfl_segment_report_module.c: Don't include endian.h and unistd.h.
+	* find-debuginfo.c: Don't include unistd.h.
+	* gzip.c: Likewise.
+	* image-header.c: Don't include system.h, unistd.h and endian.h.
+	* link_map.c: Don't include byteswap.h and endian.h.
+	* linux-pid-attach.c: Don't include unistd.h.
+	* offline.c: Likewise.
+	* open.c: Likewise.
+
+2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
+
 	* libdwfl_crc32.c: Remove LIB_SYSTEM_H define.
 
 2022-09-20  Yonggang Luo  <luoyonggang@gmail.com>

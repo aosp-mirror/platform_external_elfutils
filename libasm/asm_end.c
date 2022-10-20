@@ -35,12 +35,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/stat.h>
 
 #include <libasmP.h>
 #include <libelf.h>
-#include <system.h>
 
 
 static int

@@ -35,8 +35,6 @@
 #undef	_
 #include "libdwflP.h"
 
-#include <unistd.h>
-
 #if !USE_BZLIB
 # define __libdw_bunzip2(...)	DWFL_E_BADELF
 #endif

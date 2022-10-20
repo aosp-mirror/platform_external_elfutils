@@ -1,3 +1,8 @@
+2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* dwelf_elf_begin.c: Don't include unistd.h.
+	* dwelf_strtab.c: Likewise.
+
 2022-08-08  Andreas Schwab  <schwab@suse.de>
 
 	* dwelf_elf_e_machine_string.c (dwelf_elf_e_machine_string): Add

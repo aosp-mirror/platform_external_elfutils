@@ -33,12 +33,6 @@
 #include "libdwflP.h"
 #include <gelf.h>
 
-#include <unistd.h>
-#include <endian.h>
-#include <byteswap.h>
-#include "system.h"
-
-
 /* On failure return, we update *NEXT to point back at OFFSET.  */
 static inline Elf *
 do_fail (int error, off_t *next, off_t offset)

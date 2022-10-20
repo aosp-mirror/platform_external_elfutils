@@ -1,3 +1,10 @@
+2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* memory-access.h (get_uleb128_step): Use __typeof.
+	(get_sleb128_step): Likewise.
+	(__libdw_get_sleb128) Likewise.
+	(__libdw_get_sleb128_unchecked): Likewise.
+
 2022-11-03  Mark Wielaard  <mark@klomp.org>
 
 	* dwarf_next_cfi.c (dwarf_next_cfi): Don't dereference and assign

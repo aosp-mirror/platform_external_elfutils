@@ -64,7 +64,7 @@ __libdw_max_len_sleb128 (const unsigned char *addr, const unsigned char *end)
 #define get_uleb128_step(var, addr, nth)				      \
   do {									      \
     unsigned char __b = *(addr)++;					      \
-    (var) |= (typeof (var)) (__b & 0x7f) << ((nth) * 7);		      \
+    (var) |= (__typeof (var)) (__b & 0x7f) << ((nth) * 7);		      \
     if (likely ((__b & 0x80) == 0))					      \
       return (var);							      \
   } while (0)
@@ -112,11 +112,11 @@ __libdw_get_uleb128_unchecked (const unsigned char **addrp)
 #define get_sleb128_step(var, addr, nth)				      \
   do {									      \
     unsigned char __b = *(addr)++;					      \
-    (var) |= (typeof (var)) (__b & 0x7f) << ((nth) * 7);		      \
+    (var) |= (__typeof (var)) (__b & 0x7f) << ((nth) * 7);		      \
     if (likely ((__b & 0x80) == 0))					      \
       {									      \
 	if ((__b & 0x40) != 0)						      \
-	  (var) |= - ((typeof (var)) 1 << (((nth) + 1) * 7));		      \
+	  (var) |= - ((__typeof (var)) 1 << (((nth) + 1) * 7));		      \
 	return (var);							      \
       }									      \
   } while (0)
@@ -146,7 +146,7 @@ __libdw_get_sleb128 (const unsigned char **addrp, const unsigned char *end)
     {
       /* We only need the low bit of the final byte, and as it is the
 	 sign bit, we don't need to do anything else here.  */
-      acc |= ((typeof (acc)) b) << 7 * max;
+      acc |= ((__typeof (acc)) b) << 7 * max;
       return acc;
     }
 
@@ -179,7 +179,7 @@ __libdw_get_sleb128_unchecked (const unsigned char **addrp)
     {
       /* We only need the low bit of the final byte, and as it is the
 	 sign bit, we don't need to do anything else here.  */
-      acc |= ((typeof (acc)) b) << 7 * max;
+      acc |= ((__typeof (acc)) b) << 7 * max;
       return acc;
     }
 

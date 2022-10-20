@@ -1,3 +1,7 @@
+2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* libelf_crc32.c: Remove LIB_SYSTEM_H define.
+
 2022-09-20  Yonggang Luo  <luoyonggang@gmail.com>
 
 	* elf32_checksum.c: Use BYTE_ORDER, LITTLE_ENDIAN and BIG_ENDIAN.

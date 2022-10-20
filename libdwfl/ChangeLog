@@ -1,3 +1,7 @@
+2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* libdwfl_crc32.c: Remove LIB_SYSTEM_H define.
+
 2022-09-20  Yonggang Luo  <luoyonggang@gmail.com>
 
 	* dwfl_segment_report_module.c: Use BYTE_ORDER, LITTLE_ENDIAN and

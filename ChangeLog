@@ -1,3 +1,8 @@
+2022-10-22  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac: Use AC_PROG_CC with autoconf 2.70, or AC_PROG_CC_C99
+	for earlier versions. Use AC_PROG_LEX([noyywrap]).
+
 2022-09-13  Aleksei Vetrov  <vvvvvv@google.com>
 
 	* NEWS (libdwfl): Add dwfl_report_offline_memory.

@@ -88,11 +88,11 @@ AS_IF([test "$use_locks" = yes],
 
 AH_TEMPLATE([USE_LOCKS], [Defined if libraries should be thread-safe.])
 
-AC_PROG_CC_C99
+m4_version_prereq([2.70], [AC_PROG_CC], [AC_PROG_CC_C99])
 AC_PROG_CXX
 AC_PROG_RANLIB
 AC_PROG_YACC
-AM_PROG_LEX
+AC_PROG_LEX([noyywrap])
 # Only available since automake 1.12
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_CHECK_TOOL([READELF], [readelf])

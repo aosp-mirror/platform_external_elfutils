@@ -40,6 +40,8 @@ BuildRequires: iproute
 BuildRequires: procps
 BuildRequires: bsdtar
 BuildRequires: curl
+# For run-debuginfod-response-headers.sh test case
+BuildRequires: socat
 
 %define _gnu %{nil}
 %define _programprefix eu-

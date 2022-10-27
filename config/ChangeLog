@@ -1,3 +1,7 @@
+2022-10-27  Mark Wielaard  <mark@klomp.org>
+
+	* elfutils.spec.in: Add BuildRequires socat.
+
 2022-08-17  Martin Liska  <mliska@suse.cz>
 
 	* debuginfod.service: Add new debuginfod.sysconfig

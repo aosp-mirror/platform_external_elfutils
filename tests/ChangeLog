@@ -1,3 +1,14 @@
+2022-10-27  Mark Wielaard  <mark@klomp.org>
+
+	* backtrace-subr.sh: Use grep -E instead of egrep, use grep -F
+	instead of fgrep.
+	* debuginfod-subr.sh: Likewise.
+	* run-debuginfod-archive-rename.sh: Likewise.
+	* run-debuginfod-extraction-passive.sh: Likewise.
+	* run-debuginfod-response-headers.sh: Likewise.
+	* run-debuginfod-webapi-concurrency.sh: Likewise.
+	* run-strip-test.sh: Likewise.
+
 2022-10-16  Mark Wielaard  <mark@klomp.org>
 
 	* dwfl-report-offline-memory.c: Include config.h first.

@@ -1,5 +1,9 @@
 2022-10-27  Mark Wielaard  <mark@klomp.org>
 
+	* eu.am: Use grep -F instead of fgrep.
+
+2022-10-27  Mark Wielaard  <mark@klomp.org>
+
 	* elfutils.spec.in: Add BuildRequires socat.
 
 2022-08-17  Martin Liska  <mliska@suse.cz>

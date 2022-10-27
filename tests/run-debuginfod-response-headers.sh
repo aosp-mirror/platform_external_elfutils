@@ -96,7 +96,7 @@ grep -i 'X-DEBUGINFOD-ARCHIVE: ' vlog-find$PORT1.2
 for file in vlog-find$PORT1.1 vlog-find$PORT1.2
 do
     st_size=$(stat -c%s $(tail -n 1 $file))
-    x_debuginfod_size=$(grep -i 'X-DEBUGINFOD-SIZE' $file | head -1 | egrep -o '[0-9]+')
+    x_debuginfod_size=$(grep -i 'X-DEBUGINFOD-SIZE' $file | head -1 | grep -E -o '[0-9]+')
     test $st_size -eq $x_debuginfod_size
 done
 

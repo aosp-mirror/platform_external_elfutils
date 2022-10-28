@@ -1,3 +1,7 @@
+2022-10-28  Arsen Arsenović  <arsen@aarsen.me>
+
+	* readelf.1: Document the --syms alias.
+
 2022-10-18  Daniel Thornburgh  <dthorn@google.com>
 
 	* debuginfod_find_debuginfo.3: Document DEBUGINFOD_HEADERS_FILE.

@@ -115,6 +115,7 @@ static const struct argp_option options[] =
   { "sections", 'S', NULL, OPTION_ALIAS | OPTION_HIDDEN, NULL, 0 },
   { "symbols", 's', "SECTION", OPTION_ARG_OPTIONAL,
     N_("Display the symbol table sections"), 0 },
+  { "syms", 's', NULL, OPTION_ALIAS | OPTION_HIDDEN, NULL, 0 },
   { "dyn-syms", PRINT_DYNSYM_TABLE, NULL, 0,
     N_("Display (only) the dynamic symbol table"), 0 },
   { "version-info", 'V', NULL, 0, N_("Display versioning information"), 0 },

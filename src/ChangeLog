@@ -1,3 +1,7 @@
+2022-10-28  Arsen Arsenović  <arsen@aarsen.me>
+
+	* readelf.c (options): Add Binutils-style --syms alias.
+
 2022-10-19  Mark Wielaard  <mark@klomp.org>
 
 	* readelf.c (dwarf_loc_list_encoding_string): Handle

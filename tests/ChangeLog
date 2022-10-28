@@ -1,3 +1,7 @@
+2022-10-28  Arsen Arsenović  <arsen@aarsen.me>
+
+	* run-readelf-s.sh: Add tests for the --syms alias.
+
 2022-10-27  Mark Wielaard  <mark@klomp.org>
 
 	* backtrace-subr.sh: Use grep -E instead of egrep, use grep -F

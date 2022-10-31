@@ -133,6 +133,14 @@ service load.  Archive pattern options must still be given, so
 debuginfod can recognize file name extensions for unpacking.
 
 .TP
+.B "\-\-metadata\-maxtime=SECONDS"
+Impose a limit on the runtime of metadata webapi queries.  These
+queries, especially broad "glob" wildcards, can take a large amount of
+time and produce large results.  Public-facing servers may need to
+throttle them.  The default limit is 5 seconds.  Set 0 to disable this
+limit.
+
+.TP
 .B "\-D SQL" "\-\-ddl=SQL"
 Execute given sqlite statement after the database is opened and
 initialized as extra DDL (SQL data definition language).  This may be
@@ -420,6 +428,16 @@ This endpoint returns a Prometheus formatted text/plain dump of a
 variety of statistics about the operation of the debuginfod server.
 The exact set of metrics and their meanings may change in future
 versions.
+
+.SS /metadata?key=\fIKEY\fP&value=\fIVALUE\fP
+
+This endpoint triggers a search of the files in the index plus any
+upstream federated servers, based on given key and value.  If
+successful, the result is a application/json textual array, listing
+metadata for the matched files.  See \fIdebuginfod-find(1)\fP for
+documentation of the common key/value search parameters, and the
+resulting data schema.
+
 
 .SH DATA MANAGEMENT
 

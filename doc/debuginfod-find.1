@@ -29,6 +29,8 @@ debuginfod-find \- request debuginfo-related data
 .B debuginfod-find [\fIOPTION\fP]... source \fIBUILDID\fP \fI/FILENAME\fP
 .br
 .B debuginfod-find [\fIOPTION\fP]... source \fIPATH\fP \fI/FILENAME\fP
+.br
+.B debuginfod-find [\fIOPTION\fP]... metadata \fIKEY\fP \fIVALUE\fP
 
 .SH DESCRIPTION
 \fBdebuginfod-find\fP queries one or more \fBdebuginfod\fP servers for
@@ -118,6 +120,64 @@ l l.
 /path/to/foo.c	source BUILDID /path/to/foo.c
 \../bar/foo.c AT_comp_dir=/zoo/	source BUILDID /zoo//../bar/foo.c
 .TE
+
+.SS metadata \fIKEY\fP \fIVALUE\fP
+
+All designated debuginfod servers are queried for metadata about all
+files that match a given key/value query in their index.  The results
+include names and buildids, which may be used in future queries to
+fetch actual files.
+
+.TS
+l l l .
+KEY	VALUE	DESCRIPTION
+
+\fBfile\fP	\fIpath\fP	exact match \fIpath\fP, including in archives
+\fBglob\fP	\fIpattern\fP	shell-style glob match \fIpattern\fP, including in archives, as in fnmatch(FNM_PATHNAME)
+.TE
+
+The resulting output will look something like the following
+{
+  "results":[
+    {
+      "type":"executable",
+      "buildid":"f0aa15b8aba4f3c28cac3c2a73801fefa644a9f2",
+      "file":"/usr/local/bin/hello",
+      "archive":"/opt/elfutils/tests/test-2290642/R/rhel7/hello2-1.0-2.x86_64.rpm"
+    },
+    {
+      "type":"executable",
+      "buildid":"bc1febfd03ca05e030f0d205f7659db29f8a4b30",
+      "file":"hello2"
+    }
+  ],
+  "complete":true
+}'
+
+The results of the search are output to \fBstdout\fP as a JSON object
+containing an array of objects, supplying metadata about each match, as
+well as a boolean value corresponding to the completeness of the result.
+The result is considered complete if all of the queries to upstream servers
+returned complete results and the local query succeeded. This metadata report
+may be cached.  It may be incomplete and may contain duplicates.  
+Additional JSON object fields may be present.
+
+.TS
+l l l .
+NAME	TYPE	DESCRIPTION
+
+\fBbuildid\fP	string	hexadecimal buildid associated with the file
+\fBtype\fP	string	one of \fBdebuginfo\fP or \fBexecutable\fP
+\fBfile\fP	string	matched file name, outside or inside the archive
+\fBarchive\fP	string	archive containing matched file name, if any
+.TE
+
+It's worth noting that \fBtype\fP cannot be \fBsource\fP since in order
+to perform such a search fast enough additional indexing would need to be added to
+the database which would nearly double it's size.
+
+The search also always combines both files and archives in the results
+and at this time further granularity is not availible.
 
 .SH "OPTIONS"
 

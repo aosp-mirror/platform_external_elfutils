@@ -76,6 +76,7 @@ extern "C" {
 #include <netdb.h>
 #include <math.h>
 #include <float.h>
+#include <fnmatch.h>
 
 
 /* If fts.h is included before config.h, its indirect inclusions may not
@@ -148,6 +149,7 @@ extern "C" {
 #include "printversion.h"
 #include "system.h"
 }
+#include <json-c/json.h>
 
 
 inline bool
@@ -220,7 +222,7 @@ static const char DEBUGINFOD_SQLITE_DDL[] =
   "        foreign key (buildid) references " BUILDIDS "_buildids(id) on update cascade on delete cascade,\n"
   "        primary key (buildid, file, mtime)\n"
   "        ) " WITHOUT_ROWID ";\n"
-  // Index for faster delete by file identifier
+  // Index for faster delete by file identifier and metadata searches
   "create index if not exists " BUILDIDS "_f_de_idx on " BUILDIDS "_f_de (file, mtime);\n"
   "create table if not exists " BUILDIDS "_f_s (\n"
   "        buildid integer not null,\n"
@@ -246,6 +248,8 @@ static const char DEBUGINFOD_SQLITE_DDL[] =
   "        ) " WITHOUT_ROWID ";\n"
   // Index for faster delete by archive file identifier
   "create index if not exists " BUILDIDS "_r_de_idx on " BUILDIDS "_r_de (file, mtime);\n"
+  // Index for metadata searches
+  "create index if not exists " BUILDIDS "_r_de_idx2 on " BUILDIDS "_r_de (content);\n"  
   "create table if not exists " BUILDIDS "_r_sref (\n" // outgoing dwarf sourcefile references from rpm
   "        buildid integer not null,\n"
   "        artifactsrc integer not null,\n"
@@ -454,6 +458,9 @@ static const struct argp_option options[] =
 #define ARGP_KEY_KOJI_SIGCACHE 0x100B
    { "koji-sigcache", ARGP_KEY_KOJI_SIGCACHE, NULL, 0, "Do a koji specific mapping of rpm paths to get IMA signatures.", 0 },
 #endif
+#define ARGP_KEY_METADATA_MAXTIME 0x100C
+   { "metadata-maxtime", ARGP_KEY_METADATA_MAXTIME, "SECONDS", 0,
+     "Number of seconds to limit metadata query run time, 0=unlimited.", 0 },
    { NULL, 0, NULL, 0, NULL, 0 },
   };
 
@@ -509,6 +516,7 @@ static long scan_checkpoint = 256;
 #ifdef ENABLE_IMA_VERIFICATION
 static bool requires_koji_sigcache_mapping = false;
 #endif
+static unsigned metadata_maxtime_s = 5;
 
 static void set_metric(const string& key, double value);
 static void inc_metric(const string& key);
@@ -711,7 +719,10 @@ parse_opt (int key, char *arg,
     case ARGP_SCAN_CHECKPOINT:
       scan_checkpoint = atol (arg);
       if (scan_checkpoint < 0)
-        argp_failure(state, 1, EINVAL, "scan checkpoint");        
+        argp_failure(state, 1, EINVAL, "scan checkpoint");
+      break;
+    case ARGP_KEY_METADATA_MAXTIME:
+      metadata_maxtime_s = (unsigned) atoi(arg);
       break;
 #ifdef ENABLE_IMA_VERIFICATION
     case ARGP_KEY_KOJI_SIGCACHE:
@@ -2382,6 +2393,58 @@ handle_buildid_r_match (bool internal_req_p,
   return r;
 }
 
+void
+add_client_federation_headers(debuginfod_client *client, MHD_Connection* conn){
+  // Transcribe incoming User-Agent:
+  string ua = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "User-Agent") ?: "";
+  string ua_complete = string("User-Agent: ") + ua;
+  debuginfod_add_http_header (client, ua_complete.c_str());
+
+  // Compute larger XFF:, for avoiding info loss during
+  // federation, and for future cyclicity detection.
+  string xff = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "X-Forwarded-For") ?: "";
+  if (xff != "")
+    xff += string(", "); // comma separated list
+
+  unsigned int xff_count = 0;
+  for (auto&& i : xff){
+    if (i == ',') xff_count++;
+  }
+
+  // if X-Forwarded-For: exceeds N hops,
+  // do not delegate a local lookup miss to upstream debuginfods.
+  if (xff_count >= forwarded_ttl_limit)
+    throw reportable_exception(MHD_HTTP_NOT_FOUND, "not found, --forwared-ttl-limit reached \
+and will not query the upstream servers");
+
+  // Compute the client's numeric IP address only - so can't merge with conninfo()
+  const union MHD_ConnectionInfo *u = MHD_get_connection_info (conn,
+                                                                MHD_CONNECTION_INFO_CLIENT_ADDRESS);
+  struct sockaddr *so = u ? u->client_addr : 0;
+  char hostname[256] = ""; // RFC1035
+  if (so && so->sa_family == AF_INET) {
+    (void) getnameinfo (so, sizeof (struct sockaddr_in), hostname, sizeof (hostname), NULL, 0,
+                        NI_NUMERICHOST);
+  } else if (so && so->sa_family == AF_INET6) {
+    struct sockaddr_in6* addr6 = (struct sockaddr_in6*) so;
+    if (IN6_IS_ADDR_V4MAPPED(&addr6->sin6_addr)) {
+      struct sockaddr_in addr4;
+      memset (&addr4, 0, sizeof(addr4));
+      addr4.sin_family = AF_INET;
+      addr4.sin_port = addr6->sin6_port;
+      memcpy (&addr4.sin_addr.s_addr, addr6->sin6_addr.s6_addr+12, sizeof(addr4.sin_addr.s_addr));
+      (void) getnameinfo ((struct sockaddr*) &addr4, sizeof (addr4),
+                          hostname, sizeof (hostname), NULL, 0,
+                          NI_NUMERICHOST);
+    } else {
+      (void) getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname), NULL, 0,
+                          NI_NUMERICHOST);
+    }
+  }
+
+  string xff_complete = string("X-Forwarded-For: ")+xff+string(hostname);
+  debuginfod_add_http_header (client, xff_complete.c_str());
+}
 
 static struct MHD_Response*
 handle_buildid_match (bool internal_req_p,
@@ -2615,58 +2678,8 @@ handle_buildid (MHD_Connection* conn,
   debuginfod_set_progressfn (client, & debuginfod_find_progress);
 
   if (conn)
-    {
-      // Transcribe incoming User-Agent:
-      string ua = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "User-Agent") ?: "";
-      string ua_complete = string("User-Agent: ") + ua;
-      debuginfod_add_http_header (client, ua_complete.c_str());
-      
-      // Compute larger XFF:, for avoiding info loss during
-      // federation, and for future cyclicity detection.
-      string xff = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "X-Forwarded-For") ?: "";
-      if (xff != "")
-        xff += string(", "); // comma separated list
-      
-      unsigned int xff_count = 0;
-      for (auto&& i : xff){
-        if (i == ',') xff_count++;
-      }
+    add_client_federation_headers(client, conn);
 
-      // if X-Forwarded-For: exceeds N hops,
-      // do not delegate a local lookup miss to upstream debuginfods.
-      if (xff_count >= forwarded_ttl_limit)
-        throw reportable_exception(MHD_HTTP_NOT_FOUND, "not found, --forwared-ttl-limit reached \
-and will not query the upstream servers");
-
-      // Compute the client's numeric IP address only - so can't merge with conninfo()
-      const union MHD_ConnectionInfo *u = MHD_get_connection_info (conn,
-                                                                   MHD_CONNECTION_INFO_CLIENT_ADDRESS);
-      struct sockaddr *so = u ? u->client_addr : 0;
-      char hostname[256] = ""; // RFC1035
-      if (so && so->sa_family == AF_INET) {
-        (void) getnameinfo (so, sizeof (struct sockaddr_in), hostname, sizeof (hostname), NULL, 0,
-                            NI_NUMERICHOST);
-      } else if (so && so->sa_family == AF_INET6) {
-        struct sockaddr_in6* addr6 = (struct sockaddr_in6*) so;
-        if (IN6_IS_ADDR_V4MAPPED(&addr6->sin6_addr)) {
-          struct sockaddr_in addr4;
-          memset (&addr4, 0, sizeof(addr4));
-          addr4.sin_family = AF_INET;
-          addr4.sin_port = addr6->sin6_port;
-          memcpy (&addr4.sin_addr.s_addr, addr6->sin6_addr.s6_addr+12, sizeof(addr4.sin_addr.s_addr));
-          (void) getnameinfo ((struct sockaddr*) &addr4, sizeof (addr4),
-                              hostname, sizeof (hostname), NULL, 0,
-                              NI_NUMERICHOST);
-        } else {
-          (void) getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname), NULL, 0,
-                              NI_NUMERICHOST);
-        }
-      }
-          
-      string xff_complete = string("X-Forwarded-For: ")+xff+string(hostname);
-      debuginfod_add_http_header (client, xff_complete.c_str());
-    }
-  
   if (artifacttype == "debuginfo")
     fd = debuginfod_find_debuginfo (client,
                                     (const unsigned char*) buildid.c_str(),
@@ -2873,6 +2886,225 @@ handle_metrics (off_t* size)
   return r;
 }
 
+
+static struct MHD_Response*
+handle_metadata (MHD_Connection* conn,
+                 string key, string value, off_t* size)
+{
+  MHD_Response* r;
+  sqlite3 *thisdb = dbq;
+
+  // Query locally for matching e, d files
+  string op;
+  if (key == "glob")
+    op = "glob";
+  else if (key == "file")
+    op = "=";
+  else
+    throw reportable_exception("/metadata webapi error, unsupported key");
+
+  // Since PR30378, the file names are segmented into two tables.  We
+  // could do a glob/= search over the _files_v view that combines
+  // them, but that means that the entire _files_v thing has to be
+  // materialized & scanned to do the query.  Slow!  Instead, we can
+  // segment the incoming file/glob pattern into dirname / basename
+  // parts, and apply them to the corresponding table.  This is done
+  // by splitting the value at the last "/".  If absent, the same
+  // convention as is used in register_file_name().
+
+  string dirname, bname; // basename is a "poisoned" identifier on some distros
+  size_t slash = value.rfind('/');
+  if (slash == std::string::npos) {
+    dirname = "";
+    bname = value;
+  } else {
+    dirname = value.substr(0, slash);
+    bname = value.substr(slash+1);
+  }
+
+  // NB: further optimization is possible: replacing the 'glob' op
+  // with simple equality, if the corresponding value segment lacks
+  // metacharacters.  sqlite may or may not be smart enough to do so,
+  // so we help out.
+  string metacharacters = "[]*?";
+  string dop = (op == "glob" && dirname.find_first_of(metacharacters) == string::npos) ? "=" : op;
+  string bop = (op == "glob" && bname.find_first_of(metacharacters) == string::npos) ? "=" : op;
+  
+  string sql = string(
+                      // explicit query r_de and f_de once here, rather than the query_d and query_e
+                      // separately, because they scan the same tables, so we'd double the work
+                      "select d1.executable_p, d1.debuginfo_p, 0 as source_p, "
+                      "       b1.hex, f1d.name || '/' || f1b.name as file, a1.name as archive "
+                      "from " BUILDIDS "_r_de d1, " BUILDIDS "_files f1, " BUILDIDS "_fileparts f1b, " BUILDIDS "_fileparts f1d, "
+                      BUILDIDS "_buildids b1, " BUILDIDS "_files_v a1 "
+                      "where f1.id = d1.content and a1.id = d1.file and d1.buildid = b1.id "
+                      "      and f1d.name " + dop + " ? and f1b.name " + bop + " ? and f1.dirname = f1d.id and f1.basename = f1b.id "
+                      "union all \n"
+                      "select d2.executable_p, d2.debuginfo_p, 0, "
+                      "       b2.hex, f2d.name || '/' || f2b.name, NULL "
+                      "from " BUILDIDS "_f_de d2, " BUILDIDS "_files f2, " BUILDIDS "_fileparts f2b, " BUILDIDS "_fileparts f2d, "
+                      BUILDIDS "_buildids b2 "
+                      "where f2.id = d2.file and d2.buildid = b2.id "
+                      "      and f2d.name " + dop + " ? and f2b.name " + bop + " ? "
+                      "      and f2.dirname = f2d.id and f2.basename = f2b.id");
+  
+  // NB: we could query source file names too, thusly:
+  //
+  //    select * from " BUILDIDS "_buildids b, " BUILDIDS "_files_v f1, " BUILDIDS "_r_sref sr
+  //    where b.id = sr.buildid and f1.id = sr.artifactsrc and f1.name " + op + "?"
+  //    UNION ALL something with BUILDIDS "_f_s"
+  //
+  // But the first part of this query cannot run fast without the same index temp-created
+  // during "maxigroom":
+  //    create index " BUILDIDS "_r_sref_arc on " BUILDIDS "_r_sref(artifactsrc);
+  // and unfortunately this index is HUGE.  It's similar to the size of the _r_sref
+  // table, which is already the largest part of a debuginfod index.  Adding that index
+  // would nearly double the .sqlite db size.
+                      
+  sqlite_ps *pp = new sqlite_ps (thisdb, "mhd-query-meta-glob", sql);
+  pp->reset();
+  pp->bind(1, dirname);
+  pp->bind(2, bname);
+  pp->bind(3, dirname);
+  pp->bind(4, bname);
+  unique_ptr<sqlite_ps> ps_closer(pp); // release pp if exception or return
+
+  json_object *metadata = json_object_new_object();
+  if (!metadata) throw libc_exception(ENOMEM, "json allocation");
+  defer_dtor<json_object*,int> metadata_d(metadata, json_object_put);
+  json_object *metadata_arr = json_object_new_array();
+  if (!metadata_arr) throw libc_exception(ENOMEM, "json allocation");
+  json_object_object_add(metadata, "results", metadata_arr);
+  // consume all the rows
+  struct timespec ts_start;
+  clock_gettime (CLOCK_MONOTONIC, &ts_start);
+  
+  int rc;
+  bool metadata_complete = true;
+  while (SQLITE_DONE != (rc = pp->step()))
+    {
+      // break out of loop if we have searched too long
+      struct timespec ts_end;
+      clock_gettime (CLOCK_MONOTONIC, &ts_end);
+      double deltas = (ts_end.tv_sec - ts_start.tv_sec) + (ts_end.tv_nsec - ts_start.tv_nsec)/1.e9;
+      if (metadata_maxtime_s > 0 && deltas > metadata_maxtime_s)
+        {
+          metadata_complete = false;
+          break;
+        }
+      
+      if (rc != SQLITE_ROW) throw sqlite_exception(rc, "step");
+
+      int m_executable_p = sqlite3_column_int (*pp, 0);
+      int m_debuginfo_p  = sqlite3_column_int (*pp, 1);
+      int m_source_p     = sqlite3_column_int (*pp, 2);
+      string m_buildid   = (const char*) sqlite3_column_text (*pp, 3) ?: ""; // should always be non-null
+      string m_file      = (const char*) sqlite3_column_text (*pp, 4) ?: "";
+      string m_archive   = (const char*) sqlite3_column_text (*pp, 5) ?: "";      
+
+      // Confirm that m_file matches in the fnmatch(FNM_PATHNAME)
+      // sense, since sqlite's GLOB operator is a looser filter.
+      if (key == "glob" && fnmatch(value.c_str(), m_file.c_str(), FNM_PATHNAME) != 0)
+        continue;
+      
+      auto add_metadata = [metadata_arr, m_buildid, m_file, m_archive](const string& type) {
+        json_object* entry = json_object_new_object();
+        if (NULL == entry) throw libc_exception (ENOMEM, "cannot allocate json");
+        defer_dtor<json_object*,int> entry_d(entry, json_object_put);
+        
+        auto add_entry_metadata = [entry](const char* k, string v) {
+          json_object* s;
+          if(v != "") {
+            s = json_object_new_string(v.c_str());
+            if (NULL == s) throw libc_exception (ENOMEM, "cannot allocate json");
+            json_object_object_add(entry, k, s);
+          }
+        };
+        
+        add_entry_metadata("type", type.c_str());
+        add_entry_metadata("buildid", m_buildid);
+        add_entry_metadata("file", m_file);
+        if (m_archive != "") add_entry_metadata("archive", m_archive);        
+        if (verbose > 3)
+          obatched(clog) << "metadata found local "
+                         << json_object_to_json_string_ext(entry,
+                                                           JSON_C_TO_STRING_PRETTY)
+                         << endl;
+        
+        // Increase ref count to switch its ownership
+        json_object_array_add(metadata_arr, json_object_get(entry));
+      };
+
+      if (m_executable_p) add_metadata("executable");
+      if (m_debuginfo_p) add_metadata("debuginfo");      
+      if (m_source_p) add_metadata("source");              
+    }
+  pp->reset();
+
+  unsigned num_local_results = json_object_array_length(metadata_arr);
+  
+  // Query upstream as well
+  debuginfod_client *client = debuginfod_pool_begin();
+  if (client != NULL)
+  {
+    add_client_federation_headers(client, conn);
+
+    int upstream_metadata_fd;
+    char *upstream_metadata_file = NULL;
+    upstream_metadata_fd = debuginfod_find_metadata(client, key.c_str(), (char*)value.c_str(),
+                                                    &upstream_metadata_file);
+    if (upstream_metadata_fd >= 0) {
+       /* json-c >= 0.13 has json_object_from_fd(). */
+      json_object *upstream_metadata_json = json_object_from_file(upstream_metadata_file);
+      free (upstream_metadata_file);
+      json_object *upstream_metadata_json_arr;
+      json_object *upstream_complete;
+      if (NULL != upstream_metadata_json &&
+          json_object_object_get_ex(upstream_metadata_json, "results", &upstream_metadata_json_arr) &&
+          json_object_object_get_ex(upstream_metadata_json, "complete", &upstream_complete))
+        {
+          metadata_complete &= json_object_get_boolean(upstream_complete);
+          for (int i = 0, n = json_object_array_length(upstream_metadata_json_arr); i < n; i++)
+            {
+              json_object *entry = json_object_array_get_idx(upstream_metadata_json_arr, i);
+              if (verbose > 3)
+                obatched(clog) << "metadata found remote "
+                               << json_object_to_json_string_ext(entry,
+                                                                 JSON_C_TO_STRING_PRETTY)
+                               << endl;
+              
+              json_object_get(entry); // increment reference count
+              json_object_array_add(metadata_arr, entry);
+            }
+          json_object_put(upstream_metadata_json);
+        }
+      close(upstream_metadata_fd);
+    }
+    debuginfod_pool_end (client);
+  }
+
+  unsigned num_total_results = json_object_array_length(metadata_arr);
+
+  if (verbose > 2)
+    obatched(clog) << "metadata found local=" << num_local_results
+                   << " remote=" << (num_total_results-num_local_results)
+                   << " total=" << num_total_results
+                   << endl;
+  
+  json_object_object_add(metadata, "complete", json_object_new_boolean(metadata_complete));
+  const char* metadata_str = json_object_to_json_string(metadata);
+  if (!metadata_str)
+    throw libc_exception (ENOMEM, "cannot allocate json");
+  r = MHD_create_response_from_buffer (strlen(metadata_str),
+                                       (void*) metadata_str,
+                                       MHD_RESPMEM_MUST_COPY);
+  *size = strlen(metadata_str);
+  if (r)
+    add_mhd_response_header(r, "Content-Type", "application/json");
+  return r;
+}
+
+
 static struct MHD_Response*
 handle_root (off_t* size)
 {
@@ -2939,6 +3171,7 @@ handler_cb (void * /*cls*/,
   clock_gettime (CLOCK_MONOTONIC, &ts_start);
   double afteryou = 0.0;
   string artifacttype, suffix;
+  string urlargs; // for logging
 
   try
     {
@@ -3007,6 +3240,19 @@ handler_cb (void * /*cls*/,
           inc_metric("http_requests_total", "type", artifacttype);
           r = handle_metrics(& http_size);
         }
+      else if (url1 == "/metadata")
+        {
+          tmp_inc_metric m ("thread_busy", "role", "http-metadata");
+          const char* key = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "key");
+          const char* value = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "value");
+          if (NULL == value || NULL == key)
+            throw reportable_exception("/metadata webapi error, need key and value");
+
+          urlargs = string("?key=") + string(key) + string("&value=") + string(value); // apprx., for logging
+          artifacttype = "metadata";
+          inc_metric("http_requests_total", "type", artifacttype);
+          r = handle_metadata(connection, key, value, &http_size);
+        }
       else if (url1 == "/")
         {
           artifacttype = "/";
@@ -3043,7 +3289,7 @@ handler_cb (void * /*cls*/,
   // afteryou: delay waiting for other client's identical query to complete
   // deltas: total latency, including afteryou waiting
   obatched(clog) << conninfo(connection)
-                 << ' ' << method << ' ' << url
+                 << ' ' << method << ' ' << url << urlargs
                  << ' ' << http_code << ' ' << http_size
                  << ' ' << (int)(afteryou*1000) << '+' << (int)((deltas-afteryou)*1000) << "ms"
                  << endl;
@@ -3396,6 +3642,7 @@ register_file_name(sqlite_ps& ps_upsert_fileparts,
       dirname = name.substr(0, slash);
       filename = name.substr(slash+1);
     }
+  // NB: see also handle_metadata()
 
   // intern the two substrings
   ps_upsert_fileparts
@@ -4379,12 +4626,13 @@ void groom()
   if (interrupted) return;
 
   // NB: "vacuum" is too heavy for even daily runs: it rewrites the entire db, so is done as maxigroom -G
-  sqlite_ps g1 (db, "incremental vacuum", "pragma incremental_vacuum");
-  g1.reset().step_ok_done();
-  sqlite_ps g2 (db, "optimize", "pragma optimize");
-  g2.reset().step_ok_done();
-  sqlite_ps g3 (db, "wal checkpoint", "pragma wal_checkpoint=truncate");
-  g3.reset().step_ok_done();
+  { sqlite_ps g (db, "incremental vacuum", "pragma incremental_vacuum"); g.reset().step_ok_done(); }
+  // https://www.sqlite.org/lang_analyze.html#approx
+  { sqlite_ps g (db, "analyze setup", "pragma analysis_limit = 1000;\n"); g.reset().step_ok_done(); }
+  { sqlite_ps g (db, "analyze", "analyze"); g.reset().step_ok_done(); }
+  { sqlite_ps g (db, "analyze reload", "analyze sqlite_schema"); g.reset().step_ok_done(); } 
+  { sqlite_ps g (db, "optimize", "pragma optimize"); g.reset().step_ok_done(); }
+  { sqlite_ps g (db, "wal checkpoint", "pragma wal_checkpoint=truncate"); g.reset().step_ok_done(); }
 
   database_stats_report();
 
@@ -4769,6 +5017,8 @@ main (int argc, char *argv[])
   if (maxigroom)
     {
       obatched(clog) << "maxigrooming database, please wait." << endl;
+      // NB: this index alone can nearly double the database size!
+      // NB: this index would be necessary to run source-file metadata searches fast
       extra_ddl.push_back("create index if not exists " BUILDIDS "_r_sref_arc on " BUILDIDS "_r_sref(artifactsrc);");
       extra_ddl.push_back("delete from " BUILDIDS "_r_sdef where not exists (select 1 from " BUILDIDS "_r_sref b where " BUILDIDS "_r_sdef.content = b.artifactsrc);");
       extra_ddl.push_back("drop index if exists " BUILDIDS "_r_sref_arc;");

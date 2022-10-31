@@ -266,12 +266,13 @@ TESTS += run-debuginfod-dlopen.sh \
 	 run-debuginfod-federation-sqlite.sh \
 	 run-debuginfod-federation-link.sh \
          run-debuginfod-percent-escape.sh \
-         run-debuginfod-x-forwarded-for.sh \
-         run-debuginfod-response-headers.sh \
-         run-debuginfod-extraction-passive.sh \
+	 run-debuginfod-x-forwarded-for.sh \
+	 run-debuginfod-response-headers.sh \
+	 run-debuginfod-extraction-passive.sh \
 	 run-debuginfod-webapi-concurrency.sh \
 	 run-debuginfod-section.sh \
-	 run-debuginfod-IXr.sh
+	 run-debuginfod-IXr.sh \
+	 run-debuginfod-find-metadata.sh
 endif
 if !OLD_LIBMICROHTTPD
 # Will crash on too old libmicrohttpd
@@ -603,7 +604,8 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
              run-debuginfod-webapi-concurrency.sh \
 	     run-debuginfod-section.sh \
 	     run-debuginfod-IXr.sh \
-		 run-debuginfod-ima-verification.sh \
+	     run-debuginfod-ima-verification.sh \
+	     run-debuginfod-find-metadata.sh \
 	     debuginfod-rpms/fedora30/hello2-1.0-2.src.rpm \
 	     debuginfod-rpms/fedora30/hello2-1.0-2.x86_64.rpm \
 	     debuginfod-rpms/fedora30/hello2-debuginfo-1.0-2.x86_64.rpm \

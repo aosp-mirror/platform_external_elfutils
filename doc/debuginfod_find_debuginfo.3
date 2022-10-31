@@ -48,6 +48,10 @@ LOOKUP FUNCTIONS
 .BI "                           int " build_id_len ","
 .BI "                           const char * " section ","
 .BI "                           char ** " path ");"
+.BI "int debuginfod_find_metadata(debuginfod_client *" client ","
+.BI "                            const char *" key ","
+.BI "                            const char *" value ","
+.BI "                            char ** " path ");"
 
 
 OPTIONAL FUNCTIONS
@@ -113,6 +117,14 @@ be the name of the desired ELF/DWARF section.  If a server does not support
 section queries, debuginfod_find_section may query the server for the
 debuginfo and/or executable with \fIbuild_id\fP in order to retrieve
 and extract the section.
+
+.BR debuginfod_find_metadata ()
+queries all debuginfod server URLs contained in
+.BR $DEBUGINFOD_URLS
+for metadata for all matches of a given key/value query against files
+in their indexes.  The resulting file is a JSON document.  See the
+\fIdebuginfod-find(1)\fP man page for examples of the supported types
+of key/value queries and their JSON results.
 
 If \fIpath\fP is not NULL and the query is successful, \fIpath\fP is set
 to the path of the file in the cache. The caller must \fBfree\fP() this value.

@@ -167,3 +167,11 @@ are short-circuited (returning an immediate failure instead of sending
 a new query to servers).  This accelerates queries that probably would
 still fail.  The default is 600, 10 minutes.  0 means "forget
 immediately".
+
+.TP
+.B metadata_retention_s
+This control file sets how long to remember the results of a metadata
+query.  New queries for the same artifacts within this time window are
+short-circuited (repeating the same results).  This accelerates
+queries that probably would probably have the same results.  The
+default is 3600, 1 hour.  0 means "do not retain".

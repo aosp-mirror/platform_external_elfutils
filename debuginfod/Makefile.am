@@ -33,7 +33,7 @@ include $(top_srcdir)/config/eu.am
 AM_CPPFLAGS += -I$(srcdir) -I$(srcdir)/../libelf -I$(srcdir)/../libebl \
 	   -I$(srcdir)/../libdw -I$(srcdir)/../libdwelf \
 	   $(libmicrohttpd_CFLAGS) $(libcurl_CFLAGS) $(sqlite3_CFLAGS) \
-	   $(libarchive_CFLAGS)
+	   $(libarchive_CFLAGS) $(jsonc_CFLAGS)
 
 # Disable eu- prefixing for artifacts (binaries & man pages) in this
 # directory, since they do not conflict with binutils tools.
@@ -70,10 +70,10 @@ bin_PROGRAMS += debuginfod-find
 endif
 
 debuginfod_SOURCES = debuginfod.cxx
-debuginfod_LDADD = $(libdw) $(libelf) $(libeu) $(libdebuginfod) $(argp_LDADD) $(fts_LIBS) $(libmicrohttpd_LIBS) $(sqlite3_LIBS) $(libarchive_LIBS) $(rpm_LIBS) -lpthread -ldl
+debuginfod_LDADD = $(libdw) $(libelf) $(libeu) $(libdebuginfod) $(argp_LDADD) $(fts_LIBS) $(libmicrohttpd_LIBS) $(sqlite3_LIBS) $(libarchive_LIBS) $(rpm_LIBS) $(jsonc_LIBS) $(libcurl_LIBS) -lpthread -ldl
 
 debuginfod_find_SOURCES = debuginfod-find.c
-debuginfod_find_LDADD = $(libdw) $(libelf) $(libeu) $(libdebuginfod) $(argp_LDADD) $(fts_LIBS)
+debuginfod_find_LDADD = $(libdw) $(libelf) $(libeu) $(libdebuginfod) $(argp_LDADD) $(fts_LIBS) $(jsonc_LIBS)
 
 if LIBDEBUGINFOD
 noinst_LIBRARIES = libdebuginfod.a
@@ -97,7 +97,7 @@ libdebuginfod_so_LIBS = libdebuginfod_pic.a
 if DUMMY_LIBDEBUGINFOD
 libdebuginfod_so_LDLIBS =
 else
-libdebuginfod_so_LDLIBS = -lpthread $(libcurl_LIBS) $(fts_LIBS) $(libelf) $(crypto_LIBS)
+libdebuginfod_so_LDLIBS = -lpthread $(libcurl_LIBS) $(fts_LIBS) $(libelf) $(crypto_LIBS) $(jsonc_LIBS)
 endif
 $(LIBDEBUGINFOD_SONAME): $(srcdir)/libdebuginfod.map $(libdebuginfod_so_LIBS)
 	$(AM_V_CCLD)$(LINK) $(dso_LDFLAGS) -o $@ \

@@ -863,9 +863,6 @@ AS_IF([test "x$enable_libdebuginfod" != "xno"], [
       enable_libdebuginfod=yes # presume success
       PKG_PROG_PKG_CONFIG
       PKG_CHECK_MODULES([libcurl],[libcurl >= 7.29.0],[],[enable_libdebuginfod=no])
-      if test "x$enable_libdebuginfod" = "xno"; then
-        AC_MSG_ERROR([dependencies not found, use --disable-libdebuginfod to disable or --enable-libdebuginfod=dummy to build a (bootstrap) dummy library.])
-      fi
     else
       AC_MSG_NOTICE([building (bootstrap) dummy libdebuginfo library])
     fi
@@ -899,10 +896,8 @@ AS_IF([test "x$enable_debuginfod" != "xno"], [
     PKG_CHECK_MODULES([libmicrohttpd],[libmicrohttpd >= 0.9.33],[],[enable_debuginfod=no])
     PKG_CHECK_MODULES([oldlibmicrohttpd],[libmicrohttpd < 0.9.51],[old_libmicrohttpd=yes],[old_libmicrohttpd=no])
     PKG_CHECK_MODULES([sqlite3],[sqlite3 >= 3.7.17],[],[enable_debuginfod=no])
-    PKG_CHECK_MODULES([libarchive],[libarchive >= 3.1.2],[],[enable_debuginfod=no], AC_DEFINE([HAVE_LIBARCHIVE], [0], [Define to 0 if libarchive is not available]))
-    if test "x$enable_debuginfod" = "xno"; then
-      AC_MSG_ERROR([dependencies not found, use --disable-debuginfod to disable.])
-    fi
+    PKG_CHECK_MODULES([libarchive],[libarchive >= 3.1.2],[],[enable_debuginfod=no])
+    PKG_CHECK_MODULES([jsonc],[json-c >= 0.11],[],[enable_debuginfod=no])    
 ])
 
 AS_IF([test "x$enable_debuginfod" != "xno"],AC_DEFINE([ENABLE_DEBUGINFOD],[1],[Build debuginfod]))

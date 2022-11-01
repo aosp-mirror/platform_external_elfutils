@@ -79,6 +79,12 @@ int debuginfod_find_source (debuginfod_client *client,
                             const char *filename,
                             char **path);
 
+int debuginfod_find_section (debuginfod_client *client,
+			     const unsigned char *build_id,
+			     int build_id_len,
+			     const char *section,
+			     char **path);
+
 typedef int (*debuginfod_progressfn_t)(debuginfod_client *c, long a, long b);
 void debuginfod_set_progressfn(debuginfod_client *c,
 			       debuginfod_progressfn_t fn);

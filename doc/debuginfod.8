@@ -363,6 +363,17 @@ Note: the client should %-escape characters in /SOURCE/FILE that are
 not shown as "unreserved" in section 2.3 of RFC3986. Some characters
 that will be escaped include "+", "\\", "$", "!", the 'space' character,
 and ";". RFC3986 includes a more comprehensive list of these characters.
+
+.SS /buildid/\fIBUILDID\fP/section\fI/SECTION\fP
+If the given buildid is known to the server, the server will attempt to
+extract the contents of an ELF/DWARF section named SECTION from the
+debuginfo file matching BUILDID.  If the debuginfo file can't be found
+or the section has type SHT_NOBITS, then the server will attempt to extract
+the section from the executable matching BUILDID.  If the section is
+succesfully extracted then this request results in a binary object
+of the section's contents.  Note that this result is the raw binary
+contents of the section, not an ELF file.
+
 .SS /metrics
 
 This endpoint returns a Prometheus formatted text/plain dump of a

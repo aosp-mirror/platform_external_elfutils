@@ -1,3 +1,25 @@
+2022-10-31  Aaron Merey  <amerey@redhat.com>
+
+	* Makefile.am (libdebuginfod_so_LDLIBS): Add libelf.
+	* debuginfod-client.c (debuginfod_find_section): New function.
+	(path_escape): New function.
+	(extract_section): New function.
+	(cache_find_section): New function.
+	(debuginfod_query_server): Add support for section queries.
+	* debuginfod-find.c (main): Add support for section queries.
+	* debuginfod.cxx (extract_section): New function.
+	(handle_buildid_f_match): Add section parameter.  When non-empty,
+	try to create response from section contents.
+	(handle_buildid_r_match): Add section parameter.  When non-empty,
+	try to create response from section contents.
+	(handle_buildid_match): Add section parameter. Pass to
+	handle_buildid_{f,r}_match.
+	(handle_buildid): Handle section name when artifacttype is set to
+	"section".  Query upstream servers via debuginfod_find_section
+	when necessary.
+	(debuginfod.h.in): Add declaration for debuginfod_find_section.
+	(libdebuginfod.map): Add debuginfod_find_section.
+
 2022-10-18  Daniel Thornburgh <dthorn@google.com>
 
   * debuginfod-client.c (debuginfod_query_server): Add DEBUGINFOD_HEADERS_FILE

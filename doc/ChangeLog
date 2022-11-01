@@ -1,3 +1,10 @@
+2022-10-31  Aaron Merey  <amerey@redhat.com>
+
+	* Makefile.am (notrans_dist_man3_MANS): Add debuginfod_find_section.3.
+	* debuginfod_find_section.3: New file.
+	* debuginfod_find_debuginfo.3: Document debuginfod_find_section.
+	* debuginfod.8: Document section webapi.
+
 2022-10-28  Arsen Arsenović  <arsen@aarsen.me>
 
 	* readelf.1: Document the --syms alias.

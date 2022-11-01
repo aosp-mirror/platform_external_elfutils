@@ -45,6 +45,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <gelf.h>
 
 /* We might be building a bootstrap dummy library, which is really simple. */
 #ifdef DUMMY_LIBDEBUGINFOD
@@ -56,6 +57,9 @@ int debuginfod_find_executable (debuginfod_client *c, const unsigned char *b,
                                 int s, char **p) { return -ENOSYS; }
 int debuginfod_find_source (debuginfod_client *c, const unsigned char *b,
                             int s, const char *f, char **p)  { return -ENOSYS; }
+int debuginfod_find_section (debuginfod_client *c, const unsigned char *b,
+			     int s, const char *scn, char **p)
+			      { return -ENOSYS; }
 void debuginfod_set_progressfn(debuginfod_client *c,
 			       debuginfod_progressfn_t fn) { }
 void debuginfod_set_verbose_fd(debuginfod_client *c, int fd) { }
@@ -129,6 +133,9 @@ struct debuginfod_client
   /* Flags the default_progressfn having printed something that
      debuginfod_end needs to terminate. */
   int default_progressfn_printed_p;
+
+  /* Indicates whether the last query was cancelled by progressfn.  */
+  bool progressfn_cancel;
 
   /* File descriptor to output any verbose messages if > 0.  */
   int verbose_fd;
@@ -576,21 +583,257 @@ header_callback (char * buffer, size_t size, size_t numitems, void * userdata)
   return numitems;
 }
 
+/* Copy SRC to DEST, s,/,#,g */
+
+static void
+path_escape (const char *src, char *dest)
+{
+  unsigned q = 0;
+
+  for (unsigned fi=0; q < PATH_MAX-2; fi++) /* -2, escape is 2 chars.  */
+    switch (src[fi])
+      {
+      case '\0':
+        dest[q] = '\0';
+        q = PATH_MAX-1; /* escape for loop too */
+        break;
+      case '/': /* escape / to prevent dir escape */
+        dest[q++]='#';
+        dest[q++]='#';
+        break;
+      case '#': /* escape # to prevent /# vs #/ collisions */
+        dest[q++]='#';
+        dest[q++]='_';
+        break;
+      default:
+        dest[q++]=src[fi];
+      }
+
+  dest[q] = '\0';
+}
+
+/* Attempt to read an ELF/DWARF section with name SECTION from FD and write
+   it to a separate file in the debuginfod cache.  If successful the absolute
+   path of the separate file containing SECTION will be stored in USR_PATH.
+   FD_PATH is the absolute path for FD.
+
+   If the section cannot be extracted, then return a negative error code.
+   -ENOENT indicates that the parent file was able to be read but the
+   section name was not found.  -EEXIST indicates that the section was
+   found but had type SHT_NOBITS.  */
+
+int
+extract_section (int fd, const char *section, char *fd_path, char **usr_path)
+{
+  elf_version (EV_CURRENT);
+
+  Elf *elf = elf_begin (fd, ELF_C_READ_MMAP_PRIVATE, NULL);
+  if (elf == NULL)
+    return -EIO;
+
+  size_t shstrndx;
+  int rc = elf_getshdrstrndx (elf, &shstrndx);
+  if (rc < 0)
+    {
+      rc = -EIO;
+      goto out;
+    }
+
+  int sec_fd = -1;
+  char *escaped_name = NULL;
+  char *sec_path_tmp = NULL;
+  Elf_Scn *scn = NULL;
+
+  /* Try to find the target section and copy the contents into a
+     separate file.  */
+  while (true)
+    {
+      scn = elf_nextscn (elf, scn);
+      if (scn == NULL)
+	{
+	  rc = -ENOENT;
+	  goto out;
+	}
+      GElf_Shdr shdr_storage;
+      GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_storage);
+      if (shdr == NULL)
+	{
+	  rc = -EIO;
+	  goto out;
+	}
+
+      const char *scn_name = elf_strptr (elf, shstrndx, shdr->sh_name);
+      if (scn_name == NULL)
+	{
+	  rc = -EIO;
+	  goto out;
+	}
+      if (strcmp (scn_name, section) == 0)
+	{
+	  /* We found the desired section.  */
+	  if (shdr->sh_type == SHT_NOBITS)
+	    {
+	      rc = -EEXIST;
+	      goto out;
+	    }
+
+	  Elf_Data *data = NULL;
+	  data = elf_rawdata (scn, NULL);
+	  if (data == NULL)
+	    {
+	      rc = -EIO;
+	      goto out;
+	    }
+
+	  if (data->d_buf == NULL)
+	    {
+	      rc = -EIO;
+	      goto out;
+	    }
+
+	  /* Compute the absolute filename we'll write the section to.
+	     Replace the last component of FD_PATH with the path-escaped
+	     section filename.  */
+	  int i = strlen (fd_path);
+          while (i >= 0)
+	    {
+	      if (fd_path[i] == '/')
+		{
+		  fd_path[i] = '\0';
+		  break;
+		}
+	      --i;
+	    }
+
+	  escaped_name = malloc (strlen (section) * 2 + 1);
+	  if (escaped_name == NULL)
+	    {
+	      rc = -ENOMEM;
+	      goto out;
+	    }
+	  path_escape (section, escaped_name);
+
+	  rc = asprintf (&sec_path_tmp, "%s/section-%s.XXXXXX",
+			 fd_path, escaped_name);
+	  if (rc == -1)
+	    {
+	      rc = -ENOMEM;
+	      goto out1;
+	    }
+
+	  sec_fd = mkstemp (sec_path_tmp);
+	  if (sec_fd < 0)
+	    {
+	      rc = -EIO;
+	      goto out2;
+	    }
+
+	  ssize_t res = write_retry (sec_fd, data->d_buf, data->d_size);
+	  if (res < 0 || (size_t) res != data->d_size)
+	    {
+	      rc = -EIO;
+	      goto out3;
+	    }
+
+	  /* Success.  Rename tmp file and update USR_PATH.  */
+	  char *sec_path;
+	  if (asprintf (&sec_path, "%s/section-%s", fd_path, section) == -1)
+	    {
+	      rc = -ENOMEM;
+	      goto out3;
+	    }
+
+	  rc = rename (sec_path_tmp, sec_path);
+	  if (rc < 0)
+	    {
+	      free (sec_path);
+	      rc = -EIO;
+	      goto out3;
+	    }
+
+	  if (usr_path != NULL)
+	    *usr_path = sec_path;
+	  else
+	    free (sec_path);
+	  rc = sec_fd;
+	  goto out2;
+	}
+    }
+
+out3:
+  close (sec_fd);
+  unlink (sec_path_tmp);
+
+out2:
+  free (sec_path_tmp);
+
+out1:
+  free (escaped_name);
+
+out:
+  elf_end (elf);
+  return rc;
+}
+
+/* Search TARGET_CACHE_DIR for a debuginfo or executable file containing
+   an ELF/DWARF section with name SCN_NAME.  If found, extract the section
+   to a separate file in TARGET_CACHE_DIR and return a file descriptor
+   for the section file. The path for this file will be stored in USR_PATH.
+   Return a negative errno if unsuccessful.  */
+
+static int
+cache_find_section (const char *scn_name, const char *target_cache_dir,
+		    char **usr_path)
+{
+  int fd;
+  int rc = -EEXIST;
+  char parent_path[PATH_MAX];
+
+  /* Check the debuginfo first.  */
+  snprintf (parent_path, PATH_MAX, "%s/debuginfo", target_cache_dir);
+  fd = open (parent_path, O_RDONLY);
+  if (fd >= 0)
+    {
+      rc = extract_section (fd, scn_name, parent_path, usr_path);
+      close (fd);
+    }
+
+  /* If the debuginfo file couldn't be found or the section type was
+     SHT_NOBITS, check the executable.  */
+  if (rc == -EEXIST)
+    {
+      snprintf (parent_path, PATH_MAX, "%s/executable", target_cache_dir);
+      fd = open (parent_path, O_RDONLY);
+
+      if (fd >= 0)
+	{
+	  rc = extract_section (fd, scn_name, parent_path, usr_path);
+	  close (fd);
+	}
+    }
+
+  return rc;
+}
+
 /* Query each of the server URLs found in $DEBUGINFOD_URLS for the file
-   with the specified build-id, type (debuginfo, executable or source)
-   and filename. filename may be NULL. If found, return a file
-   descriptor for the target, otherwise return an error code.
+   with the specified build-id and type (debuginfo, executable, source or
+   section).  If type is source, then type_arg should be a filename.  If
+   type is section, then type_arg should be the name of an ELF/DWARF
+   section.  Otherwise type_arg may be NULL.  Return a file descriptor
+   for the target if successful, otherwise return an error code.
 */
 static int
 debuginfod_query_server (debuginfod_client *c,
 			 const unsigned char *build_id,
                          int build_id_len,
                          const char *type,
-                         const char *filename,
+                         const char *type_arg,
                          char **path)
 {
   char *server_urls;
   char *urls_envvar;
+  const char *section = NULL;
+  const char *filename = NULL;
   char *cache_path = NULL;
   char *maxage_path = NULL;
   char *interval_path = NULL;
@@ -602,6 +845,17 @@ debuginfod_query_server (debuginfod_client *c,
   char build_id_bytes[MAX_BUILD_ID_BYTES * 2 + 1];
   int vfd = c->verbose_fd;
   int rc;
+
+  c->progressfn_cancel = false;
+
+  if (strcmp (type, "source") == 0)
+    filename = type_arg;
+  else if (strcmp (type, "section") == 0)
+    {
+      section = type_arg;
+      if (section == NULL)
+	return -EINVAL;
+    }
 
   if (vfd >= 0)
     {
@@ -701,31 +955,13 @@ debuginfod_query_server (debuginfod_client *c,
 	  goto out;
 	}
 
-      /* copy the filename to suffix, s,/,#,g */
-      unsigned q = 0;
-      for (unsigned fi=0; q < PATH_MAX-2; fi++) /* -2, escape is 2 chars.  */
-        switch (filename[fi])
-          {
-          case '\0':
-            suffix[q] = '\0';
-            q = PATH_MAX-1; /* escape for loop too */
-            break;
-          case '/': /* escape / to prevent dir escape */
-            suffix[q++]='#';
-            suffix[q++]='#';
-            break;
-          case '#': /* escape # to prevent /# vs #/ collisions */
-            suffix[q++]='#';
-            suffix[q++]='_';
-            break;
-          default:
-            suffix[q++]=filename[fi];
-          }
-      suffix[q] = '\0';
+      path_escape (filename, suffix);
       /* If the DWARF filenames are super long, this could exceed
          PATH_MAX and truncate/collide.  Oh well, that'll teach
          them! */
     }
+  else if (section != NULL)
+    path_escape (section, suffix);
   else
     suffix[0] = '\0';
 
@@ -797,7 +1033,10 @@ debuginfod_query_server (debuginfod_client *c,
     }
 
   xalloc_str (target_cache_dir, "%s/%s", cache_path, build_id_bytes);
-  xalloc_str (target_cache_path, "%s/%s%s", target_cache_dir, type, suffix);
+  if (section != NULL)
+    xalloc_str (target_cache_path, "%s/%s-%s", target_cache_dir, type, suffix);
+  else
+    xalloc_str (target_cache_path, "%s/%s%s", target_cache_dir, type, suffix);
   xalloc_str (target_cache_tmppath, "%s.XXXXXX", target_cache_path);
 
   /* XXX combine these */
@@ -880,6 +1119,18 @@ debuginfod_query_server (debuginfod_client *c,
   else if (errno == EACCES)
     /* Ensure old 000-permission files are not lingering in the cache. */
     unlink(target_cache_path);
+
+  if (section != NULL)
+    {
+      /* Try to extract the section from a cached file before querying
+	 any servers.  */
+      rc = cache_find_section (section, target_cache_dir, path);
+
+      /* If the section was found or confirmed to not exist, then we
+	 are done.  */
+      if (rc >= 0 || rc == -ENOENT)
+	goto out;
+    }
 
   long timeout = default_timeout;
   const char* timeout_envvar = getenv(DEBUGINFOD_TIMEOUT_ENV_VAR);
@@ -1053,6 +1304,9 @@ debuginfod_query_server (debuginfod_client *c,
           snprintf(data[i].url, PATH_MAX, "%s/%s/%s/%s", server_url,
                    build_id_bytes, type, escaped_string);
         }
+      else if (section)
+	snprintf(data[i].url, PATH_MAX, "%s/%s/%s/%s", server_url,
+		 build_id_bytes, type, section);
       else
         snprintf(data[i].url, PATH_MAX, "%s/%s/%s", server_url, build_id_bytes, type);
       if (vfd >= 0)
@@ -1257,7 +1511,10 @@ debuginfod_query_server (debuginfod_client *c,
             }
 
           if ((*c->progressfn) (c, pa, dl_size))
-            break;
+	    {
+	      c->progressfn_cancel = true;
+              break;
+	    }
         }
 
       /* Check to see if we are downloading something which exceeds maxsize, if set.*/
@@ -1324,6 +1581,8 @@ debuginfod_query_server (debuginfod_client *c,
                   /* 406 signals that the requested file was too large */
                   if ( ok0 == CURLE_OK && resp_code == 406)
                     rc = -EFBIG;
+		  else if (section != NULL && resp_code == 503)
+		    rc = -EINVAL;
                   else
                     rc = -ENOENT;
                   break;
@@ -1649,6 +1908,56 @@ int debuginfod_find_source(debuginfod_client *client,
                                  "source", filename, path);
 }
 
+int
+debuginfod_find_section (debuginfod_client *client,
+			 const unsigned char *build_id, int build_id_len,
+			 const char *section, char **path)
+{
+  int rc = debuginfod_query_server(client, build_id, build_id_len,
+				   "section", section, path);
+  if (rc != -EINVAL)
+    return rc;
+
+  /* The servers may have lacked support for section queries.  Attempt to
+     download the debuginfo or executable containing the section in order
+     to extract it.  */
+  rc = -EEXIST;
+  int fd = -1;
+  char *tmp_path = NULL;
+
+  fd = debuginfod_find_debuginfo (client, build_id, build_id_len, &tmp_path);
+  if (client->progressfn_cancel)
+    {
+      if (fd >= 0)
+	{
+	  /* This shouldn't happen, but we'll check this condition
+	     just in case.  */
+	  close (fd);
+	  free (tmp_path);
+	}
+      return -ENOENT;
+    }
+  if (fd > 0)
+    {
+      rc = extract_section (fd, section, tmp_path, path);
+      close (fd);
+    }
+
+  if (rc == -EEXIST)
+    {
+      /* The section should be found in the executable.  */
+      fd = debuginfod_find_executable (client, build_id,
+				       build_id_len, &tmp_path);
+      if (fd > 0)
+	{
+	  rc = extract_section (fd, section, tmp_path, path);
+	  close (fd);
+	}
+    }
+
+  free (tmp_path);
+  return rc;
+}
 
 /* Add an outgoing HTTP header.  */
 int debuginfod_add_http_header (debuginfod_client *client, const char* header)

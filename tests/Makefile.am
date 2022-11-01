@@ -247,7 +247,8 @@ TESTS += run-debuginfod-dlopen.sh \
          run-debuginfod-x-forwarded-for.sh \
          run-debuginfod-response-headers.sh \
          run-debuginfod-extraction-passive.sh \
-	 run-debuginfod-webapi-concurrency.sh
+	 run-debuginfod-webapi-concurrency.sh \
+	 run-debuginfod-section.sh
 endif
 if !OLD_LIBMICROHTTPD
 # Will crash on too old libmicrohttpd
@@ -554,6 +555,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-debuginfod-response-headers.sh \
              run-debuginfod-extraction-passive.sh \
              run-debuginfod-webapi-concurrency.sh \
+	     run-debuginfod-section.sh \
 	     debuginfod-rpms/fedora30/hello2-1.0-2.src.rpm \
 	     debuginfod-rpms/fedora30/hello2-1.0-2.x86_64.rpm \
 	     debuginfod-rpms/fedora30/hello2-debuginfo-1.0-2.x86_64.rpm \

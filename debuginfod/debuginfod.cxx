@@ -1136,66 +1136,6 @@ add_mhd_last_modified (struct MHD_Response *resp, time_t mtime)
   add_mhd_response_header (resp, "Cache-Control", "public");
 }
 
-
-
-static struct MHD_Response*
-handle_buildid_f_match (bool internal_req_t,
-                        int64_t b_mtime,
-                        const string& b_source0,
-                        int *result_fd)
-{
-  (void) internal_req_t; // ignored
-  int fd = open(b_source0.c_str(), O_RDONLY);
-  if (fd < 0)
-    throw libc_exception (errno, string("open ") + b_source0);
-
-  // NB: use manual close(2) in error case instead of defer_dtor, because
-  // in the normal case, we want to hand the fd over to libmicrohttpd for
-  // file transfer.
-
-  struct stat s;
-  int rc = fstat(fd, &s);
-  if (rc < 0)
-    {
-      close(fd);
-      throw libc_exception (errno, string("fstat ") + b_source0);
-    }
-
-  if ((int64_t) s.st_mtime != b_mtime)
-    {
-      if (verbose)
-        obatched(clog) << "mtime mismatch for " << b_source0 << endl;
-      close(fd);
-      return 0;
-    }
-
-  inc_metric ("http_responses_total","result","file");
-  struct MHD_Response* r = MHD_create_response_from_fd ((uint64_t) s.st_size, fd);
-  if (r == 0)
-    {
-      if (verbose)
-        obatched(clog) << "cannot create fd-response for " << b_source0 << endl;
-      close(fd);
-    }
-  else
-    {
-      std::string file = b_source0.substr(b_source0.find_last_of("/")+1, b_source0.length());
-      add_mhd_response_header (r, "Content-Type", "application/octet-stream");
-      add_mhd_response_header (r, "X-DEBUGINFOD-SIZE",
-			       to_string(s.st_size).c_str());
-      add_mhd_response_header (r, "X-DEBUGINFOD-FILE", file.c_str());
-      add_mhd_last_modified (r, s.st_mtime);
-      if (verbose > 1)
-        obatched(clog) << "serving file " << b_source0 << endl;
-      /* libmicrohttpd will close it. */
-      if (result_fd)
-        *result_fd = fd;
-    }
-
-  return r;
-}
-
-
 // quote all questionable characters of str for safe passage through a sh -c expansion.
 static string
 shell_escape(const string& str)
@@ -1589,6 +1529,205 @@ public:
 };
 static libarchive_fdcache fdcache;
 
+/* Search ELF_FD for an ELF/DWARF section with name SECTION.
+   If found copy the section to a temporary file and return
+   its file descriptor, otherwise return -1.
+
+   The temporary file's mtime will be set to PARENT_MTIME.
+   B_SOURCE should be a description of the parent file suitable
+   for printing to the log.  */
+
+static int
+extract_section (int elf_fd, int64_t parent_mtime,
+		 const string& b_source, const string& section)
+{
+  /* Search the fdcache.  */
+  struct stat fs;
+  int fd = fdcache.lookup (b_source, section);
+  if (fd >= 0)
+    {
+      if (fstat (fd, &fs) != 0)
+	{
+	  if (verbose)
+	    obatched (clog) << "cannot fstate fdcache "
+			    << b_source << " " << section << endl;
+	  close (fd);
+	  return -1;
+	}
+      if ((int64_t) fs.st_mtime != parent_mtime)
+	{
+	  if (verbose)
+	    obatched(clog) << "mtime mismatch for "
+			   << b_source << " " << section << endl;
+	  close (fd);
+	  return -1;
+	}
+      /* Success.  */
+      return fd;
+    }
+
+  Elf *elf = elf_begin (elf_fd, ELF_C_READ_MMAP_PRIVATE, NULL);
+  if (elf == NULL)
+    return -1;
+
+  /* Try to find the section and copy the contents into a separate file.  */
+  try
+    {
+      size_t shstrndx;
+      int rc = elf_getshdrstrndx (elf, &shstrndx);
+      if (rc < 0)
+	throw elfutils_exception (rc, "getshdrstrndx");
+
+      Elf_Scn *scn = NULL;
+      while (true)
+	{
+	  scn = elf_nextscn (elf, scn);
+	  if (scn == NULL)
+	    break;
+	  GElf_Shdr shdr_storage;
+	  GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_storage);
+	  if (shdr == NULL)
+	    break;
+
+	  const char *scn_name = elf_strptr (elf, shstrndx, shdr->sh_name);
+	  if (scn_name == NULL)
+	    break;
+	  if (scn_name == section)
+	    {
+	      Elf_Data *data = NULL;
+
+	      /* We found the desired section.  */
+	      data = elf_rawdata (scn, NULL);
+	      if (data == NULL)
+		throw elfutils_exception (elf_errno (), "elfraw_data");
+	      if (data->d_buf == NULL)
+		{
+		  obatched(clog) << "section " << section
+				 << " is empty" << endl;
+		  break;
+		}
+
+	      /* Create temporary file containing the section.  */
+	      char *tmppath = NULL;
+	      rc = asprintf (&tmppath, "%s/debuginfod.XXXXXX", tmpdir.c_str());
+	      if (rc < 0)
+		throw libc_exception (ENOMEM, "cannot allocate tmppath");
+	      defer_dtor<void*,void> tmmpath_freer (tmppath, free);
+	      fd = mkstemp (tmppath);
+	      if (fd < 0)
+		throw libc_exception (errno, "cannot create temporary file");
+	      ssize_t res = write_retry (fd, data->d_buf, data->d_size);
+	      if (res < 0 || (size_t) res != data->d_size)
+		throw libc_exception (errno, "cannot write to temporary file");
+
+	      /* Set mtime to be the same as the parent file's mtime.  */
+	      struct timeval tvs[2];
+	      if (fstat (elf_fd, &fs) != 0)
+		throw libc_exception (errno, "cannot fstat file");
+
+	      tvs[0].tv_sec = tvs[1].tv_sec = fs.st_mtime;
+	      tvs[0].tv_usec = tvs[1].tv_usec = 0;
+	      (void) futimes (fd, tvs);
+
+	      /* Add to fdcache.  */
+	      fdcache.intern (b_source, section, tmppath, data->d_size, true);
+	      break;
+	    }
+	}
+    }
+  catch (const reportable_exception &e)
+    {
+      e.report (clog);
+      close (fd);
+      fd = -1;
+    }
+
+  elf_end (elf);
+  return fd;
+}
+
+static struct MHD_Response*
+handle_buildid_f_match (bool internal_req_t,
+                        int64_t b_mtime,
+                        const string& b_source0,
+                        const string& section,
+                        int *result_fd)
+{
+  (void) internal_req_t; // ignored
+  int fd = open(b_source0.c_str(), O_RDONLY);
+  if (fd < 0)
+    throw libc_exception (errno, string("open ") + b_source0);
+
+  // NB: use manual close(2) in error case instead of defer_dtor, because
+  // in the normal case, we want to hand the fd over to libmicrohttpd for
+  // file transfer.
+
+  struct stat s;
+  int rc = fstat(fd, &s);
+  if (rc < 0)
+    {
+      close(fd);
+      throw libc_exception (errno, string("fstat ") + b_source0);
+    }
+
+  if ((int64_t) s.st_mtime != b_mtime)
+    {
+      if (verbose)
+        obatched(clog) << "mtime mismatch for " << b_source0 << endl;
+      close(fd);
+      return 0;
+    }
+
+  if (!section.empty ())
+    {
+      int scn_fd = extract_section (fd, s.st_mtime, b_source0, section);
+      close (fd);
+
+      if (scn_fd >= 0)
+	fd = scn_fd;
+      else
+	{
+	  if (verbose)
+	    obatched (clog) << "cannot find section " << section
+			    << " for " << b_source0 << endl;
+	  return 0;
+	}
+
+      rc = fstat(fd, &s);
+      if (rc < 0)
+	{
+	  close (fd);
+	  throw libc_exception (errno, string ("fstat ") + b_source0
+				       + string (" ") + section);
+	}
+    }
+
+  struct MHD_Response* r = MHD_create_response_from_fd ((uint64_t) s.st_size, fd);
+  inc_metric ("http_responses_total","result","file");
+  if (r == 0)
+    {
+      if (verbose)
+	obatched(clog) << "cannot create fd-response for " << b_source0
+		       << " section=" << section << endl;
+      close(fd);
+    }
+  else
+    {
+      std::string file = b_source0.substr(b_source0.find_last_of("/")+1, b_source0.length());
+      add_mhd_response_header (r, "Content-Type", "application/octet-stream");
+      add_mhd_response_header (r, "X-DEBUGINFOD-SIZE",
+			       to_string(s.st_size).c_str());
+      add_mhd_response_header (r, "X-DEBUGINFOD-FILE", file.c_str());
+      add_mhd_last_modified (r, s.st_mtime);
+      if (verbose > 1)
+	obatched(clog) << "serving file " << b_source0 << " section=" << section << endl;
+      /* libmicrohttpd will close it. */
+      if (result_fd)
+        *result_fd = fd;
+    }
+
+  return r;
+}
 
 // For security/portability reasons, many distro-package archives have
 // a "./" in front of path names; others have nothing, others have
@@ -1614,6 +1753,7 @@ handle_buildid_r_match (bool internal_req_p,
                         int64_t b_mtime,
                         const string& b_source0,
                         const string& b_source1,
+                        const string& section,
                         int *result_fd)
 {
   struct stat fs;
@@ -1642,6 +1782,33 @@ handle_buildid_r_match (bool internal_req_p,
           break; // branch out of if "loop", to try new libarchive fetch attempt
         }
 
+      if (!section.empty ())
+	{
+	  int scn_fd = extract_section (fd, fs.st_mtime,
+					b_source0 + ":" + b_source1,
+					section);
+	  close (fd);
+	  if (scn_fd >= 0)
+	    fd = scn_fd;
+	  else
+	    {
+	      if (verbose)
+	        obatched (clog) << "cannot find section " << section
+				<< " for archive " << b_source0
+				<< " file " << b_source1 << endl;
+	      return 0;
+	    }
+
+	  rc = fstat(fd, &fs);
+	  if (rc < 0)
+	    {
+	      close (fd);
+	      throw libc_exception (errno,
+		string ("fstat archive ") + b_source0 + string (" file ") + b_source1
+		+ string (" section ") + section);
+	    }
+	}
+
       struct MHD_Response* r = MHD_create_response_from_fd (fs.st_size, fd);
       if (r == 0)
         {
@@ -1660,7 +1827,9 @@ handle_buildid_r_match (bool internal_req_p,
       add_mhd_response_header (r, "X-DEBUGINFOD-FILE", b_source1.c_str());
       add_mhd_last_modified (r, fs.st_mtime);
       if (verbose > 1)
-        obatched(clog) << "serving fdcache archive " << b_source0 << " file " << b_source1 << endl;
+	obatched(clog) << "serving fdcache archive " << b_source0
+		       << " file " << b_source1
+		       << " section=" << section << endl;
       /* libmicrohttpd will close it. */
       if (result_fd)
         *result_fd = fd;
@@ -1791,8 +1960,36 @@ handle_buildid_r_match (bool internal_req_p,
                      tmppath, archive_entry_size(e),
                      true); // requested ones go to the front of lru
 
+      if (!section.empty ())
+	{
+	  int scn_fd = extract_section (fd, b_mtime,
+					b_source0 + ":" + b_source1,
+					section);
+	  close (fd);
+	  if (scn_fd >= 0)
+	    fd = scn_fd;
+	  else
+	    {
+	      if (verbose)
+	        obatched (clog) << "cannot find section " << section
+				<< " for archive " << b_source0
+				<< " file " << b_source1 << endl;
+	      return 0;
+	    }
+
+	  rc = fstat(fd, &fs);
+	  if (rc < 0)
+	    {
+	      close (fd);
+	      throw libc_exception (errno,
+		string ("fstat ") + b_source0 + string (" ") + section);
+	    }
+	  r = MHD_create_response_from_fd (fs.st_size, fd);
+	}
+      else
+	r = MHD_create_response_from_fd (archive_entry_size(e), fd);
+
       inc_metric ("http_responses_total","result",archive_extension + " archive");
-      r = MHD_create_response_from_fd (archive_entry_size(e), fd);
       if (r == 0)
         {
           if (verbose)
@@ -1812,7 +2009,9 @@ handle_buildid_r_match (bool internal_req_p,
           add_mhd_response_header (r, "X-DEBUGINFOD-FILE", file.c_str());
           add_mhd_last_modified (r, archive_entry_mtime(e));
           if (verbose > 1)
-            obatched(clog) << "serving archive " << b_source0 << " file " << b_source1 << endl;
+	    obatched(clog) << "serving archive " << b_source0
+			   << " file " << b_source1
+			   << " section=" << section << endl;
           /* libmicrohttpd will close it. */
           if (result_fd)
             *result_fd = fd;
@@ -1831,14 +2030,17 @@ handle_buildid_match (bool internal_req_p,
                       const string& b_stype,
                       const string& b_source0,
                       const string& b_source1,
+                      const string& section,
                       int *result_fd)
 {
   try
     {
       if (b_stype == "F")
-        return handle_buildid_f_match(internal_req_p, b_mtime, b_source0, result_fd);
+        return handle_buildid_f_match(internal_req_p, b_mtime, b_source0,
+				      section, result_fd);
       else if (b_stype == "R")
-        return handle_buildid_r_match(internal_req_p, b_mtime, b_source0, b_source1, result_fd);
+        return handle_buildid_r_match(internal_req_p, b_mtime, b_source0,
+				      b_source1, section, result_fd);
     }
   catch (const reportable_exception &e)
     {
@@ -1913,6 +2115,7 @@ handle_buildid (MHD_Connection* conn,
   if (artifacttype == "debuginfo") atype_code = "D";
   else if (artifacttype == "executable") atype_code = "E";
   else if (artifacttype == "source") atype_code = "S";
+  else if (artifacttype == "section") atype_code = "I";
   else {
     artifacttype = "invalid"; // PR28242 ensure http_resposes metrics don't propagate unclean user data 
     throw reportable_exception("invalid artifacttype");
@@ -1920,7 +2123,17 @@ handle_buildid (MHD_Connection* conn,
 
   if (conn != 0)
     inc_metric("http_requests_total", "type", artifacttype);
-  
+
+  string section;
+  if (atype_code == "I")
+    {
+      if (suffix.size () < 2)
+	throw reportable_exception ("invalid section suffix");
+
+      // Remove leading '/'
+      section = suffix.substr(1);
+    }
+
   if (atype_code == "S" && suffix == "")
      throw reportable_exception("invalid source suffix");
 
@@ -1972,7 +2185,20 @@ handle_buildid (MHD_Connection* conn,
       pp->bind(2, suffix);
       pp->bind(3, canon_pathname(suffix));
     }
+  else if (atype_code == "I")
+    {
+      pp = new sqlite_ps (thisdb, "mhd-query-i",
+	"select mtime, sourcetype, source0, source1, 1 as debug_p from " BUILDIDS "_query_d where buildid = ? "
+	"union all "
+	"select mtime, sourcetype, source0, source1, 0 as debug_p from " BUILDIDS "_query_e where buildid = ? "
+	"order by debug_p desc, mtime desc");
+      pp->reset();
+      pp->bind(1, buildid);
+      pp->bind(2, buildid);
+    }
   unique_ptr<sqlite_ps> ps_closer(pp); // release pp if exception or return
+
+  bool do_upstream_section_query = true;
 
   // consume all the rows
   while (1)
@@ -1994,11 +2220,29 @@ handle_buildid (MHD_Connection* conn,
       // Try accessing the located match.
       // XXX: in case of multiple matches, attempt them in parallel?
       auto r = handle_buildid_match (conn ? false : true,
-                                     b_mtime, b_stype, b_source0, b_source1, result_fd);
+                                     b_mtime, b_stype, b_source0, b_source1,
+				     section, result_fd);
       if (r)
         return r;
+
+      // If a debuginfo file matching BUILDID was found but didn't contain
+      // the desired section, then the section should not exist.  Don't
+      // bother querying upstream servers.
+      if (!section.empty () && (sqlite3_column_int (*pp, 4) == 1))
+	{
+	  struct stat st;
+
+	  // For "F" sourcetype, check if the debuginfo exists. For "R"
+	  // sourcetype, check if the debuginfo was interned into the fdcache.
+	  if ((b_stype == "F" && (stat (b_source0.c_str (), &st) == 0))
+	      || (b_stype == "R" && fdcache.probe (b_source0, b_source1)))
+	    do_upstream_section_query = false;
+	}
     }
   pp->reset();
+
+  if (!do_upstream_section_query)
+    throw reportable_exception(MHD_HTTP_NOT_FOUND, "not found");
 
   // We couldn't find it in the database.  Last ditch effort
   // is to defer to other debuginfo servers.
@@ -2074,6 +2318,11 @@ and will not query the upstream servers");
 	fd = debuginfod_find_source (client,
 				     (const unsigned char*) buildid.c_str(),
 				     0, suffix.c_str(), NULL);
+      else if (artifacttype == "section")
+	fd = debuginfod_find_section (client,
+				      (const unsigned char*) buildid.c_str(),
+				      0, section.c_str(), NULL);
+
     }
   else
     fd = -errno; /* Set by debuginfod_begin.  */

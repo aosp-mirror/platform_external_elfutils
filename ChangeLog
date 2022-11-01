@@ -1,3 +1,7 @@
+2022-10-31  Aaron Merey  <amerey@redhat.com>
+
+	* NEWS: Add debuginfod_find_section.
+
 2022-10-20  Mark Wielaard  <mark@klomp.org>
 
 	* Makefile.am (rpm): Remove --sign.

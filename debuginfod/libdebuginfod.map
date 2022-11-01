@@ -20,4 +20,5 @@ ELFUTILS_0.183 {
 } ELFUTILS_0.179;
 ELFUTILS_0.188 {
   debuginfod_get_headers;
+  debuginfod_find_section;
 } ELFUTILS_0.183;

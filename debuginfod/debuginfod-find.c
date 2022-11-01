@@ -48,7 +48,9 @@ static const char args_doc[] = N_("debuginfo BUILDID\n"
                                   "executable BUILDID\n"
                                   "executable PATH\n"
                                   "source BUILDID /FILENAME\n"
-                                  "source PATH /FILENAME\n");
+                                  "source PATH /FILENAME\n"
+				  "section BUILDID SECTION-NAME\n"
+				  "section PATH SECTION-NAME\n");
 
 
 /* Definitions of arguments for argp functions.  */
@@ -207,6 +209,17 @@ main(int argc, char** argv)
       rc = debuginfod_find_source(client,
                                   build_id, build_id_len,
 				  argv[remaining+2], &cache_name);
+    }
+  else if (strcmp(argv[remaining], "section") == 0)
+    {
+      if (remaining+2 >= argc)
+	{
+	  fprintf(stderr,
+		  "If FILETYPE is \"section\" then a section name must be given\n");
+	  return 1;
+	}
+      rc = debuginfod_find_section(client, build_id, build_id_len,
+				   argv[remaining+2], &cache_name);
     }
   else
     {

@@ -43,6 +43,12 @@ LOOKUP FUNCTIONS
 .BI "                           int " build_id_len ","
 .BI "                           const char *" filename ","
 .BI "                           char ** " path ");"
+.BI "int debuginfod_find_section(debuginfod_client *" client ","
+.BI "                           const unsigned char *" build_id ","
+.BI "                           int " build_id_len ","
+.BI "                           const char * " section ","
+.BI "                           char ** " path ");"
+
 
 OPTIONAL FUNCTIONS
 
@@ -97,6 +103,16 @@ Note: the caller may or may not elide \fB../\fP or \fB/./\fP or extraneous
 accepts both forms.  Specifically, debuginfod canonicalizes path names
 according to RFC3986 section 5.2.4 (Remove Dot Segments), plus reducing
 any \fB//\fP to \fB/\fP in the path.
+
+.BR debuginfod_find_section ()
+queries the debuginfod server URLs contained in
+.BR $DEBUGINFOD_URLS
+for the binary contents of an ELF/DWARF section contained in a debuginfo
+or executable file with the given \fIbuild_id\fP. \fIsection\fP should
+be the name of the desired ELF/DWARF section.  If a server does not support
+section queries, debuginfod_find_section may query the server for the
+debuginfo and/or executable with \fIbuild_id\fP in order to retrieve
+and extract the section.
 
 If \fIpath\fP is not NULL and the query is successful, \fIpath\fP is set
 to the path of the file in the cache. The caller must \fBfree\fP() this value.
@@ -234,11 +250,8 @@ void *debuginfod_so = dlopen(DEBUGINFOD_SONAME, RTLD_LAZY);
 .in
 
 .SH "SECURITY"
-.BR debuginfod_find_debuginfo (),
-.BR debuginfod_find_executable (),
-and
-.BR debuginfod_find_source ()
-\fBdo not\fP include any particular security
+.BR debuginfod_find_* ()
+functions \fBdo not\fP include any particular security
 features.  They trust that the binaries returned by the debuginfod(s)
 are accurate.  Therefore, the list of servers should include only
 trustworthy ones.  If accessed across HTTP rather than HTTPS, the

@@ -595,8 +595,7 @@ path_escape (const char *src, char *dest)
       {
       case '\0':
         dest[q] = '\0';
-        q = PATH_MAX-1; /* escape for loop too */
-        break;
+	return;
       case '/': /* escape / to prevent dir escape */
         dest[q++]='#';
         dest[q++]='#';

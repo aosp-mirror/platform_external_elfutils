@@ -1,4 +1,4 @@
-Version 0.188 some time after 0.187
+Version 0.188
 
 readelf: Add -D, --use-dynamic option.
 

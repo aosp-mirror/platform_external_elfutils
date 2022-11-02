@@ -1,3 +1,8 @@
+2022-11-02  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac (AC_INIT): Set version to 0.188.
+	* NEWS: Likewise.
+
 2022-10-31  Aaron Merey  <amerey@redhat.com>
 
 	* NEWS: Add debuginfod_find_section.

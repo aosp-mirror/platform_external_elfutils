@@ -1,3 +1,10 @@
+2022-10-02  Mark Wielaard  <mark@klomp.org>
+
+	* elfutils.spec.in: Update for 0.188.
+	Include %{_mandir}/man8/debuginfod*.8* for new
+	debuginfod-service.8 man page.
+	Remove duplicate %{_sysconfdir}/sysconfig/debuginfod.
+
 2022-10-20  Mark Wielaard  <mark@klomp.org>
 
 	* elfutils.spec.in: Escape % in comments.

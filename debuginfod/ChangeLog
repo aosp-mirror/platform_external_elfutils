@@ -1,3 +1,7 @@
+2022-11-01  Aaron Merey  <amerey@redhat.com>
+
+	* debuginfod-client.c (path_escape): Add early return.
+
 2022-10-31  Aaron Merey  <amerey@redhat.com>
 
 	* Makefile.am (libdebuginfod_so_LDLIBS): Add libelf.

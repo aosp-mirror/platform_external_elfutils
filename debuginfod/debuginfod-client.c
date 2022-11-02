@@ -621,7 +621,7 @@ path_escape (const char *src, char *dest)
    section name was not found.  -EEXIST indicates that the section was
    found but had type SHT_NOBITS.  */
 
-int
+static int
 extract_section (int fd, const char *section, char *fd_path, char **usr_path)
 {
   elf_version (EV_CURRENT);

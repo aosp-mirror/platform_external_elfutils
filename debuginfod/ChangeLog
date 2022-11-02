@@ -1,3 +1,7 @@
+2022-11-02  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (extract_section): Mark static.
+
 2022-11-01  Aaron Merey  <amerey@redhat.com>
 
 	* debuginfod-client.c (path_escape): Add early return.

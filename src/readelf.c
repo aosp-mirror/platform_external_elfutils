@@ -1828,7 +1828,7 @@ handle_dynamic (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, GElf_Phdr *phdr)
   size_t dyn_ents;
 
   /* Get the data of the section.  */
-  if (use_dynamic_segment)
+  if (use_dynamic_segment && phdr != NULL)
     data = elf_getdata_rawchunk(ebl->elf, phdr->p_offset,
 				phdr->p_filesz, ELF_T_DYN);
   else
@@ -1840,7 +1840,7 @@ handle_dynamic (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, GElf_Phdr *phdr)
   /* Get the dynamic section entry number */
   dyn_ents = get_dyn_ents (data);
 
-  if (!use_dynamic_segment)
+  if (!use_dynamic_segment && shdr != NULL)
     {
       /* Get the section header string table index.  */
       if (unlikely (elf_getshdrstrndx (ebl->elf, &shstrndx) < 0))
@@ -1862,7 +1862,7 @@ handle_dynamic (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, GElf_Phdr *phdr)
 	      (int) shdr->sh_link,
 	      elf_strptr (ebl->elf, shstrndx, glink->sh_name));
     }
-  else
+  else if (phdr != NULL)
     {
       printf (ngettext ("\
 \nDynamic segment contains %lu entry:\n Addr: %#0*" PRIx64 "  Offset: %#08" PRIx64 "\n",
@@ -1879,7 +1879,7 @@ handle_dynamic (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, GElf_Phdr *phdr)
   /* if --use-dynamic option is enabled,
      use the string table to get the related library info.  */
   Elf_Data *strtab_data = NULL;
-  if (use_dynamic_segment)
+  if (use_dynamic_segment && phdr != NULL)
     {
       strtab_data = get_dynscn_strtab(ebl->elf, phdr);
       if (strtab_data == NULL)
@@ -1903,7 +1903,7 @@ handle_dynamic (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, GElf_Phdr *phdr)
 	  || dyn->d_tag == DT_RPATH
 	  || dyn->d_tag == DT_RUNPATH)
 	{
-	  if (! use_dynamic_segment)
+	  if (! use_dynamic_segment && shdr != NULL)
 	    name = elf_strptr (ebl->elf, shdr->sh_link, dyn->d_un.d_val);
 	  else if (dyn->d_un.d_val < strtab_data->d_size
 		   && memrchr (strtab_data->d_buf + dyn->d_un.d_val, '\0',

@@ -1,3 +1,8 @@
+2022-11-03  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (handle_dynamic): Check phdr != NULL when
+	use_dynamic_segment, otherwise check shdr != NULL.
+
 2022-10-28  Arsen Arsenović  <arsen@aarsen.me>
 
 	* readelf.c (options): Add Binutils-style --syms alias.

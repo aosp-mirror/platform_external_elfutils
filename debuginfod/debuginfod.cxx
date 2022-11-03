@@ -2249,85 +2249,82 @@ handle_buildid (MHD_Connection* conn,
 
   int fd = -1;
   debuginfod_client *client = debuginfod_pool_begin ();
-  if (client != NULL)
+  if (client == NULL)
+    throw libc_exception(errno, "debuginfod client pool alloc");
+  defer_dtor<debuginfod_client*,void> client_closer (client, debuginfod_pool_end);
+  
+  debuginfod_set_progressfn (client, & debuginfod_find_progress);
+
+  if (conn)
     {
-      debuginfod_set_progressfn (client, & debuginfod_find_progress);
+      // Transcribe incoming User-Agent:
+      string ua = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "User-Agent") ?: "";
+      string ua_complete = string("User-Agent: ") + ua;
+      debuginfod_add_http_header (client, ua_complete.c_str());
+      
+      // Compute larger XFF:, for avoiding info loss during
+      // federation, and for future cyclicity detection.
+      string xff = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "X-Forwarded-For") ?: "";
+      if (xff != "")
+        xff += string(", "); // comma separated list
+      
+      unsigned int xff_count = 0;
+      for (auto&& i : xff){
+        if (i == ',') xff_count++;
+      }
 
-      if (conn)
-        {
-          // Transcribe incoming User-Agent:
-          string ua = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "User-Agent") ?: "";
-          string ua_complete = string("User-Agent: ") + ua;
-          debuginfod_add_http_header (client, ua_complete.c_str());
-
-          // Compute larger XFF:, for avoiding info loss during
-          // federation, and for future cyclicity detection.
-          string xff = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "X-Forwarded-For") ?: "";
-          if (xff != "")
-            xff += string(", "); // comma separated list
-
-          unsigned int xff_count = 0;
-          for (auto&& i : xff){
-            if (i == ',') xff_count++;
-          }
-
-          // if X-Forwarded-For: exceeds N hops,
-          // do not delegate a local lookup miss to upstream debuginfods.
-          if (xff_count >= forwarded_ttl_limit)
-            throw reportable_exception(MHD_HTTP_NOT_FOUND, "not found, --forwared-ttl-limit reached \
+      // if X-Forwarded-For: exceeds N hops,
+      // do not delegate a local lookup miss to upstream debuginfods.
+      if (xff_count >= forwarded_ttl_limit)
+        throw reportable_exception(MHD_HTTP_NOT_FOUND, "not found, --forwared-ttl-limit reached \
 and will not query the upstream servers");
 
-          // Compute the client's numeric IP address only - so can't merge with conninfo()
-          const union MHD_ConnectionInfo *u = MHD_get_connection_info (conn,
-                                                                       MHD_CONNECTION_INFO_CLIENT_ADDRESS);
-          struct sockaddr *so = u ? u->client_addr : 0;
-          char hostname[256] = ""; // RFC1035
-          if (so && so->sa_family == AF_INET) {
-            (void) getnameinfo (so, sizeof (struct sockaddr_in), hostname, sizeof (hostname), NULL, 0,
-                                NI_NUMERICHOST);
-          } else if (so && so->sa_family == AF_INET6) {
-            struct sockaddr_in6* addr6 = (struct sockaddr_in6*) so;
-            if (IN6_IS_ADDR_V4MAPPED(&addr6->sin6_addr)) {
-              struct sockaddr_in addr4;
-              memset (&addr4, 0, sizeof(addr4));
-              addr4.sin_family = AF_INET;
-              addr4.sin_port = addr6->sin6_port;
-              memcpy (&addr4.sin_addr.s_addr, addr6->sin6_addr.s6_addr+12, sizeof(addr4.sin_addr.s_addr));
-              (void) getnameinfo ((struct sockaddr*) &addr4, sizeof (addr4),
-                                  hostname, sizeof (hostname), NULL, 0,
-                                  NI_NUMERICHOST);
-            } else {
-              (void) getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname), NULL, 0,
-                                  NI_NUMERICHOST);
-            }
-          }
-          
-          string xff_complete = string("X-Forwarded-For: ")+xff+string(hostname);
-          debuginfod_add_http_header (client, xff_complete.c_str());
+      // Compute the client's numeric IP address only - so can't merge with conninfo()
+      const union MHD_ConnectionInfo *u = MHD_get_connection_info (conn,
+                                                                   MHD_CONNECTION_INFO_CLIENT_ADDRESS);
+      struct sockaddr *so = u ? u->client_addr : 0;
+      char hostname[256] = ""; // RFC1035
+      if (so && so->sa_family == AF_INET) {
+        (void) getnameinfo (so, sizeof (struct sockaddr_in), hostname, sizeof (hostname), NULL, 0,
+                            NI_NUMERICHOST);
+      } else if (so && so->sa_family == AF_INET6) {
+        struct sockaddr_in6* addr6 = (struct sockaddr_in6*) so;
+        if (IN6_IS_ADDR_V4MAPPED(&addr6->sin6_addr)) {
+          struct sockaddr_in addr4;
+          memset (&addr4, 0, sizeof(addr4));
+          addr4.sin_family = AF_INET;
+          addr4.sin_port = addr6->sin6_port;
+          memcpy (&addr4.sin_addr.s_addr, addr6->sin6_addr.s6_addr+12, sizeof(addr4.sin_addr.s_addr));
+          (void) getnameinfo ((struct sockaddr*) &addr4, sizeof (addr4),
+                              hostname, sizeof (hostname), NULL, 0,
+                              NI_NUMERICHOST);
+        } else {
+          (void) getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname), NULL, 0,
+                              NI_NUMERICHOST);
         }
-
-      if (artifacttype == "debuginfo")
-	fd = debuginfod_find_debuginfo (client,
-					(const unsigned char*) buildid.c_str(),
-					0, NULL);
-      else if (artifacttype == "executable")
-	fd = debuginfod_find_executable (client,
-					 (const unsigned char*) buildid.c_str(),
-					 0, NULL);
-      else if (artifacttype == "source")
-	fd = debuginfod_find_source (client,
-				     (const unsigned char*) buildid.c_str(),
-				     0, suffix.c_str(), NULL);
-      else if (artifacttype == "section")
-	fd = debuginfod_find_section (client,
-				      (const unsigned char*) buildid.c_str(),
-				      0, section.c_str(), NULL);
-
+      }
+          
+      string xff_complete = string("X-Forwarded-For: ")+xff+string(hostname);
+      debuginfod_add_http_header (client, xff_complete.c_str());
     }
-  else
-    fd = -errno; /* Set by debuginfod_begin.  */
-  debuginfod_pool_end (client);
-
+  
+  if (artifacttype == "debuginfo")
+    fd = debuginfod_find_debuginfo (client,
+                                    (const unsigned char*) buildid.c_str(),
+                                    0, NULL);
+  else if (artifacttype == "executable")
+    fd = debuginfod_find_executable (client,
+                                     (const unsigned char*) buildid.c_str(),
+                                     0, NULL);
+  else if (artifacttype == "source")
+    fd = debuginfod_find_source (client,
+                                 (const unsigned char*) buildid.c_str(),
+                                 0, suffix.c_str(), NULL);
+  else if (artifacttype == "section")
+    fd = debuginfod_find_section (client,
+                                  (const unsigned char*) buildid.c_str(),
+                                  0, section.c_str(), NULL);
+  
   if (fd >= 0)
     {
       if (conn != 0)

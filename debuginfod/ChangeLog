@@ -1,3 +1,8 @@
+2022-11-03  Frank Ch. Eigler <fche@redhat.com>
+
+	* debuginfod.cxx (handle_buildid): Correctly manage lifetime
+	of debuginfod_client federation callout object.
+
 2022-11-02  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod-client.c (extract_section): Mark static.

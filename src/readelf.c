@@ -4910,7 +4910,7 @@ get_dynscn_addrs(Elf *elf, GElf_Phdr *phdr, GElf_Addr addrs[i_max])
     GElf_Dyn dyn_mem;
     GElf_Dyn *dyn = gelf_getdyn(data, dyn_idx, &dyn_mem);
     /* DT_NULL Marks end of dynamic section.  */
-    if (dyn->d_tag == DT_NULL)
+    if (dyn == NULL || dyn->d_tag == DT_NULL)
       break;
 
     switch (dyn->d_tag) {

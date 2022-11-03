@@ -1,5 +1,10 @@
 2022-11-03  Mark Wielaard  <mark@klomp.org>
 
+	* readelf.c (get_dynscn_addrs): Check gelf_getdyn doesn't
+	return NULL.
+
+2022-11-03  Mark Wielaard  <mark@klomp.org>
+
 	* readelf.c (handle_dynamic): Check phdr != NULL when
 	use_dynamic_segment, otherwise check shdr != NULL.
 

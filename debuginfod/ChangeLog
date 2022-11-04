@@ -1,3 +1,8 @@
+2022-11-04  Aaron Merey  <amerey@redhat.com>
+
+	* debuginfod-client.c (debuginfod_find_section): Ensure rc
+	is always updated with the most recent error code.
+
 2022-11-03  Frank Ch. Eigler <fche@redhat.com>
 
 	* debuginfod.cxx (handle_buildid): Correctly manage lifetime

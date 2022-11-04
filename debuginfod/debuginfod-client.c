@@ -1944,7 +1944,8 @@ debuginfod_find_section (debuginfod_client *client,
 
   if (rc == -EEXIST)
     {
-      /* The section should be found in the executable.  */
+      /* Either the debuginfo couldn't be found or the section should
+	 be in the executable.  */
       fd = debuginfod_find_executable (client, build_id,
 				       build_id_len, &tmp_path);
       if (fd > 0)
@@ -1952,6 +1953,9 @@ debuginfod_find_section (debuginfod_client *client,
 	  rc = extract_section (fd, section, tmp_path, path);
 	  close (fd);
 	}
+      else
+	/* Update rc so that we return the most recent error code.  */
+	rc = fd;
     }
 
   free (tmp_path);

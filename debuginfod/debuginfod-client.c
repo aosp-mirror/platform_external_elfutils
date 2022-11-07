@@ -1936,7 +1936,7 @@ debuginfod_find_section (debuginfod_client *client,
 	}
       return -ENOENT;
     }
-  if (fd > 0)
+  if (fd >= 0)
     {
       rc = extract_section (fd, section, tmp_path, path);
       close (fd);
@@ -1948,7 +1948,7 @@ debuginfod_find_section (debuginfod_client *client,
 	 be in the executable.  */
       fd = debuginfod_find_executable (client, build_id,
 				       build_id_len, &tmp_path);
-      if (fd > 0)
+      if (fd >= 0)
 	{
 	  rc = extract_section (fd, section, tmp_path, path);
 	  close (fd);

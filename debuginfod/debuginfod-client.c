@@ -1250,6 +1250,8 @@ debuginfod_query_server (debuginfod_client *c,
       data[i].handle = NULL;
       data[i].fd = -1;
       data[i].errbuf[0] = '\0';
+      data[i].response_data = NULL;
+      data[i].response_data_size = 0;
     }
 
   char *escaped_string = NULL;
@@ -1346,8 +1348,6 @@ debuginfod_query_server (debuginfod_client *c,
 	  curl_easy_setopt_ck (data[i].handle, CURLOPT_LOW_SPEED_LIMIT,
 			       100 * 1024L);
 	}
-      data[i].response_data = NULL;
-      data[i].response_data_size = 0;
       curl_easy_setopt_ck(data[i].handle, CURLOPT_FILETIME, (long) 1);
       curl_easy_setopt_ck(data[i].handle, CURLOPT_FOLLOWLOCATION, (long) 1);
       curl_easy_setopt_ck(data[i].handle, CURLOPT_FAILONERROR, (long) 1);

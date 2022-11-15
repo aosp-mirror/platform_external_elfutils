@@ -1,3 +1,8 @@
+2022-11-15  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (debuginfod_query_server): Initialize
+	response_data early.
+
 2022-11-07  Aaron Merey  <amerey@redhat.com>
 
 	* debuginfod-client.c (debuginfod_find_section): Don't treat 0 as an

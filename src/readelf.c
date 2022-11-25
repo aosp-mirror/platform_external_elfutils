@@ -306,7 +306,7 @@ static void handle_relocs_rel (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 			       GElf_Shdr *shdr);
 static void handle_relocs_rela (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 				GElf_Shdr *shdr);
-static void print_symtab (Ebl *ebl, int type);
+static bool print_symtab (Ebl *ebl, int type);
 static void handle_symtab (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr);
 static void print_verinfo (Ebl *ebl);
 static void handle_verneed (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr);
@@ -1022,6 +1022,8 @@ process_elf_file (Dwfl_Module *dwflmod, int fd)
 	goto ebl_error;
     }
 
+  bool symtab_printed = false;
+
   if (print_file_header)
     print_ehdr (ebl, ehdr);
   if (print_section_header)
@@ -1037,11 +1039,17 @@ process_elf_file (Dwfl_Module *dwflmod, int fd)
   if (print_histogram)
     handle_hash (ebl);
   if (print_symbol_table || print_dynsym_table)
-    print_symtab (ebl, SHT_DYNSYM);
+    symtab_printed |= print_symtab (ebl, SHT_DYNSYM);
   if (print_version_info)
     print_verinfo (ebl);
   if (print_symbol_table)
-    print_symtab (ebl, SHT_SYMTAB);
+    symtab_printed |= print_symtab (ebl, SHT_SYMTAB);
+
+  if ((print_symbol_table || print_dynsym_table)
+      && !symtab_printed && symbol_table_section != NULL)
+    printf ("WARNING: %s: '%s'\n", _("cannot find section"),
+        symbol_table_section);
+
   if (print_arch)
     print_liblist (ebl);
   if (print_arch)
@@ -2425,13 +2433,15 @@ handle_relocs_rela (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 }
 
 
-/* Print the program header.  */
-static void
+/* Print the program header.  Return true if a symtab is printed,
+   false otherwise.  */
+static bool
 print_symtab (Ebl *ebl, int type)
 {
   /* Find the symbol table(s).  For this we have to search through the
      section table.  */
   Elf_Scn *scn = NULL;
+  bool symtab_printed = false;
 
   while ((scn = elf_nextscn (ebl->elf, scn)) != NULL)
     {
@@ -2467,8 +2477,11 @@ print_symtab (Ebl *ebl, int type)
 			    elf_ndxscn (scn), elf_errmsg (-1));
 	    }
 	  handle_symtab (ebl, scn, shdr);
+	  symtab_printed = true;
 	}
     }
+
+  return symtab_printed;
 }
 
 

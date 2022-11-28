@@ -765,7 +765,7 @@ process_file (const char *fname)
 	      else if (verbose >= 0)
 		{
 		  if (startswith (sname, ".zdebug"))
-		    printf ("[%zd] %s unchanged, already GNU compressed",
+		    printf ("[%zd] %s unchanged, already GNU compressed\n",
 			    ndx, sname);
 		  else
 		    printf ("[%zd] %s cannot GNU compress section not starting with .debug\n",

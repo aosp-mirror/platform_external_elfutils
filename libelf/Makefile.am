@@ -106,7 +106,7 @@ libelf_pic_a_SOURCES =
 am_libelf_pic_a_OBJECTS = $(libelf_a_SOURCES:.c=.os)
 
 libelf_so_DEPS = ../lib/libeu.a
-libelf_so_LDLIBS = $(libelf_so_DEPS) -lz
+libelf_so_LDLIBS = $(libelf_so_DEPS) -lz $(zstd_LIBS)
 if USE_LOCKS
 libelf_so_LDLIBS += -lpthread
 endif

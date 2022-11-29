@@ -220,6 +220,10 @@ if HAVE_ZSTD
 TESTS += run-readelf-compressed-zstd.sh
 endif
 
+if USE_ZSTD_COMPRESS
+export ELFUTILS_ZSTD = 1
+endif
+
 if DEBUGINFOD
 check_PROGRAMS += debuginfod_build_id_find
 # With the dummy delegation doesn't work

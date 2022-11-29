@@ -420,9 +420,21 @@ AC_SUBST([LIBLZMA])
 eu_ZIPLIB(zstd,ZSTD,zstd,ZSTD_decompress,[ZSTD (zst)])
 AS_IF([test "x$with_zstd" = xyes], [LIBZSTD="libzstd"], [LIBLZSTD=""])
 AC_SUBST([LIBZSTD])
+zstd_LIBS="$LIBS"
+AC_SUBST([zstd_LIBS])
 zip_LIBS="$LIBS"
 LIBS="$save_LIBS"
 AC_SUBST([zip_LIBS])
+
+dnl zstd compression support requires libzstd 1.4.0+
+AS_IF([test "x$with_zstd" = xyes], [
+      PKG_PROG_PKG_CONFIG
+      PKG_CHECK_MODULES([ZSTD_COMPRESS],[libzstd >= 1.4.0],
+                        [with_zstd_compress="yes"],[with_zstd_compress="no"])],
+      [with_zstd_compress="no"])
+AM_CONDITIONAL(USE_ZSTD_COMPRESS, test "x$with_zstd_compress" = "xyes")
+AS_IF([test "x$with_zstd_compress" = "xyes"],
+      [AC_DEFINE([USE_ZSTD_COMPRESS], [1], [zstd compression support])])
 
 AC_CHECK_DECLS([memrchr, rawmemchr],[],[],
                [#define _GNU_SOURCE
@@ -829,6 +841,7 @@ AC_MSG_NOTICE([
     bzip2 support                      : ${with_bzlib}
     lzma/xz support                    : ${with_lzma}
     zstd support                       : ${with_zstd}
+    zstd compression support           : ${with_zstd_compress}
     libstdc++ demangle support         : ${enable_demangler}
     File textrel check                 : ${enable_textrelcheck}
     Symbol versioning                  : ${enable_symbol_versioning}

@@ -1238,13 +1238,17 @@ get_visibility_type (int value)
 static const char *
 elf_ch_type_name (unsigned int code)
 {
-  if (code == 0)
-    return "NONE";
-
-  if (code == ELFCOMPRESS_ZLIB)
-    return "ZLIB";
-
-  return "UNKNOWN";
+  switch (code)
+    {
+    case 0:
+      return "NONE";
+    case ELFCOMPRESS_ZLIB:
+      return "ZLIB";
+    case ELFCOMPRESS_ZSTD:
+      return "ZSTD";
+    default:
+      return "UNKNOWN";
+    }
 }
 
 /* Print the section headers.  */

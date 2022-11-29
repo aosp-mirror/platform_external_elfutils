@@ -55,9 +55,10 @@ enum ch_type
   UNSET = -1,
   NONE,
   ZLIB,
+  ZSTD,
 
   /* Maximal supported ch_type.  */
-  MAXIMAL_CH_TYPE = ZLIB,
+  MAXIMAL_CH_TYPE = ZSTD,
 
   ZLIB_GNU = 1 << 16
 };
@@ -139,6 +140,12 @@ parse_opt (int key, char *arg __attribute__ ((unused)),
 	type = ZLIB;
       else if (strcmp ("zlib-gnu", arg) == 0 || strcmp ("gnu", arg) == 0)
 	type = ZLIB_GNU;
+      else if (strcmp ("zstd", arg) == 0)
+#ifdef USE_ZSTD_COMPRESS
+	type = ZSTD;
+#else
+	argp_error (state, N_("ZSTD support is not enabled"));
+#endif
       else
 	argp_error (state, N_("unknown compression type '%s'"), arg);
       break;
@@ -223,7 +230,8 @@ compress_section (Elf_Scn *scn, size_t orig_size, const char *name,
     res = elf_compress (scn, dchtype, flags);
 
   if (res < 0)
-    error (0, 0, "Couldn't decompress section [%zd] %s: %s",
+    error (0, 0, "Couldn't %s section [%zd] %s: %s",
+	   compress ? "compress" : "decompress",
 	   ndx, name, elf_errmsg (-1));
   else
     {
@@ -279,6 +287,44 @@ get_sections (unsigned int *sections, size_t shnum)
   for (size_t i = 0; i < shnum / WORD_BITS + 1; i++)
     s += __builtin_popcount (sections[i]);
   return s;
+}
+
+/* Return compression type of a given section SHDR.  */
+
+static enum ch_type
+get_section_chtype (Elf_Scn *scn, GElf_Shdr *shdr, const char *sname,
+		    size_t ndx)
+{
+  enum ch_type chtype = UNSET;
+  if ((shdr->sh_flags & SHF_COMPRESSED) != 0)
+    {
+      GElf_Chdr chdr;
+      if (gelf_getchdr (scn, &chdr) != NULL)
+	{
+	  chtype = (enum ch_type)chdr.ch_type;
+	  if (chtype == NONE)
+	    {
+	      error (0, 0, "Compression type for section %zd"
+		     " can't be zero ", ndx);
+	      chtype = UNSET;
+	    }
+	  else if (chtype > MAXIMAL_CH_TYPE)
+	    {
+	      error (0, 0, "Compression type (%d) for section %zd"
+		     " is unsupported ", chtype, ndx);
+	      chtype = UNSET;
+	    }
+	}
+      else
+	error (0, 0, "Couldn't get chdr for section %zd", ndx);
+    }
+  /* Set ZLIB_GNU compression manually for .zdebug* sections.  */
+  else if (startswith (sname, ".zdebug"))
+    chtype = ZLIB_GNU;
+  else
+    chtype = NONE;
+
+  return chtype;
 }
 
 static int
@@ -461,26 +507,29 @@ process_file (const char *fname)
 
       if (section_name_matches (sname))
 	{
-	  if (!force && type == NONE
-	      && (shdr->sh_flags & SHF_COMPRESSED) == 0
-	      && !startswith (sname, ".zdebug"))
+	  enum ch_type schtype = get_section_chtype (scn, shdr, sname, ndx);
+	  if (!force && verbose > 0)
 	    {
-	      if (verbose > 0)
-		printf ("[%zd] %s already decompressed\n", ndx, sname);
+	      /* The current compression matches the final one.  */
+	      if (type == schtype)
+		switch (type)
+		  {
+		  case NONE:
+		    printf ("[%zd] %s already decompressed\n", ndx, sname);
+		    break;
+		  case ZLIB:
+		  case ZSTD:
+		    printf ("[%zd] %s already compressed\n", ndx, sname);
+		    break;
+		  case ZLIB_GNU:
+		    printf ("[%zd] %s already GNU compressed\n", ndx, sname);
+		    break;
+		  default:
+		    abort ();
+		  }
 	    }
-	  else if (!force && type == ZLIB
-		   && (shdr->sh_flags & SHF_COMPRESSED) != 0)
-	    {
-	      if (verbose > 0)
-		printf ("[%zd] %s already compressed\n", ndx, sname);
-	    }
-	  else if (!force && type == ZLIB_GNU
-		   && startswith (sname, ".zdebug"))
-	    {
-	      if (verbose > 0)
-		printf ("[%zd] %s already GNU compressed\n", ndx, sname);
-	    }
-	  else if (shdr->sh_type != SHT_NOBITS
+
+	  if (shdr->sh_type != SHT_NOBITS
 	      && (shdr->sh_flags & SHF_ALLOC) == 0)
 	    {
 	      set_section (sections, ndx);
@@ -692,37 +741,12 @@ process_file (const char *fname)
 	     (de)compressed, invalidating the string pointers.  */
 	  sname = xstrdup (sname);
 
+
 	  /* Detect source compression that is how is the section compressed
 	     now.  */
-	  GElf_Chdr chdr;
-	  enum ch_type schtype = NONE;
-	  if ((shdr->sh_flags & SHF_COMPRESSED) != 0)
-	    {
-	      if (gelf_getchdr (scn, &chdr) != NULL)
-		{
-		  schtype = (enum ch_type)chdr.ch_type;
-		  if (schtype == NONE)
-		    {
-		      error (0, 0, "Compression type for section %zd"
-			     " can't be zero ", ndx);
-		      goto cleanup;
-		    }
-		  else if (schtype > MAXIMAL_CH_TYPE)
-		    {
-		      error (0, 0, "Compression type (%d) for section %zd"
-			     " is unsupported ", schtype, ndx);
-		      goto cleanup;
-		    }
-		}
-	      else
-		{
-		  error (0, 0, "Couldn't get chdr for section %zd", ndx);
-		  goto cleanup;
-		}
-	    }
-	  /* Set ZLIB compression manually for .zdebug* sections.  */
-	  else if (startswith (sname, ".zdebug"))
-	    schtype = ZLIB_GNU;
+	  enum ch_type schtype = get_section_chtype (scn, shdr, sname, ndx);
+	  if (schtype == UNSET)
+	    goto cleanup;
 
 	  /* We might want to decompress (and rename), but not
 	     compress during this pass since we might need the section
@@ -754,7 +778,7 @@ process_file (const char *fname)
 	    case ZLIB_GNU:
 	      if (startswith (sname, ".debug"))
 		{
-		  if (schtype == ZLIB)
+		  if (schtype == ZLIB || schtype == ZSTD)
 		    {
 		      /* First decompress to recompress GNU style.
 			 Don't report even when verbose.  */
@@ -818,19 +842,22 @@ process_file (const char *fname)
 	      break;
 
 	    case ZLIB:
-	      if ((shdr->sh_flags & SHF_COMPRESSED) == 0)
+	    case ZSTD:
+	      if (schtype != type)
 		{
-		  if (schtype == ZLIB_GNU)
+		  if (schtype != NONE)
 		    {
-		      /* First decompress to recompress zlib style.
-			 Don't report even when verbose.  */
+		      /* Decompress first.  */
 		      if (compress_section (scn, size, sname, NULL, ndx,
 					    schtype, NONE, false) < 0)
 			goto cleanup;
 
-		      snamebuf[0] = '.';
-		      strcpy (&snamebuf[1], &sname[2]);
-		      newname = snamebuf;
+		      if (schtype == ZLIB_GNU)
+			{
+			  snamebuf[0] = '.';
+			  strcpy (&snamebuf[1], &sname[2]);
+			  newname = snamebuf;
+			}
 		    }
 
 		  if (skip_compress_section)
@@ -838,7 +865,7 @@ process_file (const char *fname)
 		      if (ndx == shdrstrndx)
 			{
 			  shstrtab_size = size;
-			  shstrtab_compressed = ZLIB;
+			  shstrtab_compressed = type;
 			  if (shstrtab_name != NULL
 			      || shstrtab_newname != NULL)
 			    {
@@ -855,7 +882,7 @@ process_file (const char *fname)
 		      else
 			{
 			  symtab_size = size;
-			  symtab_compressed = ZLIB;
+			  symtab_compressed = type;
 			  symtab_name = xstrdup (sname);
 			  symtab_newname = (newname == NULL
 					    ? NULL : xstrdup (newname));
@@ -1378,7 +1405,8 @@ main (int argc, char **argv)
 	N_("Place (de)compressed output into FILE"),
 	0 },
       { "type", 't', "TYPE", 0,
-	N_("What type of compression to apply. TYPE can be 'none' (decompress), 'zlib' (ELF ZLIB compression, the default, 'zlib-gabi' is an alias) or 'zlib-gnu' (.zdebug GNU style compression, 'gnu' is an alias)"),
+	N_("What type of compression to apply. TYPE can be 'none' (decompress), 'zlib' (ELF ZLIB compression, the default, 'zlib-gabi' is an alias), "
+	   "'zlib-gnu' (.zdebug GNU style compression, 'gnu' is an alias) or 'zstd' (ELF ZSTD compression)"),
 	0 },
       { "name", 'n', "SECTION", 0,
 	N_("SECTION name to (de)compress, SECTION is an extended wildcard pattern (defaults to '.?(z)debug*')"),

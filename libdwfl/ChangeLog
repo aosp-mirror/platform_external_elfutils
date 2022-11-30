@@ -1,3 +1,9 @@
+2022-11-28  Gavin Li  <gavin@matician.com>
+	    Mark Wielaard  <mark@klomp.org>
+
+	* dwfl_segment_report_module.c (dwfl_segment_report_module): Remove
+	data size check after read_portion memory_callback.
+
 2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
 
 	* argp-std.c: Don't include unistd.h.

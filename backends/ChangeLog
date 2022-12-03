@@ -1,3 +1,10 @@
+2022-12-02  Hengqi Chen  <hengqi.chen@gmail.com>
+
+	* Makefile.am (modules): Add loongarch.
+	* loongarch_init.c: New file.
+	* loongarch_reloc.def: New file.
+	* loongarch_symbol.c: New file.
+
 2022-08-09  Andreas Schwab  <schwab@suse.de>
 
 	* riscv_init.c (riscv_init): HOOK segment_type_name,

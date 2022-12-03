@@ -1,3 +1,7 @@
+2022-12-02  Hengqi Chen  <hengqi.chen@gmail.com>
+
+	* elflint.c (valid_e_machine): Add EM_LOONGARCH.
+
 2022-11-03  Mark Wielaard  <mark@klomp.org>
 
 	* readelf.c (get_dynscn_addrs): Check gelf_getdyn doesn't

@@ -55,6 +55,7 @@ Ebl *m68k_init (Elf *, GElf_Half, Ebl *);
 Ebl *bpf_init (Elf *, GElf_Half, Ebl *);
 Ebl *riscv_init (Elf *, GElf_Half, Ebl *);
 Ebl *csky_init (Elf *, GElf_Half, Ebl *);
+Ebl *loongarch_init (Elf *, GElf_Half, Ebl *);
 
 /* This table should contain the complete list of architectures as far
    as the ELF specification is concerned.  */
@@ -150,6 +151,7 @@ static const struct
   { riscv_init, "elf_riscv", "riscv", 5, EM_RISCV, ELFCLASS64, ELFDATA2LSB },
   { riscv_init, "elf_riscv", "riscv", 5, EM_RISCV, ELFCLASS32, ELFDATA2LSB },
   { csky_init, "elf_csky", "csky", 4, EM_CSKY, ELFCLASS32, ELFDATA2LSB },
+  { loongarch_init, "elf_loongarch", "loongarch", 9, EM_LOONGARCH, ELFCLASS64, ELFDATA2LSB },
 };
 #define nmachines (sizeof (machines) / sizeof (machines[0]))
 

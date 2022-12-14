@@ -43,21 +43,21 @@
    error.  */
 #define DWARF_EXPR_STEPS_MAX 0x1000
 
-bool
+int
 internal_function
 __libdwfl_frame_reg_get (Dwfl_Frame *state, unsigned regno, Dwarf_Addr *val)
 {
   Ebl *ebl = state->thread->process->ebl;
   if (! ebl_dwarf_to_regno (ebl, &regno))
-    return false;
+    return -1;
   if (regno >= ebl_frame_nregs (ebl))
-    return false;
+    return -1;
   if ((state->regs_set[regno / sizeof (*state->regs_set) / 8]
        & ((uint64_t) 1U << (regno % (sizeof (*state->regs_set) * 8)))) == 0)
-    return false;
+    return 1;
   if (val)
     *val = state->regs[regno];
-  return true;
+  return 0;
 }
 
 bool
@@ -75,17 +75,6 @@ __libdwfl_frame_reg_set (Dwfl_Frame *state, unsigned regno, Dwarf_Addr val)
   state->regs_set[regno / sizeof (*state->regs_set) / 8] |=
 		((uint64_t) 1U << (regno % (sizeof (*state->regs_set) * 8)));
   state->regs[regno] = val;
-  return true;
-}
-
-static bool
-state_get_reg (Dwfl_Frame *state, unsigned regno, Dwarf_Addr *val)
-{
-  if (! __libdwfl_frame_reg_get (state, regno, val))
-    {
-      __libdwfl_seterrno (DWFL_E_INVALID_REGISTER);
-      return false;
-    }
   return true;
 }
 
@@ -211,7 +200,7 @@ expr_eval (Dwfl_Frame *state, Dwarf_Frame *frame, const Dwarf_Op *ops,
 	    }
 	  break;
 	case DW_OP_reg0 ... DW_OP_reg31:
-	  if (! state_get_reg (state, op->atom - DW_OP_reg0, &val1)
+	  if (INTUSE (dwfl_frame_reg) (state, op->atom - DW_OP_reg0, &val1) != 0
 	      || ! push (val1))
 	    {
 	      free (stack.addrs);
@@ -219,14 +208,14 @@ expr_eval (Dwfl_Frame *state, Dwarf_Frame *frame, const Dwarf_Op *ops,
 	    }
 	  break;
 	case DW_OP_regx:
-	  if (! state_get_reg (state, op->number, &val1) || ! push (val1))
+	  if (INTUSE (dwfl_frame_reg) (state, op->number, &val1) != 0 || ! push (val1))
 	    {
 	      free (stack.addrs);
 	      return false;
 	    }
 	  break;
 	case DW_OP_breg0 ... DW_OP_breg31:
-	  if (! state_get_reg (state, op->atom - DW_OP_breg0, &val1))
+	  if (INTUSE (dwfl_frame_reg) (state, op->atom - DW_OP_breg0, &val1) != 0)
 	    {
 	      free (stack.addrs);
 	      return false;
@@ -239,7 +228,7 @@ expr_eval (Dwfl_Frame *state, Dwarf_Frame *frame, const Dwarf_Op *ops,
 	    }
 	  break;
 	case DW_OP_bregx:
-	  if (! state_get_reg (state, op->number, &val1))
+	  if (INTUSE (dwfl_frame_reg) (state, op->number, &val1) != 0)
 	    {
 	      free (stack.addrs);
 	      return false;
@@ -591,7 +580,7 @@ handle_cfi (Dwfl_Frame *state, Dwarf_Addr pc, Dwarf_CFI *cfi, Dwarf_Addr bias)
 	  else if (reg_ops == NULL)
 	    {
 	      /* REGNO is same-value.  */
-	      if (! state_get_reg (state, regno, &regval))
+	      if (INTUSE (dwfl_frame_reg) (state, regno, &regval) != 0)
 		continue;
 	    }
 	  else
@@ -638,9 +627,10 @@ handle_cfi (Dwfl_Frame *state, Dwarf_Addr pc, Dwarf_CFI *cfi, Dwarf_Addr bias)
     }
   if (unwound->pc_state == DWFL_FRAME_STATE_ERROR)
     {
-      if (__libdwfl_frame_reg_get (unwound,
-				   frame->fde->cie->return_address_register,
-				   &unwound->pc))
+      int res = INTUSE (dwfl_frame_reg) (unwound,
+          frame->fde->cie->return_address_register,
+          &unwound->pc);
+      if (res == 0)
 	{
 	  /* PPC32 __libc_start_main properly CFI-unwinds PC as zero.
 	     Currently none of the archs supported for unwinding have
@@ -698,7 +688,7 @@ getfunc (int firstreg, unsigned nregs, Dwarf_Word *regs, void *arg)
   Dwfl_Frame *state = arg;
   assert (firstreg >= 0);
   while (nregs--)
-    if (! __libdwfl_frame_reg_get (state, firstreg++, regs++))
+    if (INTUSE (dwfl_frame_reg) (state, firstreg++, regs++) != 0)
       return false;
   return true;
 }

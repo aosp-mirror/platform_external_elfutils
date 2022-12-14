@@ -56,10 +56,10 @@ wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
 
 # No similar metrics for the passive server
-! (curl http://localhost:$PORT2/metrics | egrep 'role="scan"|role="groom"|role="traverse"')
+! (curl http://localhost:$PORT2/metrics | grep -E 'role="scan"|role="groom"|role="traverse"')
 
 # Confirm no active threads
-! (ps -q $PID2 -e -L -o '%p %c %a' | egrep 'scan|groom|traverse')
+! (ps -q $PID2 -e -L -o '%p %c %a' | grep -E 'scan|groom|traverse')
 
 # Do a random lookup via passive server
 env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS=http://localhost:$PORT2 ${abs_builddir}/../debuginfod/debuginfod-find debuginfo cee13b2ea505a7f37bd20d271c6bc7e5f8d2dfcb

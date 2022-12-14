@@ -141,12 +141,12 @@ archive_test() {
 get_ports() {
   while true; do
     PORT1=`expr '(' $RANDOM % 50 ')' + $base`
-    ss -atn | fgrep ":$PORT1" || break
+    ss -atn | grep -F ":$PORT1" || break
   done
 # Some tests will use two servers, so assign the second var
   while true; do
     PORT2=`expr '(' $RANDOM % 50 ')' + $base + 50`
-    ss -atn | fgrep ":$PORT2" || break
+    ss -atn | grep -F ":$PORT2" || break
   done
 
 }

@@ -28,7 +28,6 @@
 #include <fnmatch.h>
 #include <gelf.h>
 #include <libelf.h>
-#include <libintl.h>
 #include <locale.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -576,7 +575,8 @@ remove_debug_relocations (Ebl *ebl, Elf *elf, GElf_Ehdr *ehdr,
 	 might want to change the size.  */
       GElf_Shdr shdr_mem;
       GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
-      if (shdr->sh_type == SHT_REL || shdr->sh_type == SHT_RELA)
+      if (shdr != NULL
+	  && (shdr->sh_type == SHT_REL || shdr->sh_type == SHT_RELA))
 	{
 	  /* Make sure that this relocation section points to a
 	     section to relocate with contents, that isn't
@@ -584,7 +584,8 @@ remove_debug_relocations (Ebl *ebl, Elf *elf, GElf_Ehdr *ehdr,
 	  Elf_Scn *tscn = elf_getscn (elf, shdr->sh_info);
 	  GElf_Shdr tshdr_mem;
 	  GElf_Shdr *tshdr = gelf_getshdr (tscn, &tshdr_mem);
-	  if (tshdr->sh_type == SHT_NOBITS
+	  if (tshdr == NULL
+	      || tshdr->sh_type == SHT_NOBITS
 	      || tshdr->sh_size == 0
 	      || (tshdr->sh_flags & SHF_ALLOC) != 0)
 	    continue;
@@ -653,6 +654,8 @@ remove_debug_relocations (Ebl *ebl, Elf *elf, GElf_Ehdr *ehdr,
 	      if (is_rela)
 		{
 		  GElf_Rela *r = gelf_getrela (reldata, relidx, &mem.rela);
+		  if (r == NULL)
+		    INTERNAL_ERROR (fname);
 		  offset = r->r_offset;
 		  addend = r->r_addend;
 		  rtype = GELF_R_TYPE (r->r_info);
@@ -662,6 +665,8 @@ remove_debug_relocations (Ebl *ebl, Elf *elf, GElf_Ehdr *ehdr,
 	      else
 		{
 		  GElf_Rel *r = gelf_getrel (reldata, relidx, &mem.rel);
+		  if (r == NULL)
+		    INTERNAL_ERROR (fname);
 		  offset = r->r_offset;
 		  addend = 0;
 		  rtype = GELF_R_TYPE (r->r_info);
@@ -685,6 +690,8 @@ remove_debug_relocations (Ebl *ebl, Elf *elf, GElf_Ehdr *ehdr,
 	      GElf_Sym *sym = gelf_getsymshndx (symdata, xndxdata,
 						symndx, &sym_mem,
 						  &xndx);
+	      if (sym == NULL)
+		INTERNAL_ERROR (fname);
 	      Elf32_Word sec = (sym->st_shndx == SHN_XINDEX
 				? xndx : sym->st_shndx);
 

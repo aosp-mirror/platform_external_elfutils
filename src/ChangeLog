@@ -1,3 +1,60 @@
+2022-10-28  Arsen Arsenović  <arsen@aarsen.me>
+
+	* readelf.c (options): Add Binutils-style --syms alias.
+
+2022-10-19  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (dwarf_loc_list_encoding_string): Handle
+	DW_LLE_GNU_view_pair.
+	(print_debug_loclists_section): Likewise.
+
+2022-09-20  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* arlib.h: Use BYTE_ORDER, LITTLE_ENDIAN and BIG_ENDIAN.
+
+2022-08-28  Mark Wielaard  <mark@klomp.org>
+
+	* ar.c (do_oper_extract): Predecrement instance before compare
+	to zero.
+	(do_oper_delete): Likewise.
+
+2022-08-10  Andreas Schwab  <schwab@suse.de>
+
+	* readelf.c (print_attributes): Also handle SHT_RISCV_ATTRIBUTES.
+
+2022-08-09  Andreas Schwab  <schwab@suse.de>
+
+	* elflint.c (check_program_header): Don't complain about p_filesz
+	> p_memsz if p_memsz is zero and p_type is PT_RISCV_ATTRIBUTES.
+
+2022-08-01  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (handle_dynamic): Pass start of buffer to memrchr.
+	Use dyn->d_un.d_val for offsets instead of d_ptr.
+
+2022-04-28  Di Chen  <dichen@redhat.com>
+
+	* readelf.c (options): Add use-dynamic 'D'.
+	(use_dynamic_segment): New static bool.
+	(enum dyn_idx): New.
+	(get_dynscn_strtab): New function.
+	(get_dynscn_addrs): Likewise.
+	(find_offsets): Likewise.
+	(parse_opt): Handle 'D'.
+	(handle_dynamic): New argument phdr. Get data either through the shdr
+	or phdr.  Print segment info when use_dynamic_segment. Use
+	get_dynscn_strtab. Get library name and paths through strtab_data.
+
+2022-05-09  Mark Wielaard  <mark@klomp.org>
+
+	* strip.c (remove_debug_relocations): Check gelf_getshdr, gelf_getrela,
+	gelf_getrel and gelf_getsymshndx don't return NULL.
+
+2022-05-10  Mark Wielaard  <mark@klomp.org>
+
+	* elfcompress.c (process_file): Sanity check shstrtab_name,
+	shstrtab_newname and symstrents are only set once.
+
 2022-04-24  Mark Wielaard  <mark@klomp.org>
 
 	* elfclassify.c (main): Use classify_flag_no_stdin for no-std in options.

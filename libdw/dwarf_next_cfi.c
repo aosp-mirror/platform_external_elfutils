@@ -193,50 +193,71 @@ dwarf_next_cfi (const unsigned char e_ident[],
       else			/* DWARF 2 */
 	entry->cie.return_address_register = *bytes++;
 
-      /* If we have sized augmentation data,
-	 we don't need to grok it all.  */
       entry->cie.fde_augmentation_data_size = 0;
+      entry->cie.augmentation_data = bytes;
       bool sized_augmentation = *ap == 'z';
       if (sized_augmentation)
 	{
+	  ++ap;
 	  if (bytes >= limit)
 	    goto invalid;
 	  get_uleb128 (entry->cie.augmentation_data_size, bytes, limit);
 	  if ((Dwarf_Word) (limit - bytes) < entry->cie.augmentation_data_size)
 	    goto invalid;
 	  entry->cie.augmentation_data = bytes;
-	  bytes += entry->cie.augmentation_data_size;
 	}
-      else
-	{
-	  entry->cie.augmentation_data = bytes;
 
-	  for (; *ap != '\0'; ++ap)
+      for (; *ap != '\0'; ++ap)
+	{
+	  uint8_t encoding;
+	  switch (*ap)
 	    {
-	      uint8_t encoding;
-	      switch (*ap)
+	    case 'L':
+	      if (sized_augmentation)
 		{
-		case 'L':		/* Skip LSDA pointer encoding byte.  */
-		case 'R':		/* Skip FDE address encoding byte.  */
+		  /* Skip LSDA pointer encoding byte.  */
 		  encoding = *bytes++;
 		  entry->cie.fde_augmentation_data_size
 		    += encoded_value_size (data, e_ident, encoding, NULL);
 		  continue;
-		case 'P':   /* Skip encoded personality routine pointer. */
+		}
+	      break;
+	    case 'R':
+	      if (sized_augmentation)
+		{
+		  /* Skip FDE address encoding byte.  */
+		  encoding = *bytes++;
+		  continue;
+		}
+	      break;
+	    case 'P':
+	      if (sized_augmentation)
+		{
+		  /* Skip encoded personality routine pointer. */
 		  encoding = *bytes++;
 		  bytes += encoded_value_size (data, e_ident, encoding, bytes);
 		  continue;
-		case 'S':		/* Skip signal-frame flag.  */
-		  continue;
-		default:
-		  /* Unknown augmentation string.  initial_instructions might
-		     actually start with some augmentation data.  */
-		  break;
 		}
 	      break;
+	    case 'S':
+	      if (sized_augmentation)
+		/* Skip signal-frame flag.  */
+		continue;
+	      break;
+	    default:
+	      /* Unknown augmentation string.  initial_instructions might
+		 actually start with some augmentation data.  */
+	      break;
 	    }
-	  entry->cie.augmentation_data_size
-	    = bytes - entry->cie.augmentation_data;
+	  break;
+	}
+      if (! sized_augmentation)
+	entry->cie.augmentation_data_size = bytes - entry->cie.augmentation_data;
+      else
+	{
+	  if (bytes > entry->cie.augmentation_data + entry->cie.augmentation_data_size)
+	    goto invalid;
+	  bytes = entry->cie.augmentation_data + entry->cie.augmentation_data_size;
 	}
 
       entry->cie.initial_instructions = bytes;

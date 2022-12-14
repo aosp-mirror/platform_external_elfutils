@@ -1,3 +1,23 @@
+2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* eblclosebackend.c: Remove dlfcn.h include.
+	* eblopenbackend.c: Likewise.
+
+2022-08-08  Andreas Schwab  <schwab@suse.de>
+
+	* ebldynamictagname.c (ebl_dynamic_tag_name): Handle DT_RELRSZ,
+	DT_RELR, DT_RELRENT.
+
+2022-06-01  Ulrich Drepper  <drepper@redhat.com>
+
+	* eblopenbackend.c (default_machine_flag_name): Add original flag
+	as first parameter.
+	* ebl-hooks.h (machine_flag_name): Ditto.
+	* eblmachineflagname.c (ebl_machine_flag_name): Modernize, use bool
+	for first.  Pass original flag value to machine_flag_name
+	callback as well.  Add space after comma in printed list.
+	Fix appending strings provided by callback.
+
 2021-12-21  Luca Boccassi  <bluca@debian.org>
 
 	* eblobjnote.c (ebl_object_note): Handle NT_FDO_PACKAGING_METADATA.

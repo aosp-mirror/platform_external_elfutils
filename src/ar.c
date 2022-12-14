@@ -24,7 +24,6 @@
 #include <assert.h>
 #include <fcntl.h>
 #include <gelf.h>
-#include <libintl.h>
 #include <limits.h>
 #include <locale.h>
 #include <search.h>
@@ -518,7 +517,7 @@ do_oper_extract (int oper, const char *arfname, char **argv, int argc,
 	  ENTRY entry;
 	  entry.key = arhdr->ar_name;
 	  ENTRY *res = hsearch (entry, FIND);
-	  if (res != NULL && (instance < 0 || instance-- == 0)
+	  if (res != NULL && (instance < 0 || --instance == 0)
 	      && !found[(char **) res->data - argv])
 	    found[(char **) res->data - argv] = do_extract = true;
 	}
@@ -952,7 +951,7 @@ do_oper_delete (const char *arfname, char **argv, int argc,
 	  ENTRY entry;
 	  entry.key = arhdr->ar_name;
 	  ENTRY *res = hsearch (entry, FIND);
-	  if (res != NULL && (instance < 0 || instance-- == 0)
+	  if (res != NULL && (instance < 0 || --instance == 0)
 	      && !found[(char **) res->data - argv])
 	    found[(char **) res->data - argv] = do_delete = true;
 	}

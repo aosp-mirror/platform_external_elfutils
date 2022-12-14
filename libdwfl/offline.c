@@ -1,6 +1,7 @@
 /* Recover relocatibility for addresses computed from debug information.
    Copyright (C) 2005-2009, 2012 Red Hat, Inc.
    Copyright (C) 2022 Mark J. Wielaard <mark@klomp.org>
+   Copyright (C) 2022 Google LLC
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -33,7 +34,6 @@
 
 #include "libdwflP.h"
 #include <fcntl.h>
-#include <unistd.h>
 
 /* Since dwfl_report_elf lays out the sections already, this will only be
    called when the section headers of the debuginfo file are being
@@ -252,6 +252,7 @@ process_archive (Dwfl *dwfl, const char *name, const char *file_name, int fd,
 
 {
   Dwfl_Module *mod = NULL;
+  /* elf_begin supports opening archives even with fd == -1 passed.  */
   Elf *member = elf_begin (fd, ELF_C_READ_MMAP_PRIVATE, archive);
   if (unlikely (member == NULL)) /* Empty archive.  */
     {
@@ -320,3 +321,27 @@ dwfl_report_offline (Dwfl *dwfl, const char *name,
   return __libdwfl_report_offline (dwfl, name, file_name, fd, closefd, NULL);
 }
 INTDEF (dwfl_report_offline)
+
+Dwfl_Module *
+dwfl_report_offline_memory (Dwfl *dwfl, const char *name,
+			    const char *file_name, char *data, size_t size)
+{
+  if (dwfl == NULL)
+    return NULL;
+
+  Elf *elf;
+  Dwfl_Error error = __libdw_open_elf_memory (data, size, &elf, true);
+  if (error != DWFL_E_NOERROR)
+    {
+      __libdwfl_seterrno (error);
+      return NULL;
+    }
+  /* It is ok to pass fd == -1 here, because libelf uses it as a value for
+     "no file opened" and supports working with files without fd, thanks to
+     the existence of the elf_memory function.  */
+  Dwfl_Module *mod = process_file (dwfl, name, file_name, -1, elf, NULL);
+  if (mod == NULL)
+    elf_end (elf);
+  return mod;
+}
+INTDEF (dwfl_report_offline_memory)

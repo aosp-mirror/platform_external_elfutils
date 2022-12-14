@@ -38,14 +38,13 @@ EXTRA_DIST = elfutils.spec GPG-KEY NOTES CONTRIBUTING \
 # Run all tests under valgrind.
 AM_DISTCHECK_CONFIGURE_FLAGS = \
 	--libdir=`echo $(libdir) | sed "s,^$(exec_prefix),$$dc_install_base,"`\
-	--enable-valgrind --enable-sanitize-undefined \
 	CC="$(CC)"
 
 distcheck-hook:
 	chmod -R u+w $(distdir)
 
 rpm: dist
-	rpmbuild -ts --sign elfutils-@PACKAGE_VERSION@.tar.bz2
+	rpmbuild -ts elfutils-@PACKAGE_VERSION@.tar.bz2
 
 if GCOV
 

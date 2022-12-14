@@ -97,7 +97,7 @@ libdebuginfod_so_LIBS = libdebuginfod_pic.a
 if DUMMY_LIBDEBUGINFOD
 libdebuginfod_so_LDLIBS =
 else
-libdebuginfod_so_LDLIBS = -lpthread $(libcurl_LIBS) $(fts_LIBS)
+libdebuginfod_so_LDLIBS = -lpthread $(libcurl_LIBS) $(fts_LIBS) $(libelf)
 endif
 $(LIBDEBUGINFOD_SONAME): $(srcdir)/libdebuginfod.map $(libdebuginfod_so_LIBS)
 	$(AM_V_CCLD)$(LINK) $(dso_LDFLAGS) -o $@ \

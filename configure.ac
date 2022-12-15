@@ -18,7 +18,7 @@ dnl  GNU General Public License for more details.
 dnl
 dnl  You should have received a copy of the GNU General Public License
 dnl  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-AC_INIT([elfutils],[0.187],[https://sourceware.org/bugzilla],[elfutils],[http://elfutils.org/])
+AC_INIT([elfutils],[0.188],[https://sourceware.org/bugzilla],[elfutils],[http://elfutils.org/])
 
 dnl Workaround for older autoconf < 2.64
 m4_ifndef([AC_PACKAGE_URL],
@@ -88,11 +88,11 @@ AS_IF([test "$use_locks" = yes],
 
 AH_TEMPLATE([USE_LOCKS], [Defined if libraries should be thread-safe.])
 
-AC_PROG_CC_C99
+m4_version_prereq([2.70], [AC_PROG_CC], [AC_PROG_CC_C99])
 AC_PROG_CXX
 AC_PROG_RANLIB
 AC_PROG_YACC
-AM_PROG_LEX
+AC_PROG_LEX([noyywrap])
 # Only available since automake 1.12
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_CHECK_TOOL([READELF], [readelf])
@@ -783,6 +783,7 @@ AS_IF([test "x$enable_debuginfod" != "xno"], [
     enable_debuginfod=yes # presume success
     PKG_PROG_PKG_CONFIG
     PKG_CHECK_MODULES([libmicrohttpd],[libmicrohttpd >= 0.9.33],[],[enable_debuginfod=no])
+    PKG_CHECK_MODULES([oldlibmicrohttpd],[libmicrohttpd < 0.9.51],[old_libmicrohttpd=yes],[old_libmicrohttpd=no])
     PKG_CHECK_MODULES([sqlite3],[sqlite3 >= 3.7.17],[],[enable_debuginfod=no])
     PKG_CHECK_MODULES([libarchive],[libarchive >= 3.1.2],[],[enable_debuginfod=no])
     if test "x$enable_debuginfod" = "xno"; then
@@ -792,6 +793,7 @@ AS_IF([test "x$enable_debuginfod" != "xno"], [
 
 AS_IF([test "x$enable_debuginfod" != "xno"],AC_DEFINE([ENABLE_DEBUGINFOD],[1],[Build debuginfod]))
 AM_CONDITIONAL([DEBUGINFOD],[test "x$enable_debuginfod" = "xyes"])
+AM_CONDITIONAL([OLD_LIBMICROHTTPD],[test "x$old_libmicrohttpd" = "xyes"])
 
 dnl for /etc/profile.d/elfutils.{csh,sh}
 default_debuginfod_urls=""

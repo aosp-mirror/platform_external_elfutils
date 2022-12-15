@@ -56,7 +56,7 @@ do
     wait_ready $PORT1 'http_responses_transfer_bytes_count{code="200",type="debuginfo"}' $lookup_nr
     
     (sleep 5;
-     curl -s http://localhost:$PORT1/metrics | egrep 'error|responses';
+     curl -s http://localhost:$PORT1/metrics | grep -E 'error|responses';
      kill $PID1) &
     wait # for all curls, the ()& from just above, and for debuginfod
     PID1=0

@@ -30,7 +30,6 @@
 # include <config.h>
 #endif
 
-#include <libintl.h>
 #include "printversion.h"
 
 void

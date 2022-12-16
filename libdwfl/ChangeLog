@@ -1,3 +1,88 @@
+2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* argp-std.c: Don't include unistd.h.
+	* core-file.c: Don't include unistd.h, endian.h, byteswap.h and
+	system.h.
+	* dwfl_build_id_find_debuginfo.c: Don't include unistd.h.
+	* dwfl_build_id_find_elf.c: Likewise.
+	* dwfl_end.c: Likewise.
+	* dwfl_frame.c: Likewise.
+	* dwfl_module.c: Likewise.
+	* dwfl_module_getdwarf.c: Likewise.
+	* dwfl_report_elf.c: Likewise.
+	* dwfl_segment_report_module.c: Don't include endian.h and unistd.h.
+	* find-debuginfo.c: Don't include unistd.h.
+	* gzip.c: Likewise.
+	* image-header.c: Don't include system.h, unistd.h and endian.h.
+	* link_map.c: Don't include byteswap.h and endian.h.
+	* linux-pid-attach.c: Don't include unistd.h.
+	* offline.c: Likewise.
+	* open.c: Likewise.
+
+2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* libdwfl_crc32.c: Remove LIB_SYSTEM_H define.
+
+2022-09-20  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* dwfl_segment_report_module.c: Use BYTE_ORDER, LITTLE_ENDIAN and
+	BIG_ENDIAN.
+
+2022-09-13  Aleksei Vetrov  <vvvvvv@google.com>
+
+	* libdwfl.h (dwfl_report_offline_memory): New function.
+	* libdwflP.h (__libdw_open_elf_memory): New internal function.
+	(dwfl_report_offline_memory): INTDECL.
+	* offline.c (dwfl_report_offline_memory): New function.
+	* open.c (decompress): Return DWFL_E_BADELF when fd is -1.
+	(libdw_open_elf): New argument use_elfp. Adding *elfp to elf if
+	true.
+	(__libdw_open_file): Pass false to libdw_open_elf.
+	(__libdw_open_elf_memory): New function.
+	(__libdw_open_elf): Pass false for libdw_open_elf.
+
+2022-07-28  Di Chen  <dichen@redhat.com>
+
+	* libdwfl.h (dwfl_frame_reg): New function.
+	* libdwflP.h (DWFL_E_REGISTER_VAL_UNKNOWN): New error code.
+	(__libdwfl_frame_reg_get): Return an int.
+	(dwfl_frame_reg): INTDECL.
+	* dwfl_frame_regs.c (dwfl_frame_reg): New function.
+	* frame_unwind.c (__libdwfl_frame_reg_get): Return an int.
+	(state_get_reg): Removed.
+	(expr_eval): Use INTUSE (dwfl_frame_reg) instead of state_get_reg.
+	(handle_cfi): Likewise.
+	(getfunc): Likewise.
+	* linux-core-attach.c (core_set_initial_registers): Check
+	__libdwfl_frame_reg_get returns zero.
+
+2022-07-28  Mark Wielaard  <mark@klomp.org>
+
+	* core-file.c (elf_begin_rand): Replace struct ar_hdr h with
+	a char ar_size[AR_SIZE_CHARS + 1] array to read size.
+
+2022-07-18  Shahab Vahedi  <shahab@synopsys.com>
+
+	* debuginfod-client.c (dwfl_get_debuginfod_client stub):
+	Add a name to the sole parameter.
+
+2022-07-13  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (dwfl_get_debuginfod_client): Add INTDEF.
+	(__libdwfl_debuginfod_find_executable): Use
+	INTUSE (dwfl_get_debuginfod_client).
+	(__libdwfl_debuginfod_find_debuginfo): Likewise.
+
+2022-06-22  Milian Wolff <mail@milianw.de>
+
+	* libdwfl.h, debuginfod-client.c (dwfl_get_debuginfod_client):
+	Rename get_client to dwfl_get_debuginfod_client and make it public.
+
+2022-05-15  Mark Wielaard  <mark@klomp.org>
+
+	* libdwfl.h (dwfl_module_addrinfo): Update docs and nonnull
+	attribute to make clear offset and sym cannot be NULL.
+
 2022-04-22  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod-client.c (init_control): New static pthread_once_t.

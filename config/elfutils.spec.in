@@ -40,6 +40,8 @@ BuildRequires: iproute
 BuildRequires: procps
 BuildRequires: bsdtar
 BuildRequires: curl
+# For run-debuginfod-response-headers.sh test case
+BuildRequires: socat
 
 %define _gnu %{nil}
 %define _programprefix eu-
@@ -263,18 +265,18 @@ fi
 %dir %{_includedir}/elfutils
 %{_includedir}/elfutils/elf-knowledge.h
 %{_includedir}/elfutils/known-dwarf.h
-#%{_includedir}/elfutils/libasm.h
+#%%{_includedir}/elfutils/libasm.h
 %{_includedir}/elfutils/libdw.h
 %{_includedir}/elfutils/libdwfl.h
 %{_includedir}/elfutils/libdwelf.h
 %{_includedir}/elfutils/version.h
-#%{_libdir}/libasm.so
+#%%{_libdir}/libasm.so
 %{_libdir}/libdw.so
 %{_libdir}/pkgconfig/libdw.pc
 
 %files devel-static
 %{_libdir}/libdw.a
-#%{_libdir}/libasm.a
+#%%{_libdir}/libasm.a
 
 %files libelf
 %license COPYING-GPLV2 COPYING-LGPLV3
@@ -319,8 +321,7 @@ fi
 %{_bindir}/debuginfod
 %config(noreplace) %{_sysconfdir}/sysconfig/debuginfod
 %{_unitdir}/debuginfod.service
-%{_sysconfdir}/sysconfig/debuginfod
-%{_mandir}/man8/debuginfod.8*
+%{_mandir}/man8/debuginfod*.8*
 %{_mandir}/man7/debuginfod*.7*
 
 %dir %attr(0700,debuginfod,debuginfod) %{_localstatedir}/cache/debuginfod
@@ -340,6 +341,16 @@ exit 0
 %systemd_postun_with_restart debuginfod.service
 
 %changelog
+* Wed Nov  2 2022 Mark Wielaard <mark@klomp.org> 0.188-1
+- readelf: Add -D, --use-dynamic option.
+- debuginfod-client: Add $DEBUGINFOD_HEADERS_FILE setting to supply
+  outgoing HTTP headers.
+  Add new function debuginfod_find_section.
+- debuginfod: Add --disable-source-scan option.
+- libdwfl: Add new function dwfl_get_debuginfod_client.
+  Add new function dwfl_frame_reg.
+  Add new function dwfl_report_offline_memory.
+
 * Mon Apr 25 2022 Mark Wielaard <mark@klomp.org> 0.187-1
 - debuginfod: Support -C option for connection thread pooling.
 - debuginfod-client: Negative cache file are now zero sized instead

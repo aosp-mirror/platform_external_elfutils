@@ -36,8 +36,6 @@
 #include <elf.h>
 #include <gelf.h>
 #include <inttypes.h>
-#include <endian.h>
-#include <unistd.h>
 #include <fcntl.h>
 
 #include <system.h>
@@ -49,7 +47,7 @@
 
 #define INITIAL_READ	1024
 
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if BYTE_ORDER == LITTLE_ENDIAN
 # define MY_ELFDATA	ELFDATA2LSB
 #else
 # define MY_ELFDATA	ELFDATA2MSB

@@ -54,7 +54,7 @@ ebl_dynamic_tag_name (Ebl *ebl, int64_t tag, char *buf, size_t len)
 	      "RELENT", "PLTREL", "DEBUG", "TEXTREL", "JMPREL", "BIND_NOW",
 	      "INIT_ARRAY", "FINI_ARRAY", "INIT_ARRAYSZ", "FINI_ARRAYSZ",
 	      "RUNPATH", "FLAGS", "ENCODING", "PREINIT_ARRAY",
-	      "PREINIT_ARRAYSZ", "SYMTAB_SHNDX"
+	      "PREINIT_ARRAYSZ", "SYMTAB_SHNDX", "RELRSZ", "RELR", "RELRENT"
 	    };
 	  eu_static_assert (sizeof (stdtags) / sizeof (const char *) == DT_NUM);
 

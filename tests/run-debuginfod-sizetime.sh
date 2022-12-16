@@ -51,7 +51,7 @@ wait_ready $PORT1 'thread_busy{role="scan"}' 0
 # Ensure DEBUGINFOD_MAXSIZE is functional and sends back the correct http
 # code
 env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_RETRY_LIMIT=1 DEBUGINFOD_URLS="http://127.0.0.1:$PORT1/" DEBUGINFOD_MAXSIZE=1 \
-    ${abs_top_builddir}/debuginfod/debuginfod-find -v executable ${PWD}/prog 2> find-vlog$PORT1 || true
+    ${abs_top_builddir}/debuginfod/debuginfod-find -v -v executable ${PWD}/prog 2> find-vlog$PORT1 || true
 tempfiles find-vlog$PORT1
 errfiles  find-vlog$PORT1
 echo "Checking maxsize"
@@ -66,7 +66,7 @@ if [ -f ${DEBUGINFOD_CACHE_PATH}/${BUILDID} ]; then
 fi
 # Ensure no file is downloaded for longer than DEBUGINFOD_MAXTIME
 env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS="http://127.0.0.1:$PORT1/" DEBUGINFOD_MAXTIME=1 \
-    ${abs_top_builddir}/debuginfod/debuginfod-find -v debuginfo ${PWD}/prog.debug 2> find-vlog$PORT1 || true
+    ${abs_top_builddir}/debuginfod/debuginfod-find -v -v debuginfo ${PWD}/prog.debug 2> find-vlog$PORT1 || true
 tempfiles find-vlog$PORT1
 grep 'using max time' find-vlog$PORT1
 # Ensure p+r%o\$g.debug is NOT cached

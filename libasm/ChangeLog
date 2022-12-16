@@ -1,3 +1,11 @@
+2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* asm_abort.c: Don't include unistd.h.
+	* asm_addint8.c: Don't include byteswap.h and endian.h.
+	* asm_begin.c: Don't include unistd.h and system.h.
+	* asm_end.c: Likewise.
+	* libasmP.h: Include system.h.
+
 2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* asm_align.c (__libasm_ensure_section_space): Remove casts of calloc

@@ -30,6 +30,5 @@
 #endif
 
 #define crc32 attribute_hidden __libdwfl_crc32
-#define LIB_SYSTEM_H	1
 #include <libdwflP.h>
 #include "../lib/crc32.c"

@@ -1,3 +1,9 @@
+2022-12-20  Mark Wielaard  <mark@klomp.org>
+
+	* bpf_disasm.c: Include common.h and libeblP.h.
+	* i386_disasm.c: Include libeblP.h.
+	* riscv_disasm.c: Likewise.
+
 2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
 
 	* i386_data.h: Define FCT_mod$64r_m as FCT_mod$r_m for i386.

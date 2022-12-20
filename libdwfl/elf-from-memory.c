@@ -27,7 +27,7 @@
    not, see <http://www.gnu.org/licenses/>.  */
 
 #include <config.h>
-#include "../libelf/libelfP.h"
+#include "libelfP.h"
 #undef _
 
 #include "libdwflP.h"

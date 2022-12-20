@@ -31,7 +31,7 @@
 # include <config.h>
 #endif
 
-#include "../libelf/libelfP.h"
+#include "libelfP.h"
 #undef	_
 #include "libdwflP.h"
 

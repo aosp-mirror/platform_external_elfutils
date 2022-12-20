@@ -32,7 +32,7 @@
 #include <dwarf.h>
 #include <stdlib.h>
 #include "libdwP.h"
-#include "../libelf/common.h"
+#include "common.h"
 
 
 /* Returns zero if the value is omitted, the encoding is unknown or

@@ -28,7 +28,7 @@
    not, see <http://www.gnu.org/licenses/>.  */
 
 #include <config.h>
-#include "../libelf/libelfP.h"	/* For NOTE_ALIGN.  */
+#include "libelfP.h"	/* For NOTE_ALIGN.  */
 #undef	_
 #include "libdwflP.h"
 #include <gelf.h>

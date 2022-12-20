@@ -1,3 +1,9 @@
+2022-12-20  Mark Wielaard  <mark@klomp.org>
+
+	* disasm_begin.c: Include libeblP.h.
+	* disasm_cb.c: Likewise.
+	* bpf_disasm.c: Likewise and include common.h.
+
 2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
 
 	* asm_abort.c: Don't include unistd.h.

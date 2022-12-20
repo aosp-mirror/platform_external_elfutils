@@ -1,3 +1,10 @@
+2022-12-20  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (AM_CPPFLAGS): Add -I$(srcdir)/../libebl.
+	* cfi.c: Include libebl.h.
+	* encoded-value.h: Likewise.
+	* frame-cache.h: Likewise.
+
 2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
 
 	* memory-access.h (get_uleb128_step): Use __typeof.

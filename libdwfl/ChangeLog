@@ -1,3 +1,27 @@
+2022-12-20  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (AM_CPPFLAGS): debuginfod.h is in builddir.
+	* core-file.c: Include libelfP.h.
+	* cu.c: Include libdwP.h and memory-access.h.
+	* debuginfod-client.c: Include debuginfod.h.
+	* dwfl_dwarf_line.c: Include libdwP.h.
+	* dwfl_lineinfo.c: Include libdwP.h.
+	* dwfl_module.c: Include cfi.h.
+	* dwfl_module_dwarf_cfi.c: Include cfi.h.
+	* dwfl_module_eh_cfi.c: Include cfi.h.
+	* dwfl_module_getdwarf.c: Include libdwP.h and libelfP.h.
+	* dwfl_module_getsrc.c: Include libdwP.h.
+	* dwfl_module_getsrc_file.c: Include libdwP.h.
+	* dwfl_segment_report_module.c: Include libelfP.h.
+	* elf-from-memory.c: Include libelfP.h.
+	* frame_unwind.c: Include dwarf.h.
+	* libdwflP.h: Include libdwP.h and libdwelfP.h. Don't include
+	debuginfod.h.
+	* lines.c: Include libdwP.h.
+	* link_map.c: Include memory-access.h.
+	* linux-core-attach.c: Include memory-access.h.
+	* open.c: Include libelfP.h.
+
 2022-11-28  Gavin Li  <gavin@matician.com>
 	    Mark Wielaard  <mark@klomp.org>
 

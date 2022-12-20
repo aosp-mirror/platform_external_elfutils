@@ -31,7 +31,7 @@
 #endif
 
 #include <dwarf.h>
-#include "../libebl/libebl.h"
+#include "libebl.h"
 #include "cfi.h"
 #include "memory-access.h"
 #include "encoded-value.h"

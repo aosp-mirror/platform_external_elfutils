@@ -1,3 +1,7 @@
+2022-12-21  Andrew Paprocki  <andrew@ishiboo.com>
+
+	* debuginfod-client.c: Make compilable against newer curl.  PR29926
+
 2022-11-15  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod-client.c (debuginfod_query_server): Initialize

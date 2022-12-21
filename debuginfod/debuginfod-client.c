@@ -1456,7 +1456,7 @@ debuginfod_query_server (debuginfod_client *c,
              deflate-compressing proxies, this number is likely to be
              unavailable, so -1 may show. */
           CURLcode curl_res;
-#ifdef CURLINFO_CONTENT_LENGTH_DOWNLOAD_T
+#if CURL_AT_LEAST_VERSION(7, 55, 0)
           curl_off_t cl;
           curl_res = curl_easy_getinfo(target_handle,
                                        CURLINFO_CONTENT_LENGTH_DOWNLOAD_T,
@@ -1491,7 +1491,7 @@ debuginfod_query_server (debuginfod_client *c,
           if (target_handle) /* we've committed to a server; report its download progress */
             {
               CURLcode curl_res;
-#ifdef CURLINFO_SIZE_DOWNLOAD_T
+#if CURL_AT_LEAST_VERSION(7, 55, 0)
               curl_off_t dl;
               curl_res = curl_easy_getinfo(target_handle,
                                            CURLINFO_SIZE_DOWNLOAD_T,

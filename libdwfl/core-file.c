@@ -29,7 +29,6 @@
 
 #include <config.h>
 #include "libelfP.h"	/* For NOTE_ALIGN.  */
-#undef	_
 #include "libdwflP.h"
 #include <gelf.h>
 

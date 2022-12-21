@@ -28,7 +28,6 @@
 
 #include <config.h>
 #include "libelfP.h"
-#undef _
 
 #include "libdwflP.h"
 

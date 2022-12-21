@@ -1,3 +1,10 @@
+2022-12-21  Mark Wielaard  <mark@klomp.org>
+
+	* core-file.c: Don't undef _.
+	* dwfl_segment_report_module.c: Likewise.
+	* elf-from-memory.c: Likewise.
+	* open.c: Likewise.
+
 2022-12-20  Mark Wielaard  <mark@klomp.org>
 
 	* Makefile.am (AM_CPPFLAGS): debuginfod.h is in builddir.

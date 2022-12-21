@@ -32,7 +32,6 @@
 #endif
 
 #include "libelfP.h"
-#undef	_
 #include "libdwflP.h"
 
 #if !USE_BZLIB

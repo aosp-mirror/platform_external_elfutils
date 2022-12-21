@@ -29,7 +29,6 @@
 
 #include <config.h>
 #include "libelfP.h"	/* For NOTE_ALIGN4 and NOTE_ALIGN8.  */
-#undef	_
 #include "libdwflP.h"
 #include "common.h"
 

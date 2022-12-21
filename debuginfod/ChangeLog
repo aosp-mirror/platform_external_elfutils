@@ -1,3 +1,7 @@
+2022-12-21  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c: Define CURL_AT_LEAST_VERSION.
+
 2022-12-21  Andrew Paprocki  <andrew@ishiboo.com>
 
 	* debuginfod-client.c: Make compilable against newer curl.  PR29926

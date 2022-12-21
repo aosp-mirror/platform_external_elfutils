@@ -105,6 +105,13 @@ void debuginfod_end (debuginfod_client *c) { }
   #include <fts.h>
 #endif
 
+/* Older curl.h don't define CURL_AT_LEAST_VERSION.  */
+#ifndef CURL_AT_LEAST_VERSION
+  #define CURL_VERSION_BITS(x,y,z) ((x)<<16|(y)<<8|(z))
+  #define CURL_AT_LEAST_VERSION(x,y,z) \
+    (LIBCURL_VERSION_NUM >= CURL_VERSION_BITS(x, y, z))
+#endif
+
 #include <pthread.h>
 
 static pthread_once_t init_control = PTHREAD_ONCE_INIT;

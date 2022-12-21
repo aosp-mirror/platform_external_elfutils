@@ -1,3 +1,9 @@
+2022-12-21  Shahab Vahedi  <shahab@synopsys.email>
+
+	* hello_arc_hs4.ko.bz2: New testfile.
+	* run-strip-reloc.sh: Add ARC HS4 test.
+	* Makefile.am (EXTRA_DIST): Add hello_arc_hs4.ko.bz2.
+
 2022-11-01  Aaron Merey  <amerey@redhat.com>
 
 	* run-debuginfod-section.sh (RPM_BUILDID): Use buildid from non-zstd

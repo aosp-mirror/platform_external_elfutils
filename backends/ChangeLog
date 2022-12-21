@@ -1,3 +1,12 @@
+2022-12-21  Shahab Vahedi  <shahab@synopsys.email>
+
+	* Makefile.am (modules): Add arc.
+	(arc_SRCS): Added.
+	(libebl_backends_a_SOURCES): Append arc_SRCS.
+	* arc_init.c: New file.
+	* arc_reloc.def: New file.
+	* arc_symbol.c: New file.
+
 2022-12-02  Hengqi Chen  <hengqi.chen@gmail.com>
 
 	* Makefile.am (modules): Add loongarch.

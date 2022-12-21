@@ -1,3 +1,7 @@
+2022-12-21  Shahab Vahedi  <shahab@synopsys.email>
+
+	* elflint.c (valid_e_machine): Add EM_ARCV2.
+
 2022-12-02  Hengqi Chen  <hengqi.chen@gmail.com>
 
 	* elflint.c (valid_e_machine): Add EM_LOONGARCH.

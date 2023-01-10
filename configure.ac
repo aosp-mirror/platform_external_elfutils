@@ -455,6 +455,12 @@ AS_IF([test "x$ac_cv_func_mremap" = "xno"],
 AC_CHECK_HEADERS([error.h])
 AC_CHECK_HEADERS([err.h])
 
+dnl for debuginfod concurrency heuristics
+AC_CHECK_HEADERS([sched.h])
+AC_CHECK_FUNCS([sched_getaffinity])
+AC_CHECK_HEADERS([sys/resource.h])
+AC_CHECK_FUNCS([getrlimit])
+
 old_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -D_GNU_SOURCE"
 AC_FUNC_STRERROR_R()

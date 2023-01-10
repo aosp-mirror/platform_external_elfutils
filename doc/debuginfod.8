@@ -202,8 +202,9 @@ do maximal-grooming.  See also the \fIDATA MANAGEMENT\fP section.
 Set the concurrency limit for the scanning queue threads, which work
 together to process archives & files located by the traversal thread.
 This important for controlling CPU-intensive operations like parsing
-an ELF file and especially decompressing archives.  The default is the
-number of processors on the system; the minimum is 1.
+an ELF file and especially decompressing archives.  The default is
+related to the number of processors on the system and other
+constraints; the minimum is 1.
 
 .TP
 .B "\-C" "\-C=NUM" "\-\-connection\-pool" "\-\-connection\-pool=NUM"
@@ -216,9 +217,9 @@ no option, \-C	use a fixed thread pool sized automatically
 \-C=NUM	use a fixed thread pool sized NUM, minimum 2
 .TE
 
-The first mode is a simple and safe configuration based on the number
-of processors. The second mode is suitable for tuned load-limiting
-configurations facing unruly traffic.
+The first mode is a simple and safe configuration related to the
+number of processors and other constraints. The second mode is
+suitable for tuned load-limiting configurations facing unruly traffic.
 
 .TP
 .B "\-L"

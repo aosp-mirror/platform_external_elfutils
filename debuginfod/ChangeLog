@@ -3,6 +3,12 @@
 	* debuginfod-client.c (debuginfod_query_server): Use
 	CURL_AT_LEAST_VERSION(7.85.0) for CURLOPT_PROTOCOLS_STR.
 
+2023-01-11  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR29975 & PR29976
+	* debuginfod.cxx (default_concurrency): New function to guess a
+	reasonable default for -c/-C on large but constrained machines.
+
 2022-12-21  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod-client.c: Define CURL_AT_LEAST_VERSION.

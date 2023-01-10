@@ -32,6 +32,18 @@
   #include "config.h"
 #endif
 
+// #define _GNU_SOURCE
+#ifdef HAVE_SCHED_H
+extern "C" {
+#include <sched.h>
+}
+#endif
+#ifdef HAVE_SYS_RESOURCE_H
+extern "C" {
+#include <sys/resource.h>
+}
+#endif
+
 extern "C" {
 #include "printversion.h"
 #include "system.h"
@@ -398,6 +410,8 @@ static const char args_doc[] = "[PATH ...]";
 /* Prototype for option handler.  */
 static error_t parse_opt (int key, char *arg, struct argp_state *state);
 
+static unsigned default_concurrency();
+
 /* Data structure to communicate with argp functions.  */
 static struct argp argp =
   {
@@ -418,7 +432,7 @@ static unsigned http_port = 8002;
 static unsigned rescan_s = 300;
 static unsigned groom_s = 86400;
 static bool maxigroom = false;
-static unsigned concurrency = std::thread::hardware_concurrency() ?: 1;
+static unsigned concurrency = default_concurrency();
 static int connection_pool = 0;
 static set<string> source_paths;
 static bool scan_files = false;
@@ -4082,6 +4096,47 @@ static void sqlite3_sharedprefix_fn (sqlite3_context* c, int argc, sqlite3_value
 }
 
 
+static unsigned
+default_concurrency() // guaranteed >= 1
+{
+  // Prior to PR29975 & PR29976, we'd just use this: 
+  unsigned sth = std::thread::hardware_concurrency();
+  // ... but on many-CPU boxes, admins or distros may throttle
+  // resources in such a way that debuginfod would mysteriously fail.
+  // So we reduce the defaults:
+
+  unsigned aff = 0;
+#ifdef HAVE_SCHED_GETAFFINITY
+  {
+    int ret;
+    cpu_set_t mask;
+    CPU_ZERO(&mask);
+    ret = sched_getaffinity(0, sizeof(mask), &mask);
+    if (ret == 0)
+      aff = CPU_COUNT(&mask);
+  }
+#endif
+  
+  unsigned fn = 0;
+#ifdef HAVE_GETRLIMIT
+  {
+    struct rlimit rlim;
+    int rc = getrlimit(RLIMIT_NOFILE, &rlim);
+    if (rc == 0)
+      fn = max((rlim_t)1, (rlim.rlim_cur - 100) / 4);
+    // at least 2 fds are used by each listener thread etc.
+    // plus a bunch to account for shared libraries and such
+  }
+#endif
+
+  unsigned d = min(max(sth, 1U),
+                   min(max(aff, 1U),
+                       max(fn, 1U)));
+  return d;
+}
+
+
+
 int
 main (int argc, char *argv[])
 {
@@ -4207,7 +4262,7 @@ main (int argc, char *argv[])
   /* If '-C' wasn't given or was given with no arg, pick a reasonable default
      for the number of worker threads.  */
   if (connection_pool == 0)
-    connection_pool = std::thread::hardware_concurrency() * 2 ?: 2;
+    connection_pool = default_concurrency();
 
   /* Note that MHD_USE_EPOLL and MHD_USE_THREAD_PER_CONNECTION don't
      work together.  */

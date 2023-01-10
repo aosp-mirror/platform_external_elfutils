@@ -1336,8 +1336,13 @@ debuginfod_query_server (debuginfod_client *c,
 
       /* Only allow http:// + https:// + file:// so we aren't being
 	 redirected to some unsupported protocol.  */
+#if CURL_AT_LEAST_VERSION(7, 85, 0)
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_PROTOCOLS_STR,
+			  "http,https,file");
+#else
       curl_easy_setopt_ck(data[i].handle, CURLOPT_PROTOCOLS,
 			  (CURLPROTO_HTTP | CURLPROTO_HTTPS | CURLPROTO_FILE));
+#endif
       curl_easy_setopt_ck(data[i].handle, CURLOPT_URL, data[i].url);
       if (vfd >= 0)
 	curl_easy_setopt_ck(data[i].handle, CURLOPT_ERRORBUFFER,

@@ -1,3 +1,8 @@
+2023-01-10  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (debuginfod_query_server): Use
+	CURL_AT_LEAST_VERSION(7.85.0) for CURLOPT_PROTOCOLS_STR.
+
 2022-12-21  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod-client.c: Define CURL_AT_LEAST_VERSION.

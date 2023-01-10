@@ -1,3 +1,22 @@
+2023-01-10  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (get_debug_elf_data): New function.
+	(print_debug_abbrev_section): Use get_debug_elf_data.
+	(print_debug_addr_section): Likewise.
+	(print_debug_aranges_section): Likewise.
+	(print_debug_rnglists_section): Likewise.
+	(print_debug_ranges_section): Likewise.
+	(print_debug_frame_section): Likewise.
+	(print_debug_units): Likewise.
+	(print_debug_line_section): Likewise.
+	(print_debug_loclists_section): Likewise.
+	(print_debug_loc_section): Likewise.
+	(print_debug_macinfo_section): Likewise.
+	(print_debug_macro_section): Likewise.
+	(print_debug_str_section): Likewise.
+	(print_debug_str_offsets_section): Likewise.
+	(print_debug_pubnames_section): Likewise.
+
 2022-12-21  Shahab Vahedi  <shahab@synopsys.email>
 
 	* elflint.c (valid_e_machine): Add EM_ARCV2.

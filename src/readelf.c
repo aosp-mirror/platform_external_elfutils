@@ -3857,6 +3857,39 @@ print_attributes (Ebl *ebl, const GElf_Ehdr *ehdr)
     }
 }
 
+/* Returns either the (relocated) data from the Dwarf, or tries to get
+   the "raw" (uncompressed) data from the Elf section. Produces a
+   warning if the data cannot be found (or decompressed).  */
+static Elf_Data *
+get_debug_elf_data (Dwarf *dbg, Ebl *ebl, int idx, Elf_Scn *scn)
+{
+  /* We prefer to get the section data from the Dwarf because that
+     might have been relocated already.  Note this is subtly wrong if
+     there are multiple sections with the same .debug name.  */
+  if (dbg->sectiondata[idx] != NULL)
+    return dbg->sectiondata[idx];
+
+  GElf_Shdr shdr_mem;
+  GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
+  if (shdr != NULL && (shdr->sh_flags & SHF_COMPRESSED) != 0)
+    {
+      if (elf_compress (scn, 0, 0) < 0)
+	{
+	  error (0, 0, "%s [%zd] '%s'\n",
+		 _("Couldn't uncompress section"),
+		 elf_ndxscn (scn), section_name (ebl, shdr));
+	  return NULL;
+	}
+    }
+
+  Elf_Data *data = elf_getdata (scn, NULL);
+  if (data == NULL)
+    error (0, 0, "%s [%zd] '%s': %s\n",
+	   _("Couldn't get data from section"),
+	   elf_ndxscn (scn), section_name (ebl, shdr), elf_errmsg (-1));
+
+  return elf_getdata (scn, NULL);
+}
 
 void
 print_dwarf_addr (Dwfl_Module *dwflmod,
@@ -5271,8 +5304,11 @@ print_debug_abbrev_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
 			    Ebl *ebl, GElf_Ehdr *ehdr __attribute__ ((unused)),
 			    Elf_Scn *scn, GElf_Shdr *shdr, Dwarf *dbg)
 {
-  const size_t sh_size = (dbg->sectiondata[IDX_debug_abbrev] ?
-			  dbg->sectiondata[IDX_debug_abbrev]->d_size : 0);
+  Elf_Data *elf_data = get_debug_elf_data (dbg, ebl, IDX_debug_abbrev, scn);
+  if (elf_data == NULL)
+    return;
+
+  const size_t sh_size = elf_data->d_size;
 
   printf (_("\nDWARF section [%2zu] '%s' at offset %#" PRIx64 ":\n"
 		   " [ Code]\n"),
@@ -5344,6 +5380,10 @@ print_debug_addr_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
 			  Ebl *ebl, GElf_Ehdr *ehdr,
 			  Elf_Scn *scn, GElf_Shdr *shdr, Dwarf *dbg)
 {
+  Elf_Data *data = get_debug_elf_data (dbg, ebl, IDX_debug_addr, scn);
+  if (data == NULL)
+    return;
+
   printf (_("\
 \nDWARF section [%2zu] '%s' at offset %#" PRIx64 ":\n"),
 	  elf_ndxscn (scn), section_name (ebl, shdr),
@@ -5351,16 +5391,6 @@ print_debug_addr_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
 
   if (shdr->sh_size == 0)
     return;
-
-  /* We like to get the section from libdw to make sure they are relocated.  */
-  Elf_Data *data = (dbg->sectiondata[IDX_debug_addr]
-		    ?: elf_rawdata (scn, NULL));
-  if (unlikely (data == NULL))
-    {
-      error (0, 0, _("cannot get .debug_addr section data: %s"),
-	     elf_errmsg (-1));
-      return;
-    }
 
   size_t idx = 0;
   sort_listptr (&known_addrbases, "addr_base");
@@ -5643,15 +5673,9 @@ print_debug_aranges_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
       return;
     }
 
-  Elf_Data *data = (dbg->sectiondata[IDX_debug_aranges]
-		    ?: elf_rawdata (scn, NULL));
-
-  if (unlikely (data == NULL))
-    {
-      error (0, 0, _("cannot get .debug_aranges content: %s"),
-	     elf_errmsg (-1));
-      return;
-    }
+  Elf_Data *data = get_debug_elf_data (dbg, ebl, IDX_debug_aranges, scn);
+  if (data == NULL)
+    return;
 
   printf (_("\
 \nDWARF section [%2zu] '%s' at offset %#" PRIx64 ":\n"),
@@ -5820,19 +5844,14 @@ print_debug_rnglists_section (Dwfl_Module *dwflmod,
 			      Elf_Scn *scn, GElf_Shdr *shdr,
 			      Dwarf *dbg __attribute__((unused)))
 {
+  Elf_Data *data = get_debug_elf_data (dbg, ebl, IDX_debug_rnglists, scn);
+  if (data == NULL)
+    return;
+
   printf (_("\
 \nDWARF section [%2zu] '%s' at offset %#" PRIx64 ":\n"),
 	  elf_ndxscn (scn), section_name (ebl, shdr),
 	  (uint64_t) shdr->sh_offset);
-
-  Elf_Data *data =(dbg->sectiondata[IDX_debug_rnglists]
-		   ?: elf_rawdata (scn, NULL));
-  if (unlikely (data == NULL))
-    {
-      error (0, 0, _("cannot get .debug_rnglists content: %s"),
-	     elf_errmsg (-1));
-      return;
-    }
 
   /* For the listptr to get the base address/CU.  */
   sort_listptr (&known_rnglistptr, "rnglistptr");
@@ -6196,14 +6215,9 @@ print_debug_ranges_section (Dwfl_Module *dwflmod,
 			    Elf_Scn *scn, GElf_Shdr *shdr,
 			    Dwarf *dbg)
 {
-  Elf_Data *data = (dbg->sectiondata[IDX_debug_ranges]
-		    ?: elf_rawdata (scn, NULL));
-  if (unlikely (data == NULL))
-    {
-      error (0, 0, _("cannot get .debug_ranges content: %s"),
-	     elf_errmsg (-1));
-      return;
-    }
+  Elf_Data *data = get_debug_elf_data (dbg, ebl, IDX_debug_ranges, scn);
+  if (data == NULL)
+    return;
 
   printf (_("\
 \nDWARF section [%2zu] '%s' at offset %#" PRIx64 ":\n"),
@@ -6804,16 +6818,22 @@ print_debug_frame_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
     }
 
   bool is_eh_frame = strcmp (scnname, ".eh_frame") == 0;
-  Elf_Data *data = (is_eh_frame
-		    ? elf_rawdata (scn, NULL)
-		    : (dbg->sectiondata[IDX_debug_frame]
-		       ?: elf_rawdata (scn, NULL)));
-
-  if (unlikely (data == NULL))
+  Elf_Data *data;
+  if (is_eh_frame)
     {
-      error (0, 0, _("cannot get %s content: %s"),
-	     scnname, elf_errmsg (-1));
-      return;
+      data = elf_rawdata (scn, NULL);
+      if (data == NULL)
+	{
+	  error (0, 0, _("cannot get %s content: %s"),
+		 scnname, elf_errmsg (-1));
+	  return;
+	}
+    }
+  else
+    {
+      data = get_debug_elf_data (dbg, ebl, IDX_debug_frame, scn);
+      if (data == NULL)
+	return;
     }
 
   if (is_eh_frame)
@@ -7912,6 +7932,13 @@ print_debug_units (Dwfl_Module *dwflmod,
   const bool silent = !(print_debug_sections & section_info) && !debug_types;
   const char *secname = section_name (ebl, shdr);
 
+  /* Check section actually exists.  */
+  if (!silent)
+    if (get_debug_elf_data (dbg, ebl,
+			    debug_types ? IDX_debug_types : IDX_debug_info,
+			    scn) == NULL)
+      return;
+
   if (!silent)
     printf (_("\
 \nDWARF section [%2zu] '%s' at offset %#" PRIx64 ":\n [Offset]\n"),
@@ -8576,6 +8603,10 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
       return;
     }
 
+  Elf_Data *data = get_debug_elf_data (dbg, ebl, IDX_debug_line, scn);
+  if (data == NULL)
+    return;
+
   printf (_("\
 \nDWARF section [%2zu] '%s' at offset %#" PRIx64 ":\n"),
 	  elf_ndxscn (scn), section_name (ebl, shdr),
@@ -8586,14 +8617,6 @@ print_debug_line_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 
   /* There is no functionality in libdw to read the information in the
      way it is represented here.  Hardcode the decoder.  */
-  Elf_Data *data = (dbg->sectiondata[IDX_debug_line]
-		    ?: elf_rawdata (scn, NULL));
-  if (unlikely (data == NULL))
-    {
-      error (0, 0, _("cannot get line data section data: %s"),
-	     elf_errmsg (-1));
-      return;
-    }
 
   const unsigned char *linep = (const unsigned char *) data->d_buf;
   const unsigned char *lineendp;
@@ -9322,19 +9345,14 @@ print_debug_loclists_section (Dwfl_Module *dwflmod,
 			      Elf_Scn *scn, GElf_Shdr *shdr,
 			      Dwarf *dbg)
 {
+  Elf_Data *data = get_debug_elf_data (dbg, ebl, IDX_debug_loclists, scn);
+  if (data == NULL)
+    return;
+
   printf (_("\
 \nDWARF section [%2zu] '%s' at offset %#" PRIx64 ":\n"),
 	  elf_ndxscn (scn), section_name (ebl, shdr),
 	  (uint64_t) shdr->sh_offset);
-
-  Elf_Data *data = (dbg->sectiondata[IDX_debug_loclists]
-		    ?: elf_rawdata (scn, NULL));
-  if (unlikely (data == NULL))
-    {
-      error (0, 0, _("cannot get .debug_loclists content: %s"),
-	     elf_errmsg (-1));
-      return;
-    }
 
   /* For the listptr to get the base address/CU.  */
   sort_listptr (&known_loclistsptr, "loclistsptr");
@@ -9795,15 +9813,9 @@ print_debug_loc_section (Dwfl_Module *dwflmod,
 			 Ebl *ebl, GElf_Ehdr *ehdr,
 			 Elf_Scn *scn, GElf_Shdr *shdr, Dwarf *dbg)
 {
-  Elf_Data *data = (dbg->sectiondata[IDX_debug_loc]
-		    ?: elf_rawdata (scn, NULL));
-
-  if (unlikely (data == NULL))
-    {
-      error (0, 0, _("cannot get .debug_loc content: %s"),
-	     elf_errmsg (-1));
-      return;
-    }
+  Elf_Data *data = get_debug_elf_data (dbg, ebl, IDX_debug_loc, scn);
+  if (data == NULL)
+    return;
 
   printf (_("\
 \nDWARF section [%2zu] '%s' at offset %#" PRIx64 ":\n"),
@@ -10056,6 +10068,10 @@ print_debug_macinfo_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
 			     GElf_Ehdr *ehdr __attribute__ ((unused)),
 			     Elf_Scn *scn, GElf_Shdr *shdr, Dwarf *dbg)
 {
+  Elf_Data *data = get_debug_elf_data (dbg, ebl, IDX_debug_macinfo, scn);
+  if (data == NULL)
+    return;
+
   printf (_("\
 \nDWARF section [%2zu] '%s' at offset %#" PRIx64 ":\n"),
 	  elf_ndxscn (scn), section_name (ebl, shdr),
@@ -10064,14 +10080,6 @@ print_debug_macinfo_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
 
   /* There is no function in libdw to iterate over the raw content of
      the section but it is easy enough to do.  */
-  Elf_Data *data = (dbg->sectiondata[IDX_debug_macinfo]
-		    ?: elf_rawdata (scn, NULL));
-  if (unlikely (data == NULL))
-    {
-      error (0, 0, _("cannot get macro information section data: %s"),
-	     elf_errmsg (-1));
-      return;
-    }
 
   /* Get the source file information for all CUs.  */
   Dwarf_Off offset;
@@ -10222,19 +10230,15 @@ print_debug_macro_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
 			   GElf_Ehdr *ehdr __attribute__ ((unused)),
 			   Elf_Scn *scn, GElf_Shdr *shdr, Dwarf *dbg)
 {
+  Elf_Data *data = get_debug_elf_data (dbg, ebl, IDX_debug_macro, scn);
+  if (data == NULL)
+    return;
+
   printf (_("\
 \nDWARF section [%2zu] '%s' at offset %#" PRIx64 ":\n"),
 	  elf_ndxscn (scn), section_name (ebl, shdr),
 	  (uint64_t) shdr->sh_offset);
   putc_unlocked ('\n', stdout);
-
-  Elf_Data *data =  elf_getdata (scn, NULL);
-  if (unlikely (data == NULL))
-    {
-      error (0, 0, _("cannot get macro information section data: %s"),
-	     elf_errmsg (-1));
-      return;
-    }
 
   /* Get the source file information for all CUs.  Uses same
      datastructure as macinfo.  But uses offset field to directly
@@ -10609,6 +10613,10 @@ print_debug_pubnames_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
 			      GElf_Ehdr *ehdr __attribute__ ((unused)),
 			      Elf_Scn *scn, GElf_Shdr *shdr, Dwarf *dbg)
 {
+  /* Check section actually exists.  */
+  if (get_debug_elf_data (dbg, ebl, IDX_debug_pubnames, scn) == NULL)
+      return;
+
   printf (_("\nDWARF section [%2zu] '%s' at offset %#" PRIx64 ":\n"),
 	  elf_ndxscn (scn), section_name (ebl, shdr),
 	  (uint64_t) shdr->sh_offset);
@@ -10617,7 +10625,8 @@ print_debug_pubnames_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
   (void) dwarf_getpubnames (dbg, print_pubnames, &n, 0);
 }
 
-/* Print the content of the DWARF string section '.debug_str'.  */
+/* Print the content of the DWARF string section '.debug_str'
+   or 'debug_line_str'.  */
 static void
 print_debug_str_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
 			 Ebl *ebl,
@@ -10625,8 +10634,14 @@ print_debug_str_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
 			 Elf_Scn *scn, GElf_Shdr *shdr,
 			 Dwarf *dbg __attribute__ ((unused)))
 {
-  Elf_Data *data = elf_rawdata (scn, NULL);
-  const size_t sh_size = data ? data->d_size : 0;
+  const char *name = section_name (ebl, shdr);
+  int idx = ((name != NULL && strstr (name, "debug_line_str") != NULL)
+	     ? IDX_debug_line_str : IDX_debug_str);
+  Elf_Data *data = get_debug_elf_data (dbg, ebl, idx, scn);
+  if (data == NULL)
+    return;
+
+  const size_t sh_size = data->d_size;
 
   /* Compute floor(log16(shdr->sh_size)).  */
   GElf_Addr tmp = sh_size;
@@ -10669,6 +10684,10 @@ print_debug_str_offsets_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
 				 GElf_Ehdr *ehdr __attribute__ ((unused)),
 				 Elf_Scn *scn, GElf_Shdr *shdr, Dwarf *dbg)
 {
+  Elf_Data *data = get_debug_elf_data (dbg, ebl, IDX_debug_str_offsets, scn);
+  if (data == NULL)
+    return;
+
   printf (_("\
 \nDWARF section [%2zu] '%s' at offset %#" PRIx64 ":\n"),
 	  elf_ndxscn (scn), section_name (ebl, shdr),
@@ -10676,16 +10695,6 @@ print_debug_str_offsets_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
 
   if (shdr->sh_size == 0)
     return;
-
-  /* We like to get the section from libdw to make sure they are relocated.  */
-  Elf_Data *data = (dbg->sectiondata[IDX_debug_str_offsets]
-		    ?: elf_rawdata (scn, NULL));
-  if (unlikely (data == NULL))
-    {
-      error (0, 0, _("cannot get .debug_str_offsets section data: %s"),
-	     elf_errmsg (-1));
-      return;
-    }
 
   size_t idx = 0;
   sort_listptr (&known_stroffbases, "str_offsets");

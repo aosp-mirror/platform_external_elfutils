@@ -72,7 +72,7 @@ handle_die (Dwarf_Die *die, void *arg)
       && highpc <= lowpc
       && ! (dwarf_tag (die) == DW_TAG_compile_unit && highpc == lowpc))
     {
-      printf("lowpc: %" PRIx64 ", highpc: %" PRIx64 "lx\n", lowpc, highpc);
+      printf("lowpc: %" PRIx64 ", highpc: %" PRIx64 "\n", lowpc, highpc);
       fail (off, name, "highpc <= lowpc");
     }
 

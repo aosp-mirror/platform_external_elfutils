@@ -28,7 +28,6 @@
 #include <fcntl.h>
 #include <gelf.h>
 #include <inttypes.h>
-#include <libintl.h>
 #include <locale.h>
 #include <stdbool.h>
 #include <stdio.h>

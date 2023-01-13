@@ -316,7 +316,7 @@ debuginfod_clean_cache(debuginfod_client *c,
 
   /* Update timestamp representing when the cache was last cleaned.
      Do it at the start to reduce the number of threads trying to do a
-     cleanup simultaniously.  */
+     cleanup simultaneously.  */
   utime (interval_path, NULL);
 
   /* Read max unused age value from config file.  */

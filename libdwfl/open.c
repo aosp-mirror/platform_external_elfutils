@@ -205,7 +205,7 @@ __libdw_open_elf_memory (char *data, size_t size, Elf **elfp, bool archive_ok)
 {
   /* It is ok to use `fd == -1` here, because libelf uses it as a value for
      "no file opened" and code supports working with this value, and also
-     `never_close_fd == false` is passed to prevent closing non-existant file.
+     `never_close_fd == false` is passed to prevent closing non-existent file.
      The only caveat is in `decompress` method, which doesn't support
      decompressing from memory, so reading compressed zImage using this method
      won't work.  */

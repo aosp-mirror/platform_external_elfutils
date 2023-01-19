@@ -1,3 +1,8 @@
+2023-01-19  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfod-query-retry.sh: Use libdebuginfod.so.1 instead
+	of /bin/sh as test file.
+
 2022-12-21  Shahab Vahedi  <shahab@synopsys.email>
 
 	* hello_arc_hs4.ko.bz2: New testfile.

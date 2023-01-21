@@ -1,3 +1,9 @@
+2023-01-22  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_getscopes.c (pc_record): Return nscopes when done.
+	(dwarf_getscopes): Call __libdw_visit_scopes with
+	inlined_origin CU.
+
 2022-12-20  Mark Wielaard  <mark@klomp.org>
 
 	* Makefile.am (AM_CPPFLAGS): Add -I$(srcdir)/../libebl.

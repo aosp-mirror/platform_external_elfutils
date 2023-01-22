@@ -151,6 +151,7 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-readelf-variant.sh run-readelf-fat-lto.sh \
 	run-dwfl-report-elf-align.sh run-addr2line-test.sh \
 	run-dwfl-report-offline-memory.sh \
+	run-addr2line-C-test.sh \
 	run-addr2line-i-test.sh run-addr2line-i-lex-test.sh \
 	run-addr2line-i-demangle-test.sh run-addr2line-alt-debugpath.sh \
 	run-varlocs.sh run-exprlocs.sh run-varlocs-vars.sh run-funcretval.sh \
@@ -425,6 +426,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile-dwfl-report-elf-align-shlib.so.bz2 \
 	     testfilenolines.bz2 test-core-lib.so.bz2 test-core.core.bz2 \
 	     test-core.exec.bz2 run-addr2line-test.sh \
+	     run-addr2line-C-test.sh \
 	     run-addr2line-i-test.sh testfile-inlines.bz2 \
 	     run-addr2line-i-lex-test.sh testfile-lex-inlines.bz2 \
 	     run-addr2line-i-demangle-test.sh run-addr2line-alt-debugpath.sh \

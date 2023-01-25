@@ -211,6 +211,10 @@ __libdw_open_elf_memory (char *data, size_t size, Elf **elfp, bool archive_ok)
      won't work.  */
   int fd = -1;
   *elfp = elf_memory (data, size);
+  if (unlikely(*elfp == NULL))
+    {
+      return DWFL_E_LIBELF;
+    }
   /* Allow using this ELF as reference for subsequent elf_begin calls.  */
   (*elfp)->cmd = ELF_C_READ_MMAP_PRIVATE;
   return libdw_open_elf (&fd, elfp, false, archive_ok, true, false, true);

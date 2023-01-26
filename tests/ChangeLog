@@ -1,3 +1,8 @@
+2023-02-07  Mark Wielaard  <mark@klomp.org>
+
+	* tests/funcretval.c (handle_function): Check for
+	DW_TAG_unspecified_type.
+
 2023-02-03  Mark Wielaard  <mark@klomp.org>
 
 	* run-addr2line-C-test.sh: Check ELFUTILS_DISABLE_DEMANGLE.

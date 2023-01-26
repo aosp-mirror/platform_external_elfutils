@@ -1,3 +1,8 @@
+2023-02-07  Mark Wielaard  <mark@klomp.org>
+
+	* libebl_CPU.h (dwarf_peeled_die_type): Explicitly handle
+	DW_TAG_unspecified_type as if there was no DW_AT_type.
+
 2023-01-19  Mark Wielaard  <mark@klomp.org>
 
 	* sparc_reloc.def (NONE): Add EXEC and DYN.

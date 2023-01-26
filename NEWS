@@ -1,3 +1,8 @@
+Version 0.189
+
+libdwfl: dwfl_module_return_value_location now returns 0 (no return type)
+         for DIEs that point to a DW_TAG_unspecified_type.
+
 Version 0.188
 
 readelf: Add -D, --use-dynamic option.

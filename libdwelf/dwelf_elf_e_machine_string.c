@@ -398,6 +398,8 @@ dwelf_elf_e_machine_string (int machine)
       return "BPF";
     case EM_CSKY:
       return "C-SKY";
+    case EM_LOONGARCH:
+      return "LoongArch";
 
     case EM_ALPHA:
       return "Alpha";

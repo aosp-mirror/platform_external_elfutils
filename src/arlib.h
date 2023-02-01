@@ -46,7 +46,7 @@ extern const struct argp_child arlib_argp_children[];
 #define AR_HDR_WORDS (sizeof (struct ar_hdr) / sizeof (uint32_t))
 
 
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if BYTE_ORDER == LITTLE_ENDIAN
 # define le_bswap_32(val) bswap_32 (val)
 #else
 # define le_bswap_32(val) (val)

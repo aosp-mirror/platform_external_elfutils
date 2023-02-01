@@ -70,7 +70,7 @@ libdwfl_a_SOURCES = dwfl_begin.c dwfl_end.c dwfl_error.c dwfl_version.c \
 		    link_map.c core-file.c open.c image-header.c \
 		    dwfl_frame.c frame_unwind.c dwfl_frame_pc.c \
 		    linux-pid-attach.c linux-core-attach.c dwfl_frame_regs.c \
-		    gzip.c
+		    gzip.c debuginfod-client.c
 
 if BZLIB
 libdwfl_a_SOURCES += bzip2.c
@@ -80,9 +80,6 @@ libdwfl_a_SOURCES += lzma.c
 endif
 if ZSTD
 libdwfl_a_SOURCES += zstd.c
-endif
-if LIBDEBUGINFOD
-libdwfl_a_SOURCES += debuginfod-client.c
 endif
 
 libdwfl = $(libdw)

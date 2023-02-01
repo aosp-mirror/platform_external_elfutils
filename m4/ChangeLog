@@ -1,3 +1,12 @@
+2022-03-20  Mark Wielaard  <mark@klomp.org>
+
+	* biarch.m4: Don't check whether -m64 works for 32bit host.
+
+2022-03-14  Mark Wielaard  <mark@klomp.org>
+
+	* biarch.m4: Use AS_HELP_STRING instead of AC_HELP_STRING.
+	* zip.m4: Likewise.
+
 2020-12-15  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* .gitignore: New file.

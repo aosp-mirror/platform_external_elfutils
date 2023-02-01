@@ -33,7 +33,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <libintl.h>
 #include "libeu.h"
 #include "system.h"
 

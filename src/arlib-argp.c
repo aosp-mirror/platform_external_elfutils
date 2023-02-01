@@ -20,7 +20,6 @@
 #endif
 
 #include <argp.h>
-#include <libintl.h>
 
 #include "arlib.h"
 

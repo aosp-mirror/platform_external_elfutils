@@ -28,7 +28,6 @@ get_ports
 DB=${PWD}/.debuginfod_tmp.sqlite
 tempfiles $DB
 export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
-export DEBUGINFOD_TIMEOUT=10
 
 # Clean old dirictories
 mkdir R ${PWD}/F

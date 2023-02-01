@@ -32,10 +32,8 @@
 #endif
 
 #include <argp.h>
-#include <libintl.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include "system.h"
 #include "libeu.h"
 #include "color.h"

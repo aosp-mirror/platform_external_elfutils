@@ -6,7 +6,7 @@
 
 if [ -z "$DEBUGINFOD_URLS" ]; then
     prefix="@prefix@"
-    DEBUGINFOD_URLS=$(cat "@sysconfdir@/debuginfod"/*.urls 2>/dev/null | tr '\n' ' ')
+    DEBUGINFOD_URLS=$(cat /dev/null "@sysconfdir@/debuginfod"/*.urls 2>/dev/null | tr '\n' ' ')
     [ -n "$DEBUGINFOD_URLS" ] && export DEBUGINFOD_URLS || unset DEBUGINFOD_URLS
     unset prefix
 fi

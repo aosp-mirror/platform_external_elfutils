@@ -18,6 +18,11 @@
 
 . $srcdir/test-subr.sh
 
+if test -n "$ELFUTILS_DISABLE_DEMANGLE"; then
+  echo "demangler unsupported"
+  exit 77
+fi
+
 # See run-addr2line-i-test.sh
 testfiles testfile-inlines
 

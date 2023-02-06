@@ -10247,7 +10247,6 @@ print_debug_macro_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
   Dwarf_Off ncu = 0;
   size_t hsize;
   struct mac_culist *culist = NULL;
-  size_t nculist = 0;
   while (dwarf_nextcu (dbg, offset = ncu, &ncu, &hsize, NULL, NULL, NULL) == 0)
     {
       Dwarf_Die cudie;
@@ -10268,7 +10267,6 @@ print_debug_macro_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
       newp->files = NULL;
       newp->next = culist;
       culist = newp;
-      ++nculist;
     }
 
   const unsigned char *readp = (const unsigned char *) data->d_buf;

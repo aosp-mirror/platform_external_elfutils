@@ -254,13 +254,13 @@ EOF
 
 testfiles testfile-inlines-lto
 
-testrun_compare ${abs_top_builddir}/src/addr2line --pretty -fiC -e testfile-inlines-lto 0x1118 0x1137 <<\EOF
-foobar(int) at /tmp/x.cpp:4:14
- (inlined by) foo(int) at /tmp/x.cpp:22:16
- (inlined by) fu(int) at /tmp/x.cpp:27:13
-fubar(int) at /tmp/x.cpp:10:14
- (inlined by) bar(int) at /tmp/x.cpp:16:15
- (inlined by) fu(int) at /tmp/x.cpp:27:24
+testrun_compare ${abs_top_builddir}/src/addr2line --pretty -fi -e testfile-inlines-lto 0x1118 0x1137 <<\EOF
+_Z6foobari at /tmp/x.cpp:4:14
+ (inlined by) _Z3fooi at /tmp/x.cpp:22:16
+ (inlined by) _Z2fui at /tmp/x.cpp:27:13
+_Z5fubari at /tmp/x.cpp:10:14
+ (inlined by) _Z3bari at /tmp/x.cpp:16:15
+ (inlined by) _Z2fui at /tmp/x.cpp:27:24
 EOF
 
 exit 0

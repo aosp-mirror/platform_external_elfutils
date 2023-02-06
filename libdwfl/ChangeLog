@@ -1,3 +1,8 @@
+2023-02-06  Mark Wielaard  <mark@klomp.org>
+
+	* libdwfl.h: Guard debuginfod_client typedef with
+	_ELFUTILS_DEBUGINFOD_CLIENT_TYPEDEF.
+
 2022-12-21  Mark Wielaard  <mark@klomp.org>
 
 	* core-file.c: Don't undef _.

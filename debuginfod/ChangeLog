@@ -1,3 +1,8 @@
+2023-02-06  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod.h.in: Guard debuginfod_client typedef with
+	_ELFUTILS_DEBUGINFOD_CLIENT_TYPEDEF.
+
 2023-01-10  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod-client.c (debuginfod_query_server): Use

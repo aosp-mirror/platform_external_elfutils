@@ -50,7 +50,10 @@ typedef struct Dwfl_Thread Dwfl_Thread;
 typedef struct Dwfl_Frame Dwfl_Frame;
 
 /* Handle for debuginfod-client connection.  */
+#ifndef _ELFUTILS_DEBUGINFOD_CLIENT_TYPEDEF
 typedef struct debuginfod_client debuginfod_client;
+#define _ELFUTILS_DEBUGINFOD_CLIENT_TYPEDEF 1
+#endif
 
 /* Callbacks.  */
 typedef struct

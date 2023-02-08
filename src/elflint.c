@@ -3569,9 +3569,12 @@ section [%2d] '%s': offset %zu: attribute subsection has unexpected tag %u\n"),
 		    const unsigned char *r = chunk;
 		    if (tag == 32 || (tag & 1) == 0)
 		      {
+			if (r >= q)
+			  goto invalid_uleb;
 			get_uleb128 (value, r, q);
 			if (r > q)
 			  {
+			  invalid_uleb:
 			    ERROR (_("\
 section [%2d] '%s': offset %zu: endless ULEB128 in attribute tag\n"),
 				   idx, section_name (ebl, idx), buffer_pos (data, chunk));

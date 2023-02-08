@@ -1,3 +1,19 @@
+2023-02-12  Mark Wielaard  <mark@klomp.org>
+
+	* cfi.c (execute_cfi): Add cfi_asser before reading second lib128.
+	* dwarf_chld.c (__libdw_find_attr): Check readp >= endp before
+	calling get_uleb128.
+	* dwarf_frame_register.c (dwarf_frame_register): Likewise for
+	p >= end.
+	* dwarf_getabbrev.c (__libdw_getabbrev): Add comment about check.
+	* dwarf_getlocation.c (__libdw_intern_expression): Update check to
+	account for both the number and uleb128.
+	* encoded-value.h (read_encoded_value): Check p >= end for
+	DW_EH_PE_(u|s)leb128.
+	* fde.c (intern_fde): Check len can be read as uleb128.
+	* libdw_form.c (__libdw_form_val_compute_len): Check valp >= endp
+	before get_uleb128.
+
 2023-01-22  Mark Wielaard  <mark@klomp.org>
 
 	* dwarf_getscopes.c (pc_record): Return nscopes when done.

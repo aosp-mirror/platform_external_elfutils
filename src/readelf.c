@@ -3802,6 +3802,7 @@ print_attributes (Ebl *ebl, const GElf_Ehdr *ehdr)
 			if (tag == 32 || (tag & 1) == 0
 			    || (! gnu_vendor && (tag > 5 && tag < 32)))
 			  {
+			    // Note r >= q check above.
 			    get_uleb128 (value, r, q);
 			    if (r > q)
 			      break;
@@ -6368,9 +6369,13 @@ read_encoded (unsigned int encoding, const unsigned char *readp,
   switch (encoding & 0xf)
     {
     case DW_EH_PE_uleb128:
+      if (readp >= endp)
+	goto invalid;
       get_uleb128 (*res, readp, endp);
       break;
     case DW_EH_PE_sleb128:
+      if (readp >= endp)
+	goto invalid;
       get_sleb128 (*res, readp, endp);
       break;
     case DW_EH_PE_udata2:
@@ -6983,6 +6988,9 @@ print_debug_frame_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
 
 	  if (augmentation[0] == 'z')
 	    {
+	      if (cieend - readp < 1)
+		goto invalid_data;
+
 	      unsigned int augmentationlen;
 	      get_uleb128 (augmentationlen, readp, cieend);
 
@@ -11010,6 +11018,8 @@ print_debug_exception_table (Dwfl_Module *dwflmod __attribute__ ((unused)),
   if (ttype_encoding != DW_EH_PE_omit)
     {
       unsigned int ttype_base_offset;
+      if (readp >= dataend)
+	goto invalid_data;
       get_uleb128 (ttype_base_offset, readp, dataend);
       printf (" TType base offset:   %#x\n", ttype_base_offset);
       if ((size_t) (dataend - readp) > ttype_base_offset)
@@ -11022,6 +11032,8 @@ print_debug_exception_table (Dwfl_Module *dwflmod __attribute__ ((unused)),
   printf (_(" Call site encoding:  %#x "), call_site_encoding);
   print_encoding_base ("", call_site_encoding);
   unsigned int call_site_table_len;
+  if (readp >= dataend)
+    goto invalid_data;
   get_uleb128 (call_site_table_len, readp, dataend);
 
   const unsigned char *const action_table = readp + call_site_table_len;
@@ -11044,6 +11056,8 @@ print_debug_exception_table (Dwfl_Module *dwflmod __attribute__ ((unused)),
       readp = read_encoded (call_site_encoding, readp, dataend,
 			    &landing_pad, dbg);
       unsigned int action;
+      if (readp >= dataend)
+	goto invalid_data;
       get_uleb128 (action, readp, dataend);
       max_action = MAX (action, max_action);
       printf (_(" [%4u] Call site start:   %#" PRIx64 "\n"

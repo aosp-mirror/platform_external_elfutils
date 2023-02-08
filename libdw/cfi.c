@@ -239,6 +239,7 @@ execute_cfi (Dwarf_CFI *cache,
 
 	case DW_CFA_offset_extended_sf:
 	  get_uleb128 (operand, program, end);
+	  cfi_assert (program < end);
 	  get_sleb128 (sf_offset, program, end);
 	offset_extended_sf:
 	  offset = sf_offset * cie->data_alignment_factor;
@@ -294,6 +295,7 @@ execute_cfi (Dwarf_CFI *cache,
 	  get_uleb128 (regno, program, end);
 	  /* DW_FORM_block is a ULEB128 length followed by that many bytes.  */
 	  offset = program - (const uint8_t *) cache->data->d.d_buf;
+	  cfi_assert (program < end);
 	  get_uleb128 (operand, program, end);
 	  cfi_assert (operand <= (Dwarf_Word) (end - program));
 	  program += operand;

@@ -572,6 +572,8 @@ read_srclines (Dwarf *dbg,
 	goto invalid_data;
 
       size_t nfiles;
+      if ((size_t) (lineendp - linep) < 1)
+	goto invalid_data;
       get_uleb128 (nfiles, linep, lineendp);
 
       if (nforms == 0 && nfiles != 0)

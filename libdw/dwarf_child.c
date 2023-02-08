@@ -73,10 +73,13 @@ __libdw_find_attr (Dwarf_Die *die, unsigned int search_name,
 
       if (attr_form == DW_FORM_indirect)
 	{
+	  if (readp >= endp)
+	    goto invalid;
 	  get_uleb128 (attr_form, readp, endp);
 	  if (attr_form == DW_FORM_indirect ||
 	      attr_form == DW_FORM_implicit_const)
 	    {
+	    invalid:
 	      __libdw_seterrno (DWARF_E_INVALID_DWARF);
 	      return NULL;
 	    }

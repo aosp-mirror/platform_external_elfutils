@@ -1,3 +1,15 @@
+2023-02-12  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (print_attributes): Add comment about check.
+	(read_encoded): Check readp >= endp before reading
+	DW_EH_PE_uleb128 and DW_EH_PE_sleb128.
+	* elflint.c (check_attributes): Check r >= q before reading
+	uleb128.
+	(print_debug_frame_section): Check augmentation length can be read
+	as uleb128.
+	(print_debug_exception_table): Likewise for ttype_base_offset,
+	call_site_table_len and action.
+
 2023-01-22  Mark Wielaard  <mark@klomp.org>
 
 	* addr2line.c (options): Separate --demangle and -C.

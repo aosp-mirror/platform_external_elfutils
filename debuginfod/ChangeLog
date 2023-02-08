@@ -1,3 +1,8 @@
+2023-02-07  Aaron Merey  <amerey@redhat.com>
+
+	* debuginfod-client.c (cache_find_section): Avoid returning -ENOENT
+	if debuginfo wasn't found.
+
 2023-02-06  Mark Wielaard  <mark@klomp.org>
 
 	* debuginfod.h.in: Guard debuginfod_client typedef with

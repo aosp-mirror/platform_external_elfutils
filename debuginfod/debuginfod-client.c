@@ -785,23 +785,24 @@ out:
    an ELF/DWARF section with name SCN_NAME.  If found, extract the section
    to a separate file in TARGET_CACHE_DIR and return a file descriptor
    for the section file. The path for this file will be stored in USR_PATH.
-   Return a negative errno if unsuccessful.  */
+   Return a negative errno if unsuccessful.  -ENOENT indicates that SCN_NAME
+   is confirmed to not exist.  */
 
 static int
 cache_find_section (const char *scn_name, const char *target_cache_dir,
 		    char **usr_path)
 {
-  int fd;
+  int debug_fd;
   int rc = -EEXIST;
   char parent_path[PATH_MAX];
 
   /* Check the debuginfo first.  */
   snprintf (parent_path, PATH_MAX, "%s/debuginfo", target_cache_dir);
-  fd = open (parent_path, O_RDONLY);
-  if (fd >= 0)
+  debug_fd = open (parent_path, O_RDONLY);
+  if (debug_fd >= 0)
     {
-      rc = extract_section (fd, scn_name, parent_path, usr_path);
-      close (fd);
+      rc = extract_section (debug_fd, scn_name, parent_path, usr_path);
+      close (debug_fd);
     }
 
   /* If the debuginfo file couldn't be found or the section type was
@@ -809,12 +810,17 @@ cache_find_section (const char *scn_name, const char *target_cache_dir,
   if (rc == -EEXIST)
     {
       snprintf (parent_path, PATH_MAX, "%s/executable", target_cache_dir);
-      fd = open (parent_path, O_RDONLY);
+      int exec_fd = open (parent_path, O_RDONLY);
 
-      if (fd >= 0)
+      if (exec_fd >= 0)
 	{
-	  rc = extract_section (fd, scn_name, parent_path, usr_path);
-	  close (fd);
+	  rc = extract_section (exec_fd, scn_name, parent_path, usr_path);
+	  close (exec_fd);
+
+	  /* Don't return -ENOENT if the debuginfo wasn't opened.  The
+	     section may exist in the debuginfo but not the executable.  */
+	  if (debug_fd < 0 && rc == -ENOENT)
+	    rc = -EREMOTE;
 	}
     }
 

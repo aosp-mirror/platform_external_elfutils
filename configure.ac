@@ -466,11 +466,17 @@ CFLAGS="$CFLAGS -D_GNU_SOURCE"
 AC_FUNC_STRERROR_R()
 CFLAGS="$old_CFLAGS"
 
+AC_ARG_ENABLE([demangler],
+AS_HELP_STRING([--disable-demangler],
+	       [Disable libstdc++ demangle support]),
+	       [], [enable_demangler=yes])
+AS_IF([test "x$enable_demangler" == xyes],
 AC_CHECK_LIB([stdc++], [__cxa_demangle], [dnl
 AC_DEFINE([USE_DEMANGLE], [1], [Defined if demangling is enabled])])
 AM_CONDITIONAL(DEMANGLE, test "x$ac_cv_lib_stdcpp___cxa_demangle" = "xyes")
 AS_IF([test "x$ac_cv_lib_stdcpp___cxa_demangle" = "xyes"],
-      [enable_demangler=yes],[enable_demangler=no])
+      [enable_demangler=yes],[enable_demangler=no]),
+AM_CONDITIONAL(DEMANGLE, false))
 
 AC_ARG_ENABLE([textrelcheck],
 AS_HELP_STRING([--disable-textrelcheck],

@@ -12200,23 +12200,16 @@ handle_core_items (Elf *core, const void *desc, size_t descsz,
 }
 
 static unsigned int
-handle_bit_registers (const Ebl_Register_Location *regloc, const void *desc,
-		      unsigned int colno)
-{
-  desc += regloc->offset;
-
-  abort ();			/* XXX */
-  return colno;
-}
-
-
-static unsigned int
 handle_core_register (Ebl *ebl, Elf *core, int maxregname,
 		      const Ebl_Register_Location *regloc, const void *desc,
 		      unsigned int colno)
 {
   if (regloc->bits % 8 != 0)
-    return handle_bit_registers (regloc, desc, colno);
+    {
+      error (0, 0, "Warning: Cannot handle register with %" PRIu8 "bits\n",
+	     regloc->bits);
+      return colno;
+    }
 
   desc += regloc->offset;
 

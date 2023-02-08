@@ -588,6 +588,14 @@ CFLAGS="$old_CFLAGS"])
 AM_CONDITIONAL(HAVE_NO_PACKED_NOT_ALIGNED_WARNING,
 	       [test "x$ac_cv_no_packed_not_aligned" != "xno"])
 
+AC_CACHE_CHECK([whether the compiler accepts -fno-addrsig], ac_cv_fno_addrsig, [dnl
+old_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -fno-addrsig -Werror"
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([])],
+                  ac_cv_fno_addrsig=yes, ac_cv_fno_addrsig=no)
+CFLAGS="$old_CFLAGS"])
+AS_IF([test "x$ac_cv_fno_addrsig" = "xyes"], CFLAGS="$CFLAGS -fno-addrsig")
+
 saved_LIBS="$LIBS"
 AC_SEARCH_LIBS([argp_parse], [argp])
 LIBS="$saved_LIBS"

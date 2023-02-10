@@ -396,6 +396,7 @@ __libdw_intern_expression (Dwarf *dbg, bool other_byte_order,
 	case DW_OP_form_tls_address:
 	case DW_OP_GNU_push_tls_address:
 	case DW_OP_stack_value:
+	case DW_OP_GNU_uninit:
 	  /* No operand.  */
 	  break;
 

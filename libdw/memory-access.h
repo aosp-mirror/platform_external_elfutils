@@ -72,13 +72,16 @@ __libdw_max_len_sleb128 (const unsigned char *addr, const unsigned char *end)
 static inline uint64_t
 __libdw_get_uleb128 (const unsigned char **addrp, const unsigned char *end)
 {
+  const size_t max = __libdw_max_len_uleb128 (*addrp, end);
+  if (unlikely (max == 0))
+    return UINT64_MAX;
+
   uint64_t acc = 0;
 
   /* Unroll the first step to help the compiler optimize
      for the common single-byte case.  */
   get_uleb128_step (acc, *addrp, 0);
 
-  const size_t max = __libdw_max_len_uleb128 (*addrp - 1, end);
   for (size_t i = 1; i < max; ++i)
     get_uleb128_step (acc, *addrp, i);
   /* Other implementations set VALUE to UINT_MAX in this
@@ -124,6 +127,10 @@ __libdw_get_uleb128_unchecked (const unsigned char **addrp)
 static inline int64_t
 __libdw_get_sleb128 (const unsigned char **addrp, const unsigned char *end)
 {
+  const size_t max = __libdw_max_len_sleb128 (*addrp, end);
+  if (unlikely (max == 0))
+    return INT64_MAX;
+
   /* Do the work in an unsigned type, but use implementation-defined
      behavior to cast to signed on return.  This avoids some undefined
      behavior when shifting.  */
@@ -133,7 +140,6 @@ __libdw_get_sleb128 (const unsigned char **addrp, const unsigned char *end)
      for the common single-byte case.  */
   get_sleb128_step (acc, *addrp, 0);
 
-  const size_t max = __libdw_max_len_sleb128 (*addrp - 1, end);
   for (size_t i = 1; i < max; ++i)
     get_sleb128_step (acc, *addrp, i);
   if (*addrp == end)

@@ -348,7 +348,7 @@ static const char DEBUGINFOD_SQLITE_CLEANUP_DDL[] =
 
 
 /* Name and version of program.  */
-/* ARGP_PROGRAM_VERSION_HOOK_DEF = print_version; */ // not this simple for C++
+ARGP_PROGRAM_VERSION_HOOK_DEF = print_version;
 
 /* Bug report address.  */
 ARGP_PROGRAM_BUG_ADDRESS_DEF = PACKAGE_BUGREPORT;
@@ -4171,7 +4171,6 @@ main (int argc, char *argv[])
 
   /* Parse and process arguments.  */
   int remaining;
-  argp_program_version_hook = print_version; // this works
   (void) argp_parse (&argp, argc, argv, ARGP_IN_ORDER, &remaining, NULL);
   if (remaining != argc)
       error (EXIT_FAILURE, 0,

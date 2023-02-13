@@ -12,7 +12,7 @@ third_party {
     type: GIT
     value: "git://sourceware.org/git/elfutils.git"
   }
-  version: "elfutils-0.187"
+  version: "elfutils-0.188"
   license_type: BY_EXCEPTION_ONLY
   license_note: "Would be RESTRICTED save for doc/COPYING-GFDL"
   last_upgrade_date {

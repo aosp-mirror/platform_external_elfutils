@@ -32,8 +32,6 @@
 #include "../libdw/memory-access.h"
 #include "system.h"
 
-#include <byteswap.h>
-#include <endian.h>
 #include <fcntl.h>
 
 /* This element is always provided and always has a constant value.

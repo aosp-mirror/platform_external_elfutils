@@ -42,8 +42,10 @@
 #include "config.h"
 #include "debuginfod.h"
 #include "system.h"
+#include <ctype.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <gelf.h>
 
 /* We might be building a bootstrap dummy library, which is really simple. */
 #ifdef DUMMY_LIBDEBUGINFOD
@@ -55,6 +57,9 @@ int debuginfod_find_executable (debuginfod_client *c, const unsigned char *b,
                                 int s, char **p) { return -ENOSYS; }
 int debuginfod_find_source (debuginfod_client *c, const unsigned char *b,
                             int s, const char *f, char **p)  { return -ENOSYS; }
+int debuginfod_find_section (debuginfod_client *c, const unsigned char *b,
+			     int s, const char *scn, char **p)
+			      { return -ENOSYS; }
 void debuginfod_set_progressfn(debuginfod_client *c,
 			       debuginfod_progressfn_t fn) { }
 void debuginfod_set_verbose_fd(debuginfod_client *c, int fd) { }
@@ -63,6 +68,8 @@ void* debuginfod_get_user_data (debuginfod_client *c) { return NULL; }
 const char* debuginfod_get_url (debuginfod_client *c) { return NULL; }
 int debuginfod_add_http_header (debuginfod_client *c,
 				const char *h) { return -ENOSYS; }
+const char* debuginfod_get_headers (debuginfod_client *c) { return NULL; }
+
 void debuginfod_end (debuginfod_client *c) { }
 
 #else /* DUMMY_LIBDEBUGINFOD */
@@ -126,6 +133,9 @@ struct debuginfod_client
   /* Flags the default_progressfn having printed something that
      debuginfod_end needs to terminate. */
   int default_progressfn_printed_p;
+
+  /* Indicates whether the last query was cancelled by progressfn.  */
+  bool progressfn_cancel;
 
   /* File descriptor to output any verbose messages if > 0.  */
   int verbose_fd;
@@ -213,8 +223,9 @@ debuginfod_write_callback (char *ptr, size_t size, size_t nmemb, void *data)
       *d->target_handle = d->handle;
       /* update the client object */
       const char *url = NULL;
-      (void) curl_easy_getinfo (d->handle, CURLINFO_EFFECTIVE_URL, &url);
-      if (url)
+      CURLcode curl_res = curl_easy_getinfo (d->handle,
+                                             CURLINFO_EFFECTIVE_URL, &url);
+      if (curl_res == CURLE_OK && url)
         {
           free (d->client->url);
           d->client->url = strdup(url); /* ok if fails */
@@ -234,20 +245,32 @@ debuginfod_config_cache(char *config_path,
 			long cache_config_default_s,
 			struct stat *st)
 {
-  int fd;
-  /* if the config file doesn't exist, create one with DEFFILEMODE*/
-  if(stat(config_path, st) == -1)
-    {
-      fd = open(config_path, O_CREAT | O_RDWR, DEFFILEMODE);
-      if (fd < 0)
-        return -errno;
+  int fd = open(config_path, O_CREAT | O_RDWR, DEFFILEMODE);
+  if (fd < 0)
+    return -errno;
 
+  if (fstat (fd, st) < 0)
+    {
+      int ret = -errno;
+      close (fd);
+      return ret;
+    }
+
+  if (st->st_size == 0)
+    {
       if (dprintf(fd, "%ld", cache_config_default_s) < 0)
-        return -errno;
+	{
+	  int ret = -errno;
+	  close (fd);
+	  return ret;
+	}
+
+      close (fd);
+      return cache_config_default_s;
     }
 
   long cache_config;
-  FILE *config_file = fopen(config_path, "r");
+  FILE *config_file = fdopen(fd, "r");
   if (config_file)
     {
       if (fscanf(config_file, "%ld", &cache_config) != 1)
@@ -257,46 +280,9 @@ debuginfod_config_cache(char *config_path,
   else
     cache_config = cache_config_default_s;
 
+  close (fd);
   return cache_config;
 }
-
-/* Create the cache and interval file if they do not already exist.
-   Return 0 if cache and config file are initialized, otherwise return
-   the appropriate error code.  */
-static int
-debuginfod_init_cache (char *cache_path, char *interval_path, char *maxage_path)
-{
-  struct stat st;
-
-  /* If the cache and config file already exist then we are done.  */
-  if (stat(cache_path, &st) == 0 && stat(interval_path, &st) == 0)
-    return 0;
-
-  /* Create the cache and config files as necessary.  */
-  if (stat(cache_path, &st) != 0 && mkdir(cache_path, ACCESSPERMS) < 0)
-    return -errno;
-
-  int fd = -1;
-
-  /* init cleaning interval config file.  */
-  fd = open(interval_path, O_CREAT | O_RDWR, DEFFILEMODE);
-  if (fd < 0)
-    return -errno;
-
-  if (dprintf(fd, "%ld", cache_clean_default_interval_s) < 0)
-    return -errno;
-
-  /* init max age config file.  */
-  if (stat(maxage_path, &st) != 0
-      && (fd = open(maxage_path, O_CREAT | O_RDWR, DEFFILEMODE)) < 0)
-    return -errno;
-
-  if (dprintf(fd, "%ld", cache_default_max_unused_age_s) < 0)
-    return -errno;
-
-  return 0;
-}
-
 
 /* Delete any files that have been unmodied for a period
    longer than $DEBUGINFOD_CACHE_CLEAN_INTERVAL_S.  */
@@ -320,6 +306,11 @@ debuginfod_clean_cache(debuginfod_client *c,
   if (time(NULL) - st.st_mtime < clean_interval)
     /* Interval has not passed, skip cleaning.  */
     return 0;
+
+  /* Update timestamp representing when the cache was last cleaned.
+     Do it at the start to reduce the number of threads trying to do a
+     cleanup simultaniously.  */
+  utime (interval_path, NULL);
 
   /* Read max unused age value from config file.  */
   rc = debuginfod_config_cache(max_unused_path,
@@ -375,8 +366,6 @@ debuginfod_clean_cache(debuginfod_client *c,
   fts_close (fts);
   regfree (&re);
 
-  /* Update timestamp representing when the cache was last cleaned.  */
-  utime (interval_path, NULL);
   return 0;
 }
 
@@ -466,6 +455,45 @@ add_default_headers(debuginfod_client *client)
   free (utspart);
 }
 
+/* Add HTTP headers found in the given file, one per line. Blank lines or invalid
+ * headers are ignored.
+ */
+static void
+add_headers_from_file(debuginfod_client *client, const char* filename)
+{
+  int vds = client->verbose_fd;
+  FILE *f = fopen (filename, "r");
+  if (f == NULL)
+    {
+      if (vds >= 0)
+	dprintf(vds, "header file %s: %s\n", filename, strerror(errno));
+      return;
+    }
+
+  while (1)
+    {
+      char buf[8192];
+      char *s = &buf[0];
+      if (feof(f))
+        break;
+      if (fgets (s, sizeof(buf), f) == NULL)
+        break;
+      for (char *c = s; *c != '\0'; ++c)
+        if (!isspace(*c))
+          goto nonempty;
+      continue;
+    nonempty:
+      ;
+      size_t last = strlen(s)-1;
+      if (s[last] == '\n')
+        s[last] = '\0';
+      int rc = debuginfod_add_http_header(client, s);
+      if (rc < 0 && vds >= 0)
+        dprintf(vds, "skipping bad header: %s\n", strerror(-rc));
+    }
+  fclose (f);
+}
+
 
 #define xalloc_str(p, fmt, args...)        \
   do                                       \
@@ -520,46 +548,291 @@ default_progressfn (debuginfod_client *c, long a, long b)
 static size_t
 header_callback (char * buffer, size_t size, size_t numitems, void * userdata)
 {
+  struct handle_data *data = (struct handle_data *) userdata;
   if (size != 1)
     return 0;
+  if (data->client && data->client->verbose_fd >= 0)
+    dprintf (data->client->verbose_fd, "header %.*s", (int)numitems, buffer);
+  // Some basic checks to ensure the headers received are of the expected format
+  if (strncasecmp(buffer, "X-DEBUGINFOD", 11)
+      || buffer[numitems-2] != '\r'
+      || buffer[numitems-1] != '\n'
+      || (buffer == strstr(buffer, ":")) ){
+    return numitems;
+  }
   /* Temporary buffer for realloc */
   char *temp = NULL;
-  struct handle_data *data = (struct handle_data *) userdata;
   if (data->response_data == NULL)
     {
-      temp = malloc(numitems+1);
+      temp = malloc(numitems);
       if (temp == NULL)
         return 0;
     }
   else
     {
-      temp = realloc(data->response_data, data->response_data_size + numitems + 1);
+      temp = realloc(data->response_data, data->response_data_size + numitems);
       if (temp == NULL)
         return 0;
     }
 
-  memcpy(temp + data->response_data_size, buffer, numitems);
+  memcpy(temp + data->response_data_size, buffer, numitems-1);
   data->response_data = temp;
-  data->response_data_size += numitems;
+  data->response_data_size += numitems-1;
+  data->response_data[data->response_data_size-1] = '\n';
   data->response_data[data->response_data_size] = '\0';
   return numitems;
 }
 
+/* Copy SRC to DEST, s,/,#,g */
+
+static void
+path_escape (const char *src, char *dest)
+{
+  unsigned q = 0;
+
+  for (unsigned fi=0; q < PATH_MAX-2; fi++) /* -2, escape is 2 chars.  */
+    switch (src[fi])
+      {
+      case '\0':
+        dest[q] = '\0';
+	return;
+      case '/': /* escape / to prevent dir escape */
+        dest[q++]='#';
+        dest[q++]='#';
+        break;
+      case '#': /* escape # to prevent /# vs #/ collisions */
+        dest[q++]='#';
+        dest[q++]='_';
+        break;
+      default:
+        dest[q++]=src[fi];
+      }
+
+  dest[q] = '\0';
+}
+
+/* Attempt to read an ELF/DWARF section with name SECTION from FD and write
+   it to a separate file in the debuginfod cache.  If successful the absolute
+   path of the separate file containing SECTION will be stored in USR_PATH.
+   FD_PATH is the absolute path for FD.
+
+   If the section cannot be extracted, then return a negative error code.
+   -ENOENT indicates that the parent file was able to be read but the
+   section name was not found.  -EEXIST indicates that the section was
+   found but had type SHT_NOBITS.  */
+
+int
+extract_section (int fd, const char *section, char *fd_path, char **usr_path)
+{
+  elf_version (EV_CURRENT);
+
+  Elf *elf = elf_begin (fd, ELF_C_READ_MMAP_PRIVATE, NULL);
+  if (elf == NULL)
+    return -EIO;
+
+  size_t shstrndx;
+  int rc = elf_getshdrstrndx (elf, &shstrndx);
+  if (rc < 0)
+    {
+      rc = -EIO;
+      goto out;
+    }
+
+  int sec_fd = -1;
+  char *escaped_name = NULL;
+  char *sec_path_tmp = NULL;
+  Elf_Scn *scn = NULL;
+
+  /* Try to find the target section and copy the contents into a
+     separate file.  */
+  while (true)
+    {
+      scn = elf_nextscn (elf, scn);
+      if (scn == NULL)
+	{
+	  rc = -ENOENT;
+	  goto out;
+	}
+      GElf_Shdr shdr_storage;
+      GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_storage);
+      if (shdr == NULL)
+	{
+	  rc = -EIO;
+	  goto out;
+	}
+
+      const char *scn_name = elf_strptr (elf, shstrndx, shdr->sh_name);
+      if (scn_name == NULL)
+	{
+	  rc = -EIO;
+	  goto out;
+	}
+      if (strcmp (scn_name, section) == 0)
+	{
+	  /* We found the desired section.  */
+	  if (shdr->sh_type == SHT_NOBITS)
+	    {
+	      rc = -EEXIST;
+	      goto out;
+	    }
+
+	  Elf_Data *data = NULL;
+	  data = elf_rawdata (scn, NULL);
+	  if (data == NULL)
+	    {
+	      rc = -EIO;
+	      goto out;
+	    }
+
+	  if (data->d_buf == NULL)
+	    {
+	      rc = -EIO;
+	      goto out;
+	    }
+
+	  /* Compute the absolute filename we'll write the section to.
+	     Replace the last component of FD_PATH with the path-escaped
+	     section filename.  */
+	  int i = strlen (fd_path);
+          while (i >= 0)
+	    {
+	      if (fd_path[i] == '/')
+		{
+		  fd_path[i] = '\0';
+		  break;
+		}
+	      --i;
+	    }
+
+	  escaped_name = malloc (strlen (section) * 2 + 1);
+	  if (escaped_name == NULL)
+	    {
+	      rc = -ENOMEM;
+	      goto out;
+	    }
+	  path_escape (section, escaped_name);
+
+	  rc = asprintf (&sec_path_tmp, "%s/section-%s.XXXXXX",
+			 fd_path, escaped_name);
+	  if (rc == -1)
+	    {
+	      rc = -ENOMEM;
+	      goto out1;
+	    }
+
+	  sec_fd = mkstemp (sec_path_tmp);
+	  if (sec_fd < 0)
+	    {
+	      rc = -EIO;
+	      goto out2;
+	    }
+
+	  ssize_t res = write_retry (sec_fd, data->d_buf, data->d_size);
+	  if (res < 0 || (size_t) res != data->d_size)
+	    {
+	      rc = -EIO;
+	      goto out3;
+	    }
+
+	  /* Success.  Rename tmp file and update USR_PATH.  */
+	  char *sec_path;
+	  if (asprintf (&sec_path, "%s/section-%s", fd_path, section) == -1)
+	    {
+	      rc = -ENOMEM;
+	      goto out3;
+	    }
+
+	  rc = rename (sec_path_tmp, sec_path);
+	  if (rc < 0)
+	    {
+	      free (sec_path);
+	      rc = -EIO;
+	      goto out3;
+	    }
+
+	  if (usr_path != NULL)
+	    *usr_path = sec_path;
+	  else
+	    free (sec_path);
+	  rc = sec_fd;
+	  goto out2;
+	}
+    }
+
+out3:
+  close (sec_fd);
+  unlink (sec_path_tmp);
+
+out2:
+  free (sec_path_tmp);
+
+out1:
+  free (escaped_name);
+
+out:
+  elf_end (elf);
+  return rc;
+}
+
+/* Search TARGET_CACHE_DIR for a debuginfo or executable file containing
+   an ELF/DWARF section with name SCN_NAME.  If found, extract the section
+   to a separate file in TARGET_CACHE_DIR and return a file descriptor
+   for the section file. The path for this file will be stored in USR_PATH.
+   Return a negative errno if unsuccessful.  */
+
+static int
+cache_find_section (const char *scn_name, const char *target_cache_dir,
+		    char **usr_path)
+{
+  int fd;
+  int rc = -EEXIST;
+  char parent_path[PATH_MAX];
+
+  /* Check the debuginfo first.  */
+  snprintf (parent_path, PATH_MAX, "%s/debuginfo", target_cache_dir);
+  fd = open (parent_path, O_RDONLY);
+  if (fd >= 0)
+    {
+      rc = extract_section (fd, scn_name, parent_path, usr_path);
+      close (fd);
+    }
+
+  /* If the debuginfo file couldn't be found or the section type was
+     SHT_NOBITS, check the executable.  */
+  if (rc == -EEXIST)
+    {
+      snprintf (parent_path, PATH_MAX, "%s/executable", target_cache_dir);
+      fd = open (parent_path, O_RDONLY);
+
+      if (fd >= 0)
+	{
+	  rc = extract_section (fd, scn_name, parent_path, usr_path);
+	  close (fd);
+	}
+    }
+
+  return rc;
+}
+
 /* Query each of the server URLs found in $DEBUGINFOD_URLS for the file
-   with the specified build-id, type (debuginfo, executable or source)
-   and filename. filename may be NULL. If found, return a file
-   descriptor for the target, otherwise return an error code.
+   with the specified build-id and type (debuginfo, executable, source or
+   section).  If type is source, then type_arg should be a filename.  If
+   type is section, then type_arg should be the name of an ELF/DWARF
+   section.  Otherwise type_arg may be NULL.  Return a file descriptor
+   for the target if successful, otherwise return an error code.
 */
 static int
 debuginfod_query_server (debuginfod_client *c,
 			 const unsigned char *build_id,
                          int build_id_len,
                          const char *type,
-                         const char *filename,
+                         const char *type_arg,
                          char **path)
 {
   char *server_urls;
   char *urls_envvar;
+  const char *section = NULL;
+  const char *filename = NULL;
   char *cache_path = NULL;
   char *maxage_path = NULL;
   char *interval_path = NULL;
@@ -571,6 +844,17 @@ debuginfod_query_server (debuginfod_client *c,
   char build_id_bytes[MAX_BUILD_ID_BYTES * 2 + 1];
   int vfd = c->verbose_fd;
   int rc;
+
+  c->progressfn_cancel = false;
+
+  if (strcmp (type, "source") == 0)
+    filename = type_arg;
+  else if (strcmp (type, "section") == 0)
+    {
+      section = type_arg;
+      if (section == NULL)
+	return -EINVAL;
+    }
 
   if (vfd >= 0)
     {
@@ -597,9 +881,11 @@ debuginfod_query_server (debuginfod_client *c,
       goto out;
     }
 
-  /* Clear the obsolete URL from a previous _find operation. */
+  /* Clear the obsolete data from a previous _find operation. */
   free (c->url);
   c->url = NULL;
+  free (c->winning_headers);
+  c->winning_headers = NULL;
 
   /* PR 27982: Add max size if DEBUGINFOD_MAXSIZE is set. */
   long maxsize = 0;
@@ -616,6 +902,11 @@ debuginfod_query_server (debuginfod_client *c,
     maxtime = atol (maxtime_envvar);
   if (maxtime && vfd >= 0)
     dprintf(vfd, "using max time %lds\n", maxtime);
+
+  const char *headers_file_envvar;
+  headers_file_envvar = getenv(DEBUGINFOD_HEADERS_FILE_ENV_VAR);
+  if (headers_file_envvar != NULL)
+    add_headers_from_file(c, headers_file_envvar);
 
   /* Maxsize is valid*/
   if (maxsize > 0)
@@ -663,31 +954,13 @@ debuginfod_query_server (debuginfod_client *c,
 	  goto out;
 	}
 
-      /* copy the filename to suffix, s,/,#,g */
-      unsigned q = 0;
-      for (unsigned fi=0; q < PATH_MAX-2; fi++) /* -2, escape is 2 chars.  */
-        switch (filename[fi])
-          {
-          case '\0':
-            suffix[q] = '\0';
-            q = PATH_MAX-1; /* escape for loop too */
-            break;
-          case '/': /* escape / to prevent dir escape */
-            suffix[q++]='#';
-            suffix[q++]='#';
-            break;
-          case '#': /* escape # to prevent /# vs #/ collisions */
-            suffix[q++]='#';
-            suffix[q++]='_';
-            break;
-          default:
-            suffix[q++]=filename[fi];
-          }
-      suffix[q] = '\0';
+      path_escape (filename, suffix);
       /* If the DWARF filenames are super long, this could exceed
          PATH_MAX and truncate/collide.  Oh well, that'll teach
          them! */
     }
+  else if (section != NULL)
+    path_escape (section, suffix);
   else
     suffix[0] = '\0';
 
@@ -759,7 +1032,10 @@ debuginfod_query_server (debuginfod_client *c,
     }
 
   xalloc_str (target_cache_dir, "%s/%s", cache_path, build_id_bytes);
-  xalloc_str (target_cache_path, "%s/%s%s", target_cache_dir, type, suffix);
+  if (section != NULL)
+    xalloc_str (target_cache_path, "%s/%s-%s", target_cache_dir, type, suffix);
+  else
+    xalloc_str (target_cache_path, "%s/%s%s", target_cache_dir, type, suffix);
   xalloc_str (target_cache_tmppath, "%s.XXXXXX", target_cache_path);
 
   /* XXX combine these */
@@ -770,9 +1046,15 @@ debuginfod_query_server (debuginfod_client *c,
   if (vfd >= 0)
     dprintf (vfd, "checking cache dir %s\n", cache_path);
 
-  rc = debuginfod_init_cache(cache_path, interval_path, maxage_path);
-  if (rc != 0)
-    goto out;
+  /* Make sure cache dir exists. debuginfo_clean_cache will then make
+     sure the interval, cache_miss and maxage files exist.  */
+  if (mkdir (cache_path, ACCESSPERMS) != 0
+      && errno != EEXIST)
+    {
+      rc = -errno;
+      goto out;
+    }
+
   rc = debuginfod_clean_cache(c, cache_path, interval_path, maxage_path);
   if (rc != 0)
     goto out;
@@ -812,18 +1094,17 @@ debuginfod_query_server (debuginfod_client *c,
              has passed since the last attempt. */
           time_t cache_miss;
           time_t target_mtime = st.st_mtime;
+
+          close(fd); /* no need to hold onto the negative-hit file descriptor */
+          
           rc = debuginfod_config_cache(cache_miss_path,
                                        cache_miss_default_s, &st);
           if (rc < 0)
-            {
-              close(fd);
-              goto out;
-            }
+            goto out;
 
           cache_miss = (time_t)rc;
           if (time(NULL) - target_mtime <= cache_miss)
             {
-              close(fd);
               rc = -ENOENT;
               goto out;
             }
@@ -837,6 +1118,18 @@ debuginfod_query_server (debuginfod_client *c,
   else if (errno == EACCES)
     /* Ensure old 000-permission files are not lingering in the cache. */
     unlink(target_cache_path);
+
+  if (section != NULL)
+    {
+      /* Try to extract the section from a cached file before querying
+	 any servers.  */
+      rc = cache_find_section (section, target_cache_dir, path);
+
+      /* If the section was found or confirmed to not exist, then we
+	 are done.  */
+      if (rc >= 0 || rc == -ENOENT)
+	goto out;
+    }
 
   long timeout = default_timeout;
   const char* timeout_envvar = getenv(DEBUGINFOD_TIMEOUT_ENV_VAR);
@@ -1010,48 +1303,68 @@ debuginfod_query_server (debuginfod_client *c,
           snprintf(data[i].url, PATH_MAX, "%s/%s/%s/%s", server_url,
                    build_id_bytes, type, escaped_string);
         }
+      else if (section)
+	snprintf(data[i].url, PATH_MAX, "%s/%s/%s/%s", server_url,
+		 build_id_bytes, type, section);
       else
         snprintf(data[i].url, PATH_MAX, "%s/%s/%s", server_url, build_id_bytes, type);
       if (vfd >= 0)
 	dprintf (vfd, "url %d %s\n", i, data[i].url);
 
+      /* Some boilerplate for checking curl_easy_setopt.  */
+#define curl_easy_setopt_ck(H,O,P) do {			\
+      CURLcode curl_res = curl_easy_setopt (H,O,P);	\
+      if (curl_res != CURLE_OK)				\
+	{						\
+	  if (vfd >= 0)					\
+	    dprintf (vfd,				\
+	             "Bad curl_easy_setopt: %s\n",	\
+		     curl_easy_strerror(curl_res));	\
+	  rc = -EINVAL;					\
+	  goto out2;					\
+	}						\
+      } while (0)
+
       /* Only allow http:// + https:// + file:// so we aren't being
 	 redirected to some unsupported protocol.  */
-      curl_easy_setopt(data[i].handle, CURLOPT_PROTOCOLS,
-		       CURLPROTO_HTTP | CURLPROTO_HTTPS | CURLPROTO_FILE);
-      curl_easy_setopt(data[i].handle, CURLOPT_URL, data[i].url);
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_PROTOCOLS,
+			  (CURLPROTO_HTTP | CURLPROTO_HTTPS | CURLPROTO_FILE));
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_URL, data[i].url);
       if (vfd >= 0)
-	curl_easy_setopt(data[i].handle, CURLOPT_ERRORBUFFER, data[i].errbuf);
-      curl_easy_setopt(data[i].handle,
-                       CURLOPT_WRITEFUNCTION,
-                       debuginfod_write_callback);
-      curl_easy_setopt(data[i].handle, CURLOPT_WRITEDATA, (void*)&data[i]);
+	curl_easy_setopt_ck(data[i].handle, CURLOPT_ERRORBUFFER,
+			    data[i].errbuf);
+      curl_easy_setopt_ck(data[i].handle,
+			  CURLOPT_WRITEFUNCTION,
+			  debuginfod_write_callback);
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_WRITEDATA, (void*)&data[i]);
       if (timeout > 0)
 	{
 	  /* Make sure there is at least some progress,
 	     try to get at least 100K per timeout seconds.  */
-	  curl_easy_setopt (data[i].handle, CURLOPT_LOW_SPEED_TIME,
-			    timeout);
-	  curl_easy_setopt (data[i].handle, CURLOPT_LOW_SPEED_LIMIT,
-			    100 * 1024L);
+	  curl_easy_setopt_ck (data[i].handle, CURLOPT_LOW_SPEED_TIME,
+			       timeout);
+	  curl_easy_setopt_ck (data[i].handle, CURLOPT_LOW_SPEED_LIMIT,
+			       100 * 1024L);
 	}
       data[i].response_data = NULL;
       data[i].response_data_size = 0;
-      curl_easy_setopt(data[i].handle, CURLOPT_FILETIME, (long) 1);
-      curl_easy_setopt(data[i].handle, CURLOPT_FOLLOWLOCATION, (long) 1);
-      curl_easy_setopt(data[i].handle, CURLOPT_FAILONERROR, (long) 1);
-      curl_easy_setopt(data[i].handle, CURLOPT_NOSIGNAL, (long) 1);
-      curl_easy_setopt(data[i].handle, CURLOPT_HEADERFUNCTION, header_callback);
-      curl_easy_setopt(data[i].handle, CURLOPT_HEADERDATA, (void *) &(data[i]));
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_FILETIME, (long) 1);
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_FOLLOWLOCATION, (long) 1);
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_FAILONERROR, (long) 1);
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_NOSIGNAL, (long) 1);
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_HEADERFUNCTION,
+			  header_callback);
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_HEADERDATA,
+			  (void *) &(data[i]));
 #if LIBCURL_VERSION_NUM >= 0x072a00 /* 7.42.0 */
-      curl_easy_setopt(data[i].handle, CURLOPT_PATH_AS_IS, (long) 1);
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_PATH_AS_IS, (long) 1);
 #else
       /* On old curl; no big deal, canonicalization here is almost the
          same, except perhaps for ? # type decorations at the tail. */
 #endif
-      curl_easy_setopt(data[i].handle, CURLOPT_AUTOREFERER, (long) 1);
-      curl_easy_setopt(data[i].handle, CURLOPT_ACCEPT_ENCODING, "");
-      curl_easy_setopt(data[i].handle, CURLOPT_HTTPHEADER, c->headers);
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_AUTOREFERER, (long) 1);
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_ACCEPT_ENCODING, "");
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_HTTPHEADER, c->headers);
 
       curl_multi_add_handle(curlm, data[i].handle);
     }
@@ -1065,14 +1378,12 @@ debuginfod_query_server (debuginfod_client *c,
   int committed_to = -1;
   bool verbose_reported = false;
   struct timespec start_time, cur_time;
-  if (c->winning_headers != NULL)
-    {
-      free (c->winning_headers);
-      c->winning_headers = NULL;
-    }
+
+  free (c->winning_headers);
+  c->winning_headers = NULL;
   if ( maxtime > 0 && clock_gettime(CLOCK_MONOTONIC_RAW, &start_time) == -1)
     {
-      rc = errno;
+      rc = -errno;
       goto out2;
     }
   long delta = 0;
@@ -1083,7 +1394,7 @@ debuginfod_query_server (debuginfod_client *c,
         {
           if (clock_gettime(CLOCK_MONOTONIC_RAW, &cur_time) == -1)
             {
-              rc = errno;
+              rc = -errno;
               goto out2;
             }
           delta = cur_time.tv_sec - start_time.tv_sec;
@@ -1110,8 +1421,6 @@ debuginfod_query_server (debuginfod_client *c,
                 if (c->winning_headers == NULL)
                   {
                     c->winning_headers = data[committed_to].response_data;
-                    if (vfd >= 0 && c->winning_headers != NULL)
-                      dprintf(vfd, "\n%s", c->winning_headers);
                     data[committed_to].response_data = NULL;
                     data[committed_to].response_data_size = 0;
                   }
@@ -1201,7 +1510,10 @@ debuginfod_query_server (debuginfod_client *c,
             }
 
           if ((*c->progressfn) (c, pa, dl_size))
-            break;
+	    {
+	      c->progressfn_cancel = true;
+              break;
+	    }
         }
 
       /* Check to see if we are downloading something which exceeds maxsize, if set.*/
@@ -1268,6 +1580,8 @@ debuginfod_query_server (debuginfod_client *c,
                   /* 406 signals that the requested file was too large */
                   if ( ok0 == CURLE_OK && resp_code == 406)
                     rc = -EFBIG;
+		  else if (section != NULL && resp_code == 503)
+		    rc = -EINVAL;
                   else
                     rc = -ENOENT;
                   break;
@@ -1381,7 +1695,11 @@ debuginfod_query_server (debuginfod_client *c,
 
   /* we've got one!!!! */
   time_t mtime;
+#if defined(_TIME_BITS) && _TIME_BITS == 64
+  CURLcode curl_res = curl_easy_getinfo(verified_handle, CURLINFO_FILETIME_T, (void*) &mtime);
+#else
   CURLcode curl_res = curl_easy_getinfo(verified_handle, CURLINFO_FILETIME, (void*) &mtime);
+#endif
   if (curl_res != CURLE_OK)
     mtime = time(NULL); /* fall back to current time */
 
@@ -1541,6 +1859,12 @@ debuginfod_get_url(debuginfod_client *client)
   return client->url;
 }
 
+const char *
+debuginfod_get_headers(debuginfod_client *client)
+{
+  return client->winning_headers;
+}
+
 void
 debuginfod_end (debuginfod_client *client)
 {
@@ -1583,6 +1907,56 @@ int debuginfod_find_source(debuginfod_client *client,
                                  "source", filename, path);
 }
 
+int
+debuginfod_find_section (debuginfod_client *client,
+			 const unsigned char *build_id, int build_id_len,
+			 const char *section, char **path)
+{
+  int rc = debuginfod_query_server(client, build_id, build_id_len,
+				   "section", section, path);
+  if (rc != -EINVAL)
+    return rc;
+
+  /* The servers may have lacked support for section queries.  Attempt to
+     download the debuginfo or executable containing the section in order
+     to extract it.  */
+  rc = -EEXIST;
+  int fd = -1;
+  char *tmp_path = NULL;
+
+  fd = debuginfod_find_debuginfo (client, build_id, build_id_len, &tmp_path);
+  if (client->progressfn_cancel)
+    {
+      if (fd >= 0)
+	{
+	  /* This shouldn't happen, but we'll check this condition
+	     just in case.  */
+	  close (fd);
+	  free (tmp_path);
+	}
+      return -ENOENT;
+    }
+  if (fd > 0)
+    {
+      rc = extract_section (fd, section, tmp_path, path);
+      close (fd);
+    }
+
+  if (rc == -EEXIST)
+    {
+      /* The section should be found in the executable.  */
+      fd = debuginfod_find_executable (client, build_id,
+				       build_id_len, &tmp_path);
+      if (fd > 0)
+	{
+	  rc = extract_section (fd, section, tmp_path, path);
+	  close (fd);
+	}
+    }
+
+  free (tmp_path);
+  return rc;
+}
 
 /* Add an outgoing HTTP header.  */
 int debuginfod_add_http_header (debuginfod_client *client, const char* header)

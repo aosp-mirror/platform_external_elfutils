@@ -88,11 +88,15 @@ endif
 
 # test_nlist checks its own symbol table, and expects various symbols
 # to be in the order as specified in the source file. Explicitly set
-# minimal CFLAGS. But add address sanitizer if in use.
+# minimal CFLAGS. But add sanitizers if in use.
 if USE_ADDRESS_SANITIZER
 EXTRA_NLIST_CFLAGS=-fsanitize=address
 else
+if USE_MEMORY_SANITIZER
+EXTRA_NLIST_CFLAGS=-fsanitize=memory -fsanitize-memory-track-origins
+else
 EXTRA_NLIST_CFLAGS=
+endif
 endif
 
 test-nlist$(EXEEXT): test-nlist.c
@@ -223,6 +227,10 @@ endif
 
 if USE_ZSTD_COMPRESS
 export ELFUTILS_ZSTD = 1
+endif
+
+if USE_MEMORY_SANITIZER
+export ELFUTILS_MEMORY_SANITIZER = 1
 endif
 
 if DEBUGINFOD

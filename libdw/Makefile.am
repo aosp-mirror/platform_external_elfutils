@@ -114,7 +114,8 @@ libdw_so_LDLIBS = $(libdw_so_DEPS) -ldl -lz $(argp_LDADD) $(fts_LIBS) $(obstack_
 libdw.so: $(srcdir)/libdw.map $(libdw_so_LIBS) $(libdw_so_DEPS)
 	$(AM_V_CCLD)$(LINK) $(dso_LDFLAGS) -o $@ \
 		-Wl,--soname,$@.$(VERSION),--enable-new-dtags \
-		-Wl,--version-script,$<,--no-undefined \
+		-Wl,--version-script,$< \
+		$(NO_UNDEFINED) \
 		-Wl,--whole-archive $(libdw_so_LIBS) -Wl,--no-whole-archive \
 		$(libdw_so_LDLIBS)
 	@$(textrel_check)

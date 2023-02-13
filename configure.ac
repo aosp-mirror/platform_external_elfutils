@@ -155,6 +155,29 @@ AC_SUBST([fpie_CFLAGS])
 
 dso_LDFLAGS="-shared"
 
+NO_UNDEFINED=-Wl,--no-undefined
+AC_ARG_ENABLE([sanitize-memory],
+              AS_HELP_STRING([--enable-sanitize-memory],
+                             [Use clang memory sanitizer]),
+                             [use_msan=$enableval], [use_msan=no])
+if test "$use_msan" = yes; then
+  old_CFLAGS="$CFLAGS"
+  old_CXXFLAGS="$CXXFLAGS"
+  old_LDFLAGS="$LDFLAGS"
+  # -fsanitize=memory is not compatible with -D_FORTIFY_SOURCE, -Wl,-z,defs and --no-undefined
+  CFLAGS="$CFLAGS -fsanitize=memory -fsanitize-memory-track-origins -D_FORTIFY_SOURCE=0"
+  CXXFLAGS="$CXXFLAGS -fsanitize=memory -fsanitize-memory-track-origins -D_FORTIFY_SOURCE=0"
+  LDFLAGS="-shared"
+  AC_LINK_IFELSE([AC_LANG_SOURCE([int main (int argc, char **argv) { return 0; }])], use_msan=yes, use_msan=no)
+  AS_IF([test "x$use_msan" == xyes],
+        ac_cv_zdefs=no NO_UNDEFINED=,
+        AC_MSG_WARN([clang memory sanitizer not available])
+        CFLAGS="$old_CFLAGS" CXXFLAGS="$old_CXXFLAGS")
+  LDFLAGS="$old_LDFLAGS"
+fi
+AC_SUBST(NO_UNDEFINED)
+AM_CONDITIONAL(USE_MEMORY_SANITIZER, test "$use_msan" = yes)
+
 ZDEFS_LDFLAGS="-Wl,-z,defs"
 AC_CACHE_CHECK([whether gcc supports $ZDEFS_LDFLAGS], ac_cv_zdefs, [dnl
 save_LDFLAGS="$LDFLAGS"
@@ -894,6 +917,7 @@ AC_MSG_NOTICE([
     run all tests under valgrind       : ${use_valgrind}
     gcc undefined behaviour sanitizer  : ${use_undefined}
     gcc address sanitizer              : ${use_address}
+    clang memory sanitizer             : ${use_msan}
     use rpath in tests                 : ${tests_use_rpath}
     test biarch                        : ${utrace_cv_cc_biarch}
 ])

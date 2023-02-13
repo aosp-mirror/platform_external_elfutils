@@ -17,6 +17,11 @@
 
 . $srcdir/test-subr.sh
 
+if test -n "$ELFUTILS_MEMORY_SANITIZER"; then
+  echo "binaries linked with memory sanitizer are too big"
+  exit 77
+fi
+
 testfiles hello_i386.ko hello_x86_64.ko hello_ppc64.ko hello_s390.ko \
 	hello_aarch64.ko hello_m68k.ko hello_riscv64.ko hello_csky.ko \
 	hello_arc_hs4.ko

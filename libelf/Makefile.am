@@ -115,7 +115,8 @@ libelf_so_LIBS = libelf_pic.a
 libelf.so: $(srcdir)/libelf.map $(libelf_so_LIBS) $(libelf_so_DEPS)
 	$(AM_V_CCLD)$(LINK) $(dso_LDFLAGS) -o $@ \
 		-Wl,--soname,$@.$(VERSION) \
-		-Wl,--version-script,$<,--no-undefined \
+		-Wl,--version-script,$< \
+		$(NO_UNDEFINED) \
 		-Wl,--whole-archive $(libelf_so_LIBS) -Wl,--no-whole-archive \
 		$(libelf_so_LDLIBS)
 	@$(textrel_check)

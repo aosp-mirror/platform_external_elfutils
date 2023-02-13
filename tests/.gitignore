@@ -66,6 +66,7 @@
 /fillfile
 /find-prologues
 /funcretval
+/funcretval_test++11
 /funcscopes
 /get-aranges
 /get-files

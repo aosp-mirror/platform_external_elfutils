@@ -72,4 +72,19 @@ dwarf_peeled_die_type (Dwarf_Die *die, Dwarf_Die *result)
   return DWARF_TAG_OR_RETURN (result);
 }
 
+static inline bool
+dwarf_is_pointer (int tag)
+{
+  return tag == DW_TAG_pointer_type
+	 || tag == DW_TAG_ptr_to_member_type
+	 || tag == DW_TAG_reference_type
+	 || tag == DW_TAG_rvalue_reference_type;
+}
+
+#define CASE_POINTER \
+  case DW_TAG_pointer_type: \
+  case DW_TAG_ptr_to_member_type: \
+  case DW_TAG_reference_type: \
+  case DW_TAG_rvalue_reference_type
+
 #endif	/* libebl_CPU.h */

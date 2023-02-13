@@ -262,6 +262,12 @@ TESTS += run-debuginfod-federation-metrics.sh
 endif
 endif
 
+if HAVE_CXX11
+check_PROGRAMS += funcretval_test++11
+funcretval_test__11_SOURCES = funcretval_test++11.cxx
+TESTS += run-funcretval++11.sh
+endif
+
 EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-ar-N.sh \
 	     run-show-die-info.sh run-get-files.sh run-get-lines.sh \
@@ -604,7 +610,8 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-readelf-dw-form-indirect.sh testfile-dw-form-indirect.bz2 \
 	     run-nvidia-extended-linemap-libdw.sh run-nvidia-extended-linemap-readelf.sh \
 	     testfile_nvidia_linemap.bz2 \
-	     testfile-largealign.o.bz2 run-strip-largealign.sh
+	     testfile-largealign.o.bz2 run-strip-largealign.sh \
+	     run-funcretval++11.sh
 
 
 if USE_VALGRIND

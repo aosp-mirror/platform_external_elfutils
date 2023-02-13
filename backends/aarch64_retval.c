@@ -303,12 +303,11 @@ aarch64_return_value_location (Dwarf_Die *functypedie, const Dwarf_Op **locp)
 	}
     }
 
-  if (tag == DW_TAG_base_type
-      || tag == DW_TAG_pointer_type || tag == DW_TAG_ptr_to_member_type)
+  if (tag == DW_TAG_base_type || dwarf_is_pointer (tag))
     {
       if (dwarf_bytesize_aux (&typedie, &size) < 0)
 	{
-	  if (tag == DW_TAG_pointer_type || tag == DW_TAG_ptr_to_member_type)
+	  if (dwarf_is_pointer (tag))
 	    size = 8;
 	  else
 	    return -1;

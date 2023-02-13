@@ -47,6 +47,7 @@
 /dwfl-bug-report
 /dwfl-proc-attach
 /dwfl-report-elf-align
+/dwfl-report-offline-memory
 /dwfl-report-segment-contiguous
 /dwfllines
 /dwflmodtest

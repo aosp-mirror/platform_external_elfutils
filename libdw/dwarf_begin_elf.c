@@ -70,6 +70,30 @@ static const char dwarf_scnnames[IDX_last][19] =
 };
 #define ndwarf_scnnames (sizeof (dwarf_scnnames) / sizeof (dwarf_scnnames[0]))
 
+/* Map from section index to string section index.
+   Non-string sections should have STR_SCN_IDX_last.  */
+static const enum string_section_index scn_to_string_section_idx[IDX_last] =
+{
+  [IDX_debug_info] = STR_SCN_IDX_last,
+  [IDX_debug_types] = STR_SCN_IDX_last,
+  [IDX_debug_abbrev] = STR_SCN_IDX_last,
+  [IDX_debug_addr] = STR_SCN_IDX_last,
+  [IDX_debug_aranges] = STR_SCN_IDX_last,
+  [IDX_debug_line] = STR_SCN_IDX_last,
+  [IDX_debug_line_str] = STR_SCN_IDX_debug_line_str,
+  [IDX_debug_frame] = STR_SCN_IDX_last,
+  [IDX_debug_loc] = STR_SCN_IDX_last,
+  [IDX_debug_loclists] = STR_SCN_IDX_last,
+  [IDX_debug_pubnames] = STR_SCN_IDX_last,
+  [IDX_debug_str] = STR_SCN_IDX_debug_str,
+  [IDX_debug_str_offsets] = STR_SCN_IDX_last,
+  [IDX_debug_macinfo] = STR_SCN_IDX_last,
+  [IDX_debug_macro] = STR_SCN_IDX_last,
+  [IDX_debug_ranges] = STR_SCN_IDX_last,
+  [IDX_debug_rnglists] = STR_SCN_IDX_last,
+  [IDX_gnu_debugaltlink] = STR_SCN_IDX_last
+};
+
 static enum dwarf_type
 scn_dwarf_type (Dwarf *result, size_t shstrndx, Elf_Scn *scn)
 {
@@ -229,6 +253,19 @@ check_section (Dwarf *result, size_t shstrndx, Elf_Scn *scn, bool inscngrp)
 
   /* We can now read the section data into results. */
   result->sectiondata[cnt] = data;
+
+  /* If the section contains string data, we want to know a size of a prefix
+     where any string will be null-terminated. */
+  enum string_section_index string_section_idx = scn_to_string_section_idx[cnt];
+  if (string_section_idx < STR_SCN_IDX_last)
+    {
+      size_t size = data->d_size;
+      /* Reduce the size by the number of non-zero bytes at the end of the
+	 section.  */
+      while (size > 0 && *((const char *) data->d_buf + size - 1) != '\0')
+	--size;
+      result->string_section_size[string_section_idx] = size;
+    }
 
   return result;
 }

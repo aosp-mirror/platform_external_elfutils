@@ -1,3 +1,8 @@
+2023-02-14  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_getlocation.c (__libdw_intern_expression): Correct check
+	for deref_type.
+
 2023-02-10  Mark Wielaard  <mark@klomp.org>
 
 	* dwarf_getlocation.c (__libdw_intern_expression): Handle

@@ -546,7 +546,7 @@ __libdw_intern_expression (Dwarf *dbg, bool other_byte_order,
 	case DW_OP_deref_type:
 	case DW_OP_GNU_deref_type:
 	case DW_OP_xderef_type:
-	  if (unlikely (data + 2 >= end_data))
+	  if (unlikely (data + 1 >= end_data))
 	    goto invalid;
 	  newloc->number = *data++;
 	  get_uleb128 (newloc->number2, data, end_data);

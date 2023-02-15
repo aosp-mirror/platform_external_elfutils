@@ -1,3 +1,8 @@
+2023-02-15  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac: Error out when demangler is enabled, but
+	__cxa_demangle cannot be found.
+
 2023-01-11  Frank Ch. Eigler  <fche@redhat.com>
 
 	* configure.ac: Add some rlimit/affinity checks.

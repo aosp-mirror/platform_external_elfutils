@@ -1,5 +1,8 @@
 Version 0.189
 
+configure: eu-nm, eu-addr2line and eu-stack can provide demangled symbols
+           when linked with libstdc++. Use --disable-demangler to disable.
+
 libdwfl: dwfl_module_return_value_location now returns 0 (no return type)
          for DIEs that point to a DW_TAG_unspecified_type.
 

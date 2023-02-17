@@ -1,3 +1,7 @@
+2023-02-17  Mark Wielaard  <mark@klomp.org>
+
+	* asm_end.c (free_section): free scnp->content last.
+
 2022-12-20  Mark Wielaard  <mark@klomp.org>
 
 	* disasm_begin.c: Include libeblP.h.

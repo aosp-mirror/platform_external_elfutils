@@ -1,5 +1,6 @@
 /* Create descriptor from ELF descriptor for processing file.
    Copyright (C) 2002-2011, 2014, 2015, 2017, 2018 Red Hat, Inc.
+   Copyright (C) 2023, Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -242,8 +243,8 @@ check_section (Dwarf *result, size_t shstrndx, Elf_Scn *scn, bool inscngrp)
 	}
     }
 
-  /* Get the section data.  */
-  Elf_Data *data = elf_getdata (scn, NULL);
+  /* Get the section data.  Should be raw bytes, no conversion needed.  */
+  Elf_Data *data = elf_rawdata (scn, NULL);
   if (data == NULL)
     goto err;
 

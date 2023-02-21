@@ -1,3 +1,7 @@
+2023-02-21  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac: Check for -Wuse-after-free=3
+
 2023-02-15  Mark Wielaard  <mark@klomp.org>
 
 	* configure.ac: Error out when demangler is enabled, but

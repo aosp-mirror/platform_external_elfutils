@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Configure input file for elfutils.                     -*-autoconf-*-
 dnl
 dnl Copyright (C) 1996-2019 Red Hat, Inc.
-dnl Copyright (C) 2022 Mark J. Wielaard <mark@klomp.org>
+dnl Copyright (C) 2022, 2023 Mark J. Wielaard <mark@klomp.org>
 dnl
 dnl This file is part of elfutils.
 dnl
@@ -617,6 +617,15 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([])],
 CFLAGS="$old_CFLAGS"])
 AM_CONDITIONAL(HAVE_NO_PACKED_NOT_ALIGNED_WARNING,
 	       [test "x$ac_cv_no_packed_not_aligned" != "xno"])
+
+AC_CACHE_CHECK([whether the compiler accepts -Wuse-after-free=3], ac_cv_use_after_free3, [dnl
+old_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -Wuse-after-free=3 -Werror"
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([])],
+		  ac_cv_use_after_free3=yes, ac_cv_use_after_free3=no)
+CFLAGS="$old_CFLAGS"])
+AM_CONDITIONAL(HAVE_USE_AFTER_FREE3_WARNING,
+	       [test "x$ac_cv_use_after_free3" != "xno"])
 
 AC_CACHE_CHECK([whether the compiler accepts -fno-addrsig], ac_cv_fno_addrsig, [dnl
 old_CFLAGS="$CFLAGS"

@@ -1,3 +1,8 @@
+2023-02-22  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_getscopes.c (origin_match): Don't free a->scopes.
+	(dwarf_getscopes): Free a->scopes on error.
+
 2023-02-20  Mark Wielaard  <mark@klomp.org>
 
 	* dwarf_begin_elf.c (check_section): Use elf_rawdata.

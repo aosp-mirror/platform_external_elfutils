@@ -101,7 +101,7 @@ origin_match (unsigned int depth, struct Dwarf_Die_Chain *die, void *arg)
   Dwarf_Die *scopes = realloc (a->scopes, nscopes * sizeof scopes[0]);
   if (scopes == NULL)
     {
-      free (a->scopes);
+      /* a->scopes will be freed by dwarf_getscopes on error.  */
       __libdw_seterrno (DWARF_E_NOMEM);
       return -1;
     }
@@ -200,6 +200,8 @@ dwarf_getscopes (Dwarf_Die *cudie, Dwarf_Addr pc, Dwarf_Die **scopes)
 
   if (result > 0)
     *scopes = a.scopes;
+  else if (result < 0)
+    free (a.scopes);
 
   return result;
 }

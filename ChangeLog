@@ -1,3 +1,7 @@
+2023-02-23  Mark Wielaard  <mark@klomp.org>
+
+	* NEWS: Add old version code names.
+
 2023-02-21  Mark Wielaard  <mark@klomp.org>
 
 	* configure.ac: Check for -Wuse-after-free=3

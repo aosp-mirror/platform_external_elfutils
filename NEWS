@@ -1,3 +1,16 @@
+Version 0.188
+
+readelf: Add -D, --use-dynamic option.
+
+debuginfod-client: Add $DEBUGINFOD_HEADERS_FILE setting to supply outgoing
+                   HTTP headers. Add new function debuginfod_find_section.
+
+debuginfod: Add --disable-source-scan option.
+
+libdwfl: Add new function dwfl_get_debuginfod_client.
+         Add new function dwfl_frame_reg.
+         Add new function dwfl_report_offline_memory.
+
 Version 0.187
 
 debuginfod: Support -C option for connection thread pooling.

@@ -32,10 +32,6 @@
 #endif
 
 #include "libdwflP.h"
-#include "system.h"
-
-#include <unistd.h>
-#include <endian.h>
 
 #if BYTE_ORDER == LITTLE_ENDIAN
 # define LE16(x)	(x)

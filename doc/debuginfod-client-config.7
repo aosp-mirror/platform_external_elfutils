@@ -75,6 +75,13 @@ only small files are downloaded. A value of 0 causes no consideration
 for size, and the client may attempt to download a file of any size.
 The default is 0 (infinite size).
 
+.TP
+.B $DEBUGINFOD_HEADERS_FILE
+This environment variable points to a file that supplies headers to
+outbound HTTP requests, one per line. The header lines shouldn't end with
+CRLF, unless that's the system newline convention. Whitespace-only lines
+are skipped.
+
 .SH CACHE
 
 Before each query, the debuginfod client library checks for a need to

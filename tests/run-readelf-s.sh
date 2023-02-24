@@ -277,10 +277,16 @@ EOF
 cat testfile.dynsym.in testfile.symtab.in \
   | testrun_compare ${abs_top_builddir}/src/readelf -s testfilebaztab
 
+cat testfile.dynsym.in testfile.symtab.in \
+  | testrun_compare ${abs_top_builddir}/src/readelf --syms testfilebaztab
+
 # Display just .dynsym
 cat testfile.dynsym.in \
   | testrun_compare ${abs_top_builddir}/src/readelf \
     --symbols=.dynsym testfilebaztab
+cat testfile.dynsym.in \
+  | testrun_compare ${abs_top_builddir}/src/readelf \
+    --syms=.dynsym testfilebaztab
 cat testfile.dynsym.in \
   | testrun_compare ${abs_top_builddir}/src/readelf \
     --dyn-syms testfilebaztab

@@ -212,15 +212,13 @@ following table summarizes the interpretaton of this option and its
 optional NUM parameter.
 .TS
 l l.
-no option	clone new thread for every request, no fixed pool
-\-C	use a fixed thread pool sized automatically
+no option, \-C	use a fixed thread pool sized automatically
 \-C=NUM	use a fixed thread pool sized NUM, minimum 2
 .TE
 
-The first mode is useful for friendly bursty traffic.  The second mode
-is a simple and safe configuration based on the number of processors.
-The third mode is suitable for tuned load-limiting configurations
-facing unruly traffic.
+The first mode is a simple and safe configuration based on the number
+of processors. The second mode is suitable for tuned load-limiting
+configurations facing unruly traffic.
 
 .TP
 .B "\-L"
@@ -232,34 +230,36 @@ loops in the symbolic directory tree might lead to \fIinfinite
 traversal\fP.
 
 .TP
-.B "\-\-fdcache\-fds=NUM"  "\-\-fdcache\-mbs=MB"  "\-\-fdcache\-prefetch=NUM2"
+.B "\-\-fdcache\-fds=NUM"  "\-\-fdcache\-mbs=MB"
 Configure limits on a cache that keeps recently extracted files from
 archives.  Up to NUM requested files and up to a total of MB megabytes
 will be kept extracted, in order to avoid having to decompress their
-archives over and over again.  In addition, up to NUM2 other files
-from an archive may be prefetched into the cache before they are even
-requested.  The default NUM, NUM2, and MB values depend on the
-concurrency of the system, and on the available disk space on the
+archives over and over again. The default NUM and MB values depend on
+the concurrency of the system, and on the available disk space on the
 $TMPDIR or \fB/tmp\fP filesystem.  This is because that is where the
-most recently used extracted files are kept.  Grooming cleans this
+most recently used extracted files are kept.  Grooming cleans out this
 cache.
 
 .TP
-.B "\-\-fdcache\-\-prefetch\-fds=NUM"  "\-\-fdcache\-\-prefetch\-mbs=MB"
-Configure how many file descriptors (fds) and megabytes (mbs) are
-allocated to the prefetch fdcache. If unspecified, values of
-\fB\-\-prefetch\-fds\fP and \fB\-\-prefetch\-mbs\fP depend
-on concurrency of the system and on the available disk space on
-the $TMPDIR. Allocating more to the prefetch cache will improve
-performance in environments where different parts of several large
-archives are being accessed.
+.B "\-\-fdcache\-prefetch\-fds=NUM"  "\-\-fdcache\-prefetch\-mbs=MB"
+.B "\-\-fdcache\-prefetch=NUM2"
+
+In addition to the main fdcache, up to NUM2 other files from an
+archive may be prefetched into another cache before they are even
+requested.  Configure how many file descriptors (fds) and megabytes
+(mbs) are allocated to the prefetch fdcache. If unspecified, these
+values depend on concurrency of the system and on the available disk
+space on the $TMPDIR.  Allocating more to the prefetch cache will
+improve performance in environments where different parts of several
+large archives are being accessed.  This cache is also cleaned out
+during grooming.
 
 .TP
 .B "\-\-fdcache\-mintmp=NUM"
-Configure a disk space threshold for emergency flushing of the cache.
-The filesystem holding the cache is checked periodically.  If the
-available space falls below the given percentage, the cache is
-flushed, and the fdcache will stay disabled until the next groom
+Configure a disk space threshold for emergency flushing of the caches.
+The filesystem holding the caches is checked periodically.  If the
+available space falls below the given percentage, the caches are
+flushed, and the fdcaches will stay disabled until the next groom
 cycle.  This mechanism, along a few associated /metrics on the webapi,
 are intended to give an operator notice about storage scarcity - which
 can translate to RAM scarcity if the disk happens to be on a RAM
@@ -270,6 +270,12 @@ virtual disk.  The default threshold is 25%.
 Configure limits of X-Forwarded-For hops. if X-Forwarded-For
 exceeds N hops, it will not delegate a local lookup miss to
 upstream debuginfods. The default limit is 8.
+
+.TP
+.B "\-\-disable\-source\-scan"
+Disable scan of the dwarf source info of debuginfo sections.
+If a setup has no access to source code, the source info is not
+required.
 
 .TP
 .B "\-v"
@@ -357,6 +363,17 @@ Note: the client should %-escape characters in /SOURCE/FILE that are
 not shown as "unreserved" in section 2.3 of RFC3986. Some characters
 that will be escaped include "+", "\\", "$", "!", the 'space' character,
 and ";". RFC3986 includes a more comprehensive list of these characters.
+
+.SS /buildid/\fIBUILDID\fP/section\fI/SECTION\fP
+If the given buildid is known to the server, the server will attempt to
+extract the contents of an ELF/DWARF section named SECTION from the
+debuginfo file matching BUILDID.  If the debuginfo file can't be found
+or the section has type SHT_NOBITS, then the server will attempt to extract
+the section from the executable matching BUILDID.  If the section is
+succesfully extracted then this request results in a binary object
+of the section's contents.  Note that this result is the raw binary
+contents of the section, not an ELF file.
+
 .SS /metrics
 
 This endpoint returns a Prometheus formatted text/plain dump of a

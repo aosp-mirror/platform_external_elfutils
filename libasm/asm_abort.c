@@ -32,7 +32,6 @@
 #endif
 
 #include <stdlib.h>
-#include <unistd.h>
 
 #include <libasmP.h>
 #include <libelf.h>

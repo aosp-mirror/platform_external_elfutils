@@ -30,7 +30,6 @@
 #include <gelf.h>
 #include <inttypes.h>
 #include <libdw.h>
-#include <libintl.h>
 #include <locale.h>
 #include <obstack.h>
 #include <search.h>

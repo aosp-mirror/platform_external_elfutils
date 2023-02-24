@@ -28,7 +28,6 @@
 #include <inttypes.h>
 #include <libdwfl.h>
 #include <dwarf.h>
-#include <libintl.h>
 #include <locale.h>
 #include <stdbool.h>
 #include <stdio.h>

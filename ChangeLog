@@ -1,3 +1,52 @@
+2022-11-02  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac (AC_INIT): Set version to 0.188.
+	* NEWS: Likewise.
+
+2022-10-31  Aaron Merey  <amerey@redhat.com>
+
+	* NEWS: Add debuginfod_find_section.
+
+2022-10-20  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (rpm): Remove --sign.
+
+2022-10-22  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac: Use AC_PROG_CC with autoconf 2.70, or AC_PROG_CC_C99
+	for earlier versions. Use AC_PROG_LEX([noyywrap]).
+
+2022-09-13  Aleksei Vetrov  <vvvvvv@google.com>
+
+	* NEWS (libdwfl): Add dwfl_report_offline_memory.
+
+2022-09-27  Taketo Kabe  <kabe@sra-tohoku.co.jp>
+
+	* debuginfod/debuginfod-client.c: Correctly get timestamp when
+	compiling with -D_TIME_BITS=64 on 32bit environment.
+
+2022-04-28  Di Chen  <dichen@redhat.com>
+
+	* NEWS: Add readefl -D, --use-dynamic.
+
+2022-07-28  Di Chen  <dichen@redhat.com>
+
+	* NEWS: Add dwfl_frame_reg.
+
+2022-07-13  Mark Wielaard  <mark@klomp.org>
+
+	* NEWS: Add dwfl_get_debuginfod_client.
+
+2022-06-02  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac (OLD_LIBMICROHTTPD): New AM_CONDITIONAL based on
+	libmicrohttpd < 0.9.51.
+
+2022-05-02  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (AM_DISTCHECK_CONFIGURE_FLAGS): Remove
+	--enable-valgrind --enable-sanitize-undefined.
+
 2022-04-25  Mark Wielaard  <mark@klomp.org>
 
 	* configure.ac (AC_INIT): Set version to 0.187.

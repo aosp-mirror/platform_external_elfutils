@@ -1065,13 +1065,14 @@ process_elf_file (Dwfl_Module *dwflmod, int fd)
   if (print_string_sections)
     print_strings (ebl);
 
-  ebl_closebackend (ebl);
-
   if (pure_ebl != ebl)
     {
+      ebl_closebackend (ebl);
       ebl_closebackend (pure_ebl);
       elf_end (pure_elf);
     }
+  else
+    ebl_closebackend (ebl);
 }
 
 

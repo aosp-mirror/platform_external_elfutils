@@ -1,3 +1,8 @@
+2023-03-03  Mark Wielaard  <mark@klomp.org>
+
+	* readelf (process_elf_file): ebl_closebackend only after
+	comparing ebl pointer.
+
 2023-02-12  Mark Wielaard  <mark@klomp.org>
 
 	* readelf.c (print_attributes): Add comment about check.

@@ -3,6 +3,9 @@ Version 0.189 "Don't deflate!"
 configure: eu-nm, eu-addr2line and eu-stack can provide demangled symbols
            when linked with libstdc++. Use --disable-demangler to disable.
 
+           A new option --enable-sanitize-memory has been added for msan
+           sanitizer support.
+
 libelf: elf_compress now supports ELFCOMPRESS_ZSTD when build against
         libzstd
 
@@ -11,6 +14,8 @@ libdwfl: dwfl_module_return_value_location now returns 0 (no return type)
 
 elfcompress: -t, --type= now support zstd if libelf has been build with
              ELFCOMPRESS_ZSTD support.
+
+backends: Add support for LoongArch and Synopsys ARCv2 processors.
 
 Version 0.188 "no section left behind"
 

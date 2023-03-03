@@ -42,7 +42,7 @@ CLEANFILES += make-debug-archive
 if BUILD_STATIC
 libasm = ../libasm/libasm.a
 libdw = ../libdw/libdw.a -lz $(zip_LIBS) $(libelf) -ldl -lpthread
-libelf = ../libelf/libelf.a -lz
+libelf = ../libelf/libelf.a -lz $(zstd_LIBS)
 else
 libasm = ../libasm/libasm.so
 libdw = ../libdw/libdw.so

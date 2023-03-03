@@ -1,3 +1,8 @@
+2023-03-03  Mark Wielaard  <mark@klomp.org>
+
+	* libelf.h: Define ELFCOMPRESS_ZSTD if undefined.
+	(elf_compress): Document ELFCOMPRESS_ZSTD compression type.
+
 2023-02-20  Mark Wielaard  <mark@klomp.org>
 
 	* gnuhash_xlate.h (elf_cvt_gnuhash): memmove any left over bytes.

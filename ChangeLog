@@ -1,3 +1,7 @@
+2023-03-03  Mark Wielaard  <mark@klomp.org>
+
+	* NEWS: Add ELFCOMPRESS_ZSTD support for libelf and elfcompress.
+
 2023-02-23  Mark Wielaard  <mark@klomp.org>
 
 	* NEWS: Add old version code names.

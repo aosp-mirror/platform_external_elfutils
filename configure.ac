@@ -169,7 +169,7 @@ if test "$use_msan" = yes; then
   CXXFLAGS="$CXXFLAGS -fsanitize=memory -fsanitize-memory-track-origins -D_FORTIFY_SOURCE=0"
   LDFLAGS="-shared"
   AC_LINK_IFELSE([AC_LANG_SOURCE([int main (int argc, char **argv) { return 0; }])], use_msan=yes, use_msan=no)
-  AS_IF([test "x$use_msan" == xyes],
+  AS_IF([test "x$use_msan" = xyes],
         ac_cv_zdefs=no NO_UNDEFINED=,
         AC_MSG_WARN([clang memory sanitizer not available])
         CFLAGS="$old_CFLAGS" CXXFLAGS="$old_CXXFLAGS")
@@ -493,7 +493,7 @@ AC_ARG_ENABLE([demangler],
 AS_HELP_STRING([--disable-demangler],
 	       [Disable libstdc++ demangle support]),
 	       [], [enable_demangler=yes])
-AS_IF([test "x$enable_demangler" == xyes],
+AS_IF([test "x$enable_demangler" = xyes],
 AC_CHECK_LIB([stdc++], [__cxa_demangle], [dnl
 AC_DEFINE([USE_DEMANGLE], [1], [Defined if demangling is enabled])])
 AM_CONDITIONAL(DEMANGLE, test "x$ac_cv_lib_stdcpp___cxa_demangle" = "xyes")

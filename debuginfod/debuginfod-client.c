@@ -1667,9 +1667,9 @@ debuginfod_query_server (debuginfod_client *c,
         }
     } while (num_msg > 0);
 
-  /* Create an empty file named as $HOME/.cache if the query fails
-     with ENOENT.*/
-  if (rc == -ENOENT)
+  /* Create an empty file in the cache if the query fails with ENOENT and
+     it wasn't cancelled early.  */
+  if (rc == -ENOENT && !c->progressfn_cancel)
     {
       int efd = open (target_cache_path, O_CREAT|O_EXCL, DEFFILEMODE);
       if (efd >= 0)

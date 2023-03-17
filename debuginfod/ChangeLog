@@ -1,3 +1,8 @@
+2023-03-17  Aaron Merey  <amerey@redhat.com>
+
+	* debuginfod-client.c (debuginfod_query_server): Do not create an
+	empty file in the cache if the query was cancelled by the progressfn.
+
 2023-02-07  Aaron Merey  <amerey@redhat.com>
 
 	* debuginfod-client.c (cache_find_section): Avoid returning -ENOENT

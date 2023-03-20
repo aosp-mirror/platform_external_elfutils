@@ -72,3 +72,10 @@ loongarch_reloc_simple_type (Ebl *ebl __attribute__ ((unused)), int type,
       return ELF_T_NUM;
     }
 }
+
+bool
+loongarch_machine_flag_check (GElf_Word flags)
+{
+  return ((flags &~ (EF_LARCH_ABI_MODIFIER_MASK
+		     | EF_LARCH_OBJABI_V1)) == 0);
+}

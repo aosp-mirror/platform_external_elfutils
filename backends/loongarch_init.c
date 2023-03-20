@@ -45,6 +45,7 @@ loongarch_init (Elf *elf __attribute__ ((unused)),
 {
   loongarch_init_reloc (eh);
   HOOK (eh, reloc_simple_type);
+  HOOK (eh, machine_flag_check);
 
   return eh;
 }

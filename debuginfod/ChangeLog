@@ -1,3 +1,8 @@
+2023-03-29  Jan Alexander Steffens (heftig) <heftig@archlinux.org>
+
+	* debuginfod-client.c (debuginfod_query_server): s/futimes/futimens/
+	* debuginfod.cxx (extract_section, handle_buildid_r_match): Ditto.
+
 2023-03-29  lilydjwg  <lilydjwg@gmail.com>
 
 	* debuginfod-client.c (debuginfod_query_server): Handle dl_size in

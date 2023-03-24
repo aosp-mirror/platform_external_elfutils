@@ -1635,13 +1635,12 @@ extract_section (int elf_fd, int64_t parent_mtime,
 		throw libc_exception (errno, "cannot write to temporary file");
 
 	      /* Set mtime to be the same as the parent file's mtime.  */
-	      struct timeval tvs[2];
+	      struct timespec tvs[2];
 	      if (fstat (elf_fd, &fs) != 0)
 		throw libc_exception (errno, "cannot fstat file");
 
-	      tvs[0].tv_sec = tvs[1].tv_sec = fs.st_mtime;
-	      tvs[0].tv_usec = tvs[1].tv_usec = 0;
-	      (void) futimes (fd, tvs);
+	      tvs[0] = tvs[1] = fs.st_mtim;
+	      (void) futimens (fd, tvs);
 
 	      /* Add to fdcache.  */
 	      fdcache.intern (b_source, section, tmppath, data->d_size, true);
@@ -1951,10 +1950,10 @@ handle_buildid_r_match (bool internal_req_p,
 
       // Set the mtime so the fdcache file mtimes, even prefetched ones,
       // propagate to future webapi clients.
-      struct timeval tvs[2];
+      struct timespec tvs[2];
       tvs[0].tv_sec = tvs[1].tv_sec = archive_entry_mtime(e);
-      tvs[0].tv_usec = tvs[1].tv_usec = 0;
-      (void) futimes (fd, tvs);  /* best effort */
+      tvs[0].tv_nsec = tvs[1].tv_nsec = archive_entry_mtime_nsec(e);
+      (void) futimens (fd, tvs);  /* best effort */
 
       if (r != 0) // stage 3
         {

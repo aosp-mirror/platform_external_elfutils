@@ -1721,10 +1721,10 @@ debuginfod_query_server (debuginfod_client *c,
   if (curl_res != CURLE_OK)
     mtime = time(NULL); /* fall back to current time */
 
-  struct timeval tvs[2];
+  struct timespec tvs[2];
   tvs[0].tv_sec = tvs[1].tv_sec = mtime;
-  tvs[0].tv_usec = tvs[1].tv_usec = 0;
-  (void) futimes (fd, tvs);  /* best effort */
+  tvs[0].tv_nsec = tvs[1].tv_nsec = 0;
+  (void) futimens (fd, tvs);  /* best effort */
 
   /* PR27571: make cache files casually unwriteable; dirs are already 0700 */
   (void) fchmod(fd, 0400);

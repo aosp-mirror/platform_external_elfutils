@@ -1639,7 +1639,9 @@ extract_section (int elf_fd, int64_t parent_mtime,
 	      if (fstat (elf_fd, &fs) != 0)
 		throw libc_exception (errno, "cannot fstat file");
 
-	      tvs[0] = tvs[1] = fs.st_mtim;
+	      tvs[0].tv_sec = 0;
+	      tvs[0].tv_nsec = UTIME_OMIT;
+	      tvs[1] = fs.st_mtim;
 	      (void) futimens (fd, tvs);
 
 	      /* Add to fdcache.  */
@@ -1951,8 +1953,10 @@ handle_buildid_r_match (bool internal_req_p,
       // Set the mtime so the fdcache file mtimes, even prefetched ones,
       // propagate to future webapi clients.
       struct timespec tvs[2];
-      tvs[0].tv_sec = tvs[1].tv_sec = archive_entry_mtime(e);
-      tvs[0].tv_nsec = tvs[1].tv_nsec = archive_entry_mtime_nsec(e);
+      tvs[0].tv_sec = 0;
+      tvs[0].tv_nsec = UTIME_OMIT;
+      tvs[1].tv_sec = archive_entry_mtime(e);
+      tvs[1].tv_nsec = archive_entry_mtime_nsec(e);
       (void) futimens (fd, tvs);  /* best effort */
 
       if (r != 0) // stage 3

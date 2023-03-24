@@ -1718,13 +1718,15 @@ debuginfod_query_server (debuginfod_client *c,
 #else
   CURLcode curl_res = curl_easy_getinfo(verified_handle, CURLINFO_FILETIME, (void*) &mtime);
 #endif
-  if (curl_res != CURLE_OK)
-    mtime = time(NULL); /* fall back to current time */
-
-  struct timespec tvs[2];
-  tvs[0].tv_sec = tvs[1].tv_sec = mtime;
-  tvs[0].tv_nsec = tvs[1].tv_nsec = 0;
-  (void) futimens (fd, tvs);  /* best effort */
+  if (curl_res == CURLE_OK)
+    {
+      struct timespec tvs[2];
+      tvs[0].tv_sec = 0;
+      tvs[0].tv_nsec = UTIME_OMIT;
+      tvs[1].tv_sec = mtime;
+      tvs[1].tv_nsec = 0;
+      (void) futimens (fd, tvs);  /* best effort */
+    }
 
   /* PR27571: make cache files casually unwriteable; dirs are already 0700 */
   (void) fchmod(fd, 0400);

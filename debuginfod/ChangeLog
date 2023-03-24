@@ -1,5 +1,10 @@
 2023-03-30  Jan Alexander Steffens (heftig) <heftig@archlinux.org>
 
+	* debuginfod-client.c (update_atime): New function.
+	(extract_section, debuginfod_query_server): Call it.
+
+2023-03-30  Jan Alexander Steffens (heftig) <heftig@archlinux.org>
+
 	* debuginfod-client.c (debuginfod_query_server): Don't modify
 	atime unintentionally.
 	* debuginfod.cxx (extract_section, handle_buildid_r_match): Ditto.

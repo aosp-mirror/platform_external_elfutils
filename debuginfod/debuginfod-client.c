@@ -618,6 +618,19 @@ path_escape (const char *src, char *dest)
   dest[q] = '\0';
 }
 
+/* Attempt to update the atime */
+static void
+update_atime (int fd)
+{
+  struct timespec tvs[2];
+
+  tvs[0].tv_sec = tvs[1].tv_sec = 0;
+  tvs[0].tv_nsec = UTIME_NOW;
+  tvs[1].tv_nsec = UTIME_OMIT;
+
+  (void) futimens (fd, tvs);  /* best effort */
+}
+
 /* Attempt to read an ELF/DWARF section with name SECTION from FD and write
    it to a separate file in the debuginfod cache.  If successful the absolute
    path of the separate file containing SECTION will be stored in USR_PATH.
@@ -761,6 +774,7 @@ extract_section (int fd, const char *section, char *fd_path, char **usr_path)
 	    *usr_path = sec_path;
 	  else
 	    free (sec_path);
+	  update_atime(fd);
 	  rc = sec_fd;
 	  goto out2;
 	}
@@ -1098,6 +1112,7 @@ debuginfod_query_server (debuginfod_client *c,
                 }
             }
           /* Success!!!! */
+          update_atime(fd);
           rc = fd;
           goto out;
         }

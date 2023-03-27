@@ -1,3 +1,7 @@
+Version 0.190
+
+readelf: Support readelf -Ds, --use-dynamic --symbol.
+
 Version 0.189 "Don't deflate!"
 
 configure: eu-nm, eu-addr2line and eu-stack can provide demangled symbols

@@ -1,3 +1,8 @@
+2023-03-29  lilydjwg  <lilydjwg@gmail.com>
+
+	* debuginfod/debuginfod-client.c: Fix download size not correctly
+	fallbacks to x-debuginfod-size header
+
 2023-03-03  Mark Wielaard  <mark@klomp.org>
 
 	* NEWS: Add ELFCOMPRESS_ZSTD support for libelf and elfcompress.

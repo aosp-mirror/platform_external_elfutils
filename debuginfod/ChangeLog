@@ -1,3 +1,9 @@
+2023-03-29  lilydjwg  <lilydjwg@gmail.com>
+
+	* debuginfod-client.c (debuginfod_query_server): Handle dl_size in
+	progress to account for possible curl 8.0.1 changes to
+	CURLINFO_CONTENT_LENGTH_DOWNLOAD*.
+
 2023-03-17  Aaron Merey  <amerey@redhat.com>
 
 	* debuginfod-client.c (debuginfod_query_server): Do not create an

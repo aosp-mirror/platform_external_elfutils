@@ -1467,7 +1467,7 @@ debuginfod_query_server (debuginfod_client *c,
           goto out2;
         }
 
-      long dl_size = 0;
+      long dl_size = -1;
       if (target_handle && (c->progressfn || maxsize > 0))
         {
           /* Get size of file being downloaded. NB: If going through
@@ -1486,7 +1486,7 @@ debuginfod_query_server (debuginfod_client *c,
           curl_res = curl_easy_getinfo(target_handle,
                                        CURLINFO_CONTENT_LENGTH_DOWNLOAD,
                                        &cl);
-          if (curl_res == CURLE_OK)
+          if (curl_res == CURLE_OK && cl >= 0)
             dl_size = (cl >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)cl);
 #endif
           /* If Content-Length is -1, try to get the size from
@@ -1527,7 +1527,7 @@ debuginfod_query_server (debuginfod_client *c,
 
             }
 
-          if ((*c->progressfn) (c, pa, dl_size))
+          if ((*c->progressfn) (c, pa, dl_size == -1 ? 0 : dl_size))
 	    {
 	      c->progressfn_cancel = true;
               break;

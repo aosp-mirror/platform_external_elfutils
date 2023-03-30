@@ -1,3 +1,8 @@
+2023-03-30  Aaron Merey  <amerey@redhat.com>
+
+	* debuginfod-client.c (debuginfod_query_server): Avoid sscanf on
+	mixed-case component of string.
+
 2023-03-29  Jan Alexander Steffens (heftig) <heftig@archlinux.org>
 
 	* debuginfod-client.c (debuginfod_query_server): s/futimes/futimens/

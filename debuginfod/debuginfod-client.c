@@ -1495,9 +1495,9 @@ debuginfod_query_server (debuginfod_client *c,
             {
               long xdl;
               char *hdr = strcasestr(c->winning_headers, "x-debuginfod-size");
+              size_t off = strlen("x-debuginfod-size:");
 
-              if (hdr != NULL
-                  && sscanf(hdr, "x-debuginfod-size: %ld", &xdl) == 1)
+              if (hdr != NULL && sscanf(hdr + off, "%ld", &xdl) == 1)
                 dl_size = xdl;
             }
         }

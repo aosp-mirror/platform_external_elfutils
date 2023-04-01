@@ -1,5 +1,5 @@
 /* This file defines standard ELF types, structures, and macros.
-   Copyright (C) 1995-2022 Free Software Foundation, Inc.
+   Copyright (C) 1995-2023 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -4158,6 +4158,46 @@ enum
 #define R_LARCH_SUB64  56
 #define R_LARCH_GNU_VTINHERIT  57
 #define R_LARCH_GNU_VTENTRY  58
+
+/* reserved 59-63 */
+
+#define R_LARCH_B16 64
+#define R_LARCH_B21 65
+#define R_LARCH_B26 66
+#define R_LARCH_ABS_HI20 67
+#define R_LARCH_ABS_LO12 68
+#define R_LARCH_ABS64_LO20 69
+#define R_LARCH_ABS64_HI12 70
+#define R_LARCH_PCALA_HI20 71
+#define R_LARCH_PCALA_LO12 72
+#define R_LARCH_PCALA64_LO20 73
+#define R_LARCH_PCALA64_HI12 74
+#define R_LARCH_GOT_PC_HI20 75
+#define R_LARCH_GOT_PC_LO12 76
+#define R_LARCH_GOT64_PC_LO20 77
+#define R_LARCH_GOT64_PC_HI12 78
+#define R_LARCH_GOT_HI20 79
+#define R_LARCH_GOT_LO12 80
+#define R_LARCH_GOT64_LO20 81
+#define R_LARCH_GOT64_HI12 82
+#define R_LARCH_TLS_LE_HI20 83
+#define R_LARCH_TLS_LE_LO12 84
+#define R_LARCH_TLS_LE64_LO20 85
+#define R_LARCH_TLS_LE64_HI12 86
+#define R_LARCH_TLS_IE_PC_HI20 87
+#define R_LARCH_TLS_IE_PC_LO12 88
+#define R_LARCH_TLS_IE64_PC_LO20 89
+#define R_LARCH_TLS_IE64_PC_HI12 90
+#define R_LARCH_TLS_IE_HI20 91
+#define R_LARCH_TLS_IE_LO12 92
+#define R_LARCH_TLS_IE64_LO20 93
+#define R_LARCH_TLS_IE64_HI12 94
+#define R_LARCH_TLS_LD_PC_HI20 95
+#define R_LARCH_TLS_LD_HI20 96
+#define R_LARCH_TLS_GD_PC_HI20 97
+#define R_LARCH_TLS_GD_HI20 98
+#define R_LARCH_32_PCREL 99
+#define R_LARCH_RELAX 100
 
 /* ARC specific declarations.  */
 

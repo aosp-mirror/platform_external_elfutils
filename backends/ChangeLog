@@ -1,3 +1,7 @@
+2023-04-01  Youling Tang  <tangyouling@loongson.cn>
+
+	* loongarch_reloc.def: Add RELOC_TYPE B16 to RELAX.
+
 2023-02-07  Mark Wielaard  <mark@klomp.org>
 
 	* libebl_CPU.h (dwarf_peeled_die_type): Explicitly handle

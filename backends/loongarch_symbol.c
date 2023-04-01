@@ -79,3 +79,38 @@ loongarch_machine_flag_check (GElf_Word flags)
   return ((flags &~ (EF_LARCH_ABI_MODIFIER_MASK
 		     | EF_LARCH_OBJABI_V1)) == 0);
 }
+
+/* Check whether given symbol's st_value and st_size are OK despite failing
+   normal checks.  */
+bool
+loongarch_check_special_symbol (Elf *elf, const GElf_Sym *sym,
+			    const char *name, const GElf_Shdr *destshdr)
+{
+  if (name != NULL
+      && strcmp (name, "_GLOBAL_OFFSET_TABLE_") == 0)
+    {
+      size_t shstrndx;
+      if (elf_getshdrstrndx (elf, &shstrndx) != 0)
+	return false;
+      const char *sname = elf_strptr (elf, shstrndx, destshdr->sh_name);
+      if (sname != NULL
+	  && (strcmp (sname, ".got") == 0 || strcmp (sname, ".got.plt") == 0))
+	{
+	  Elf_Scn *scn = NULL;
+	  while ((scn = elf_nextscn (elf, scn)) != NULL)
+	    {
+	      GElf_Shdr shdr_mem;
+	      GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
+	      if (shdr != NULL)
+		{
+		  sname = elf_strptr (elf, shstrndx, shdr->sh_name);
+		  if (sname != NULL && strcmp (sname, ".got") == 0)
+		    return (sym->st_value >= shdr->sh_addr
+			    && sym->st_value < shdr->sh_addr + shdr->sh_size);
+		}
+	    }
+	}
+    }
+
+  return false;
+}

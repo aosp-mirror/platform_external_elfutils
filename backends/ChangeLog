@@ -1,3 +1,8 @@
+2023-04-01  Youling Tang <tangyouling@loongson.cn>
+
+	* loongarch_init.c (loongarch_init): Hook check_special_symbol.
+	* loongarch_symbol.c (loongarch_check_special_symbol): New function.
+
 2023-04-01  Youling Tang  <tangyouling@loongson.cn>
 
 	* loongarch_reloc.def: Add RELOC_TYPE B16 to RELAX.

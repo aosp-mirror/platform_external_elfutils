@@ -1606,7 +1606,7 @@ static const char *
 section_name (Ebl *ebl, GElf_Shdr *shdr)
 {
   size_t shstrndx;
-  if (elf_getshdrstrndx (ebl->elf, &shstrndx) < 0)
+  if (shdr == NULL || elf_getshdrstrndx (ebl->elf, &shstrndx) < 0)
     return "???";
   return elf_strptr (ebl->elf, shstrndx, shdr->sh_name) ?: "???";
 }

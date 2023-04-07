@@ -1,5 +1,11 @@
 2023-04-07  Youling Tang  <tangyouling@loongson.cn>
 
+	* Makefile.am (loongarch_SRCS): Add loongarch_unwind.c.
+	* loongarch_init.c (loongarch_init): Hook unwind.
+	* loongarch_unwind.c: New file.
+
+2023-04-07  Youling Tang  <tangyouling@loongson.cn>
+
 	* Makefile.am (loongarch_SRCS): Add loongarch_retval.c.
 	* loongarch_init.c (loongarch_init): Hook return_value_location.
 	* loongarch_retval.c: New file.

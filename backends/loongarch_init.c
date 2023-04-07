@@ -54,6 +54,7 @@ loongarch_init (Elf *elf __attribute__ ((unused)),
   eh->frame_nregs = 74;
   HOOK (eh, check_special_symbol);
   HOOK (eh, return_value_location);
+  HOOK (eh, unwind);
 
   return eh;
 }

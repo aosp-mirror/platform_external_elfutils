@@ -96,7 +96,8 @@ riscv_SRCS = riscv_init.c riscv_symbol.c riscv_cfi.c riscv_regs.c \
 csky_SRCS = csky_attrs.c csky_init.c csky_symbol.c csky_cfi.c \
 	    csky_regs.c csky_initreg.c csky_corenote.c
 
-loongarch_SRCS = loongarch_init.c loongarch_symbol.c
+loongarch_SRCS = loongarch_init.c loongarch_symbol.c loongarch_cfi.c \
+	    loongarch_regs.c
 
 arc_SRCS = arc_init.c arc_symbol.c
 

@@ -1,5 +1,11 @@
 2023-04-07  Youling Tang  <tangyouling@loongson.cn>
 
+	* Makefile.am (loongarch_SRCS): Add loongarch_corenote.c.
+	* loongarch_init.c (loongarch_init): Hook core_note.
+	* loongarch_corenote.c: New file.
+
+2023-04-07  Youling Tang  <tangyouling@loongson.cn>
+
 	* Makefile.am (loongarch_SRCS): Add loongarch_unwind.c.
 	* loongarch_init.c (loongarch_init): Hook unwind.
 	* loongarch_unwind.c: New file.

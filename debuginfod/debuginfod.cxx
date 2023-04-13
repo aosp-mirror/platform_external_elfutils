@@ -3268,6 +3268,7 @@ archive_classify (const string& rps, string& archive_extension,
   if (verbose > 3)
     obatched(clog) << "libarchive scanning " << rps << endl;
 
+  bool any_exceptions = false;
   while(1) // parse archive entries
     {
     if (interrupted)
@@ -3405,8 +3406,17 @@ archive_classify (const string& rps, string& archive_extension,
       catch (const reportable_exception& e)
         {
           e.report(clog);
+          any_exceptions = true;
+          // NB: but we allow the libarchive iteration to continue, in
+          // case we can still gather some useful information.  That
+          // would allow some webapi queries to work, until later when
+          // this archive is rescanned.  (Its vitals won't go into the
+          // _file_mtime_scanned table until after a successful scan.)
         }
     }
+
+  if (any_exceptions)
+    throw reportable_exception("exceptions encountered during archive scan");
 }
 
 
@@ -3453,6 +3463,7 @@ scan_archive_file (const string& rps, const stat_t& st,
   // extract the archive contents
   unsigned my_fts_executable = 0, my_fts_debuginfo = 0, my_fts_sref = 0, my_fts_sdef = 0;
   bool my_fts_sref_complete_p = true;
+  bool any_exceptions = false;
   try
     {
       string archive_extension;
@@ -3475,6 +3486,7 @@ scan_archive_file (const string& rps, const stat_t& st,
   catch (const reportable_exception& e)
     {
       e.report(clog);
+      any_exceptions = true;
     }
 
   if (verbose > 2)
@@ -3484,12 +3496,16 @@ scan_archive_file (const string& rps, const stat_t& st,
                    << " debuginfos=" << my_fts_debuginfo
                    << " srefs=" << my_fts_sref
                    << " sdefs=" << my_fts_sdef
+                   << " exceptions=" << any_exceptions
                    << endl;
 
   fts_executable += my_fts_executable;
   fts_debuginfo += my_fts_debuginfo;
   fts_sref += my_fts_sref;
   fts_sdef += my_fts_sdef;
+
+  if (any_exceptions)
+    throw reportable_exception("exceptions encountered during archive scan");
 
   if (my_fts_sref_complete_p) // leave incomplete?
     ps_scan_done

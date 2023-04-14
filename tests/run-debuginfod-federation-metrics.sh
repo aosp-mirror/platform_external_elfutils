@@ -191,7 +191,9 @@ curl -s http://127.0.0.1:$PORT2/metrics | grep 'dc_pool_op.*reuse'
 # Use a file that hasn't been previously extracted in to make it
 # likely that even this test debuginfod will experience concurrency
 # and impose some "after-you" delays.
-(for i in `seq 100`; do
+maxreq=$[$(nproc) * 4]
+maxreq=$(( $maxreq > 64 ? 64 : $maxreq ))
+(for i in `seq $maxreq`; do
     curl -s http://127.0.0.1:$PORT1/buildid/87c08d12c78174f1082b7c888b3238219b0eb265/executable >/dev/null &
  done;
  wait)

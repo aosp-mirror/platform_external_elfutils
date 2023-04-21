@@ -529,30 +529,33 @@ process_file (const char *fname)
 		  }
 	    }
 
-	  if (shdr->sh_type != SHT_NOBITS
-	      && (shdr->sh_flags & SHF_ALLOC) == 0)
+	  if (force || type != schtype)
 	    {
-	      set_section (sections, ndx);
-	      /* Check if we might want to change this section name.  */
-	      if (! adjust_names
-		  && ((type != ZLIB_GNU
-		       && startswith (sname, ".zdebug"))
-		      || (type == ZLIB_GNU
-			  && startswith (sname, ".debug"))))
-		adjust_names = true;
-
-	      /* We need a buffer this large if we change the names.  */
-	      if (adjust_names)
+	      if (shdr->sh_type != SHT_NOBITS
+		  && (shdr->sh_flags & SHF_ALLOC) == 0)
 		{
-		  size_t slen = strlen (sname);
-		  if (slen > maxnamelen)
-		    maxnamelen = slen;
+		  set_section (sections, ndx);
+		  /* Check if we might want to change this section name.  */
+		  if (! adjust_names
+		      && ((type != ZLIB_GNU
+			   && startswith (sname, ".zdebug"))
+			  || (type == ZLIB_GNU
+			      && startswith (sname, ".debug"))))
+		    adjust_names = true;
+
+		  /* We need a buffer this large if we change the names.  */
+		  if (adjust_names)
+		    {
+		      size_t slen = strlen (sname);
+		      if (slen > maxnamelen)
+			maxnamelen = slen;
+		    }
 		}
+	      else
+		if (verbose >= 0)
+		  printf ("[%zd] %s ignoring %s section\n", ndx, sname,
+			  (shdr->sh_type == SHT_NOBITS ? "no bits" : "allocated"));
 	    }
-	  else
-	    if (verbose >= 0)
-	      printf ("[%zd] %s ignoring %s section\n", ndx, sname,
-		      (shdr->sh_type == SHT_NOBITS ? "no bits" : "allocated"));
 	}
 
       if (shdr->sh_type == SHT_SYMTAB)

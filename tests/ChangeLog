@@ -1,3 +1,8 @@
+2023-04-21  Frank Ch. Eigler <fche@redhat.com>
+
+	* run-debuginfod-IXr.sh: New test.
+	* Makefile.am: Run it, ship it.
+
 2023-02-10  Mark Wielaard  <mark@klomp.org>
 
 	* varlocs.c (print_expr): Handle DW_OP_GNU_uninit.

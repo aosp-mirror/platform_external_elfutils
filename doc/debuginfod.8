@@ -172,7 +172,10 @@ interrupting a groom pass (if any).
 
 .TP
 .B "\-r"
-Apply the -I and -X during groom cycles, so that files excluded by the regexes are removed from the index. These parameters are in addition to what normally qualifies a file for grooming, not a replacement.
+Apply the -I and -X during groom cycles, so that most content related
+to files excluded by the regexes are removed from the index.  Not all
+content can be practically removed, so eventually a "\-G"
+"maximal-groom" operation may be needed.
 
 .TP
 .B "\-g SECONDS" "\-\-groom\-time=SECONDS"

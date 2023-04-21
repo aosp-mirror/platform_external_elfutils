@@ -3893,7 +3893,7 @@ void groom()
         {
           bool reg_include = !regexec (&file_include_regex, filename, 0, 0, 0);
           bool reg_exclude = !regexec (&file_exclude_regex, filename, 0, 0, 0);
-          regex_file_drop = reg_exclude && !reg_include;
+          regex_file_drop = !reg_include || reg_exclude; // match logic of scan_source_paths  
         }
 
       rc = stat(filename, &s);

@@ -1,3 +1,7 @@
+2023-04-24  John Gallagher  <john@gllghr.com>
+
+	* gzip.c: Fix memory leak in unzip()
+
 2023-02-06  Mark Wielaard  <mark@klomp.org>
 
 	* libdwfl.h: Guard debuginfod_client typedef with

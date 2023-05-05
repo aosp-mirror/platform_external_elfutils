@@ -85,6 +85,7 @@ extern "C" {
 #include <cstring>
 #include <vector>
 #include <set>
+#include <unordered_set>
 #include <map>
 #include <string>
 #include <iostream>
@@ -138,7 +139,7 @@ string_endswith(const string& haystack, const string& needle)
 
 
 // Roll this identifier for every sqlite schema incompatibility.
-#define BUILDIDS "buildids9"
+#define BUILDIDS "buildids10"
 
 #if SQLITE_VERSION_NUMBER >= 3008000
 #define WITHOUT_ROWID "without rowid"
@@ -157,10 +158,23 @@ static const char DEBUGINFOD_SQLITE_DDL[] =
   // NB: all these are overridable with -D option
 
   // Normalization table for interning file names
-  "create table if not exists " BUILDIDS "_files (\n"
+  "create table if not exists " BUILDIDS "_fileparts (\n"
   "        id integer primary key not null,\n"
   "        name text unique not null\n"
   "        );\n"
+  "create table if not exists " BUILDIDS "_files (\n"
+  "        id integer primary key not null,\n"
+  "        dirname integer not null,\n"
+  "        basename integer not null,\n"
+  "        unique (dirname, basename),\n"
+  "        foreign key (dirname) references " BUILDIDS "_fileparts(id) on delete cascade,\n"
+  "        foreign key (basename) references " BUILDIDS "_fileparts(id) on delete cascade\n"
+  "        );\n"
+  "create view if not exists " BUILDIDS "_files_v as\n" // a 
+  "        select f.id, n1.name || '/' || n2.name as name\n"
+  "        from " BUILDIDS "_files f, " BUILDIDS "_fileparts n1, " BUILDIDS "_fileparts n2\n"
+  "        where f.dirname = n1.id and f.basename = n2.id;\n"
+  
   // Normalization table for interning buildids
   "create table if not exists " BUILDIDS "_buildids (\n"
   "        id integer primary key not null,\n"
@@ -230,33 +244,33 @@ static const char DEBUGINFOD_SQLITE_DDL[] =
   "create view if not exists " BUILDIDS "_query_d as \n"
   "select\n"
   "        b.hex as buildid, n.mtime, 'F' as sourcetype, f0.name as source0, n.mtime as mtime, null as source1\n"
-  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files f0, " BUILDIDS "_f_de n\n"
+  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files_v f0, " BUILDIDS "_f_de n\n"
   "        where b.id = n.buildid and f0.id = n.file and n.debuginfo_p = 1\n"
   "union all select\n"
   "        b.hex as buildid, n.mtime, 'R' as sourcetype, f0.name as source0, n.mtime as mtime, f1.name as source1\n"
-  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files f0, " BUILDIDS "_files f1, " BUILDIDS "_r_de n\n"
+  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files_v f0, " BUILDIDS "_files_v f1, " BUILDIDS "_r_de n\n"
   "        where b.id = n.buildid and f0.id = n.file and f1.id = n.content and n.debuginfo_p = 1\n"
   ";"
   // ... and for E queries
   "create view if not exists " BUILDIDS "_query_e as \n"
   "select\n"
   "        b.hex as buildid, n.mtime, 'F' as sourcetype, f0.name as source0, n.mtime as mtime, null as source1\n"
-  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files f0, " BUILDIDS "_f_de n\n"
+  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files_v f0, " BUILDIDS "_f_de n\n"
   "        where b.id = n.buildid and f0.id = n.file and n.executable_p = 1\n"
   "union all select\n"
   "        b.hex as buildid, n.mtime, 'R' as sourcetype, f0.name as source0, n.mtime as mtime, f1.name as source1\n"
-  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files f0, " BUILDIDS "_files f1, " BUILDIDS "_r_de n\n"
+  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files_v f0, " BUILDIDS "_files_v f1, " BUILDIDS "_r_de n\n"
   "        where b.id = n.buildid and f0.id = n.file and f1.id = n.content and n.executable_p = 1\n"
   ";"
   // ... and for S queries
   "create view if not exists " BUILDIDS "_query_s as \n"
   "select\n"
   "        b.hex as buildid, fs.name as artifactsrc, 'F' as sourcetype, f0.name as source0, n.mtime as mtime, null as source1, null as source0ref\n"
-  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files f0, " BUILDIDS "_files fs, " BUILDIDS "_f_s n\n"
+  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files_v f0, " BUILDIDS "_files_v fs, " BUILDIDS "_f_s n\n"
   "        where b.id = n.buildid and f0.id = n.file and fs.id = n.artifactsrc\n"
   "union all select\n"
   "        b.hex as buildid, f1.name as artifactsrc, 'R' as sourcetype, f0.name as source0, sd.mtime as mtime, f1.name as source1, fsref.name as source0ref\n"
-  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files f0, " BUILDIDS "_files f1, " BUILDIDS "_files fsref, "
+  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files_v f0, " BUILDIDS "_files_v f1, " BUILDIDS "_files_v fsref, "
   "        " BUILDIDS "_r_sdef sd, " BUILDIDS "_r_sref sr, " BUILDIDS "_r_de sde\n"
   "        where b.id = sr.buildid and f0.id = sd.file and fsref.id = sde.file and f1.id = sd.content\n"
   "        and sr.artifactsrc = sd.content and sde.buildid = sr.buildid\n"
@@ -271,6 +285,7 @@ static const char DEBUGINFOD_SQLITE_DDL[] =
   "union all select 'archive sdef',count(*) from " BUILDIDS "_r_sdef\n"
   "union all select 'buildids',count(*) from " BUILDIDS "_buildids\n"
   "union all select 'filenames',count(*) from " BUILDIDS "_files\n"
+  "union all select 'fileparts',count(*) from " BUILDIDS "_fileparts\n"  
   "union all select 'files scanned (#)',count(*) from " BUILDIDS "_file_mtime_scanned\n"
   "union all select 'files scanned (mb)',coalesce(sum(size)/1024/1024,0) from " BUILDIDS "_file_mtime_scanned\n"
 #if SQLITE_VERSION_NUMBER >= 3016000
@@ -281,10 +296,26 @@ static const char DEBUGINFOD_SQLITE_DDL[] =
 // schema change history & garbage collection
 //
 // XXX: we could have migration queries here to bring prior-schema
-// data over instead of just dropping it.
+// data over instead of just dropping it.  But that could incur
+// doubled storage costs.
 //
-// buildids9: widen the mtime_scanned table
+// buildids10: split the _files table into _parts
   "" // <<< we are here
+// buildids9: widen the mtime_scanned table
+  "DROP VIEW IF EXISTS buildids9_stats;\n"
+  "DROP INDEX IF EXISTS buildids9_r_de_idx;\n"
+  "DROP INDEX IF EXISTS buildids9_f_de_idx;\n"
+  "DROP VIEW IF EXISTS buildids9_query_s;\n"
+  "DROP VIEW IF EXISTS buildids9_query_e;\n"
+  "DROP VIEW IF EXISTS buildids9_query_d;\n"
+  "DROP TABLE IF EXISTS buildids9_r_sdef;\n"
+  "DROP TABLE IF EXISTS buildids9_r_sref;\n"
+  "DROP TABLE IF EXISTS buildids9_r_de;\n"
+  "DROP TABLE IF EXISTS buildids9_f_s;\n"
+  "DROP TABLE IF EXISTS buildids9_f_de;\n"
+  "DROP TABLE IF EXISTS buildids9_file_mtime_scanned;\n"
+  "DROP TABLE IF EXISTS buildids9_buildids;\n"
+  "DROP TABLE IF EXISTS buildids9_files;\n"
 // buildids8: slim the sref table
   "drop table if exists buildids8_f_de;\n"
   "drop table if exists buildids8_f_s;\n"
@@ -736,7 +767,7 @@ struct elfutils_exception: public reportable_exception
 template <typename Payload>
 class workq
 {
-  set<Payload> q; // eliminate duplicates
+  unordered_set<Payload> q; // eliminate duplicates
   mutex mtx;
   condition_variable cv;
   bool dead;
@@ -825,6 +856,24 @@ inline bool operator< (const scan_payload& a, const scan_payload& b)
 {
   return a.first < b.first; // don't bother compare the stat fields
 }
+
+namespace std { // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=56480
+  template<> struct hash<::scan_payload>
+  {
+    std::size_t operator() (const ::scan_payload& p) const noexcept
+    {
+      return hash<string>()(p.first);
+    }
+  };
+  template<> struct equal_to<::scan_payload>
+  {
+    std::size_t operator() (const ::scan_payload& a, const ::scan_payload& b) const noexcept
+    {
+      return a.first == b.first;
+    }
+  };
+}
+
 static workq<scan_payload> scanq; // just a single one
 // producer & idler: thread_main_fts_source_paths()
 // consumer: thread_main_scanner()
@@ -3040,10 +3089,64 @@ elf_classify (int fd, bool &executable_p, bool &debuginfo_p, string &buildid, se
 }
 
 
+// Intern the given file name in two parts (dirname & basename) and
+// return the resulting file's id.
+static int64_t
+register_file_name(sqlite_ps& ps_upsert_fileparts,
+                   sqlite_ps& ps_upsert_file,
+                   sqlite_ps& ps_lookup_file,
+                   const string& name)
+{
+  std::size_t slash = name.rfind('/');
+  string dirname, basename;
+  if (slash == std::string::npos)
+    {
+      dirname = "";
+      basename = name;
+    }
+  else
+    {
+      dirname = name.substr(0, slash);
+      basename = name.substr(slash+1);
+    }
+
+  // intern the two substrings
+  ps_upsert_fileparts
+    .reset()
+    .bind(1, dirname)
+    .step_ok_done();
+  ps_upsert_fileparts
+    .reset()
+    .bind(1, basename)
+    .step_ok_done();
+
+  // intern the tuple
+  ps_upsert_file
+    .reset()
+    .bind(1, dirname)
+    .bind(2, basename)
+    .step_ok_done();
+
+  // look up the tuple's id
+  ps_lookup_file
+    .reset()
+    .bind(1, dirname)
+    .bind(2, basename);
+  int rc = ps_lookup_file.step();
+  if (rc != SQLITE_ROW) throw sqlite_exception(rc, "step");
+  
+  int64_t id = sqlite3_column_int64 (ps_lookup_file, 0);
+  return id;
+}
+
+
+
 static void
 scan_source_file (const string& rps, const stat_t& st,
                   sqlite_ps& ps_upsert_buildids,
-                  sqlite_ps& ps_upsert_files,
+                  sqlite_ps& ps_upsert_fileparts,
+                  sqlite_ps& ps_upsert_file,
+                  sqlite_ps& ps_lookup_file,
                   sqlite_ps& ps_upsert_de,
                   sqlite_ps& ps_upsert_s,
                   sqlite_ps& ps_query,
@@ -3053,10 +3156,12 @@ scan_source_file (const string& rps, const stat_t& st,
                   unsigned& fts_debuginfo,
                   unsigned& fts_sourcefiles)
 {
+  int64_t fileid = register_file_name(ps_upsert_fileparts, ps_upsert_file, ps_lookup_file, rps);
+
   /* See if we know of it already. */
   int rc = ps_query
     .reset()
-    .bind(1, rps)
+    .bind(1, fileid)
     .bind(2, st.st_mtime)
     .step();
   ps_query.reset();
@@ -3096,12 +3201,6 @@ scan_source_file (const string& rps, const stat_t& st,
   if (fd >= 0)
     close (fd);
 
-  // register this file name in the interning table
-  ps_upsert_files
-    .reset()
-    .bind(1, rps)
-    .step_ok_done();
-
   if (buildid == "")
     {
       // no point storing an elf file without buildid
@@ -3128,7 +3227,7 @@ scan_source_file (const string& rps, const stat_t& st,
         .bind(1, buildid)
         .bind(2, debuginfo_p ? 1 : 0)
         .bind(3, executable_p ? 1 : 0)
-        .bind(4, rps)
+        .bind(4, fileid)
         .bind(5, st.st_mtime)
         .step_ok_done();
     }
@@ -3160,11 +3259,6 @@ scan_source_file (const string& rps, const stat_t& st,
                            << " mtime=" << sfs.st_mtime
                            << " as source " << dwarfsrc << endl;
 
-          ps_upsert_files
-            .reset()
-            .bind(1, srps)
-            .step_ok_done();
-
           // PR25548: store canonicalized dwarfsrc path
           string dwarfsrc_canon = canon_pathname (dwarfsrc);
           if (dwarfsrc_canon != dwarfsrc)
@@ -3173,16 +3267,14 @@ scan_source_file (const string& rps, const stat_t& st,
                 obatched(clog) << "canonicalized src=" << dwarfsrc << " alias=" << dwarfsrc_canon << endl;
             }
 
-          ps_upsert_files
-            .reset()
-            .bind(1, dwarfsrc_canon)
-            .step_ok_done();
+          int64_t fileid1 = register_file_name (ps_upsert_fileparts, ps_upsert_file, ps_lookup_file, dwarfsrc_canon);
+          int64_t fileid2 = register_file_name (ps_upsert_fileparts, ps_upsert_file, ps_lookup_file, srps);
 
           ps_upsert_s
             .reset()
             .bind(1, buildid)
-            .bind(2, dwarfsrc_canon)
-            .bind(3, srps)
+            .bind(2, fileid1)
+            .bind(3, fileid2)
             .bind(4, sfs.st_mtime)
             .step_ok_done();
 
@@ -3192,7 +3284,7 @@ scan_source_file (const string& rps, const stat_t& st,
 
   ps_scan_done
     .reset()
-    .bind(1, rps)
+    .bind(1, fileid)
     .bind(2, st.st_mtime)
     .bind(3, st.st_size)
     .step_ok_done();
@@ -3211,8 +3303,9 @@ scan_source_file (const string& rps, const stat_t& st,
 // Analyze given archive file of given age; record buildids / exec/debuginfo-ness of its
 // constituent files with given upsert statements.
 static void
-archive_classify (const string& rps, string& archive_extension,
-                  sqlite_ps& ps_upsert_buildids, sqlite_ps& ps_upsert_files,
+archive_classify (const string& rps, string& archive_extension, int64_t archiveid,
+                  sqlite_ps& ps_upsert_buildids, sqlite_ps& ps_upsert_fileparts, sqlite_ps& ps_upsert_file,
+                  sqlite_ps& ps_lookup_file,
                   sqlite_ps& ps_upsert_de, sqlite_ps& ps_upsert_sref, sqlite_ps& ps_upsert_sdef,
                   time_t mtime,
                   unsigned& fts_executable, unsigned& fts_debuginfo, unsigned& fts_sref, unsigned& fts_sdef,
@@ -3266,7 +3359,7 @@ archive_classify (const string& rps, string& archive_extension,
     }
 
   if (verbose > 3)
-    obatched(clog) << "libarchive scanning " << rps << endl;
+    obatched(clog) << "libarchive scanning " << rps << " id " << archiveid << endl;
 
   bool any_exceptions = false;
   while(1) // parse archive entries
@@ -3320,10 +3413,7 @@ archive_classify (const string& rps, string& archive_extension,
                 .step_ok_done();
             }
 
-          ps_upsert_files // register this rpm constituent file name in interning table
-            .reset()
-            .bind(1, fn)
-            .step_ok_done();
+          int64_t fileid = register_file_name (ps_upsert_fileparts, ps_upsert_file, ps_lookup_file, fn);
 
           if (sourcefiles.size() > 0) // sref records needed
             {
@@ -3352,15 +3442,13 @@ archive_classify (const string& rps, string& archive_extension,
                         obatched(clog) << "canonicalized src=" << dwarfsrc << " alias=" << dwarfsrc_canon << endl;
                     }
 
-                  ps_upsert_files
-                    .reset()
-                    .bind(1, dwarfsrc_canon)
-                    .step_ok_done();
-
+                  int64_t srcfileid = register_file_name(ps_upsert_fileparts, ps_upsert_file, ps_lookup_file,
+                                                         dwarfsrc_canon);
+                
                   ps_upsert_sref
                     .reset()
                     .bind(1, buildid)
-                    .bind(2, dwarfsrc_canon)
+                    .bind(2, srcfileid)
                     .step_ok_done();
 
                   fts_sref ++;
@@ -3379,9 +3467,9 @@ archive_classify (const string& rps, string& archive_extension,
                 .bind(1, buildid)
                 .bind(2, debuginfo_p ? 1 : 0)
                 .bind(3, executable_p ? 1 : 0)
-                .bind(4, rps)
+                .bind(4, archiveid)
                 .bind(5, mtime)
-                .bind(6, fn)
+                .bind(6, fileid)
                 .step_ok_done();
             }
           else // potential source - sdef record
@@ -3389,9 +3477,9 @@ archive_classify (const string& rps, string& archive_extension,
               fts_sdef ++;
               ps_upsert_sdef
                 .reset()
-                .bind(1, rps)
+                .bind(1, archiveid)
                 .bind(2, mtime)
-                .bind(3, fn)
+                .bind(3, fileid)
                 .step_ok_done();
             }
 
@@ -3425,7 +3513,9 @@ archive_classify (const string& rps, string& archive_extension,
 static void
 scan_archive_file (const string& rps, const stat_t& st,
                    sqlite_ps& ps_upsert_buildids,
-                   sqlite_ps& ps_upsert_files,
+                   sqlite_ps& ps_upsert_fileparts,
+                   sqlite_ps& ps_upsert_file,
+                   sqlite_ps& ps_lookup_file,
                    sqlite_ps& ps_upsert_de,
                    sqlite_ps& ps_upsert_sref,
                    sqlite_ps& ps_upsert_sdef,
@@ -3437,10 +3527,13 @@ scan_archive_file (const string& rps, const stat_t& st,
                    unsigned& fts_sref,
                    unsigned& fts_sdef)
 {
+  // intern the archive file name
+  int64_t archiveid = register_file_name (ps_upsert_fileparts, ps_upsert_file, ps_lookup_file, rps);
+
   /* See if we know of it already. */
   int rc = ps_query
     .reset()
-    .bind(1, rps)
+    .bind(1, archiveid)
     .bind(2, st.st_mtime)
     .step();
   ps_query.reset();
@@ -3454,12 +3547,6 @@ scan_archive_file (const string& rps, const stat_t& st,
       return;
     }
 
-  // intern the archive file name
-  ps_upsert_files
-    .reset()
-    .bind(1, rps)
-    .step_ok_done();
-
   // extract the archive contents
   unsigned my_fts_executable = 0, my_fts_debuginfo = 0, my_fts_sref = 0, my_fts_sdef = 0;
   bool my_fts_sref_complete_p = true;
@@ -3467,8 +3554,8 @@ scan_archive_file (const string& rps, const stat_t& st,
   try
     {
       string archive_extension;
-      archive_classify (rps, archive_extension,
-                        ps_upsert_buildids, ps_upsert_files,
+      archive_classify (rps, archive_extension, archiveid,
+                        ps_upsert_buildids, ps_upsert_fileparts, ps_upsert_file, ps_lookup_file,
                         ps_upsert_de, ps_upsert_sref, ps_upsert_sdef, // dalt
                         st.st_mtime,
                         my_fts_executable, my_fts_debuginfo, my_fts_sref, my_fts_sdef,
@@ -3510,7 +3597,7 @@ scan_archive_file (const string& rps, const stat_t& st,
   if (my_fts_sref_complete_p) // leave incomplete?
     ps_scan_done
       .reset()
-      .bind(1, rps)
+      .bind(1, archiveid)
       .bind(2, st.st_mtime)
       .bind(3, st.st_size)
       .step_ok_done();
@@ -3532,50 +3619,58 @@ thread_main_scanner (void* arg)
 
   // all the prepared statements fit to use, the _f_ set:
   sqlite_ps ps_f_upsert_buildids (db, "file-buildids-intern", "insert or ignore into " BUILDIDS "_buildids VALUES (NULL, ?);");
-  sqlite_ps ps_f_upsert_files (db, "file-files-intern", "insert or ignore into " BUILDIDS "_files VALUES (NULL, ?);");
+  sqlite_ps ps_f_upsert_fileparts (db, "file-fileparts-intern", "insert or ignore into " BUILDIDS "_fileparts VALUES (NULL, ?);");
+  sqlite_ps ps_f_upsert_file (db, "file-file-intern", "insert or ignore into " BUILDIDS "_files VALUES (NULL, \n"
+                              "(select id from " BUILDIDS "_fileparts where name = ?),\n"
+                              "(select id from " BUILDIDS "_fileparts where name = ?));");
+  sqlite_ps ps_f_lookup_file (db, "file-file-lookup",
+                              "select f.id\n"
+                              " from " BUILDIDS "_files f, " BUILDIDS "_fileparts p1, " BUILDIDS "_fileparts p2 \n"
+                              " where f.dirname = p1.id and f.basename = p2.id and p1.name = ? and p2.name = ?;\n");
   sqlite_ps ps_f_upsert_de (db, "file-de-upsert",
                           "insert or ignore into " BUILDIDS "_f_de "
                           "(buildid, debuginfo_p, executable_p, file, mtime) "
                           "values ((select id from " BUILDIDS "_buildids where hex = ?),"
-                          "        ?,?,"
-                          "        (select id from " BUILDIDS "_files where name = ?), ?);");
+                            "        ?,?,?,?);");
   sqlite_ps ps_f_upsert_s (db, "file-s-upsert",
                          "insert or ignore into " BUILDIDS "_f_s "
                          "(buildid, artifactsrc, file, mtime) "
                          "values ((select id from " BUILDIDS "_buildids where hex = ?),"
-                         "        (select id from " BUILDIDS "_files where name = ?),"
-                         "        (select id from " BUILDIDS "_files where name = ?),"
-                         "        ?);");
+                         "      ?,?,?);");
   sqlite_ps ps_f_query (db, "file-negativehit-find",
                         "select 1 from " BUILDIDS "_file_mtime_scanned where sourcetype = 'F' "
-                        "and file = (select id from " BUILDIDS "_files where name = ?) and mtime = ?;");
+                        "and file = ? and mtime = ?;");
   sqlite_ps ps_f_scan_done (db, "file-scanned",
                           "insert or ignore into " BUILDIDS "_file_mtime_scanned (sourcetype, file, mtime, size)"
-                          "values ('F', (select id from " BUILDIDS "_files where name = ?), ?, ?);");
+                          "values ('F', ?,?,?);");
 
   // and now for the _r_ set
   sqlite_ps ps_r_upsert_buildids (db, "rpm-buildid-intern", "insert or ignore into " BUILDIDS "_buildids VALUES (NULL, ?);");
-  sqlite_ps ps_r_upsert_files (db, "rpm-file-intern", "insert or ignore into " BUILDIDS "_files VALUES (NULL, ?);");
+  sqlite_ps ps_r_upsert_fileparts (db, "rpm-fileparts-intern", "insert or ignore into " BUILDIDS "_fileparts VALUES (NULL, ?);");
+  sqlite_ps ps_r_upsert_file (db, "rpm-file-intern", "insert or ignore into " BUILDIDS "_files VALUES (NULL, \n"
+                              "(select id from " BUILDIDS "_fileparts where name = ?),\n"
+                              "(select id from " BUILDIDS "_fileparts where name = ?));");
+  sqlite_ps ps_r_lookup_file (db, "rpm-file-lookup",
+                              "select f.id\n"
+                              " from " BUILDIDS "_files f, " BUILDIDS "_fileparts p1, " BUILDIDS "_fileparts p2 \n"
+                              " where f.dirname = p1.id and f.basename = p2.id and p1.name = ? and p2.name = ?;\n");
   sqlite_ps ps_r_upsert_de (db, "rpm-de-insert",
                           "insert or ignore into " BUILDIDS "_r_de (buildid, debuginfo_p, executable_p, file, mtime, content) values ("
-                          "(select id from " BUILDIDS "_buildids where hex = ?), ?, ?, "
-                          "(select id from " BUILDIDS "_files where name = ?), ?, "
-                          "(select id from " BUILDIDS "_files where name = ?));");
+                          "(select id from " BUILDIDS "_buildids where hex = ?), ?, ?, ?, ?, ?);");
   sqlite_ps ps_r_upsert_sref (db, "rpm-sref-insert",
                             "insert or ignore into " BUILDIDS "_r_sref (buildid, artifactsrc) values ("
                             "(select id from " BUILDIDS "_buildids where hex = ?), "
-                            "(select id from " BUILDIDS "_files where name = ?));");
+                            "?);");
   sqlite_ps ps_r_upsert_sdef (db, "rpm-sdef-insert",
                             "insert or ignore into " BUILDIDS "_r_sdef (file, mtime, content) values ("
-                            "(select id from " BUILDIDS "_files where name = ?), ?,"
-                            "(select id from " BUILDIDS "_files where name = ?));");
+                            "?, ?, ?);");
   sqlite_ps ps_r_query (db, "rpm-negativehit-query",
                       "select 1 from " BUILDIDS "_file_mtime_scanned where "
-                      "sourcetype = 'R' and file = (select id from " BUILDIDS "_files where name = ?) and mtime = ?;");
+                      "sourcetype = 'R' and file = ? and mtime = ?;");
   sqlite_ps ps_r_scan_done (db, "rpm-scanned",
                           "insert or ignore into " BUILDIDS "_file_mtime_scanned (sourcetype, file, mtime, size)"
-                          "values ('R', (select id from " BUILDIDS "_files where name = ?), ?, ?);");
-
+                          "values ('R', ?, ?, ?);");
+  
 
   unsigned fts_cached = 0, fts_executable = 0, fts_debuginfo = 0, fts_sourcefiles = 0;
   unsigned fts_sref = 0, fts_sdef = 0;
@@ -3602,7 +3697,9 @@ thread_main_scanner (void* arg)
           if (scan_archive)
             scan_archive_file (p.first, p.second,
                                ps_r_upsert_buildids,
-                               ps_r_upsert_files,
+                               ps_r_upsert_fileparts,
+                               ps_r_upsert_file,
+                               ps_r_lookup_file,
                                ps_r_upsert_de,
                                ps_r_upsert_sref,
                                ps_r_upsert_sdef,
@@ -3617,7 +3714,9 @@ thread_main_scanner (void* arg)
           if (scan_files) // NB: maybe "else if" ?
             scan_source_file (p.first, p.second,
                               ps_f_upsert_buildids,
-                              ps_f_upsert_files,
+                              ps_f_upsert_fileparts,
+                              ps_f_upsert_file,
+                              ps_f_lookup_file,
                               ps_f_upsert_de,
                               ps_f_upsert_s,
                               ps_f_query,
@@ -3855,7 +3954,7 @@ void groom()
   // scan for files that have disappeared
   sqlite_ps files (db, "check old files",
                    "select distinct s.mtime, s.file, f.name from "
-                   BUILDIDS "_file_mtime_scanned s, " BUILDIDS "_files f "
+                   BUILDIDS "_file_mtime_scanned s, " BUILDIDS "_files_v f "
                    "where f.id = s.file");
   // NB: Because _ftime_mtime_scanned can contain both F and
   // R records for the same file, this query would return duplicates if the

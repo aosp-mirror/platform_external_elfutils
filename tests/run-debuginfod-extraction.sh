@@ -61,6 +61,9 @@ wait_ready $PORT1 'thread_work_total{role="traverse"}' 2
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
 
+# Take a dump if possible
+type sqlite3 2>/dev/null && sqlite3 $DB '.d'
+
 ########################################################################
 # All rpms need to be in the index, except the dummy permission-000 one
 rpms=$(find R -name \*rpm | grep -v nothing | wc -l)

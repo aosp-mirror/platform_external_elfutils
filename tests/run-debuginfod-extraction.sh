@@ -32,7 +32,7 @@ DB=${PWD}/.debuginfod_tmp.sqlite
 tempfiles $DB
 export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
 
-env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -d $DB -F -R -Z .tar.xz -Z .tar.bz2=bzcat -p $PORT1 -t0 -g0 -v R Z > vlog$PORT1 2>&1 &
+env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -d $DB -F -R -Z .tar.xz -Z .tar.bz2=bzcat -p $PORT1 --scan-checkpoint=1 -t0 -g0 -v R Z > vlog$PORT1 2>&1 &
 PID1=$!
 tempfiles vlog$PORT1
 errfiles vlog$PORT1

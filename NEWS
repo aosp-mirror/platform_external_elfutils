@@ -2,6 +2,12 @@ Version 0.190
 
 readelf: Support readelf -Ds, --use-dynamic --symbol.
 
+debuginfod: Schema change (reindexing required, sorry!) for a 60%
+            compression in filename representation, which was a large
+            part of the sqlite index; also, more deliberate sqlite
+            -wal management during scanning using the
+            --scan-checkpoint option.
+
 Version 0.189 "Don't deflate!"
 
 configure: eu-nm, eu-addr2line and eu-stack can provide demangled symbols

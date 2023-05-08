@@ -283,6 +283,13 @@ If a setup has no access to source code, the source info is not
 required.
 
 .TP
+.B "\-\-scan\-checkpoint=NUM"
+Run a synchronized SQLITE WAL checkpoint operation after every NUM
+completed archive or file scans.  This may slow down parallel scanning
+phase somewhat, but generate much smaller "-wal" temporary files on
+busy servers.  The default is 256.  Disabled if 0.
+
+.TP
 .B "\-v"
 Increase verbosity of logging to the standard error file descriptor.
 May be repeated to increase details.  The default verbosity is 0.

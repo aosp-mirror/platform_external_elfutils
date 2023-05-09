@@ -54,6 +54,7 @@ loongarch_init (Elf *elf __attribute__ ((unused)),
   /* gcc/config/ #define DWARF_FRAME_REGISTERS.  */
   eh->frame_nregs = 74;
   HOOK (eh, check_special_symbol);
+  HOOK (eh, set_initial_registers_tid);
   HOOK (eh, return_value_location);
   HOOK (eh, unwind);
 

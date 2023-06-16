@@ -248,7 +248,7 @@ debuginfod_write_callback (char *ptr, size_t size, size_t nmemb, void *data)
 
 /* handle config file read and write */
 static int
-debuginfod_config_cache(char *config_path,
+debuginfod_config_cache(debuginfod_client *c, char *config_path,
 			long cache_config_default_s,
 			struct stat *st)
 {
@@ -277,17 +277,23 @@ debuginfod_config_cache(char *config_path,
     }
 
   long cache_config;
+  /* PR29696 - NB: When using fdopen, the file descriptor is NOT dup'ed and will
+  be closed when the stream is closed. Manually closing fd after fclose
+  is called will lead to a race condition where, if reused, the file descriptor will
+  compete for its regular use before being incorrectly closed here.
+  */
   FILE *config_file = fdopen(fd, "r");
   if (config_file)
-    {
-      if (fscanf(config_file, "%ld", &cache_config) != 1)
-        cache_config = cache_config_default_s;
-      fclose(config_file);
-    }
-  else
+  {
+    if (fscanf(config_file, "%ld", &cache_config) != 1)
+      cache_config = cache_config_default_s;
+    if(0 != fclose(config_file) && c->verbose_fd >= 0)
+      dprintf (c->verbose_fd, "fclose failed with %s (err=%d)\n", strerror (errno), errno);
+  }else{
     cache_config = cache_config_default_s;
-
-  close (fd);
+    if(0 != close(fd) && c->verbose_fd >= 0)
+      dprintf (c->verbose_fd, "close failed with %s (err=%d)\n", strerror (errno), errno);
+  }
   return cache_config;
 }
 
@@ -303,7 +309,7 @@ debuginfod_clean_cache(debuginfod_client *c,
   struct stat st;
 
   /* Create new interval file.  */
-  rc = debuginfod_config_cache(interval_path,
+  rc = debuginfod_config_cache(c, interval_path,
 			       cache_clean_default_interval_s, &st);
   if (rc < 0)
     return rc;
@@ -320,7 +326,7 @@ debuginfod_clean_cache(debuginfod_client *c,
   utime (interval_path, NULL);
 
   /* Read max unused age value from config file.  */
-  rc = debuginfod_config_cache(max_unused_path,
+  rc = debuginfod_config_cache(c, max_unused_path,
 			       cache_default_max_unused_age_s, &st);
   if (rc < 0)
     return rc;
@@ -1125,7 +1131,7 @@ debuginfod_query_server (debuginfod_client *c,
 
           close(fd); /* no need to hold onto the negative-hit file descriptor */
           
-          rc = debuginfod_config_cache(cache_miss_path,
+          rc = debuginfod_config_cache(c, cache_miss_path,
                                        cache_miss_default_s, &st);
           if (rc < 0)
             goto out;

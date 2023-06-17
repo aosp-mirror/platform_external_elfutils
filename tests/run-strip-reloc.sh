@@ -65,16 +65,16 @@ runtest() {
 
   # Strip of DWARF section lines, offset will not match.
   # Everything else should match.
-  testrun ${abs_top_builddir}/src/readelf -w $debugfile1 \
+  testrun ${abs_top_builddir}/src/readelf -N -w $debugfile1 \
 	| grep -v ^DWARF\ section > readelf.out1 ||
-  { echo "*** failure readelf -w debugfile1 $infile"; status=1; }
+  { echo "*** failure readelf -N -w debugfile1 $infile"; status=1; }
 
-  testrun ${abs_top_builddir}/src/readelf -w $debugfile2 \
+  testrun ${abs_top_builddir}/src/readelf -N -w $debugfile2 \
 	| grep -v ^DWARF\ section > readelf.out2 ||
-  { echo "*** failure readelf -w debugfile2 $infile"; status=1; }
+  { echo "*** failure readelf -N -w debugfile2 $infile"; status=1; }
 
   testrun_compare cat readelf.out1 < readelf.out2 ||
-  { echo "*** failure readelf -w compare $infile"; status=1; }
+  { echo "*** failure readelf -N -w compare $infile"; status=1; }
 
   testrun ${abs_top_builddir}/src/strip --reloc-debug-sections-only \
 	  $debugfile1 ||

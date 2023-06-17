@@ -118,7 +118,9 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-strip-test9.sh run-strip-test10.sh run-strip-test11.sh \
 	run-strip-test12.sh \
 	run-strip-nothing.sh run-strip-g.sh run-annobingroup.sh \
-	run-strip-groups.sh run-strip-reloc.sh run-strip-strmerge.sh \
+	run-strip-groups.sh run-strip-strmerge.sh \
+	run-strip-reloc-ko.sh run-strip-reloc-self.sh \
+	run-strip-reloc-ppc64.sh \
 	run-strip-nobitsalign.sh run-strip-remove-keep.sh \
 	run-unstrip-test.sh run-unstrip-test2.sh run-unstrip-test3.sh \
 	run-unstrip-test4.sh run-unstrip-M.sh run-elfstrmerge-test.sh \
@@ -304,7 +306,9 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile-annobingroup-x86_64.o.bz2 \
 	     run-strip-strmerge.sh run-strip-nobitsalign.sh \
 	     testfile-nobitsalign.bz2 testfile-nobitsalign.strip.bz2 \
-	     run-strip-reloc.sh hello_i386.ko.bz2 hello_x86_64.ko.bz2 \
+	     run-strip-reloc-ko.sh run-strip-reloc-self.sh \
+	     run-strip-reloc-ppc64.sh strip-reloc-subr.sh \
+	     hello_i386.ko.bz2 hello_x86_64.ko.bz2 \
 	     hello_ppc64.ko.bz2 hello_s390.ko.bz2 hello_aarch64.ko.bz2 \
 	     hello_m68k.ko.bz2 hello_riscv64.ko.bz2 hello_csky.ko.bz2 \
 	     hello_arc_hs4.ko.bz2 \

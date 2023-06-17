@@ -1,7 +1,6 @@
 #! /bin/sh
 
 . $srcdir/test-copymany-subr.sh
-. $srcdir/test-subr.sh
 
 # 32bit, little endian, rel
 testfiles testfile9

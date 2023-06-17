@@ -55,7 +55,7 @@ test_copy_and_add ()
 
 # A collection of random testfiles to test 32/64bit, little/big endian
 # and non-ET_REL (with phdrs)/ET_REL (without phdrs).
-# Try to add 0xffff sections twice.
+# Try to add 0x0fff sections twice.
 
 # 32bit, big endian, rel
 testfiles testfile29

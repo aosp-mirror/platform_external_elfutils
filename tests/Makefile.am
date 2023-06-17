@@ -193,7 +193,9 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-reloc-bpf.sh \
 	run-next-cfi.sh run-next-cfi-self.sh \
 	run-reverse-sections.sh run-reverse-sections-self.sh \
-	run-copyadd-sections.sh run-copymany-sections.sh \
+	run-copyadd-sections.sh \
+	run-copymany-be32.sh run-copymany-le32.sh \
+	run-copymany-be64.sh run-copymany-le64.sh \
 	run-typeiter-many.sh run-strip-test-many.sh \
 	run-strip-version.sh run-xlate-note.sh \
 	run-readelf-discr.sh \
@@ -539,7 +541,9 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile-riscv64.bz2 testfile-riscv64-s.bz2 \
 	     testfile-riscv64-core.bz2 \
 	     run-reverse-sections.sh run-reverse-sections-self.sh \
-	     run-copyadd-sections.sh run-copymany-sections.sh \
+	     run-copyadd-sections.sh test-copymany-subr.sh \
+	     run-copymany-be32.sh run-copymany-le32.sh \
+	     run-copymany-be64.sh run-copymany-le64.sh \
 	     run-large-elf-file.sh \
 	     run-typeiter-many.sh run-strip-test-many.sh \
 	     testfile-debug-rel-ppc64-g.o.bz2 \

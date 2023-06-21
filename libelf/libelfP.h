@@ -1,5 +1,6 @@
 /* Internal interfaces for libelf.
    Copyright (C) 1998-2010, 2015, 2016 Red Hat, Inc.
+   Copyright (C) 2023 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
    Contributed by Ulrich Drepper <drepper@redhat.com>, 1998.
 
@@ -262,11 +263,7 @@ typedef struct Elf_ScnList
 typedef struct Elf_Data_Chunk
 {
   Elf_Data_Scn data;
-  union
-  {
-    Elf_Scn dummy_scn;
-    struct Elf_Data_Chunk *next;
-  };
+  Elf_Scn dummy_scn;
   int64_t offset;		/* The original raw offset in the Elf image.  */
 } Elf_Data_Chunk;
 
@@ -324,7 +321,7 @@ struct Elf
       Elf_ScnList *scns_last;	/* Last element in the section list.
 				   If NULL the data has not yet been
 				   read from the file.  */
-      Elf_Data_Chunk *rawchunks; /* List of elf_getdata_rawchunk results.  */
+      void *rawchunks;		/* Tree of elf_getdata_rawchunk results.  */
       unsigned int scnincr;	/* Number of sections allocate the last
 				   time.  */
       int ehdr_flags;		/* Flags (dirty) for ELF header.  */
@@ -343,7 +340,7 @@ struct Elf
       Elf_ScnList *scns_last;	/* Last element in the section list.
 				   If NULL the data has not yet been
 				   read from the file.  */
-      Elf_Data_Chunk *rawchunks; /* List of elf_getdata_rawchunk results.  */
+      void *rawchunks;		/* Tree of elf_getdata_rawchunk results.  */
       unsigned int scnincr;	/* Number of sections allocate the last
 				   time.  */
       int ehdr_flags;		/* Flags (dirty) for ELF header.  */
@@ -368,7 +365,7 @@ struct Elf
       Elf_ScnList *scns_last;	/* Last element in the section list.
 				   If NULL the data has not yet been
 				   read from the file.  */
-      Elf_Data_Chunk *rawchunks; /* List of elf_getdata_rawchunk results.  */
+      void *rawchunks;		/* Tree of elf_getdata_rawchunk results.  */
       unsigned int scnincr;	/* Number of sections allocate the last
 				   time.  */
       int ehdr_flags;		/* Flags (dirty) for ELF header.  */

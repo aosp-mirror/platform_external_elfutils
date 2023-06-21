@@ -1,5 +1,6 @@
 /* Free resources associated with Elf descriptor.
    Copyright (C) 1998,1999,2000,2001,2002,2004,2005,2007,2015,2016 Red Hat, Inc.
+   Copyright (C) 2023 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 1998.
 
@@ -32,11 +33,21 @@
 #endif
 
 #include <assert.h>
+#include <search.h>
 #include <stddef.h>
 #include <stdlib.h>
 
 #include "libelfP.h"
 
+
+static void
+free_chunk (void *n)
+{
+  Elf_Data_Chunk *rawchunk = (Elf_Data_Chunk *)n;
+  if (rawchunk->dummy_scn.flags & ELF_F_MALLOCED)
+    free (rawchunk->data.d.d_buf);
+  free (rawchunk);
+}
 
 int
 elf_end (Elf *elf)
@@ -112,20 +123,13 @@ elf_end (Elf *elf)
 
     case ELF_K_ELF:
       {
-	Elf_Data_Chunk *rawchunks
+	void *rawchunks
 	  = (elf->class == ELFCLASS32
 	     || (offsetof (struct Elf, state.elf32.rawchunks)
 		 == offsetof (struct Elf, state.elf64.rawchunks))
 	     ? elf->state.elf32.rawchunks
 	     : elf->state.elf64.rawchunks);
-	while (rawchunks != NULL)
-	  {
-	    Elf_Data_Chunk *next = rawchunks->next;
-	    if (rawchunks->dummy_scn.flags & ELF_F_MALLOCED)
-	      free (rawchunks->data.d.d_buf);
-	    free (rawchunks);
-	    rawchunks = next;
-	  }
+	tdestroy (rawchunks, free_chunk);
 
 	Elf_ScnList *list = (elf->class == ELFCLASS32
 			     || (offsetof (struct Elf, state.elf32.scns)

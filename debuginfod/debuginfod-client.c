@@ -277,23 +277,27 @@ debuginfod_config_cache(debuginfod_client *c, char *config_path,
     }
 
   long cache_config;
-  /* PR29696 - NB: When using fdopen, the file descriptor is NOT dup'ed and will
-  be closed when the stream is closed. Manually closing fd after fclose
-  is called will lead to a race condition where, if reused, the file descriptor will
-  compete for its regular use before being incorrectly closed here.
-  */
+  /* PR29696 - NB: When using fdopen, the file descriptor is NOT
+     dup'ed and will be closed when the stream is closed. Manually
+     closing fd after fclose is called will lead to a race condition
+     where, if reused, the file descriptor will compete for its
+     regular use before being incorrectly closed here.  */
   FILE *config_file = fdopen(fd, "r");
   if (config_file)
-  {
-    if (fscanf(config_file, "%ld", &cache_config) != 1)
+    {
+      if (fscanf(config_file, "%ld", &cache_config) != 1)
+	cache_config = cache_config_default_s;
+      if (0 != fclose (config_file) && c->verbose_fd >= 0)
+	dprintf (c->verbose_fd, "fclose failed with %s (err=%d)\n",
+		 strerror (errno), errno);
+    }
+  else
+    {
       cache_config = cache_config_default_s;
-    if(0 != fclose(config_file) && c->verbose_fd >= 0)
-      dprintf (c->verbose_fd, "fclose failed with %s (err=%d)\n", strerror (errno), errno);
-  }else{
-    cache_config = cache_config_default_s;
-    if(0 != close(fd) && c->verbose_fd >= 0)
-      dprintf (c->verbose_fd, "close failed with %s (err=%d)\n", strerror (errno), errno);
-  }
+      if (0 != close (fd) && c->verbose_fd >= 0)
+	dprintf (c->verbose_fd, "close failed with %s (err=%d)\n",
+		 strerror (errno), errno);
+    }
   return cache_config;
 }
 

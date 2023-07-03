@@ -33,7 +33,6 @@
 #include "libdwflP.h"
 #include "../libdw/cfi.h"
 #include <search.h>
-#include <unistd.h>
 
 static void
 free_cu (struct dwfl_cu *cu)

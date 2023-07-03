@@ -34,7 +34,6 @@
 #include <assert.h>
 #include <config.h>
 #include <ctype.h>
-#include <endian.h>
 #include <errno.h>
 #include <gelf.h>
 #include <stddef.h>
@@ -44,7 +43,7 @@
 
 #include "../libebl/libeblP.h"
 
-#define MACHINE_ENCODING __LITTLE_ENDIAN
+#define MACHINE_ENCODING LITTLE_ENDIAN
 #include "memory-access.h"
 
 

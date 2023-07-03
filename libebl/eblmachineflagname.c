@@ -46,8 +46,9 @@ ebl_machine_flag_name (Ebl *ebl, Elf64_Word flags, char *buf, size_t len)
     res = "";
   else
     {
+      Elf64_Word orig_flags = flags;
       char *cp = buf;
-      int first = 1;
+      bool first = true;
       const char *machstr;
       size_t machstrlen;
 
@@ -55,12 +56,13 @@ ebl_machine_flag_name (Ebl *ebl, Elf64_Word flags, char *buf, size_t len)
 	{
 	  if (! first)
 	    {
-	      if (cp + 1 >= buf + len)
+	      if (cp + 2 >= buf + len)
 		break;
 	      *cp++ = ',';
+	      *cp++ = ' ';
 	    }
 
-	  machstr = ebl != NULL ? ebl->machine_flag_name (&flags) : NULL;
+	  machstr = ebl != NULL ? ebl->machine_flag_name (orig_flags, &flags) : NULL;
 	  if (machstr == NULL)
 	    {
 	      /* No more known flag.  */
@@ -76,8 +78,9 @@ ebl_machine_flag_name (Ebl *ebl, Elf64_Word flags, char *buf, size_t len)
 	    }
 
 	  cp = mempcpy (cp, machstr, machstrlen);
+	  --cp;
 
-	  first = 0;
+	  first = false;
 	}
       while (flags != 0);
 

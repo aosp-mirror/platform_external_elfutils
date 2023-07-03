@@ -29,7 +29,7 @@ pkginclude_HEADERS = version.h
 SUBDIRS = config lib libelf libcpu backends libebl libdwelf libdwfl libdw \
 	  libasm debuginfod src po doc tests
 
-EXTRA_DIST = elfutils.spec GPG-KEY NOTES CONTRIBUTING \
+EXTRA_DIST = elfutils.spec GPG-KEY NOTES CONTRIBUTING SECURITY \
 	     COPYING COPYING-GPLV2 COPYING-LGPLV3
 
 # Make sure the test install uses lib64 when $LIB will yield lib64.

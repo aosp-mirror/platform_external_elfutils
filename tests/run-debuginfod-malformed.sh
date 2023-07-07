@@ -45,9 +45,6 @@ wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
 
 export DEBUGINFOD_URLS=http://127.0.0.1:$PORT1/   # or without trailing /
 
-# Be patient when run on a busy machine things might take a bit.
-export DEBUGINFOD_TIMEOUT=10
-
 # Check thread comm names
 ps -q $PID1 -e -L -o '%p %c %a' | grep groom
 ps -q $PID1 -e -L -o '%p %c %a' | grep scan

@@ -48,7 +48,9 @@ static const char args_doc[] = N_("debuginfo BUILDID\n"
                                   "executable BUILDID\n"
                                   "executable PATH\n"
                                   "source BUILDID /FILENAME\n"
-                                  "source PATH /FILENAME\n");
+                                  "source PATH /FILENAME\n"
+				  "section BUILDID SECTION-NAME\n"
+				  "section PATH SECTION-NAME\n");
 
 
 /* Definitions of arguments for argp functions.  */
@@ -99,7 +101,8 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
     {
     case 'v': verbose++;
       debuginfod_set_progressfn (client, & progressfn);
-      debuginfod_set_verbose_fd (client, STDERR_FILENO);
+      if (verbose > 1)
+        debuginfod_set_verbose_fd (client, STDERR_FILENO);
       break;
     default: return ARGP_ERR_UNKNOWN;
     }
@@ -207,6 +210,17 @@ main(int argc, char** argv)
                                   build_id, build_id_len,
 				  argv[remaining+2], &cache_name);
     }
+  else if (strcmp(argv[remaining], "section") == 0)
+    {
+      if (remaining+2 >= argc)
+	{
+	  fprintf(stderr,
+		  "If FILETYPE is \"section\" then a section name must be given\n");
+	  return 1;
+	}
+      rc = debuginfod_find_section(client, build_id, build_id_len,
+				   argv[remaining+2], &cache_name);
+    }
   else
     {
       argp_help (&argp, stderr, ARGP_HELP_USAGE, argv[0]);
@@ -215,6 +229,9 @@ main(int argc, char** argv)
 
   if (verbose)
     {
+      const char* headers = debuginfod_get_headers(client);
+      if (headers)
+        fprintf(stderr, "Headers:\n%s", headers);
       const char* url = debuginfod_get_url (client);
       if (url != NULL)
         fprintf(stderr, "Downloaded from %s\n", url);
@@ -231,6 +248,8 @@ main(int argc, char** argv)
       fprintf(stderr, "Server query failed: %s\n", strerror(-rc));
       return 1;
     }
+  else
+    close (rc);
 
   printf("%s\n", cache_name);
   free (cache_name);

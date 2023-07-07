@@ -1,3 +1,49 @@
+2022-10-31  Aaron Merey  <amerey@redhat.com>
+
+	* Makefile.am (notrans_dist_man3_MANS): Add debuginfod_find_section.3.
+	* debuginfod_find_section.3: New file.
+	* debuginfod_find_debuginfo.3: Document debuginfod_find_section.
+	* debuginfod.8: Document section webapi.
+
+2022-10-28  Arsen Arsenović  <arsen@aarsen.me>
+
+	* readelf.1: Document the --syms alias.
+
+2022-10-18  Daniel Thornburgh  <dthorn@google.com>
+
+	* debuginfod_find_debuginfo.3: Document DEBUGINFOD_HEADERS_FILE.
+
+2022-09-02  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod_find_debuginfo.3: Tweaked debuginfod_get_headers docs.
+
+2022-07-15  Noah Sanci  <nsanci@redhat.com>
+
+	* debuginfod_find_debuginfo.3: Explained debuginfod_get_headers
+	usage.
+	* debuginfod_get_headers.3: Created.
+
+2022-09-02  Aaron Merey  <amerey@redhat.com>
+
+	* debuginfod.8 (-C): Update description.
+
+2022-06-03  Michael Trapp <michael.trapp@sap.com>
+
+	* debuginfod.8 (--disable-source-scan): Document.
+
+2022-05-09  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.8: Tweak prefetch descriptions.
+
+2022-01-31  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod-client-config.7: Elaborate DEBUGINFOD_URLS.
+
+2021-12-08  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR28661
+	* debuginfod.8 (-C): Document new flag.
+
 2021-11-05  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR28430

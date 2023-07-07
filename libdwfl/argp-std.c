@@ -34,9 +34,7 @@
 #include <argp.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <libintl.h>
 #include <fcntl.h>
-#include <unistd.h>
 
 
 #define OPT_DEBUGINFO	0x100

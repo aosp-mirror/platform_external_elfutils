@@ -25,7 +25,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <locale.h>
-#include <libintl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>

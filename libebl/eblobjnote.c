@@ -288,6 +288,10 @@ ebl_object_note (Ebl *ebl, uint32_t namesz, const char *name, uint32_t type,
       if (descsz == 0 && type == NT_VERSION)
 	return;
 
+      if (strcmp ("FDO", name) == 0 && type == NT_FDO_PACKAGING_METADATA
+	  && descsz > 0 && desc[descsz - 1] == '\0')
+	printf("    Packaging Metadata: %.*s\n", (int) descsz, desc);
+
       /* Everything else should have the "GNU" owner name.  */
       if (strcmp ("GNU", name) != 0)
 	return;

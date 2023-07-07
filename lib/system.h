@@ -1,5 +1,6 @@
 /* Declarations for common convenience functions.
    Copyright (C) 2006-2011 Red Hat, Inc.
+   Copyright (C) 2022 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -34,13 +35,16 @@
 #include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <sys/param.h>
-#include <endian.h>
-#include <byteswap.h>
-#include <unistd.h>
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
+
+/* System dependend headers */
+#include <byteswap.h>
+#include <endian.h>
+#include <sys/mman.h>
+#include <sys/param.h>
+#include <unistd.h>
 
 #if defined(HAVE_ERROR_H)
 #include <error.h>
@@ -51,12 +55,21 @@ void error(int status, int errnum, const char *format, ...);
 #error "err.h or error.h must be available"
 #endif
 
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+/* error (EXIT_FAILURE, ...) should be noreturn but on some systems it
+   isn't.  This may cause warnings about code that should not be reachable.
+   So have an explicit error_exit wrapper that is noreturn (because it
+   calls exit explicitly).  */
+#define error_exit(errnum,...) do { \
+    error (EXIT_FAILURE,errnum,__VA_ARGS__); \
+    exit (EXIT_FAILURE); \
+  } while (0)
+
+#if BYTE_ORDER == LITTLE_ENDIAN
 # define LE32(n)	(n)
 # define LE64(n)	(n)
 # define BE32(n)	bswap_32 (n)
 # define BE64(n)	bswap_64 (n)
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif BYTE_ORDER == BIG_ENDIAN
 # define BE32(n)	(n)
 # define BE64(n)	(n)
 # define LE32(n)	bswap_32 (n)

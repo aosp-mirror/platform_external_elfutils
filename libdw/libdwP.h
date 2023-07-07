@@ -29,13 +29,11 @@
 #ifndef _LIBDWP_H
 #define _LIBDWP_H 1
 
-#include <libintl.h>
 #include <stdbool.h>
 #include <pthread.h>
 
 #include <libdw.h>
 #include <dwarf.h>
-#include "atomics.h"
 
 
 /* Known location expressions already decoded.  */

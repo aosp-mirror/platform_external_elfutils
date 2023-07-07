@@ -26,7 +26,6 @@
 #include <fcntl.h>
 #include <gelf.h>
 #include <libdw.h>
-#include <libintl.h>
 #include <locale.h>
 #include <search.h>
 #include <stdbool.h>

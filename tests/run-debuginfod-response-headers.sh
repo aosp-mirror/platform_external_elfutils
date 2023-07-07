@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (C) 2019-2021 Red Hat, Inc.
+# Copyright (C) 2022 Red Hat, Inc.
 # This file is part of elfutils.
 #
 # This file is free software; you can redistribute it and/or modify
@@ -15,6 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+type socat 2>/dev/null || exit 77
 
 . $srcdir/debuginfod-subr.sh  # includes set -e
 
@@ -73,20 +75,63 @@ rm -rf $DEBUGINFOD_CACHE_PATH
 env DEBUGINFOD_URLS="http://127.0.0.1:"$PORT1 LD_LIBRARY_PATH=$ldpath ${abs_top_builddir}/debuginfod/debuginfod-find\
     -vvv executable F/prog > vlog-find$PORT1.1 2>&1
 tempfiles vlog-find$PORT1.1
-grep 'Content-Length: ' vlog-find$PORT1.1
-grep 'X-DEBUGINFOD-FILE: ' vlog-find$PORT1.1
-grep 'X-DEBUGINFOD-SIZE: ' vlog-find$PORT1.1
+errfiles vlog-find$PORT1.1
+cat vlog-find$PORT1.1
+grep 'Headers:' vlog-find$PORT1.1
+grep -i 'X-DEBUGINFOD-FILE: prog' vlog-find$PORT1.1
+grep -i 'X-DEBUGINFOD-SIZE: '     vlog-find$PORT1.1
 
 # Check to see if an executable file located in an archive prints the file's description and archive
 env DEBUGINFOD_URLS="http://127.0.0.1:"$PORT1 LD_LIBRARY_PATH=$ldpath ${abs_top_builddir}/debuginfod/debuginfod-find\
     -vvv executable c36708a78618d597dee15d0dc989f093ca5f9120 > vlog-find$PORT1.2 2>&1
 tempfiles vlog-find$PORT1.2
-grep 'Content-Length: ' vlog-find$PORT1.2
-grep 'X-DEBUGINFOD-FILE: ' vlog-find$PORT1.2
-grep 'X-DEBUGINFOD-SIZE: ' vlog-find$PORT1.2
-grep 'X-DEBUGINFOD-ARCHIVE: ' vlog-find$PORT1.2
+errfiles vlog-find$PORT1.2
+cat vlog-find$PORT1.2
+grep 'Headers:'               vlog-find$PORT1.2
+grep -i 'X-DEBUGINFOD-FILE: '    vlog-find$PORT1.2
+grep -i 'X-DEBUGINFOD-SIZE: '    vlog-find$PORT1.2
+grep -i 'X-DEBUGINFOD-ARCHIVE: ' vlog-find$PORT1.2
+
+# Check that X-DEBUGINFOD-SIZE matches the size of each file
+for file in vlog-find$PORT1.1 vlog-find$PORT1.2
+do
+    st_size=$(stat -c%s $(tail -n 1 $file))
+    x_debuginfod_size=$(grep -i 'X-DEBUGINFOD-SIZE' $file | head -1 | grep -E -o '[0-9]+')
+    test $st_size -eq $x_debuginfod_size
+done
+
+rm -rf $DEBUGINFOD_CACHE_PATH
+BUILDID=`env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../src/readelf \
+          -a F/prog | grep 'Build ID' | cut -d ' ' -f 7`
+netcat_dir="buildid/$BUILDID/"
+mkdir -p ${PWD}/$netcat_dir
+cp F/prog ${PWD}/$netcat_dir/executable
+tempfiles F/prog
+
+# socat should after answering one request
+(echo -e "HTTP/1.1 200 OK\r\nX-DEBUGINFOD-SIZE: ba:d_size\nX-DEBUGINFOD-\rFILE:\=\+ \r213\n\n $(date)" | socat -u - tcp-listen:$PORT2) &
+PID2=$!
+# Wait a bit until the netcat port is in use. Otherwise debuginfod-find can query
+# before netcat is ready.
+sleep 5
+
+touch vlog-find$PORT2
+errfiles vlog-find$PORT2
+tempfiles vlog-find$PORT2
+
+# calling out to valgrind deliberately, because this process will be forced to parse broken http headers
+${VALGRIND_CMD} env DEBUGINFOD_URLS="http://127.0.0.1:"$PORT2 LD_LIBRARY_PATH=$ldpath ${abs_top_builddir}/debuginfod/debuginfod-find\
+    -vvv executable $BUILDID > vlog-find$PORT2 2>&1 || true # permit curl rejection of the bad headers
+cat vlog-find$PORT2 # won't have any valid x-debuginfod* headers
+rm -f "$netcat_dir"executable
+rmdir -p $netcat_dir
+
+kill $PID2 || true
+wait $PID2 || true
+PID2=0
 
 kill $PID1
 wait $PID1
 PID1=0
+
 exit 0

@@ -40,7 +40,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <unistd.h>
 
 void
 try_split_file (Dwarf_CU *cu, const char *dwo_path)

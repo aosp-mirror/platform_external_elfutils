@@ -1,5 +1,6 @@
 /* Report modules by examining dynamic linker data structures.
    Copyright (C) 2008-2016 Red Hat, Inc.
+   Copyright (C) 2021 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -31,8 +32,6 @@
 #include "../libdw/memory-access.h"
 #include "system.h"
 
-#include <byteswap.h>
-#include <endian.h>
 #include <fcntl.h>
 
 /* This element is always provided and always has a constant value.
@@ -256,7 +255,8 @@ read_addrs (struct memory_closure *closure,
   /* Read a new buffer if the old one doesn't cover these words.  */
   if (*buffer == NULL
       || vaddr < *read_vaddr
-      || vaddr - (*read_vaddr) + nb > *buffer_available)
+      || nb > *buffer_available
+      || vaddr - (*read_vaddr) > *buffer_available - nb)
     {
       release_buffer (closure, buffer, buffer_available, 0);
 
@@ -269,26 +269,25 @@ read_addrs (struct memory_closure *closure,
 	return true;
     }
 
-  Elf32_Addr (*a32)[n] = vaddr - (*read_vaddr) + (*buffer);
-  Elf64_Addr (*a64)[n] = (void *) a32;
+  unsigned char *addr = vaddr - (*read_vaddr) + (*buffer);
 
   if (elfclass == ELFCLASS32)
     {
       if (elfdata == ELFDATA2MSB)
 	for (size_t i = 0; i < n; ++i)
-	  addrs[i] = BE32 (read_4ubyte_unaligned_noncvt (&(*a32)[i]));
+	  addrs[i] = BE32 (read_4ubyte_unaligned_noncvt (addr + i * 4));
       else
 	for (size_t i = 0; i < n; ++i)
-	  addrs[i] = LE32 (read_4ubyte_unaligned_noncvt (&(*a32)[i]));
+	  addrs[i] = LE32 (read_4ubyte_unaligned_noncvt (addr + i * 4));
     }
   else
     {
       if (elfdata == ELFDATA2MSB)
 	for (size_t i = 0; i < n; ++i)
-	  addrs[i] = BE64 (read_8ubyte_unaligned_noncvt (&(*a64)[i]));
+	  addrs[i] = BE64 (read_8ubyte_unaligned_noncvt (addr + i * 8));
       else
 	for (size_t i = 0; i < n; ++i)
-	  addrs[i] = LE64 (read_8ubyte_unaligned_noncvt (&(*a64)[i]));
+	  addrs[i] = LE64 (read_8ubyte_unaligned_noncvt (addr + i * 8));
     }
 
   return false;
@@ -784,7 +783,9 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
       GElf_Xword dyn_filesz = 0;
       GElf_Addr dyn_bias = (GElf_Addr) -1;
 
-      if (phdr != 0 && phnum != 0)
+      if (phdr != 0 && phnum != 0
+	  && ((elfclass == ELFCLASS32 && phent == sizeof (Elf32_Phdr))
+	      || (elfclass == ELFCLASS64 && phent == sizeof (Elf64_Phdr))))
 	{
 	  Dwfl_Module *phdr_mod;
 	  int phdr_segndx = INTUSE(dwfl_addrsegment) (dwfl, phdr, &phdr_mod);
@@ -847,6 +848,11 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 	      /* Note this in the !in_ok path.  That means memory_callback
 		 failed.  But the callback might still have reset the d_size
 		 value (to zero).  So explicitly set it here again.  */
+	      if (unlikely (phnum > SIZE_MAX / phent))
+		{
+		  __libdwfl_seterrno (DWFL_E_NOMEM);
+		  return false;
+		}
 	      in.d_size = phnum * phent;
 	      in.d_buf = malloc (in.d_size);
 	      if (unlikely (in.d_buf == NULL))
@@ -876,6 +882,18 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 		  return false;
 		}
 	      size_t nbytes = phnum * phent;
+	      /* We can only process as many bytes/phnum as there are
+		 in in.d_size. The data might have been truncated.  */
+	      if (nbytes > in.d_size)
+		{
+		  nbytes = in.d_size;
+		  phnum = nbytes / phent;
+		  if (phnum == 0)
+		    {
+		      __libdwfl_seterrno (DWFL_E_BADELF);
+		      return false;
+		    }
+		}
 	      void *buf = malloc (nbytes);
 	      Elf32_Phdr (*p32)[phnum] = buf;
 	      Elf64_Phdr (*p64)[phnum] = buf;
@@ -888,15 +906,34 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 		{
 		  .d_type = ELF_T_PHDR,
 		  .d_version = EV_CURRENT,
-		  .d_size = phnum * phent,
+		  .d_size = nbytes,
 		  .d_buf = buf
 		};
-	      in.d_size = out.d_size;
+	      if (in.d_size > out.d_size)
+		{
+		  in.d_size = out.d_size;
+		  phnum = in.d_size / phent;
+		  if (phnum == 0)
+		    {
+		      free (buf);
+		      __libdwfl_seterrno (DWFL_E_BADELF);
+		      return false;
+		    }
+		}
+	      bool is32 = (elfclass == ELFCLASS32);
+	      size_t phdr_align = (is32
+				   ? __alignof__ (Elf32_Phdr)
+				   : __alignof__ (Elf64_Phdr));
+	      if (!in_from_exec
+		  && ((uintptr_t) in.d_buf & (phdr_align - 1)) != 0)
+		{
+		  memcpy (out.d_buf, in.d_buf, in.d_size);
+		  in.d_buf = out.d_buf;
+		}
 	      if (likely ((elfclass == ELFCLASS32
 			   ? elf32_xlatetom : elf64_xlatetom)
 			  (&out, &in, elfdata) != NULL))
 		{
-		  bool is32 = (elfclass == ELFCLASS32);
 		  for (size_t i = 0; i < phnum; ++i)
 		    {
 		      GElf_Word type = (is32
@@ -981,9 +1018,23 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 	  if ((*memory_callback) (dwfl, dyn_segndx, &in.d_buf, &in.d_size,
 				  dyn_vaddr, dyn_filesz, memory_callback_arg))
 	    {
+	      size_t entsize = (elfclass == ELFCLASS32
+				? sizeof (Elf32_Dyn) : sizeof (Elf64_Dyn));
+	      if (unlikely (dyn_filesz > SIZE_MAX / entsize))
+		{
+		  __libdwfl_seterrno (DWFL_E_NOMEM);
+		  return false;
+		}
+	      /* We can only process as many bytes as there are in
+	         in.d_size. The data might have been truncated.  */
+	      if (dyn_filesz > in.d_size)
+		dyn_filesz = in.d_size;
+	      if (dyn_filesz / entsize == 0)
+		{
+		  __libdwfl_seterrno (DWFL_E_BADELF);
+		  return false;
+		}
 	      void *buf = malloc (dyn_filesz);
-	      Elf32_Dyn (*d32)[dyn_filesz / sizeof (Elf32_Dyn)] = buf;
-	      Elf64_Dyn (*d64)[dyn_filesz / sizeof (Elf64_Dyn)] = buf;
 	      if (unlikely (buf == NULL))
 		{
 		  __libdwfl_seterrno (DWFL_E_NOMEM);
@@ -996,7 +1047,16 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 		  .d_size = dyn_filesz,
 		  .d_buf = buf
 		};
-	      in.d_size = out.d_size;
+	      if (in.d_size > out.d_size)
+		in.d_size = out.d_size;
+	      size_t dyn_align = (elfclass == ELFCLASS32
+			          ? __alignof__ (Elf32_Dyn)
+				  : __alignof__ (Elf64_Dyn));
+	      if (((uintptr_t) in.d_buf & (dyn_align - 1)) != 0)
+		{
+		  memcpy (out.d_buf, in.d_buf, in.d_size);
+		  in.d_buf = out.d_buf;
+		}
 	      if (likely ((elfclass == ELFCLASS32
 			   ? elf32_xlatetom : elf64_xlatetom)
 			  (&out, &in, elfdata) != NULL))
@@ -1004,6 +1064,7 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 		  /* We are looking for DT_DEBUG.  */
 		  if (elfclass == ELFCLASS32)
 		    {
+		      Elf32_Dyn (*d32)[dyn_filesz / sizeof (Elf32_Dyn)] = buf;
 		      size_t n = dyn_filesz / sizeof (Elf32_Dyn);
 		      for (size_t i = 0; i < n; ++i)
 			if ((*d32)[i].d_tag == DT_DEBUG)
@@ -1014,6 +1075,7 @@ dwfl_link_map_report (Dwfl *dwfl, const void *auxv, size_t auxv_size,
 		    }
 		  else
 		    {
+		      Elf64_Dyn (*d64)[dyn_filesz / sizeof (Elf64_Dyn)] = buf;
 		      size_t n = dyn_filesz / sizeof (Elf64_Dyn);
 		      for (size_t i = 0; i < n; ++i)
 			if ((*d64)[i].d_tag == DT_DEBUG)

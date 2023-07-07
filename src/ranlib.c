@@ -26,7 +26,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <gelf.h>
-#include <libintl.h>
 #include <locale.h>
 #include <obstack.h>
 #include <stdlib.h>

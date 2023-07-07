@@ -31,7 +31,6 @@
 #endif
 
 #include "libdwflP.h"
-#include <unistd.h>
 
 void
 dwfl_end (Dwfl *dwfl)

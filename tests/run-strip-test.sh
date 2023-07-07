@@ -66,6 +66,6 @@ test $SIZE_stripped -lt $SIZE_original ||
 
 tempfiles testfile.sections
 testrun ${abs_top_builddir}/src/readelf -S testfile.temp > testfile.sections || status=$?
-fgrep ' .debug_' testfile.sections && status=1
+grep -F ' .debug_' testfile.sections && status=1
 
 exit $status

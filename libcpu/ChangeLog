@@ -1,3 +1,19 @@
+2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* i386_disasm.c: Don't include endian.h.
+	* memory-access.h: Don't include byteswap.h and endian.h.
+	Do include system.h.
+
+2022-09-20  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* memory-access.h: Use BYTE_ORDER, LITTLE_ENDIAN and BIG_ENDIAN.
+	* riscv_disasm.c: Likewise.
+
+2021-12-04  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (GENDIS_ENV): New variable, depends on
+	USE_ADDRESS_SANITIZER.
+
 2020-12-20  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* .gitignore: New file.

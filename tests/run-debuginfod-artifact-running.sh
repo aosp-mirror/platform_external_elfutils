@@ -53,9 +53,6 @@ mv prog F
 mv prog.debug F
 tempfiles prog/F
 
-# Be patient when run on a busy machine things might take a bit.
-export DEBUGINFOD_TIMEOUT=10
-
 kill -USR1 $PID1
 wait_ready $PORT1 'thread_work_total{role="traverse"}' 2
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0

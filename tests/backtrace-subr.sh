@@ -59,7 +59,7 @@ check_backtracegen()
 # Ignore it here as it is a bug of OS, not a bug of elfutils.
 check_err()
 {
-  if [ $(egrep -v <$1 'dwfl_thread_getframes: (No DWARF information found|no matching address range|address out of range|Invalid register|\(null\))$' \
+  if [ $(grep -E -v <$1 'dwfl_thread_getframes: (No DWARF information found|no matching address range|address out of range|Invalid register|\(null\))$' \
          | wc -c) \
        -eq 0 ]
   then
@@ -101,7 +101,7 @@ check_native_unsupported()
   # and we can fall back on .debug_frame for the CFI.
   case "`uname -m`" in
     arm* )
-      if egrep 'dwfl_thread_getframes(.*)No DWARF information found' $err; then
+      if grep -E 'dwfl_thread_getframes(.*)No DWARF information found' $err; then
 	echo >&2 $testname: arm needs debuginfo installed for all libraries
 	exit 77
       fi

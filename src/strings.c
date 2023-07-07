@@ -28,7 +28,6 @@
 #include <fcntl.h>
 #include <gelf.h>
 #include <inttypes.h>
-#include <libintl.h>
 #include <locale.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -298,8 +297,7 @@ parse_opt (int key, char *arg,
     case ARGP_KEY_FINI:
       /* Compute the length in bytes of any match.  */
       if (min_len <= 0 || min_len > INT_MAX / bytes_per_char)
-	error (EXIT_FAILURE, 0,
-	       _("invalid minimum length of matched string size"));
+	error_exit (0, _("invalid minimum length of matched string size"));
       min_len_bytes = min_len * bytes_per_char;
       break;
 
@@ -582,7 +580,7 @@ read_block (int fd, const char *fname, off_t fdlen, off_t from, off_t to)
       // XXX Eventually add flag which avoids this if the position
       // XXX is known to match.
       if (from != 0 && lseek (fd, from, SEEK_SET) != from)
-	error (EXIT_FAILURE, errno, _("lseek failed"));
+	error_exit (errno, _("lseek failed"));
 
       return read_block_no_mmap (fd, fname, from, to - from);
     }
@@ -599,7 +597,7 @@ read_block (int fd, const char *fname, off_t fdlen, off_t from, off_t to)
       if (mmap (elfmap, elfmap_size, PROT_READ,
 		MAP_PRIVATE | MAP_POPULATE | MAP_FIXED, fd, from)
 	  == MAP_FAILED)
-	error (EXIT_FAILURE, errno, _("re-mmap failed"));
+	error_exit (errno, _("re-mmap failed"));
       elfmap_base = elfmap;
     }
 
@@ -636,7 +634,7 @@ read_block (int fd, const char *fname, off_t fdlen, off_t from, off_t to)
 	     and for this we have to make the data writable.  */
 	  if (unlikely (mprotect (elfmap, keep_area, PROT_READ | PROT_WRITE)
 			!= 0))
-	    error (EXIT_FAILURE, errno, _("mprotect failed"));
+	    error_exit (errno, _("mprotect failed"));
 
 	  elfmap_base = elfmap + keep_area;
 	}
@@ -663,7 +661,7 @@ read_block (int fd, const char *fname, off_t fdlen, off_t from, off_t to)
 	  if (mmap (remap_base, read_now, PROT_READ,
 		    MAP_PRIVATE | MAP_POPULATE | MAP_FIXED, fd, handled_to)
 	      == MAP_FAILED)
-	    error (EXIT_FAILURE, errno, _("re-mmap failed"));
+	    error_exit (errno, _("re-mmap failed"));
 	  elfmap_off = handled_to;
 
 	  process_chunk (fname, remap_base - to_keep,

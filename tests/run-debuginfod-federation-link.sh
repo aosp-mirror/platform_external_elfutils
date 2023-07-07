@@ -24,7 +24,6 @@ unset VALGRIND_CMD
 
 DB=${PWD}/.debuginfod_tmp.sqlite
 export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
-export DEBUGINFOD_TIMEOUT=10
 tempfiles $DB
 
 # Clean old dirictories
@@ -137,7 +136,7 @@ file -L L/foo
 export DEBUGINFOD_URLS=http://127.0.0.1:$PORT1
 rm -rf $DEBUGINFOD_CACHE_PATH
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID && false || true
-rm -f $DEBUGINFOD_CACHE_PATH/$BUILDID/debuginfo # drop 000-perm negative-hit file
+rm -f $DEBUGINFOD_CACHE_PATH/$BUILDID/debuginfo # drop negative-hit file
 export DEBUGINFOD_URLS=http://127.0.0.1:$PORT2
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 
@@ -145,7 +144,7 @@ testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 export DEBUGINFOD_URLS=127.0.0.1:$PORT1
 rm -rf $DEBUGINFOD_CACHE_PATH
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID && false || true
-rm -f $DEBUGINFOD_CACHE_PATH/$BUILDID/debuginfo # drop 000-perm negative-hit file
+rm -f $DEBUGINFOD_CACHE_PATH/$BUILDID/debuginfo # drop negative-hit file
 export DEBUGINFOD_URLS=127.0.0.1:$PORT2
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 

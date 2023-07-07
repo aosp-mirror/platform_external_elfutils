@@ -31,7 +31,6 @@
 # include <config.h>
 #endif
 
-#include <libintl.h>
 #include <stdbool.h>
 #include <stdlib.h>
 

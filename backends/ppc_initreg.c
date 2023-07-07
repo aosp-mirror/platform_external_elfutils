@@ -1,5 +1,6 @@
 /* Fetch live process registers from TID.
    Copyright (C) 2013 Red Hat, Inc.
+   Copyright (C) 2022 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -34,7 +35,11 @@
 #if defined(__powerpc__) && defined(__linux__)
 # include <sys/ptrace.h>
 # include <asm/ptrace.h>
+# ifndef PTRACE_GETREGSET
+#  include <linux/ptrace.h>
+# endif
 # include <sys/user.h>
+# include <sys/uio.h>
 #endif
 
 #include "system.h"
@@ -75,39 +80,50 @@ ppc_set_initial_registers_tid (pid_t tid __attribute__ ((unused)),
 #if !defined(__powerpc__) || !defined(__linux__)
   return false;
 #else /* __powerpc__ */
-  union
-    {
-      struct pt_regs r;
-      long l[sizeof (struct pt_regs) / sizeof (long)];
-    }
-  user_regs;
-  eu_static_assert (sizeof (struct pt_regs) % sizeof (long) == 0);
-  /* PTRACE_GETREGS is EIO on kernel-2.6.18-308.el5.ppc64.  */
-  errno = 0;
-  for (unsigned regno = 0; regno < sizeof (user_regs) / sizeof (long);
-       regno++)
-    {
-      user_regs.l[regno] = ptrace (PTRACE_PEEKUSER, tid,
-				   (void *) (uintptr_t) (regno
-							 * sizeof (long)),
-				   NULL);
-      if (errno != 0)
-	return false;
-    }
-#define GPRS (sizeof (user_regs.r.gpr) / sizeof (*user_regs.r.gpr))
+
+/* pt_regs for 32bit processes. Same as 64bit pt_regs but all registers
+   are 32bit instead of 64bit long.  */
+#define GPRS 32
+  struct pt_regs32
+  {
+    uint32_t gpr[GPRS];
+    uint32_t nip;
+    uint32_t msr;
+    uint32_t orig_gpr3;
+    uint32_t ctr;
+    uint32_t link;
+    uint32_t xer;
+    uint32_t ccr;
+    uint32_t mq;
+    uint32_t trap;
+    uint32_t dar;
+    uint32_t dsisr;
+    uint32_t result;
+  };
+
+  struct pt_regs regs;
+  struct pt_regs32 *regs32 = (struct pt_regs32 *) &regs;
+  struct iovec iovec;
+  iovec.iov_base = &regs;
+  iovec.iov_len = sizeof (regs);
+  if (ptrace (PTRACE_GETREGSET, tid, NT_PRSTATUS, &iovec) != 0)
+    return false;
+
+  /* Did we get the full pt_regs or less (the 32bit pt_regs)?  */
+  bool get32 = iovec.iov_len < sizeof (struct pt_regs);
   Dwarf_Word dwarf_regs[GPRS];
   for (unsigned gpr = 0; gpr < GPRS; gpr++)
-    dwarf_regs[gpr] = user_regs.r.gpr[gpr];
+    dwarf_regs[gpr] = get32 ? regs32->gpr[gpr] : regs.gpr[gpr];
   if (! setfunc (0, GPRS, dwarf_regs, arg))
     return false;
-  dwarf_regs[0] = user_regs.r.link;
   // LR uses both 65 and 108 numbers, there is no consistency for it.
-  if (! setfunc (65, 1, dwarf_regs, arg))
+  Dwarf_Word link = get32 ? regs32->link : regs.link;
+  if (! setfunc (65, 1, &link, arg))
     return false;
   /* Registers like msr, ctr, xer, dar, dsisr etc. are probably irrelevant
      for CFI.  */
-  dwarf_regs[0] = user_regs.r.nip;
-  return setfunc (-1, 1, dwarf_regs, arg);
+  Dwarf_Word pc = get32 ? (Dwarf_Word) regs32->nip : regs.nip;
+  return setfunc (-1, 1, &pc, arg);
 #endif /* __powerpc__ */
 }
 

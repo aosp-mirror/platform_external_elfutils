@@ -59,3 +59,15 @@ dwfl_thread_state_register_pc (Dwfl_Thread *thread, Dwarf_Word pc)
   state->pc_state = DWFL_FRAME_STATE_PC_SET;
 }
 INTDEF(dwfl_thread_state_register_pc)
+
+int
+dwfl_frame_reg (Dwfl_Frame *state, unsigned regno, Dwarf_Word *val)
+{
+  int res = __libdwfl_frame_reg_get (state, regno, val);
+  if (res == -1)
+      __libdwfl_seterrno (DWFL_E_INVALID_REGISTER);
+  else if (res == 1)
+      __libdwfl_seterrno (DWFL_E_REGISTER_VAL_UNKNOWN);
+  return res;
+}
+INTDEF(dwfl_frame_reg)

@@ -35,7 +35,6 @@
 #include <ctype.h>
 #include <errno.h>
 #include <inttypes.h>
-#include <libintl.h>
 #include <math.h>
 #include <obstack.h>
 #include <search.h>

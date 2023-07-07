@@ -27,7 +27,7 @@ if DEBUGINFOD
 if !LIBDEBUGINFOD
 notrans_dist_man7_MANS += debuginfod-client-config.7
 endif
-notrans_dist_man8_MANS += debuginfod.8
+notrans_dist_man8_MANS += debuginfod.8 debuginfod.service.8
 endif
 
 if LIBDEBUGINFOD
@@ -38,6 +38,7 @@ notrans_dist_man3_MANS += debuginfod_end.3
 notrans_dist_man3_MANS += debuginfod_find_debuginfo.3
 notrans_dist_man3_MANS += debuginfod_find_executable.3
 notrans_dist_man3_MANS += debuginfod_find_source.3
+notrans_dist_man3_MANS += debuginfod_find_section.3
 notrans_dist_man3_MANS += debuginfod_get_user_data.3
 notrans_dist_man3_MANS += debuginfod_get_url.3
 notrans_dist_man3_MANS += debuginfod_set_progressfn.3

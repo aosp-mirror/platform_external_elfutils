@@ -1,3 +1,54 @@
+2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* dwarf_begin_elf.h: Don't include unistd.h and endian.h.
+	* dwarf_end.c: Don't include unistd.h.
+	* dwarf_setalt.c: Likewise.
+	* libdw_find_split_unit.c: Likewise.
+
+2022-10-19  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf.h (DW_LLE_GNU_view_pair): New constant.
+
+2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* memory-access.h: Include system.h instead of byteswap.h and
+	endian.h.
+
+2022-09-20  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* memory-access.h: Use BYTE_ORDER, LITTLE_ENDIAN and BIG_ENDIAN.
+
+2022-09-13  Aleksei Vetrov  <vvvvvv@google.com>
+
+	* libdw.map (ELFUTILS_0.188): Add dwfl_report_offline_memory.
+
+2022-08-09  Ulrich Drepper  <drepper@redhat.com>
+
+	* dwarf_next_cfi.c (dwarf_next_cfi): Don't skip processing the
+	augmentation string.  Be more stringent what to accept.
+
+2022-07-28  Di Chen  <dichen@redhat.com>
+
+	* libdw.map (ELFUTILS_0.188): Add dwfl_frame_reg.
+
+2022-07-13  Mark Wielaard  <mark@klomp.org>
+
+	* libdw.map (ELFUTILS_0.187): Renamed to...
+	(ELFUTILS_0.188): ... this.
+
+2022-05-09  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_getlocation.c (store_implicit_value): Check block length.
+
+2022-04-16  Mark Wielaard  <mark@klomp.org>
+
+	* libdwP.h: Remove atomics.h include.
+
+2022-04-13  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf.h: Add DWARF5 package file section identifiers,
+	DW_SECT_*.
+
 2021-10-20  John M Mellor-Crummey  <johnmc@rice.edu>
 
 	* dwarf_linecontext.c: New file.

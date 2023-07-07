@@ -1,5 +1,6 @@
 #! /usr/bin/env bash
 # Copyright (C) 2019 Red Hat, Inc.
+# Copyright (C) 2022 Mark J. Wielaard <mark@klomp.org>
 # This file is part of elfutils.
 #
 # This file is free software; you can redistribute it and/or modify
@@ -23,6 +24,16 @@ long_bit=$(getconf LONG_BIT)
 echo "long_bit: $long_bit"
 if test $long_bit -ne 64; then
   echo "Only 64bit systems can create > 4GB ELF files"
+  exit 77
+fi
+
+# The test binary also needs to be 64bits itself
+elfclass=64
+testrun ${abs_top_builddir}/src/readelf -h ${abs_builddir}/addsections | grep ELF32 \
+	&& elfclass=32
+echo elfclass: $elfclass
+if test $elfclass -ne 64; then
+  echo "Only 64bit binaries can create > 4GB ELF files"
   exit 77
 fi
 

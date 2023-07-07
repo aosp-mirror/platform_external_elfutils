@@ -1,3 +1,37 @@
+2022-09-21  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* color.c: Don't include unistd.h.
+
+2022-09-20  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* system.h: Use BYTE_ORDER, LITTLE_ENDIAN and BIG_ENDIAN.
+
+2022-10-16  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* system.h: Add sys/mman.h as system dependend header.
+	* common.h: Remove ar.h, byteswap.h and endian.h.
+	* elf32_checksum.c: Remove endian.h.
+	* elf32_getphdr.c: Remove unistd.h and system.h.
+	* elf32_getshdr.c: Remove unistd.h.h and system.h.
+	* elf32_updatefile.c: Remove unistd.h, sys/mman.h and system.h.
+	* elf32_updatenull.c: Remove endian.h and system.h.
+
+2022-08-05  Mark Wielaard  <mark@klomp.org>
+
+	* dynamicsizehash_concurrent.c (resize_helper): Add documentation.
+	(resize_master): Renamed to...
+	(resize_coordinator): ...this. And add documentation.
+	(resize_worker): Add documentation.
+	(FIND): Add documentation.
+
+2022-04-25  Mark Wielaard  <mark@klomp.org>
+
+	* printversion.c (print_version): Update copyright year.
+
+2022-03-27  Mark Wielaard  <mark@klomp.org>
+
+	* system.h: define error_exit.
+
 2021-02-14  Alexander Miller  <alex.miller@gmx.de>
 
 	* eu-config.h (used_in_asm): New macro.

@@ -33,7 +33,6 @@
 #include <system.h>
 
 #include "libdwflP.h"
-#include <unistd.h>
 
 /* Set STATE->pc_set from STATE->regs according to the backend.  Return true on
    success, false on error.  */

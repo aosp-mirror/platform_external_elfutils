@@ -76,7 +76,7 @@ dwarf_encoding_string (unsigned int code)
   if (likely (code < sizeof (known) / sizeof (known[0])))
     return known[code];
 
-  return NULL;
+  return "<unknown encoding>";
 }
 
 static const char *
@@ -88,7 +88,7 @@ dwarf_tag_string (unsigned int tag)
       DWARF_ALL_KNOWN_DW_TAG
 #undef DWARF_ONE_KNOWN_DW_TAG
     default:
-      return NULL;
+      return "<unknown tag>";
     }
 }
 
@@ -101,7 +101,7 @@ dwarf_attr_string (unsigned int attrnum)
       DWARF_ALL_KNOWN_DW_AT
 #undef DWARF_ONE_KNOWN_DW_AT
     default:
-      return NULL;
+      return "<unknown attr>";
     }
 }
 
@@ -114,7 +114,7 @@ dwarf_form_string (unsigned int form)
       DWARF_ALL_KNOWN_DW_FORM
 #undef DWARF_ONE_KNOWN_DW_FORM
     default:
-      return NULL;
+      return "<unknown form>";
     }
 }
 
@@ -160,7 +160,7 @@ dwarf_opcode_string (unsigned int code)
   if (likely (code < sizeof (known) / sizeof (known[0])))
     return known[code];
 
-  return NULL;
+  return "<unknown opcode>";
 }
 
 // Forward reference for print_expr_block.
@@ -198,7 +198,6 @@ print_expr (Dwarf_Attribute *attr, Dwarf_Op *expr, Dwarf_Addr addr, int depth)
 
   uint8_t atom = expr->atom;
   const char *opname = dwarf_opcode_string (atom);
-  assert (opname != NULL);
 
   switch (atom)
     {

@@ -27,7 +27,6 @@ base=8200
 get_ports
 DB=${PWD}/.debuginfod_tmp.sqlite
 export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
-export DEBUGINFOD_TIMEOUT=10
 tempfiles $DEBUGINFOD_CACHE_PATH $DB
 # Clean old dirictories
 mkdir R ${PWD}/F
@@ -96,7 +95,7 @@ export DEBUGINFOD_URLS=http://127.0.0.1:$PORT1
 archive_test bc1febfd03ca05e030f0d205f7659db29f8a4b30 /usr/src/debug/hello-1.0/hello.c $SHA
 archive_test f0aa15b8aba4f3c28cac3c2a73801fefa644a9f2 /usr/src/debug/hello-1.0/hello.c $SHA
 
-egrep '(libc.error.*rhel7)|(bc1febfd03ca)|(f0aa15b8aba)' vlog$PORT1
+grep -E '(libc.error.*rhel7)|(bc1febfd03ca)|(f0aa15b8aba)' vlog$PORT1
 
 kill $PID1
 wait $PID1

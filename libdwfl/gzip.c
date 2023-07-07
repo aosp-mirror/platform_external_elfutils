@@ -33,8 +33,6 @@
 #include "libdwflP.h"
 #include "system.h"
 
-#include <unistd.h>
-
 #ifdef LZMA
 # define USE_INFLATE	1
 # include <lzma.h>

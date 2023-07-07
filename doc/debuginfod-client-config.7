@@ -24,8 +24,8 @@ temporary files.  The default is /tmp.
 .B $DEBUGINFOD_URLS
 This environment variable contains a list of URL prefixes for trusted
 debuginfod instances.  Alternate URL prefixes are separated by space.
-Avoid referential loops that cause a server to contact itself, directly
-or indirectly - the results would be hilarious.
+This environment variable may be set by /etc/profile.d scripts
+reading /etc/debuginfod/*.urls files.
 
 .TP
 .B $DEBUGINFOD_CACHE_PATH
@@ -74,6 +74,13 @@ download in bytes. This is best used if the user would like to ensure
 only small files are downloaded. A value of 0 causes no consideration
 for size, and the client may attempt to download a file of any size.
 The default is 0 (infinite size).
+
+.TP
+.B $DEBUGINFOD_HEADERS_FILE
+This environment variable points to a file that supplies headers to
+outbound HTTP requests, one per line. The header lines shouldn't end with
+CRLF, unless that's the system newline convention. Whitespace-only lines
+are skipped.
 
 .SH CACHE
 

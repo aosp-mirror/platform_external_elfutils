@@ -51,7 +51,7 @@ const char *EBLHOOK(section_type_name) (int, char *, size_t);
 const char *EBLHOOK(section_name) (int, int, char *, size_t);
 
 /* Return next machine flag name.  */
-const char *EBLHOOK(machine_flag_name) (GElf_Word *);
+const char *EBLHOOK(machine_flag_name) (GElf_Word, GElf_Word *);
 
 /* Check whether machine flags are valid.  */
 bool EBLHOOK(machine_flag_check) (GElf_Word);

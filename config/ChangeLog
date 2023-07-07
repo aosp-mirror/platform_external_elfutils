@@ -1,3 +1,57 @@
+2022-10-02  Mark Wielaard  <mark@klomp.org>
+
+	* elfutils.spec.in: Update for 0.188.
+	Include %{_mandir}/man8/debuginfod*.8* for new
+	debuginfod-service.8 man page.
+	Remove duplicate %{_sysconfdir}/sysconfig/debuginfod.
+
+2022-10-20  Mark Wielaard  <mark@klomp.org>
+
+	* elfutils.spec.in: Escape % in comments.
+
+2022-10-27  Mark Wielaard  <mark@klomp.org>
+
+	* eu.am: Use grep -F instead of fgrep.
+
+2022-10-27  Mark Wielaard  <mark@klomp.org>
+
+	* elfutils.spec.in: Add BuildRequires socat.
+
+2022-08-17  Martin Liska  <mliska@suse.cz>
+
+	* debuginfod.service: Add new debuginfod.sysconfig
+	value DEBUGINFOD_EXTRA_ARGS.
+	* debuginfod.sysconfig: Likewise.
+
+2022-08-16  Martin Liska  <mliska@suse.cz>
+
+	* profile.csh.in: Support nullglob in profile.*.in files.
+	* profile.sh.in: Likewise.
+
+2022-08-17  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.sysconfig: Clarify cmdline vs client-env variables.
+
+2022-05-03  Mark Wielaard  <mark@klomp.org>
+
+	* profile.csh.in: Move the 2>/dev/null inside the sh -c '' quotes.
+
+2022-04-25  Mark Wielaard  <mark@klomp.org>
+
+	* elfutils.spec.in: Update for 0.187.
+
+2022-01-19  Ahelenia Ziemiańska <nabijaczleweli@nabijaczleweli.xyz>
+
+	* profile.csh.in: Set DEBUGINFOD_URLS directly. Use "$0" and :
+	in sh -c.
+	* profile.sh.in: Set DEBUGINFOD_URLS directly. Don't use sh -c.
+	Use $() instead of ``.
+
+2022-04-07  Mark Wielaard  <mark@klomp.org>
+
+	* elfutils.spec.in (debuginfod-client): Add an explicit requires
+	on elfutils-libs and elfutils-libelf.
+
 2021-11-10  Mark Wielaard  <mark@klomp.org>
 
 	* elfutils.spec.in: Update for 0.186.

@@ -34,7 +34,8 @@ tempfiles vlog$PORT1
 errfiles vlog$PORT1
 # Server must become ready
 wait_ready $PORT1 'ready' 1
-# Be patient when run on a busy machine things might take a bit.
+# And initial scan should be done
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
 
 # Build a non-stripped binary
 echo "int main() { return 0; }" > ${PWD}/F/p++r\$\#o^^g.c
@@ -44,7 +45,7 @@ BUILDID=`env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../src/readelf \
 tempfiles ${PWD}/F/p++r\$\#o^^g.c ${PWD}/F/p++r\$\#o^^g
 kill -USR1 $PID1
 # Now there should be 1 files in the index
-wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
+wait_ready $PORT1 'thread_work_total{role="traverse"}' 2
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
 rm -rf $DEBUGINFOD_CACHE_PATH # clean it from previous tests

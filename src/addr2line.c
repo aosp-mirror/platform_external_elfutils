@@ -1,5 +1,6 @@
 /* Locate source files and line information for given addresses
    Copyright (C) 2005-2010, 2012, 2013, 2015 Red Hat, Inc.
+   Copyright (C) 2022 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2005.
 
@@ -27,7 +28,6 @@
 #include <inttypes.h>
 #include <libdwfl.h>
 #include <dwarf.h>
-#include <libintl.h>
 #include <locale.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -49,7 +49,8 @@ ARGP_PROGRAM_BUG_ADDRESS_DEF = PACKAGE_BUGREPORT;
 
 /* Values for the parameters which have no short form.  */
 #define OPT_DEMANGLER 0x100
-#define OPT_PRETTY 0x101  /* 'p' is already used to select the process.  */
+#define OPT_PRETTY    0x101  /* 'p' is already used to select the process.  */
+#define OPT_RELATIVE  0x102  /* 'r' is something else in binutils addr2line.  */
 
 /* Definitions of arguments for argp functions.  */
 static const struct argp_option options[] =
@@ -62,7 +63,7 @@ static const struct argp_option options[] =
   { "addresses", 'a', NULL, 0, N_("Print address before each entry"), 0 },
   { "basenames", 's', NULL, 0, N_("Show only base names of source files"), 0 },
   { "absolute", 'A', NULL, 0,
-    N_("Show absolute file names using compilation directory"), 0 },
+    N_("Show absolute file names using compilation directory (default)"), 0 },
   { "functions", 'f', NULL, 0, N_("Also show function names"), 0 },
   { "symbols", 'S', NULL, 0, N_("Also show symbol or section names"), 0 },
   { "symbols-sections", 'x', NULL, 0, N_("Also show symbol and the section names"), 0 },
@@ -74,6 +75,8 @@ static const struct argp_option options[] =
     N_("Show demangled symbols (ARG is always ignored)"), 0 },
   { "pretty-print", OPT_PRETTY, NULL, 0,
     N_("Print all information on one line, and indent inlines"), 0 },
+  { "relative", OPT_RELATIVE, NULL, 0,
+    N_("Show relative file names without compilation directory"), 0 },
 
   { NULL, 0, NULL, 0, N_("Miscellaneous:"), 0 },
   /* Unsupported options.  */
@@ -111,7 +114,7 @@ static bool print_addresses;
 static bool only_basenames;
 
 /* True if absolute file names based on DW_AT_comp_dir should be shown.  */
-static bool use_comp_dir;
+static bool use_comp_dir = true;
 
 /* True if line flags should be shown.  */
 static bool show_flags;
@@ -234,6 +237,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
 
     case 'A':
       use_comp_dir = true;
+      break;
+
+    case OPT_RELATIVE:
+      use_comp_dir = false;
       break;
 
     case 'f':
@@ -516,8 +523,7 @@ adjust_to_section (const char *name, uintmax_t *addr, Dwfl *dwfl)
   Dwfl_Module *mod = NULL;
   if (dwfl_getmodules (dwfl, &see_one_module, &mod, 0) != 0
       || mod == NULL)
-    error (EXIT_FAILURE, 0, _("Section syntax requires"
-				     " exactly one module"));
+    error_exit (0, _("Section syntax requires exactly one module"));
 
   int nscn = dwfl_module_relocations (mod);
   for (int i = 0; i < nscn; ++i)

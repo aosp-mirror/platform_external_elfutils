@@ -31,8 +31,6 @@
 # include <config.h>
 #endif
 
-#include <byteswap.h>
-#include <endian.h>
 #include <inttypes.h>
 #include <string.h>
 

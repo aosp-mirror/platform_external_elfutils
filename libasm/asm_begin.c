@@ -37,11 +37,9 @@
 #include <stdio_ext.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 #include <gelf.h>
 #include "libasmP.h"
-#include <system.h>
 
 
 static AsmCtx_t *

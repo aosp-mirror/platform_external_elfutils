@@ -119,3 +119,48 @@ riscv_check_special_symbol (Elf *elf, const GElf_Sym *sym,
 
   return false;
 }
+
+const char *
+riscv_segment_type_name (int segment, char *buf __attribute__ ((unused)),
+			 size_t len __attribute__ ((unused)))
+{
+  switch (segment)
+    {
+    case PT_RISCV_ATTRIBUTES:
+      return "RISCV_ATTRIBUTES";
+    }
+  return NULL;
+}
+
+/* Return symbolic representation of section type.  */
+const char *
+riscv_section_type_name (int type,
+			 char *buf __attribute__ ((unused)),
+			 size_t len __attribute__ ((unused)))
+{
+  switch (type)
+    {
+    case SHT_RISCV_ATTRIBUTES:
+      return "RISCV_ATTRIBUTES";
+    }
+
+  return NULL;
+}
+
+const char *
+riscv_dynamic_tag_name (int64_t tag, char *buf __attribute__ ((unused)),
+			size_t len __attribute__ ((unused)))
+{
+  switch (tag)
+    {
+    case DT_RISCV_VARIANT_CC:
+      return "RISCV_VARIANT_CC";
+    }
+  return NULL;
+}
+
+bool
+riscv_dynamic_tag_check (int64_t tag)
+{
+  return tag == DT_RISCV_VARIANT_CC;
+}

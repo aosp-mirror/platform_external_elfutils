@@ -27,7 +27,6 @@
 #include <fcntl.h>
 #include <gelf.h>
 #include <inttypes.h>
-#include <libintl.h>
 #include <locale.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -4384,6 +4383,13 @@ section [%2d] '%s': unknown core file note type %" PRIu32
 	    else
 	      goto unknown_note;
 
+	  case NT_FDO_PACKAGING_METADATA:
+	    if (nhdr.n_namesz == sizeof ELF_NOTE_FDO
+		&& strcmp (data->d_buf + name_offset, ELF_NOTE_FDO) == 0)
+	      break;
+	    else
+	      goto unknown_note;
+
 	  case 0:
 	    /* Linux vDSOs use a type 0 note for the kernel version word.  */
 	    if (nhdr.n_namesz == sizeof "Linux"
@@ -4724,7 +4730,10 @@ section [%2zu] '%s' must not be executable\n"),
 	}
 
       if (phdr->p_filesz > phdr->p_memsz
-	  && (phdr->p_memsz != 0 || phdr->p_type != PT_NOTE))
+	  && (phdr->p_memsz != 0
+	      || (phdr->p_type != PT_NOTE
+		  && !(ehdr->e_machine == EM_RISCV
+		       && phdr->p_type == PT_RISCV_ATTRIBUTES))))
 	ERROR (_("\
 program header entry %d: file size greater than memory size\n"),
 	       cnt);

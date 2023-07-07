@@ -31,8 +31,6 @@
 #endif
 
 #include "libdwflP.h"
-#include <unistd.h>
-
 
 int
 dwfl_build_id_find_debuginfo (Dwfl_Module *mod,

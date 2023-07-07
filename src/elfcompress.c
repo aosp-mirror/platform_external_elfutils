@@ -730,6 +730,15 @@ process_file (const char *fname)
 			{
 			  shstrtab_size = size;
 			  shstrtab_compressed = T_COMPRESS_GNU;
+			  if (shstrtab_name != NULL
+			      || shstrtab_newname != NULL)
+			    {
+			      error (0, 0, "Internal error,"
+					   " shstrtab_name already set,"
+					   " while handling section [%zd] %s",
+				     ndx, sname);
+			      goto cleanup;
+			    }
 			  shstrtab_name = xstrdup (sname);
 			  shstrtab_newname = xstrdup (newname);
 			}
@@ -786,6 +795,15 @@ process_file (const char *fname)
 			{
 			  shstrtab_size = size;
 			  shstrtab_compressed = T_COMPRESS_ZLIB;
+			  if (shstrtab_name != NULL
+			      || shstrtab_newname != NULL)
+			    {
+			      error (0, 0, "Internal error,"
+					   " shstrtab_name already set,"
+					   " while handling section [%zd] %s",
+				     ndx, sname);
+			      goto cleanup;
+			    }
 			  shstrtab_name = xstrdup (sname);
 			  shstrtab_newname = (newname == NULL
 					      ? NULL : xstrdup (newname));
@@ -919,6 +937,12 @@ process_file (const char *fname)
 		}
 	      size_t elsize = gelf_fsize (elfnew, ELF_T_SYM, 1, EV_CURRENT);
 	      size_t syms = symd->d_size / elsize;
+	      if (symstrents != NULL)
+		{
+		  error (0, 0, "Internal error, symstrents already set,"
+			 " while handling section [%zd] %s", ndx, name);
+		  goto cleanup;
+		}
 	      symstrents = xmalloc (syms * sizeof (Dwelf_Strent *));
 	      for (size_t i = 0; i < syms; i++)
 		{
@@ -1342,12 +1366,11 @@ main (int argc, char **argv)
   /* Should already be handled by ARGP_KEY_NO_ARGS case above,
      just sanity check.  */
   if (remaining >= argc)
-    error (EXIT_FAILURE, 0, N_("No input file given"));
+    error_exit (0, N_("No input file given"));
 
   /* Likewise for the ARGP_KEY_ARGS case above, an extra sanity check.  */
   if (foutput != NULL && remaining + 1 < argc)
-    error (EXIT_FAILURE, 0,
-	   N_("Only one input file allowed together with '-o'"));
+    error_exit (0, N_("Only one input file allowed together with '-o'"));
 
   elf_version (EV_CURRENT);
 

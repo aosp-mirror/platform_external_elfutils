@@ -179,7 +179,8 @@ insert_helper (NAME *htab, HASHTYPE hval, TYPE val)
 #define CEIL(A, B) (((A) + (B) - 1) / (B))
 
 /* Initializes records and copies the data from the old table.
-   It can share work with other threads */
+   It can share work with other threads.  Only the coordinator
+   will pass blocking as 1, other worker threads pass 0.  */
 static void resize_helper(NAME *htab, int blocking)
 {
   size_t num_old_blocks = CEIL(htab->old_size, MOVE_BLOCK_SIZE);
@@ -244,13 +245,18 @@ static void resize_helper(NAME *htab, int blocking)
   atomic_fetch_add_explicit(&htab->num_moved_blocks, num_finished_blocks,
                             memory_order_release);
 
+  /* The coordinating thread will block here waiting for all blocks to
+     be moved.  */
   if (blocking)
       while (atomic_load_explicit(&htab->num_moved_blocks,
                                   memory_order_acquire) != num_old_blocks);
 }
 
+/* Called by the main thread holding the htab->resize_rwl lock to
+   coordinate the moving of hash table data. Allocates the new hash
+   table and frees the old one when moving all data is done.  */
 static void
-resize_master(NAME *htab)
+resize_coordinator(NAME *htab)
 {
   htab->old_size = htab->size;
   htab->old_table = htab->table;
@@ -290,6 +296,10 @@ resize_master(NAME *htab)
 
 }
 
+/* Called by any thread that wants to do an insert or find operation
+   but notices it cannot get the htab->resize_rwl lock because another
+   thread is resizing the hash table.  Try to help out by moving table
+   data if still necessary.  */
 static void
 resize_worker(NAME *htab)
 {
@@ -391,6 +401,8 @@ INSERT(NAME) (NAME *htab, HASHTYPE hval, TYPE data)
 
   for(;;)
     {
+      /* If we cannot get the resize_rwl lock someone is resizing
+	 hash table, try to help out by moving table data.  */
       while (pthread_rwlock_tryrdlock(&htab->resize_rwl) != 0)
           resize_worker(htab);
 
@@ -421,17 +433,17 @@ INSERT(NAME) (NAME *htab, HASHTYPE hval, TYPE data)
                                                       memory_order_acquire,
                                                       memory_order_acquire))
             {
-              /* Master thread */
+              /* Main resizing thread, will coordinate moving data.  */
               pthread_rwlock_unlock(&htab->resize_rwl);
 
               pthread_rwlock_wrlock(&htab->resize_rwl);
-              resize_master(htab);
+              resize_coordinator(htab);
               pthread_rwlock_unlock(&htab->resize_rwl);
 
             }
           else
             {
-              /* Worker thread */
+              /* Worker thread, will help moving data.  */
               pthread_rwlock_unlock(&htab->resize_rwl);
               resize_worker(htab);
             }
@@ -458,8 +470,10 @@ TYPE
   name##_find
 FIND(NAME) (NAME *htab, HASHTYPE hval)
 {
+  /* If we cannot get the resize_rwl lock someone is resizing
+     the hash table, try to help out by moving table data.  */
   while (pthread_rwlock_tryrdlock(&htab->resize_rwl) != 0)
-      resize_worker(htab);
+    resize_worker(htab);
 
   size_t idx;
 

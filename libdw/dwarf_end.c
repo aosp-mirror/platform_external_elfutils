@@ -35,7 +35,6 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
-#include <unistd.h>
 
 #include "libdwP.h"
 #include "cfi.h"

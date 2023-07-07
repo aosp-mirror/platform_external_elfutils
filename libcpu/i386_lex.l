@@ -31,7 +31,6 @@
 #endif
 
 #include <ctype.h>
-#include <libintl.h>
 
 #include <libeu.h>
 #include "system.h"

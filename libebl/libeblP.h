@@ -32,7 +32,6 @@
 #include <gelf.h>
 #include <libasm.h>
 #include <libebl.h>
-#include <libintl.h>
 
 
 /* Backend handle.  */

@@ -1,3 +1,113 @@
+2022-10-28  Mark Wielaard  <mark@klomp.org>
+
+	* elf.h: Update from glibc.
+
+2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* libelf_crc32.c: Remove LIB_SYSTEM_H define.
+
+2022-09-20  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* elf32_checksum.c: Use BYTE_ORDER, LITTLE_ENDIAN and BIG_ENDIAN.
+	* elf32_xlatetof.c: Likewise.
+	* elf_getarsym.c: Likewise.
+
+2022-10-16  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* common.h: Remove ar.h, byteswap.h and endian.h.
+	* elf32_checksum.c: Remove endian.h.
+	* elf32_getphdr.c: Remove unistd.h and system.h.
+	* elf32_getshdr.c: Remove unistd.h.h and system.h.
+	* elf32_updatefile.c: Remove unistd.h, sys/mman.h and system.h.
+	* elf32_updatenull.c: Remove endian.h and system.h.
+	* elf32_xlatetof.c: Remove endian.h.
+	* elf32_xlatetom.c: Likewise.
+	* elf_begin.c: Remove unistd.h, sys/mman.h and system.h.
+	* elf_cntl.c: Remove unistd.h.
+	* elf_compress.c: Remove system.h and unistd.h.
+	* elf_end.c: Remove sys.mman.h.
+	* elf_getarsym.c: Remove byteswap.h, endian.h, unistd.h and
+	system.h.
+	* elf_getdata.c: Remove unistd.h and system.h.
+	* elf_getdata_rawchunk.c: Remove unistd.h and system.h.
+	* elf_getshdrstrndx.c: Likewise.
+	* elf_readall.c: Likewise.
+	* elf_update.c: Remove unistd.h and sys/mman.h.
+	* gelf_xlate.c: Remove byteswap.h.
+	* libelfP.h: Add system.h.
+	* nlist.c: Remove unistd.h.
+
+2022-08-28  Mark Wielaard  <mark@klomp.org>
+
+	* elf_begin.c (__libelf_next_arhdr_wrlock): Add OCT_FIELD macro,
+	like INT_FIELD but use strtol with octal base 8. Use for ar_mode.
+
+2022-08-08  Andreas Schwab  <schwab@suse.de>
+
+	* elf.h: Update from glibc.
+
+2022-04-24  Mark Wielaard  <mark@klomp.org>
+
+	* elf_update.c (write_file): Check HAVE_MREMAP.
+
+2022-04-01  Mark Wielaard  <mark@klomp.org>
+
+	* libelfP.h (struct Elf_Data_Chunk): Add an int64_t offset field.
+	* elf_getdata_rawchunk.c (elf_getdata_rawchunk): Check whether the
+	requested chunk, offset, size and type, was already handed out.
+	Set new Elf_Data_Chunk offset field.
+
+2022-03-29  Mark Wielaard  <mark@klomp.org>
+
+	* gelf_xlate.c (START): Define and use sz variable.
+	(END): Use sz variable to decide whether to do a memmove.
+
+2022-03-24  Mark Wielaard  <mark@klomp.org>
+
+	* elf.h: Update from glibc.
+
+2022-03-22  Mark Wielaard  <mark@klomp.org>
+
+	* elf_getdata.c (__libelf_type_aligns): ELF_T_GNUHASH has different
+	alignment for ELFCLASS32 and ELFCLASS64.
+
+2022-03-20  Mark Wielaard  <mark@klomp.org>
+
+	* version_xlate.h (elf_cvt_Verdef): Make sure aux_offset and
+	def_offset don't overflow.
+	(elf_cvt_Verneed): Make sure aux_offset and need_offset don't
+	overflow.
+
+2022-03-18  Mark Wielaard  <mark@klomp.org>
+
+	* version_xlate.h (elf_cvt_Verdef): Check alignment of def_offset
+	and aux_offset.
+	(elf_cvt_Verneed): Check alignment of need_offset and aux_offset.
+
+2022-03-17  Mark Wielaard  <mark@klomp.org>
+
+	* elf_begin.c (read_long_names): Check ar_size starts with a digit.
+
+2022-03-17  Mark Wielaard  <mark@klomp.org>
+
+	* elf_begin.c (get_shnum): Take offset into account for Shdr
+	alignment check.
+
+2021-12-19  Mark Wielaard  <mark@klomp.org>
+
+	* elf_begin.c (file_read_elf): Cast ehdr to uintptr_t before e_shoff
+	alignment check. Only set shdr state when scncnt is larger than zero.
+
+2021-12-16  Mark Wielaard  <mark@klomp.org>
+
+	* libelfP.h (NOTE_ALIGN4): And with negative unsigned long.
+	(NOTE_ALIGN8): Likewise.
+
+2021-12-15  Mark Wielaard  <mark@klomp.org>
+
+	* elf_begin.c (get_shnum): Use offsetof to get field of unaligned
+	struct.
+
 2021-09-06  Dmitry V. Levin  <ldv@altlinux.org>
 
 	* common.h (allocate_elf): Remove cast of calloc return value.

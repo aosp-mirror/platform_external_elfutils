@@ -31,7 +31,6 @@
 #endif
 
 #include <assert.h>
-#include <libintl.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>

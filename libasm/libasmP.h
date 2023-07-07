@@ -32,6 +32,9 @@
 #include <stdio.h>
 
 #include <libasm.h>
+
+#include <system.h>
+
 #include "libebl.h"
 
 #include "libdwelf.h"

@@ -32,8 +32,6 @@
 
 #include "libdwflP.h"
 #include <fcntl.h>
-#include <unistd.h>
-
 
 /* We start every ET_REL module at a moderately aligned boundary.
    This keeps the low addresses easy to read compared to a layout

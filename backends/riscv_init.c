@@ -65,6 +65,10 @@ riscv_init (Elf *elf,
   HOOK (eh, check_special_symbol);
   HOOK (eh, machine_flag_check);
   HOOK (eh, set_initial_registers_tid);
+  HOOK (eh, segment_type_name);
+  HOOK (eh, section_type_name);
+  HOOK (eh, dynamic_tag_name);
+  HOOK (eh, dynamic_tag_check);
   if (eh->class == ELFCLASS64)
     eh->core_note = riscv64_core_note;
   else

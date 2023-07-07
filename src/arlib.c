@@ -23,7 +23,6 @@
 #include <assert.h>
 #include <gelf.h>
 #include <inttypes.h>
-#include <libintl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -210,8 +209,8 @@ arlib_add_symbols (Elf *elf, const char *arfname, const char *membername,
 {
   if (sizeof (off) > sizeof (uint32_t) && off > ~((uint32_t) 0))
     /* The archive is too big.  */
-    error (EXIT_FAILURE, 0, _("the archive '%s' is too large"),
-	   arfname);
+    error_exit (0, _("the archive '%s' is too large"),
+		arfname);
 
   /* We only add symbol tables for ELF files.  It makes not much sense
      to add symbols from executables but we do so for compatibility.
@@ -223,8 +222,8 @@ arlib_add_symbols (Elf *elf, const char *arfname, const char *membername,
   GElf_Ehdr ehdr_mem;
   GElf_Ehdr *ehdr = gelf_getehdr (elf, &ehdr_mem);
   if (ehdr == NULL)
-    error (EXIT_FAILURE, 0, _("cannot read ELF header of %s(%s): %s"),
-	   arfname, membername, elf_errmsg (-1));
+    error_exit (0, _("cannot read ELF header of %s(%s): %s"),
+		arfname, membername, elf_errmsg (-1));
 
   GElf_Word symtype;
   if (ehdr->e_type == ET_REL)

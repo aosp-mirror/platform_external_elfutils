@@ -41,7 +41,7 @@
 
 #include "../libebl/libeblP.h"
 
-#define MACHINE_ENCODING __LITTLE_ENDIAN
+#define MACHINE_ENCODING LITTLE_ENDIAN
 #include "memory-access.h"
 
 

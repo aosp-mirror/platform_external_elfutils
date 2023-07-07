@@ -257,7 +257,7 @@ core_set_initial_registers (Dwfl_Thread *thread, void *thread_arg_voidp)
 	     FIXME: It depends now on their order in core notes.
 	     FIXME: It uses private function.  */
 	  if (regno < nregs
-	      && __libdwfl_frame_reg_get (thread->unwound, regno, NULL))
+	      && __libdwfl_frame_reg_get (thread->unwound, regno, NULL) == 0)
 	    continue;
 	  Dwarf_Word val;
 	  switch (regloc->bits)

@@ -59,6 +59,7 @@ arm_init (Elf *elf __attribute__ ((unused)),
   HOOK (eh, check_reloc_target_type);
   HOOK (eh, symbol_type_name);
   HOOK (eh, data_marker_symbol);
+  HOOK (eh, machine_flag_name);
 
   /* We only unwind the core integer registers.  */
   eh->frame_nregs = 16;

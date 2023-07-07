@@ -32,8 +32,6 @@
 
 #include "libdwP.h"
 
-#include <unistd.h>
-
 void
 dwarf_setalt (Dwarf *main, Dwarf *alt)
 {

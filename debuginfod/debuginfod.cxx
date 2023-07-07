@@ -1,5 +1,6 @@
 /* Debuginfo-over-http server.
    Copyright (C) 2019-2021 Red Hat, Inc.
+   Copyright (C) 2021, 2022 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -33,11 +34,11 @@
 
 extern "C" {
 #include "printversion.h"
+#include "system.h"
 }
 
 #include "debuginfod.h"
 #include <dwarf.h>
-#include <system.h>
 
 #include <argp.h>
 #ifdef __GNUC__
@@ -46,7 +47,6 @@ extern "C" {
 
 #include <unistd.h>
 #include <stdlib.h>
-#include <libintl.h>
 #include <locale.h>
 #include <pthread.h>
 #include <signal.h>
@@ -173,6 +173,8 @@ static const char DEBUGINFOD_SQLITE_DDL[] =
   "        foreign key (buildid) references " BUILDIDS "_buildids(id) on update cascade on delete cascade,\n"
   "        primary key (buildid, file, mtime)\n"
   "        ) " WITHOUT_ROWID ";\n"
+  // Index for faster delete by file identifier
+  "create index if not exists " BUILDIDS "_f_de_idx on " BUILDIDS "_f_de (file, mtime);\n"
   "create table if not exists " BUILDIDS "_f_s (\n"
   "        buildid integer not null,\n"
   "        artifactsrc integer not null,\n"
@@ -195,6 +197,8 @@ static const char DEBUGINFOD_SQLITE_DDL[] =
   "        foreign key (buildid) references " BUILDIDS "_buildids(id) on update cascade on delete cascade,\n"
   "        primary key (buildid, debuginfo_p, executable_p, file, content, mtime)\n"
   "        ) " WITHOUT_ROWID ";\n"
+  // Index for faster delete by archive file identifier
+  "create index if not exists " BUILDIDS "_r_de_idx on " BUILDIDS "_r_de (file, mtime);\n"
   "create table if not exists " BUILDIDS "_r_sref (\n" // outgoing dwarf sourcefile references from rpm
   "        buildid integer not null,\n"
   "        artifactsrc integer not null,\n"
@@ -352,7 +356,9 @@ static const struct argp_option options[] =
    { "rescan-time", 't', "SECONDS", 0, "Number of seconds to wait between rescans, 0=disable.", 0 },
    { "groom-time", 'g', "SECONDS", 0, "Number of seconds to wait between database grooming, 0=disable.", 0 },
    { "maxigroom", 'G', NULL, 0, "Run a complete database groom/shrink pass at startup.", 0 },
-   { "concurrency", 'c', "NUM", 0, "Limit scanning thread concurrency to NUM.", 0 },
+   { "concurrency", 'c', "NUM", 0, "Limit scanning thread concurrency to NUM, default=#CPUs.", 0 },
+   { "connection-pool", 'C', "NUM", OPTION_ARG_OPTIONAL,
+     "Use webapi connection pool with NUM threads, default=unlim.", 0 },
    { "include", 'I', "REGEX", 0, "Include files matching REGEX, default=all.", 0 },
    { "exclude", 'X', "REGEX", 0, "Exclude files matching REGEX, default=none.", 0 },
    { "port", 'p', "NUM", 0, "HTTP port to listen on, default 8002.", 0 },
@@ -378,6 +384,8 @@ static const struct argp_option options[] =
    {"forwarded-ttl-limit", ARGP_KEY_FORWARDED_TTL_LIMIT, "NUM", 0, "Limit of X-Forwarded-For hops, default 8.", 0},
 #define ARGP_KEY_PASSIVE 0x1008
    { "passive", ARGP_KEY_PASSIVE, NULL, 0, "Do not scan or groom, read-only database.", 0 },
+#define ARGP_KEY_DISABLE_SOURCE_SCAN 0x1009
+   { "disable-source-scan", ARGP_KEY_DISABLE_SOURCE_SCAN, NULL, 0, "Do not scan dwarf source info.", 0 },
    { NULL, 0, NULL, 0, NULL, 0 },
   };
 
@@ -411,6 +419,7 @@ static unsigned rescan_s = 300;
 static unsigned groom_s = 86400;
 static bool maxigroom = false;
 static unsigned concurrency = std::thread::hardware_concurrency() ?: 1;
+static int connection_pool = 0;
 static set<string> source_paths;
 static bool scan_files = false;
 static map<string,string> scan_archives;
@@ -426,6 +435,7 @@ static long fdcache_mintmp;
 static long fdcache_prefetch_mbs;
 static long fdcache_prefetch_fds;
 static unsigned forwarded_ttl_limit = 8;
+static bool scan_source_info = true;
 static string tmpdir;
 static bool passive_p = false;
 
@@ -557,6 +567,14 @@ parse_opt (int key, char *arg,
       concurrency = (unsigned) atoi(arg);
       if (concurrency < 1) concurrency = 1;
       break;
+    case 'C':
+      if (arg)
+        {
+          connection_pool = atoi(arg);
+          if (connection_pool < 2)
+            argp_failure(state, 1, EINVAL, "-C NUM minimum 2");
+        }
+      break;
     case 'I':
       // NB: no problem with unconditional free here - an earlier failed regcomp would exit program
       if (passive_p)
@@ -618,6 +636,9 @@ parse_opt (int key, char *arg,
         // other conflicting options tricky to check
         argp_failure(state, 1, EINVAL, "inconsistent options with passive mode");
       break;
+    case ARGP_KEY_DISABLE_SOURCE_SCAN:
+      scan_source_info = false;
+      break;
       // case 'h': argp_state_help (state, stderr, ARGP_HELP_LONG|ARGP_HELP_EXIT_OK);
     default: return ARGP_ERR_UNKNOWN;
     }
@@ -628,6 +649,9 @@ parse_opt (int key, char *arg,
 
 ////////////////////////////////////////////////////////////////////////
 
+
+static void add_mhd_response_header (struct MHD_Response *r,
+				     const char *h, const char *v);
 
 // represent errors that may get reported to an ostream and/or a libmicrohttpd connection
 
@@ -646,7 +670,7 @@ struct reportable_exception
     MHD_Response* r = MHD_create_response_from_buffer (message.size(),
                                                        (void*) message.c_str(),
                                                        MHD_RESPMEM_MUST_COPY);
-    MHD_add_response_header (r, "Content-Type", "text/plain");
+    add_mhd_response_header (r, "Content-Type", "text/plain");
     MHD_RESULT rc = MHD_queue_response (c, code, r);
     MHD_destroy_response (r);
     return rc;
@@ -852,10 +876,11 @@ timestamp (ostream &o)
   char datebuf[80];
   char *now2 = NULL;
   time_t now_t = time(NULL);
-  struct tm *now = gmtime (&now_t);
-  if (now)
+  struct tm now;
+  struct tm *nowp = gmtime_r (&now_t, &now);
+  if (nowp)
     {
-      (void) strftime (datebuf, sizeof (datebuf), "%c", now);
+      (void) strftime (datebuf, sizeof (datebuf), "%c", nowp);
       now2 = datebuf;
     }
 
@@ -1042,12 +1067,30 @@ conninfo (struct MHD_Connection * conn)
   struct sockaddr *so = u ? u->client_addr : 0;
 
   if (so && so->sa_family == AF_INET) {
-    sts = getnameinfo (so, sizeof (struct sockaddr_in), hostname, sizeof (hostname), servname,
-                       sizeof (servname), NI_NUMERICHOST | NI_NUMERICSERV);
+    sts = getnameinfo (so, sizeof (struct sockaddr_in),
+                       hostname, sizeof (hostname),
+                       servname, sizeof (servname),
+                       NI_NUMERICHOST | NI_NUMERICSERV);
   } else if (so && so->sa_family == AF_INET6) {
-    sts = getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname),
-                       servname, sizeof (servname), NI_NUMERICHOST | NI_NUMERICSERV);
+    struct sockaddr_in6* addr6 = (struct sockaddr_in6*) so;
+    if (IN6_IS_ADDR_V4MAPPED(&addr6->sin6_addr)) {
+      struct sockaddr_in addr4;
+      memset (&addr4, 0, sizeof(addr4));
+      addr4.sin_family = AF_INET;
+      addr4.sin_port = addr6->sin6_port;
+      memcpy (&addr4.sin_addr.s_addr, addr6->sin6_addr.s6_addr+12, sizeof(addr4.sin_addr.s_addr));
+      sts = getnameinfo ((struct sockaddr*) &addr4, sizeof (addr4),
+                         hostname, sizeof (hostname),
+                         servname, sizeof (servname),
+                         NI_NUMERICHOST | NI_NUMERICSERV);
+    } else {
+      sts = getnameinfo (so, sizeof (struct sockaddr_in6),
+                         hostname, sizeof (hostname),
+                         servname, sizeof (servname),
+                         NI_NUMERICHOST | NI_NUMERICSERV);
+    }
   }
+  
   if (sts != 0) {
     hostname[0] = servname[0] = '\0';
   }
@@ -1066,80 +1109,32 @@ conninfo (struct MHD_Connection * conn)
 
 ////////////////////////////////////////////////////////////////////////
 
+/* Wrapper for MHD_add_response_header that logs an error if we
+   couldn't add the specified header.  */
+static void
+add_mhd_response_header (struct MHD_Response *r,
+			 const char *h, const char *v)
+{
+  if (MHD_add_response_header (r, h, v) == MHD_NO)
+    obatched(clog) << "Error: couldn't add '" << h << "' header" << endl;
+}
 
 static void
 add_mhd_last_modified (struct MHD_Response *resp, time_t mtime)
 {
-  struct tm *now = gmtime (&mtime);
-  if (now != NULL)
+  struct tm now;
+  struct tm *nowp = gmtime_r (&mtime, &now);
+  if (nowp != NULL)
     {
       char datebuf[80];
-      size_t rc = strftime (datebuf, sizeof (datebuf), "%a, %d %b %Y %T GMT", now);
+      size_t rc = strftime (datebuf, sizeof (datebuf), "%a, %d %b %Y %T GMT",
+                            nowp);
       if (rc > 0 && rc < sizeof (datebuf))
-        (void) MHD_add_response_header (resp, "Last-Modified", datebuf);
+        add_mhd_response_header (resp, "Last-Modified", datebuf);
     }
 
-  (void) MHD_add_response_header (resp, "Cache-Control", "public");
+  add_mhd_response_header (resp, "Cache-Control", "public");
 }
-
-
-
-static struct MHD_Response*
-handle_buildid_f_match (bool internal_req_t,
-                        int64_t b_mtime,
-                        const string& b_source0,
-                        int *result_fd)
-{
-  (void) internal_req_t; // ignored
-  int fd = open(b_source0.c_str(), O_RDONLY);
-  if (fd < 0)
-    throw libc_exception (errno, string("open ") + b_source0);
-
-  // NB: use manual close(2) in error case instead of defer_dtor, because
-  // in the normal case, we want to hand the fd over to libmicrohttpd for
-  // file transfer.
-
-  struct stat s;
-  int rc = fstat(fd, &s);
-  if (rc < 0)
-    {
-      close(fd);
-      throw libc_exception (errno, string("fstat ") + b_source0);
-    }
-
-  if ((int64_t) s.st_mtime != b_mtime)
-    {
-      if (verbose)
-        obatched(clog) << "mtime mismatch for " << b_source0 << endl;
-      close(fd);
-      return 0;
-    }
-
-  inc_metric ("http_responses_total","result","file");
-  struct MHD_Response* r = MHD_create_response_from_fd ((uint64_t) s.st_size, fd);
-  if (r == 0)
-    {
-      if (verbose)
-        obatched(clog) << "cannot create fd-response for " << b_source0 << endl;
-      close(fd);
-    }
-  else
-    {
-      MHD_add_response_header (r, "Content-Type", "application/octet-stream");
-      std::string file = b_source0.substr(b_source0.find_last_of("/")+1, b_source0.length());
-      MHD_add_response_header (r, "X-DEBUGINFOD-SIZE", to_string(s.st_size).c_str() );
-      MHD_add_response_header (r, "X-DEBUGINFOD-FILE", file.c_str() );
-      add_mhd_last_modified (r, s.st_mtime);
-      if (verbose > 1)
-        obatched(clog) << "serving file " << b_source0 << endl;
-      /* libmicrohttpd will close it. */
-      if (result_fd)
-        *result_fd = fd;
-    }
-
-  return r;
-}
-
 
 // quote all questionable characters of str for safe passage through a sh -c expansion.
 static string
@@ -1351,8 +1346,9 @@ public:
       if (verbose > 3)
         obatched(clog) << "fdcache interned a=" << a << " b=" << b
                        << " fd=" << fd << " mb=" << mb << " front=" << front_p << endl;
+      
+      set_metrics();
     }
-    set_metrics();
 
     // NB: we age the cache at lookup time too
     if (statfs_free_enough_p(tmpdir, "tmpdir", fdcache_mintmp))
@@ -1533,6 +1529,205 @@ public:
 };
 static libarchive_fdcache fdcache;
 
+/* Search ELF_FD for an ELF/DWARF section with name SECTION.
+   If found copy the section to a temporary file and return
+   its file descriptor, otherwise return -1.
+
+   The temporary file's mtime will be set to PARENT_MTIME.
+   B_SOURCE should be a description of the parent file suitable
+   for printing to the log.  */
+
+static int
+extract_section (int elf_fd, int64_t parent_mtime,
+		 const string& b_source, const string& section)
+{
+  /* Search the fdcache.  */
+  struct stat fs;
+  int fd = fdcache.lookup (b_source, section);
+  if (fd >= 0)
+    {
+      if (fstat (fd, &fs) != 0)
+	{
+	  if (verbose)
+	    obatched (clog) << "cannot fstate fdcache "
+			    << b_source << " " << section << endl;
+	  close (fd);
+	  return -1;
+	}
+      if ((int64_t) fs.st_mtime != parent_mtime)
+	{
+	  if (verbose)
+	    obatched(clog) << "mtime mismatch for "
+			   << b_source << " " << section << endl;
+	  close (fd);
+	  return -1;
+	}
+      /* Success.  */
+      return fd;
+    }
+
+  Elf *elf = elf_begin (elf_fd, ELF_C_READ_MMAP_PRIVATE, NULL);
+  if (elf == NULL)
+    return -1;
+
+  /* Try to find the section and copy the contents into a separate file.  */
+  try
+    {
+      size_t shstrndx;
+      int rc = elf_getshdrstrndx (elf, &shstrndx);
+      if (rc < 0)
+	throw elfutils_exception (rc, "getshdrstrndx");
+
+      Elf_Scn *scn = NULL;
+      while (true)
+	{
+	  scn = elf_nextscn (elf, scn);
+	  if (scn == NULL)
+	    break;
+	  GElf_Shdr shdr_storage;
+	  GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_storage);
+	  if (shdr == NULL)
+	    break;
+
+	  const char *scn_name = elf_strptr (elf, shstrndx, shdr->sh_name);
+	  if (scn_name == NULL)
+	    break;
+	  if (scn_name == section)
+	    {
+	      Elf_Data *data = NULL;
+
+	      /* We found the desired section.  */
+	      data = elf_rawdata (scn, NULL);
+	      if (data == NULL)
+		throw elfutils_exception (elf_errno (), "elfraw_data");
+	      if (data->d_buf == NULL)
+		{
+		  obatched(clog) << "section " << section
+				 << " is empty" << endl;
+		  break;
+		}
+
+	      /* Create temporary file containing the section.  */
+	      char *tmppath = NULL;
+	      rc = asprintf (&tmppath, "%s/debuginfod.XXXXXX", tmpdir.c_str());
+	      if (rc < 0)
+		throw libc_exception (ENOMEM, "cannot allocate tmppath");
+	      defer_dtor<void*,void> tmmpath_freer (tmppath, free);
+	      fd = mkstemp (tmppath);
+	      if (fd < 0)
+		throw libc_exception (errno, "cannot create temporary file");
+	      ssize_t res = write_retry (fd, data->d_buf, data->d_size);
+	      if (res < 0 || (size_t) res != data->d_size)
+		throw libc_exception (errno, "cannot write to temporary file");
+
+	      /* Set mtime to be the same as the parent file's mtime.  */
+	      struct timeval tvs[2];
+	      if (fstat (elf_fd, &fs) != 0)
+		throw libc_exception (errno, "cannot fstat file");
+
+	      tvs[0].tv_sec = tvs[1].tv_sec = fs.st_mtime;
+	      tvs[0].tv_usec = tvs[1].tv_usec = 0;
+	      (void) futimes (fd, tvs);
+
+	      /* Add to fdcache.  */
+	      fdcache.intern (b_source, section, tmppath, data->d_size, true);
+	      break;
+	    }
+	}
+    }
+  catch (const reportable_exception &e)
+    {
+      e.report (clog);
+      close (fd);
+      fd = -1;
+    }
+
+  elf_end (elf);
+  return fd;
+}
+
+static struct MHD_Response*
+handle_buildid_f_match (bool internal_req_t,
+                        int64_t b_mtime,
+                        const string& b_source0,
+                        const string& section,
+                        int *result_fd)
+{
+  (void) internal_req_t; // ignored
+  int fd = open(b_source0.c_str(), O_RDONLY);
+  if (fd < 0)
+    throw libc_exception (errno, string("open ") + b_source0);
+
+  // NB: use manual close(2) in error case instead of defer_dtor, because
+  // in the normal case, we want to hand the fd over to libmicrohttpd for
+  // file transfer.
+
+  struct stat s;
+  int rc = fstat(fd, &s);
+  if (rc < 0)
+    {
+      close(fd);
+      throw libc_exception (errno, string("fstat ") + b_source0);
+    }
+
+  if ((int64_t) s.st_mtime != b_mtime)
+    {
+      if (verbose)
+        obatched(clog) << "mtime mismatch for " << b_source0 << endl;
+      close(fd);
+      return 0;
+    }
+
+  if (!section.empty ())
+    {
+      int scn_fd = extract_section (fd, s.st_mtime, b_source0, section);
+      close (fd);
+
+      if (scn_fd >= 0)
+	fd = scn_fd;
+      else
+	{
+	  if (verbose)
+	    obatched (clog) << "cannot find section " << section
+			    << " for " << b_source0 << endl;
+	  return 0;
+	}
+
+      rc = fstat(fd, &s);
+      if (rc < 0)
+	{
+	  close (fd);
+	  throw libc_exception (errno, string ("fstat ") + b_source0
+				       + string (" ") + section);
+	}
+    }
+
+  struct MHD_Response* r = MHD_create_response_from_fd ((uint64_t) s.st_size, fd);
+  inc_metric ("http_responses_total","result","file");
+  if (r == 0)
+    {
+      if (verbose)
+	obatched(clog) << "cannot create fd-response for " << b_source0
+		       << " section=" << section << endl;
+      close(fd);
+    }
+  else
+    {
+      std::string file = b_source0.substr(b_source0.find_last_of("/")+1, b_source0.length());
+      add_mhd_response_header (r, "Content-Type", "application/octet-stream");
+      add_mhd_response_header (r, "X-DEBUGINFOD-SIZE",
+			       to_string(s.st_size).c_str());
+      add_mhd_response_header (r, "X-DEBUGINFOD-FILE", file.c_str());
+      add_mhd_last_modified (r, s.st_mtime);
+      if (verbose > 1)
+	obatched(clog) << "serving file " << b_source0 << " section=" << section << endl;
+      /* libmicrohttpd will close it. */
+      if (result_fd)
+        *result_fd = fd;
+    }
+
+  return r;
+}
 
 // For security/portability reasons, many distro-package archives have
 // a "./" in front of path names; others have nothing, others have
@@ -1558,6 +1753,7 @@ handle_buildid_r_match (bool internal_req_p,
                         int64_t b_mtime,
                         const string& b_source0,
                         const string& b_source1,
+                        const string& section,
                         int *result_fd)
 {
   struct stat fs;
@@ -1586,6 +1782,33 @@ handle_buildid_r_match (bool internal_req_p,
           break; // branch out of if "loop", to try new libarchive fetch attempt
         }
 
+      if (!section.empty ())
+	{
+	  int scn_fd = extract_section (fd, fs.st_mtime,
+					b_source0 + ":" + b_source1,
+					section);
+	  close (fd);
+	  if (scn_fd >= 0)
+	    fd = scn_fd;
+	  else
+	    {
+	      if (verbose)
+	        obatched (clog) << "cannot find section " << section
+				<< " for archive " << b_source0
+				<< " file " << b_source1 << endl;
+	      return 0;
+	    }
+
+	  rc = fstat(fd, &fs);
+	  if (rc < 0)
+	    {
+	      close (fd);
+	      throw libc_exception (errno,
+		string ("fstat archive ") + b_source0 + string (" file ") + b_source1
+		+ string (" section ") + section);
+	    }
+	}
+
       struct MHD_Response* r = MHD_create_response_from_fd (fs.st_size, fd);
       if (r == 0)
         {
@@ -1597,13 +1820,16 @@ handle_buildid_r_match (bool internal_req_p,
 
       inc_metric ("http_responses_total","result","archive fdcache");
 
-      MHD_add_response_header (r, "Content-Type", "application/octet-stream");
-      MHD_add_response_header (r, "X-DEBUGINFOD-SIZE", to_string(fs.st_size).c_str());
-      MHD_add_response_header (r, "X-DEBUGINFOD-ARCHIVE", b_source0.c_str());
-      MHD_add_response_header (r, "X-DEBUGINFOD-FILE", b_source1.c_str());
+      add_mhd_response_header (r, "Content-Type", "application/octet-stream");
+      add_mhd_response_header (r, "X-DEBUGINFOD-SIZE",
+			       to_string(fs.st_size).c_str());
+      add_mhd_response_header (r, "X-DEBUGINFOD-ARCHIVE", b_source0.c_str());
+      add_mhd_response_header (r, "X-DEBUGINFOD-FILE", b_source1.c_str());
       add_mhd_last_modified (r, fs.st_mtime);
       if (verbose > 1)
-        obatched(clog) << "serving fdcache archive " << b_source0 << " file " << b_source1 << endl;
+	obatched(clog) << "serving fdcache archive " << b_source0
+		       << " file " << b_source1
+		       << " section=" << section << endl;
       /* libmicrohttpd will close it. */
       if (result_fd)
         *result_fd = fd;
@@ -1654,7 +1880,10 @@ handle_buildid_r_match (bool internal_req_p,
 
   rc = archive_read_open_FILE (a, fp);
   if (rc != ARCHIVE_OK)
-    throw archive_exception(a, "cannot open archive from pipe");
+    {
+      obatched(clog) << "cannot open archive from pipe " << b_source0 << endl;
+      throw archive_exception(a, "cannot open archive from pipe");
+    }
 
   // archive traversal is in three stages, no, four stages:
   // 1) skip entries whose names do not match the requested one
@@ -1682,7 +1911,8 @@ handle_buildid_r_match (bool internal_req_p,
       if ((r == 0) && (fn != b_source1)) // stage 1
         continue;
 
-      if (fdcache.probe (b_source0, fn)) // skip if already interned
+      if (fdcache.probe (b_source0, fn) && // skip if already interned
+          fn != b_source1) // but only if we'd just be prefetching, PR29474
         continue;
 
       // extract this file to a temporary file
@@ -1730,8 +1960,36 @@ handle_buildid_r_match (bool internal_req_p,
                      tmppath, archive_entry_size(e),
                      true); // requested ones go to the front of lru
 
+      if (!section.empty ())
+	{
+	  int scn_fd = extract_section (fd, b_mtime,
+					b_source0 + ":" + b_source1,
+					section);
+	  close (fd);
+	  if (scn_fd >= 0)
+	    fd = scn_fd;
+	  else
+	    {
+	      if (verbose)
+	        obatched (clog) << "cannot find section " << section
+				<< " for archive " << b_source0
+				<< " file " << b_source1 << endl;
+	      return 0;
+	    }
+
+	  rc = fstat(fd, &fs);
+	  if (rc < 0)
+	    {
+	      close (fd);
+	      throw libc_exception (errno,
+		string ("fstat ") + b_source0 + string (" ") + section);
+	    }
+	  r = MHD_create_response_from_fd (fs.st_size, fd);
+	}
+      else
+	r = MHD_create_response_from_fd (archive_entry_size(e), fd);
+
       inc_metric ("http_responses_total","result",archive_extension + " archive");
-      r = MHD_create_response_from_fd (archive_entry_size(e), fd);
       if (r == 0)
         {
           if (verbose)
@@ -1741,15 +1999,19 @@ handle_buildid_r_match (bool internal_req_p,
         }
       else
         {
-          MHD_add_response_header (r, "Content-Type", "application/octet-stream");
           std::string file = b_source1.substr(b_source1.find_last_of("/")+1, b_source1.length());
-          MHD_add_response_header (r, "X-DEBUGINFOD-SIZE", to_string(fs.st_size).c_str());
-          MHD_add_response_header (r, "X-DEBUGINFOD-ARCHIVE", b_source0.c_str());
-          MHD_add_response_header (r, "X-DEBUGINFOD-FILE", file.c_str());
-
+          add_mhd_response_header (r, "Content-Type",
+                                   "application/octet-stream");
+          add_mhd_response_header (r, "X-DEBUGINFOD-SIZE",
+                                   to_string(archive_entry_size(e)).c_str());
+          add_mhd_response_header (r, "X-DEBUGINFOD-ARCHIVE",
+                                   b_source0.c_str());
+          add_mhd_response_header (r, "X-DEBUGINFOD-FILE", file.c_str());
           add_mhd_last_modified (r, archive_entry_mtime(e));
           if (verbose > 1)
-            obatched(clog) << "serving archive " << b_source0 << " file " << b_source1 << endl;
+	    obatched(clog) << "serving archive " << b_source0
+			   << " file " << b_source1
+			   << " section=" << section << endl;
           /* libmicrohttpd will close it. */
           if (result_fd)
             *result_fd = fd;
@@ -1768,14 +2030,17 @@ handle_buildid_match (bool internal_req_p,
                       const string& b_stype,
                       const string& b_source0,
                       const string& b_source1,
+                      const string& section,
                       int *result_fd)
 {
   try
     {
       if (b_stype == "F")
-        return handle_buildid_f_match(internal_req_p, b_mtime, b_source0, result_fd);
+        return handle_buildid_f_match(internal_req_p, b_mtime, b_source0,
+				      section, result_fd);
       else if (b_stype == "R")
-        return handle_buildid_r_match(internal_req_p, b_mtime, b_source0, b_source1, result_fd);
+        return handle_buildid_r_match(internal_req_p, b_mtime, b_source0,
+				      b_source1, section, result_fd);
     }
   catch (const reportable_exception &e)
     {
@@ -1850,13 +2115,25 @@ handle_buildid (MHD_Connection* conn,
   if (artifacttype == "debuginfo") atype_code = "D";
   else if (artifacttype == "executable") atype_code = "E";
   else if (artifacttype == "source") atype_code = "S";
+  else if (artifacttype == "section") atype_code = "I";
   else {
     artifacttype = "invalid"; // PR28242 ensure http_resposes metrics don't propagate unclean user data 
     throw reportable_exception("invalid artifacttype");
   }
 
-  inc_metric("http_requests_total", "type", artifacttype);
-  
+  if (conn != 0)
+    inc_metric("http_requests_total", "type", artifacttype);
+
+  string section;
+  if (atype_code == "I")
+    {
+      if (suffix.size () < 2)
+	throw reportable_exception ("invalid section suffix");
+
+      // Remove leading '/'
+      section = suffix.substr(1);
+    }
+
   if (atype_code == "S" && suffix == "")
      throw reportable_exception("invalid source suffix");
 
@@ -1908,7 +2185,20 @@ handle_buildid (MHD_Connection* conn,
       pp->bind(2, suffix);
       pp->bind(3, canon_pathname(suffix));
     }
+  else if (atype_code == "I")
+    {
+      pp = new sqlite_ps (thisdb, "mhd-query-i",
+	"select mtime, sourcetype, source0, source1, 1 as debug_p from " BUILDIDS "_query_d where buildid = ? "
+	"union all "
+	"select mtime, sourcetype, source0, source1, 0 as debug_p from " BUILDIDS "_query_e where buildid = ? "
+	"order by debug_p desc, mtime desc");
+      pp->reset();
+      pp->bind(1, buildid);
+      pp->bind(2, buildid);
+    }
   unique_ptr<sqlite_ps> ps_closer(pp); // release pp if exception or return
+
+  bool do_upstream_section_query = true;
 
   // consume all the rows
   while (1)
@@ -1930,11 +2220,29 @@ handle_buildid (MHD_Connection* conn,
       // Try accessing the located match.
       // XXX: in case of multiple matches, attempt them in parallel?
       auto r = handle_buildid_match (conn ? false : true,
-                                     b_mtime, b_stype, b_source0, b_source1, result_fd);
+                                     b_mtime, b_stype, b_source0, b_source1,
+				     section, result_fd);
       if (r)
         return r;
+
+      // If a debuginfo file matching BUILDID was found but didn't contain
+      // the desired section, then the section should not exist.  Don't
+      // bother querying upstream servers.
+      if (!section.empty () && (sqlite3_column_int (*pp, 4) == 1))
+	{
+	  struct stat st;
+
+	  // For "F" sourcetype, check if the debuginfo exists. For "R"
+	  // sourcetype, check if the debuginfo was interned into the fdcache.
+	  if ((b_stype == "F" && (stat (b_source0.c_str (), &st) == 0))
+	      || (b_stype == "R" && fdcache.probe (b_source0, b_source1)))
+	    do_upstream_section_query = false;
+	}
     }
   pp->reset();
+
+  if (!do_upstream_section_query)
+    throw reportable_exception(MHD_HTTP_NOT_FOUND, "not found");
 
   // We couldn't find it in the database.  Last ditch effort
   // is to defer to other debuginfo servers.
@@ -1974,13 +2282,26 @@ and will not query the upstream servers");
                                                                        MHD_CONNECTION_INFO_CLIENT_ADDRESS);
           struct sockaddr *so = u ? u->client_addr : 0;
           char hostname[256] = ""; // RFC1035
-          if (so && so->sa_family == AF_INET)
+          if (so && so->sa_family == AF_INET) {
             (void) getnameinfo (so, sizeof (struct sockaddr_in), hostname, sizeof (hostname), NULL, 0,
                                 NI_NUMERICHOST);
-          else if (so && so->sa_family == AF_INET6)
-            (void) getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname), NULL, 0,
-                                NI_NUMERICHOST);
-
+          } else if (so && so->sa_family == AF_INET6) {
+            struct sockaddr_in6* addr6 = (struct sockaddr_in6*) so;
+            if (IN6_IS_ADDR_V4MAPPED(&addr6->sin6_addr)) {
+              struct sockaddr_in addr4;
+              memset (&addr4, 0, sizeof(addr4));
+              addr4.sin_family = AF_INET;
+              addr4.sin_port = addr6->sin6_port;
+              memcpy (&addr4.sin_addr.s_addr, addr6->sin6_addr.s6_addr+12, sizeof(addr4.sin_addr.s_addr));
+              (void) getnameinfo ((struct sockaddr*) &addr4, sizeof (addr4),
+                                  hostname, sizeof (hostname), NULL, 0,
+                                  NI_NUMERICHOST);
+            } else {
+              (void) getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname), NULL, 0,
+                                  NI_NUMERICHOST);
+            }
+          }
+          
           string xff_complete = string("X-Forwarded-For: ")+xff+string(hostname);
           debuginfod_add_http_header (client, xff_complete.c_str());
         }
@@ -1997,6 +2318,11 @@ and will not query the upstream servers");
 	fd = debuginfod_find_source (client,
 				     (const unsigned char*) buildid.c_str(),
 				     0, suffix.c_str(), NULL);
+      else if (artifacttype == "section")
+	fd = debuginfod_find_section (client,
+				      (const unsigned char*) buildid.c_str(),
+				      0, section.c_str(), NULL);
+
     }
   else
     fd = -errno; /* Set by debuginfod_begin.  */
@@ -2004,7 +2330,8 @@ and will not query the upstream servers");
 
   if (fd >= 0)
     {
-      inc_metric ("http_responses_total","result","upstream");
+      if (conn != 0)
+	inc_metric ("http_responses_total","result","upstream");
       struct stat s;
       int rc = fstat (fd, &s);
       if (rc == 0)
@@ -2012,7 +2339,30 @@ and will not query the upstream servers");
           auto r = MHD_create_response_from_fd ((uint64_t) s.st_size, fd);
           if (r)
             {
-              MHD_add_response_header (r, "Content-Type", "application/octet-stream");
+              add_mhd_response_header (r, "Content-Type",
+				       "application/octet-stream");
+              // Copy the incoming headers
+              const char * hdrs = debuginfod_get_headers(client);
+              string header_dup;
+              if (hdrs)
+                header_dup = string(hdrs);
+              // Parse the "header: value\n" lines into (h,v) tuples and pass on
+              while(1)
+                {
+                  size_t newline = header_dup.find('\n');
+                  if (newline == string::npos) break;
+                  size_t colon = header_dup.find(':');
+                  if (colon == string::npos) break;
+                  string header = header_dup.substr(0,colon);
+                  string value = header_dup.substr(colon+1,newline-colon-1);
+                  // strip leading spaces from value
+                  size_t nonspace = value.find_first_not_of(" ");
+                  if (nonspace != string::npos)
+                    value = value.substr(nonspace);
+                  add_mhd_response_header(r, header.c_str(), value.c_str());
+                  header_dup = header_dup.substr(newline+1);
+                }
+
               add_mhd_last_modified (r, s.st_mtime);
               if (verbose > 1)
                 obatched(clog) << "serving file from upstream debuginfod/cache" << endl;
@@ -2163,8 +2513,11 @@ handle_metrics (off_t* size)
   MHD_Response* r = MHD_create_response_from_buffer (os.size(),
                                                      (void*) os.c_str(),
                                                      MHD_RESPMEM_MUST_COPY);
-  *size = os.size();
-  MHD_add_response_header (r, "Content-Type", "text/plain");
+  if (r != NULL)
+    {
+      *size = os.size();
+      add_mhd_response_header (r, "Content-Type", "text/plain");
+    }
   return r;
 }
 
@@ -2176,8 +2529,11 @@ handle_root (off_t* size)
   MHD_Response* r = MHD_create_response_from_buffer (version.size (),
 						     (void *) version.c_str (),
 						     MHD_RESPMEM_PERSISTENT);
-  *size = version.size ();
-  MHD_add_response_header (r, "Content-Type", "text/plain");
+  if (r != NULL)
+    {
+      *size = version.size ();
+      add_mhd_response_header (r, "Content-Type", "text/plain");
+    }
   return r;
 }
 
@@ -2633,7 +2989,8 @@ elf_classify (int fd, bool &executable_p, bool &debuginfo_p, string &buildid, se
               startswith (section_name, ".zdebug_line"))
             {
               debuginfo_p = true;
-              dwarf_extract_source_paths (elf, debug_sourcefiles);
+              if (scan_source_info)
+                dwarf_extract_source_paths (elf, debug_sourcefiles);
               break; // expecting only one .*debug_line, so no need to look for others
             }
           else if (startswith (section_name, ".debug_") ||
@@ -2889,7 +3246,10 @@ archive_classify (const string& rps, string& archive_extension,
 
   rc = archive_read_open_FILE (a, fp);
   if (rc != ARCHIVE_OK)
-    throw archive_exception(a, "cannot open archive from pipe");
+    {
+      obatched(clog) << "cannot open archive from pipe " << rps << endl;
+      throw archive_exception(a, "cannot open archive from pipe");
+    }
 
   if (verbose > 3)
     obatched(clog) << "libarchive scanning " << rps << endl;
@@ -3442,7 +3802,7 @@ database_stats_report()
         throw sqlite_exception(rc, "step");
 
       obatched(clog)
-        << right << setw(20) << ((const char*) sqlite3_column_text(ps_query, 0) ?: (const char*) "NULL")
+        << ((const char*) sqlite3_column_text(ps_query, 0) ?: (const char*) "NULL")
         << " "
         << (sqlite3_column_text(ps_query, 1) ?: (const unsigned char*) "NULL")
         << endl;
@@ -3497,11 +3857,17 @@ void groom()
       int64_t fileid = sqlite3_column_int64 (files, 1);
       const char* filename = ((const char*) sqlite3_column_text (files, 2) ?: "");
       struct stat s;
-      bool reg_include = !regexec (&file_include_regex, filename, 0, 0, 0);
-      bool reg_exclude = !regexec (&file_exclude_regex, filename, 0, 0, 0);
+      bool regex_file_drop = 0;
+
+      if (regex_groom)
+        {
+          bool reg_include = !regexec (&file_include_regex, filename, 0, 0, 0);
+          bool reg_exclude = !regexec (&file_exclude_regex, filename, 0, 0, 0);
+          regex_file_drop = reg_exclude && !reg_include;
+        }
 
       rc = stat(filename, &s);
-      if ( (regex_groom && reg_exclude && !reg_include) ||  rc < 0 || (mtime != (int64_t) s.st_mtime) )
+      if ( regex_file_drop ||  rc < 0 || (mtime != (int64_t) s.st_mtime) )
         {
           if (verbose > 2)
             obatched(clog) << "groom: stale file=" << filename << " mtime=" << mtime << endl;
@@ -3681,7 +4047,15 @@ sigusr2_handler (int /* sig */)
 }
 
 
-
+static void // error logging callback from libmicrohttpd internals
+error_cb (void *arg, const char *fmt, va_list ap)
+{
+  (void) arg;
+  inc_metric("error_count","libmicrohttpd",fmt);
+  char errmsg[512];
+  (void) vsnprintf (errmsg, sizeof(errmsg), fmt, ap); // ok if slightly truncated
+  obatched(cerr) << "libmicrohttpd error: " << errmsg; // MHD_DLOG calls already include \n
+}
 
 
 // A user-defined sqlite function, to score the sharedness of the
@@ -3704,7 +4078,7 @@ static void sqlite3_sharedprefix_fn (sqlite3_context* c, int argc, sqlite3_value
       const unsigned char* a = sqlite3_value_text (argv[0]);
       const unsigned char* b = sqlite3_value_text (argv[1]);
       int i = 0;
-      while (*a++ == *b++)
+      while (*a != '\0' && *b != '\0' && *a++ == *b++)
         i++;
       sqlite3_result_int (c, i);
     }
@@ -3750,6 +4124,13 @@ main (int argc, char *argv[])
   if (remaining != argc)
       error (EXIT_FAILURE, 0,
              "unexpected argument: %s", argv[remaining]);
+
+  // Make the prefetch cache spaces a fraction of the main fdcache if
+  // unspecified.
+  if (fdcache_prefetch_fds == 0)
+    fdcache_prefetch_fds = fdcache_fds / 2;
+  if (fdcache_prefetch_mbs == 0)
+    fdcache_prefetch_mbs = fdcache_mbs / 2;
 
   if (scan_archives.size()==0 && !scan_files && source_paths.size()>0)
     obatched(clog) << "warning: without -F -R -U -Z, ignoring PATHs" << endl;
@@ -3824,45 +4205,74 @@ main (int argc, char *argv[])
         }
     }
 
-  // Start httpd server threads.  Separate pool for IPv4 and IPv6, in
-  // case the host only has one protocol stack.
-  MHD_Daemon *d4 = MHD_start_daemon (MHD_USE_THREAD_PER_CONNECTION
-#if MHD_VERSION >= 0x00095300
-                                     | MHD_USE_INTERNAL_POLLING_THREAD
-#else
-                                     | MHD_USE_SELECT_INTERNALLY
-#endif
-                                     | MHD_USE_DEBUG, /* report errors to stderr */
-                                     http_port,
-                                     NULL, NULL, /* default accept policy */
-                                     handler_cb, NULL, /* handler callback */
-                                     MHD_OPTION_END);
-  MHD_Daemon *d6 = MHD_start_daemon (MHD_USE_THREAD_PER_CONNECTION
-#if MHD_VERSION >= 0x00095300
-                                     | MHD_USE_INTERNAL_POLLING_THREAD
-#else
-                                     | MHD_USE_SELECT_INTERNALLY
-#endif
-                                     | MHD_USE_IPv6
-                                     | MHD_USE_DEBUG, /* report errors to stderr */
-                                     http_port,
-                                     NULL, NULL, /* default accept policy */
-                                     handler_cb, NULL, /* handler callback */
-                                     MHD_OPTION_END);
+  obatched(clog) << "libmicrohttpd version " << MHD_get_version() << endl;
+  
+  /* If '-C' wasn't given or was given with no arg, pick a reasonable default
+     for the number of worker threads.  */
+  if (connection_pool == 0)
+    connection_pool = std::thread::hardware_concurrency() * 2 ?: 2;
 
-  if (d4 == NULL && d6 == NULL) // neither ipv4 nor ipv6? boo
+  /* Note that MHD_USE_EPOLL and MHD_USE_THREAD_PER_CONNECTION don't
+     work together.  */
+  unsigned int use_epoll = 0;
+#if MHD_VERSION >= 0x00095100
+  use_epoll = MHD_USE_EPOLL;
+#endif
+
+  unsigned int mhd_flags = (
+#if MHD_VERSION >= 0x00095300
+			    MHD_USE_INTERNAL_POLLING_THREAD
+#else
+			    MHD_USE_SELECT_INTERNALLY
+#endif
+			    | MHD_USE_DUAL_STACK
+			    | use_epoll
+#if MHD_VERSION >= 0x00095200
+			    | MHD_USE_ITC
+#endif
+			    | MHD_USE_DEBUG); /* report errors to stderr */
+
+  // Start httpd server threads.  Use a single dual-homed pool.
+  MHD_Daemon *d46 = MHD_start_daemon (mhd_flags, http_port,
+				      NULL, NULL, /* default accept policy */
+				      handler_cb, NULL, /* handler callback */
+				      MHD_OPTION_EXTERNAL_LOGGER,
+				      error_cb, NULL,
+				      MHD_OPTION_THREAD_POOL_SIZE,
+				      (int)connection_pool,
+				      MHD_OPTION_END);
+
+  MHD_Daemon *d4 = NULL;
+  if (d46 == NULL)
     {
-      sqlite3 *database = db;
-      sqlite3 *databaseq = dbq;
-      db = dbq = 0; // for signal_handler not to freak
-      sqlite3_close (databaseq);
-      sqlite3_close (database);
-      error (EXIT_FAILURE, 0, "cannot start http server at port %d", http_port);
-    }
+      // Cannot use dual_stack, use ipv4 only
+      mhd_flags &= ~(MHD_USE_DUAL_STACK);
+      d4 = MHD_start_daemon (mhd_flags, http_port,
+			     NULL, NULL, /* default accept policy */
+			     handler_cb, NULL, /* handler callback */
+			     MHD_OPTION_EXTERNAL_LOGGER,
+			     error_cb, NULL,
+			     (connection_pool
+			      ? MHD_OPTION_THREAD_POOL_SIZE
+			      : MHD_OPTION_END),
+			     (connection_pool
+			      ? (int)connection_pool
+			      : MHD_OPTION_END),
+			     MHD_OPTION_END);
+      if (d4 == NULL)
+	{
+	  sqlite3 *database = db;
+	  sqlite3 *databaseq = dbq;
+	  db = dbq = 0; // for signal_handler not to freak
+	  sqlite3_close (databaseq);
+	  sqlite3_close (database);
+	  error (EXIT_FAILURE, 0, "cannot start http server at port %d",
+		 http_port);
+	}
 
-  obatched(clog) << "started http server on "
-                 << (d4 != NULL ? "IPv4 " : "")
-                 << (d6 != NULL ? "IPv6 " : "")
+    }
+  obatched(clog) << "started http server on"
+                 << (d4 != NULL ? " IPv4 " : " IPv4 IPv6 ")
                  << "port=" << http_port << endl;
 
   // add maxigroom sql if -G given
@@ -3901,6 +4311,8 @@ main (int argc, char *argv[])
 
   if (! passive_p)
     obatched(clog) << "search concurrency " << concurrency << endl;
+  obatched(clog) << "webapi connection pool " << connection_pool
+                 << (connection_pool ? "" : " (unlimited)") << endl;
   if (! passive_p)
     obatched(clog) << "rescan time " << rescan_s << endl;
   obatched(clog) << "fdcache fds " << fdcache_fds << endl;
@@ -3980,8 +4392,8 @@ main (int argc, char *argv[])
     pthread_join (it, NULL);
 
   /* Stop all the web service threads. */
+  if (d46) MHD_stop_daemon (d46);
   if (d4) MHD_stop_daemon (d4);
-  if (d6) MHD_stop_daemon (d6);
 
   if (! passive_p)
     {
@@ -3993,6 +4405,8 @@ main (int argc, char *argv[])
                  "warning: cannot run database cleanup ddl: %s", sqlite3_errmsg(db));
         }
     }
+
+  debuginfod_pool_groom ();
 
   // NB: no problem with unconditional free here - an earlier failed regcomp would exit program
   (void) regfree (& file_include_regex);

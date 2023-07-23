@@ -61,7 +61,8 @@ ebl_section_type_name (Ebl *ebl, int section, char *buf, size_t len)
 	  KNOWNSTYPE (FINI_ARRAY),
 	  KNOWNSTYPE (PREINIT_ARRAY),
 	  KNOWNSTYPE (GROUP),
-	  KNOWNSTYPE (SYMTAB_SHNDX)
+	  KNOWNSTYPE (SYMTAB_SHNDX),
+	  KNOWNSTYPE (RELR)
 	};
 
       /* Handle standard names.  */

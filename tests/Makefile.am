@@ -61,7 +61,7 @@ check_PROGRAMS = arextract arsymtest newfile saridx scnnames sectiondump \
 		  elfcopy addsections xlate_notes elfrdwrnop \
 		  dwelf_elf_e_machine_string \
 		  getphdrnum leb128 read_unaligned \
-		  msg_tst system-elf-libelf-test \
+		  msg_tst system-elf-libelf-test system-elf-gelf-test \
 		  nvidia_extended_linemap_libdw \
 		  $(asm_TESTS)
 
@@ -207,7 +207,7 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-pt_gnu_prop-tests.sh \
 	run-getphdrnum.sh run-test-includes.sh \
 	leb128 read_unaligned \
-	msg_tst system-elf-libelf-test \
+	msg_tst system-elf-libelf-test system-elf-gelf-test \
 	$(asm_TESTS) run-disasm-bpf.sh run-low_high_pc-dw-form-indirect.sh \
 	run-nvidia-extended-linemap-libdw.sh run-nvidia-extended-linemap-readelf.sh \
 	run-readelf-dw-form-indirect.sh run-strip-largealign.sh \
@@ -805,14 +805,17 @@ leb128_LDADD = $(libelf) $(libdw)
 read_unaligned_LDADD = $(libelf) $(libdw)
 nvidia_extended_linemap_libdw_LDADD = $(libelf) $(libdw)
 
-# We want to test the libelf header against the system elf.h header.
+# We want to test the libelf headers against the system elf.h header.
 # Don't include any -I CPPFLAGS. Except when we install our own elf.h.
 if !INSTALL_ELFH
 system_elf_libelf_test_CPPFLAGS =
+system_elf_gelf_test_CPPFLAGS =
 else
 system_elf_libelf_test_CPPFLAGS = -I$(top_srcdir)/libelf
+system_elf_gelf_test_CPPFLAGS = -I$(top_srcdir)/libelf
 endif
 system_elf_libelf_test_LDADD = $(libelf)
+system_elf_gelf_test_LDADD = $(libelf)
 
 # A lock file used to make sure only one test dumps core at a time
 CLEANFILES += core-dump-backtrace.lock

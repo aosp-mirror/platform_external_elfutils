@@ -1,5 +1,6 @@
 /* Print information from ELF file in human-readable form.
    Copyright (C) 1999-2018 Red Hat, Inc.
+   Copyright (C) 2023 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -301,10 +302,12 @@ static void print_shdr (Ebl *ebl, GElf_Ehdr *ehdr);
 static void print_phdr (Ebl *ebl, GElf_Ehdr *ehdr);
 static void print_scngrp (Ebl *ebl);
 static void print_dynamic (Ebl *ebl);
-static void print_relocs (Ebl *ebl, GElf_Ehdr *ehdr);
+static void print_relocs (Ebl *ebl, Dwfl_Module *mod, GElf_Ehdr *ehdr);
 static void handle_relocs_rel (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 			       GElf_Shdr *shdr);
 static void handle_relocs_rela (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
+				GElf_Shdr *shdr);
+static void handle_relocs_relr (Ebl *ebl, Dwfl_Module *mod, Elf_Scn *scn,
 				GElf_Shdr *shdr);
 static bool print_symtab (Ebl *ebl, int type);
 static bool handle_symtab (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr);
@@ -336,6 +339,8 @@ static void dump_data (Ebl *ebl);
 static void dump_strings (Ebl *ebl);
 static void print_strings (Ebl *ebl);
 static void dump_archive_index (Elf *, const char *);
+static void print_dwarf_addr (Dwfl_Module *dwflmod, int address_size,
+			      Dwarf_Addr address, Dwarf_Addr raw);
 
 enum dyn_idx
 {
@@ -1052,7 +1057,7 @@ process_elf_file (Dwfl_Module *dwflmod, int fd)
   if (print_dynamic_table)
     print_dynamic (ebl);
   if (print_relocations)
-    print_relocs (pure_ebl, ehdr);
+    print_relocs (pure_ebl, dwflmod, ehdr);
   if (print_histogram)
     handle_hash (ebl);
   if (print_symbol_table || print_dynsym_table)
@@ -1971,9 +1976,11 @@ handle_dynamic (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, GElf_Phdr *phdr)
 	case DT_RELASZ:
 	case DT_STRSZ:
 	case DT_RELSZ:
+	case DT_RELRSZ:
 	case DT_RELAENT:
 	case DT_SYMENT:
 	case DT_RELENT:
+	case DT_RELRENT:
 	case DT_PLTPADSZ:
 	case DT_MOVEENT:
 	case DT_MOVESZ:
@@ -2049,7 +2056,7 @@ print_dynamic (Ebl *ebl)
 
 /* Print relocations.  */
 static void
-print_relocs (Ebl *ebl, GElf_Ehdr *ehdr)
+print_relocs (Ebl *ebl, Dwfl_Module *mod, GElf_Ehdr *ehdr)
 {
   /* Find all relocation sections and handle them.  */
   Elf_Scn *scn = NULL;
@@ -2066,6 +2073,8 @@ print_relocs (Ebl *ebl, GElf_Ehdr *ehdr)
 	    handle_relocs_rel (ebl, ehdr, scn, shdr);
 	  else if (shdr->sh_type == SHT_RELA)
 	    handle_relocs_rela (ebl, ehdr, scn, shdr);
+	  else if (shdr->sh_type == SHT_RELR)
+	    handle_relocs_relr (ebl, mod, scn, shdr);
 	}
     }
 }
@@ -2454,6 +2463,114 @@ handle_relocs_rela (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
     }
 }
 
+/* Handle a relocation section.  */
+static void
+handle_relocs_relr (Ebl *ebl, Dwfl_Module *mod, Elf_Scn *scn, GElf_Shdr *shdr)
+{
+  int class = gelf_getclass (ebl->elf);
+  size_t sh_entsize = gelf_fsize (ebl->elf, ELF_T_RELR, 1, EV_CURRENT);
+  int nentries = shdr->sh_size / sh_entsize;
+
+  /* Get the data of the section.  */
+  Elf_Data *data = elf_getdata (scn, NULL);
+  if (data == NULL)
+    return;
+
+  /* Get the section header string table index.  */
+  size_t shstrndx;
+  if (unlikely (elf_getshdrstrndx (ebl->elf, &shstrndx) < 0))
+    error_exit (0, _("cannot get section header string table index"));
+
+  /* A .relr.dyn section does not refer to a specific section.  */
+  printf (ngettext ("\
+\nRelocation section [%2u] '%s' at offset %#0" PRIx64 " contains %d entry:\n",
+		    "\
+\nRelocation section [%2u] '%s' at offset %#0" PRIx64 " contains %d entries:\n",
+		    nentries),
+	  (unsigned int) elf_ndxscn (scn),
+	  elf_strptr (ebl->elf, shstrndx, shdr->sh_name),
+	  shdr->sh_offset,
+	  nentries);
+
+  if (class == ELFCLASS32)
+    {
+      uint32_t base = 0;
+      for (int cnt = 0; cnt < nentries; ++cnt)
+	{
+	  Elf32_Word *words = data->d_buf;
+	  Elf32_Word entry = words[cnt];
+
+	  /* Just the raw entries?  */
+	  if (print_unresolved_addresses)
+            printf ("  %#010" PRIx32 "%s\n", entry,
+                    (entry & 1) == 0 ? " *" : "");
+	  else
+	    {
+	      /* A real address, also sets base.  */
+	      if ((entry & 1) == 0)
+		{
+		  printf ("  ");
+		  print_dwarf_addr (mod, 4, entry, entry);
+		  printf (" *\n");
+
+		  base = entry + 4;
+		}
+	      else
+		{
+		  /* Untangle address from base and bits.  */
+		  uint32_t addr;
+		  for (addr = base; (entry >>= 1) != 0; addr += 4)
+		    if ((entry & 1) != 0)
+		      {
+			printf ("  ");
+			print_dwarf_addr (mod, 4, addr, addr);
+			printf ("\n");
+		      }
+		  base += 4 * (4 * 8 - 1);
+		}
+	    }
+	}
+    }
+  else
+    {
+      uint64_t base = 0;
+      for (int cnt = 0; cnt < nentries; ++cnt)
+	{
+	  Elf64_Xword *xwords = data->d_buf;
+	  Elf64_Xword entry = xwords[cnt];
+
+	  /* Just the raw entries?  */
+	  if (print_unresolved_addresses)
+	    printf ("  %#018" PRIx64 "%s\n", entry,
+		    (entry & 1) == 0 ? " *" : "");
+	  else
+	    {
+	      /* A real address, also sets base.  */
+	      if ((entry & 1) == 0)
+		{
+		  printf ("  ");
+		  print_dwarf_addr (mod, 8, entry, entry);
+		  printf (" *\n");
+
+		  base = entry + 8;
+		}
+	      else
+		{
+		  /* Untangle address from base and bits.  */
+		  uint64_t addr;
+		  for (addr = base; (entry >>= 1) != 0; addr += 8)
+		    if ((entry & 1) != 0)
+		      {
+			printf ("  ");
+			print_dwarf_addr (mod, 8, addr, addr);
+			printf ("\n");
+		      }
+		  base += 8 * (8 * 8 - 1);
+		}
+	    }
+	}
+    }
+}
 
 /* Print the program header.  Return true if a symtab is printed,
    false otherwise.  */
@@ -4107,7 +4224,7 @@ get_debug_elf_data (Dwarf *dbg, Ebl *ebl, int idx, Elf_Scn *scn)
   return elf_getdata (scn, NULL);
 }
 
-void
+static void
 print_dwarf_addr (Dwfl_Module *dwflmod,
 		  int address_size, Dwarf_Addr address, Dwarf_Addr raw)
 {

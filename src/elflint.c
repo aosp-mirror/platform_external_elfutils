@@ -1,5 +1,6 @@
 /* Pedantic checking of ELF files compliance with gABI/psABI spec.
    Copyright (C) 2001-2015, 2017, 2018 Red Hat, Inc.
+   Copyright (C) 2023 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2001.
 
@@ -1291,10 +1292,20 @@ section [%2d] '%s': no relocations for merge-able string sections possible\n"),
 
   size_t sh_entsize = gelf_fsize (ebl->elf, reltype, 1, EV_CURRENT);
   if (shdr->sh_entsize != sh_entsize)
-    ERROR (_(reltype == ELF_T_RELA ? "\
-section [%2d] '%s': section entry size does not match ElfXX_Rela\n" : "\
-section [%2d] '%s': section entry size does not match ElfXX_Rel\n"),
-	   idx, section_name (ebl, idx));
+    {
+      if (reltype == ELF_T_RELA)
+	ERROR ("\
+section [%2d] '%s': section entry size does not match ElfXX_Rela\n",
+	       idx, section_name (ebl, idx));
+      else if (reltype == ELF_T_REL)
+	ERROR ("\
+section [%2d] '%s': section entry size does not match ElfXX_Rel\n",
+	       idx, section_name (ebl, idx));
+      else
+	ERROR ("\
+section [%2d] '%s': section entry size does not match ElfXX_Relr\n",
+	       idx, section_name (ebl, idx));
+    }
 
   /* In preparation of checking whether relocations are text
      relocations or not we need to determine whether the file is
@@ -1590,6 +1601,32 @@ section [%2d] '%s': cannot get relocation %zu: %s\n"),
     }
 }
 
+static void
+check_relr (Ebl *ebl, GElf_Ehdr *ehdr, GElf_Shdr *shdr, int idx)
+{
+  Elf_Data *data = elf_getdata (elf_getscn (ebl->elf, idx), NULL);
+  if (data == NULL)
+    {
+      ERROR (_("section [%2d] '%s': cannot get section data\n"),
+	     idx, section_name (ebl, idx));
+      return;
+    }
+
+  /* Check the fields of the section header.  */
+  GElf_Shdr destshdr_mem;
+  GElf_Shdr *destshdr = NULL;
+  struct loaded_segment *loaded = NULL;
+  check_reloc_shdr (ebl, ehdr, shdr, idx, ELF_T_RELR, &destshdr,
+		    &destshdr_mem, &loaded);
+
+  /* Just throw them away.  */
+  while (loaded != NULL)
+    {
+      struct loaded_segment *old = loaded;
+      loaded = loaded->next;
+      free (old);
+    }
+}
 
 /* Number of dynamic sections.  */
 static int ndynamic;
@@ -1780,6 +1817,7 @@ section [%2d] '%s': entry %zu: pointer does not match address of section [%2d] '
 	case DT_PLTGOT:
 	case DT_REL:
 	case DT_RELA:
+	case DT_RELR:
 	case DT_SYMBOLIC:
 	case DT_SYMTAB:
 	case DT_VERDEF:
@@ -3660,6 +3698,7 @@ static const struct
     { ".plt", 5, SHT_PROGBITS, unused, 0, 0 }, // XXX more tests
     { ".preinit_array", 15, SHT_PREINIT_ARRAY, exact, SHF_ALLOC | SHF_WRITE, 0 },
     { ".rela", 5, SHT_RELA, atleast, 0, SHF_ALLOC | SHF_INFO_LINK }, // XXX more tests
+    { ".relr", 5, SHT_RELR, atleast, 0, SHF_ALLOC }, // XXX more tests
     { ".rel", 4, SHT_REL, atleast, 0, SHF_ALLOC | SHF_INFO_LINK }, // XXX more tests
     { ".rodata", 8, SHT_PROGBITS, atleast, SHF_ALLOC, SHF_MERGE | SHF_STRINGS },
     { ".rodata1", 9, SHT_PROGBITS, atleast, SHF_ALLOC, SHF_MERGE | SHF_STRINGS },
@@ -4180,6 +4219,10 @@ section [%2zu] '%s': relocatable files cannot have dynamic symbol tables\n"),
 
 	case SHT_REL:
 	  check_rel (ebl, ehdr, shdr, cnt);
+	  break;
+
+	case SHT_RELR:
+	  check_relr (ebl, ehdr, shdr, cnt);
 	  break;
 
 	case SHT_DYNAMIC:

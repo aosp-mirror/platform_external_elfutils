@@ -63,6 +63,7 @@
 #define ELF32_FSZ_SWORD  4
 #define ELF32_FSZ_XWORD  8
 #define ELF32_FSZ_SXWORD 8
+#define ELF32_FSZ_RELR   4
 
 /* Same for 64 bits objects.  */
 #define ELF64_FSZ_ADDR   8
@@ -72,6 +73,7 @@
 #define ELF64_FSZ_SWORD  4
 #define ELF64_FSZ_XWORD  8
 #define ELF64_FSZ_SXWORD 8
+#define ELF64_FSZ_RELR   8
 
 
 /* This is an extension of the ELF_F_* enumeration.  The values here are

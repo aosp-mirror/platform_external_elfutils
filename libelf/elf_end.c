@@ -157,7 +157,10 @@ elf_end (Elf *elf)
 		   rawdata_base.  If it is already used it will be
 		   freed below.  */
 		if (scn->zdata_base != scn->rawdata_base)
-		  free (scn->zdata_base);
+		  {
+		    free (scn->zdata_base);
+		    scn->zdata_base = NULL;
+		  }
 
 		/* If the file has the same byte order and the
 		   architecture doesn't require overly stringent

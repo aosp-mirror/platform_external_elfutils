@@ -251,13 +251,21 @@ void *debuginfod_so = dlopen(DEBUGINFOD_SONAME, RTLD_LAZY);
 .in
 
 .SH "SECURITY"
+
+If IMA signature(s) are available from the RPMs that contain
+requested files, then
+.BR debuginfod
+will extract those signatures into response headers, and
 .BR debuginfod_find_* ()
-functions \fBdo not\fP include any particular security
-features.  They trust that the binaries returned by the debuginfod(s)
-are accurate.  Therefore, the list of servers should include only
-trustworthy ones.  If accessed across HTTP rather than HTTPS, the
-network should be trustworthy.  Passing user authentication information
-through the internal \fIlibcurl\fP library is not currently enabled, except
+will perform verification upon the files.
+Validation policy is controlled via tags inserted into
+$DEBUGINFOD_URLS.  By default, 
+.BR debuginfod_find_* ()
+acts in ignore mode.
+
+If accessed across HTTP rather than HTTPS, the
+network should be trustworthy.  Authentication information through
+the internal \fIlibcurl\fP library is not currently enabled, except
 for the basic plaintext \%\fIhttp[s]://userid:password@hostname/\fP style.
 (The debuginfod server does not perform authentication, but a front-end
 proxy server could.)
@@ -324,6 +332,18 @@ Query failed due to timeout. \fB$DEBUGINFOD_TIMEOUT\fP and
 .BR EF2BIG
 Query aborted due to the file requested being too big.  The
 \fB$DEBUGINFOD_MAXSIZE\fP controls this.
+
+.TP
+.BR EBADMSG
+File content failed IMA verification against a known signer certificate.
+
+.TP
+.BR ENOKEY
+File content failed IMA verification due to missing signer certificate.
+
+.TP
+.BR ENODATA
+File content failed IMA verification because of a missing signature.
 
 .nr zZ 1
 .so man7/debuginfod-client-config.7

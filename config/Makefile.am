@@ -47,12 +47,16 @@ install-data-local:
 	if [ -n "@DEBUGINFOD_URLS@" ]; then \
 		echo "@DEBUGINFOD_URLS@" > $(DESTDIR)$(sysconfdir)/debuginfod/elfutils.urls; \
 	fi
+	if [ -n "@DEBUGINFOD_IMA_CERT_PATH@" ]; then \
+		echo "@DEBUGINFOD_IMA_CERT_PATH@" > $(DESTDIR)$(sysconfdir)/debuginfod/elfutils.certpath; \
+	fi
 
 uninstall-local:
 	rm -f $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.sh
 	rm -f $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.csh
 	rm -f $(DESTDIR)$(datadir)/fish/vendor_conf.d/debuginfod.fish
 	rm -f $(DESTDIR)$(sysconfdir)/debuginfod/elfutils.urls
+	rm -f $(DESTDIR)$(sysconfdir)/debuginfod/elfutils.certpath
 	-rmdir $(DESTDIR)$(sysconfdir)/debuginfod
 endif
 

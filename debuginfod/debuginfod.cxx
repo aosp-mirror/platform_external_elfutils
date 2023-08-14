@@ -122,6 +122,13 @@ using namespace std;
 #define MHD_RESULT int
 #endif
 
+#ifdef ENABLE_IMA_VERIFICATION
+  #include <rpm/rpmlib.h>
+  #include <rpm/rpmfi.h>
+  #include <rpm/header.h>
+  #include <glob.h>
+#endif
+
 #include <curl/curl.h>
 #include <archive.h>
 #include <archive_entry.h>
@@ -443,6 +450,10 @@ static const struct argp_option options[] =
    { "disable-source-scan", ARGP_KEY_DISABLE_SOURCE_SCAN, NULL, 0, "Do not scan dwarf source info.", 0 },
 #define ARGP_SCAN_CHECKPOINT 0x100A
    { "scan-checkpoint", ARGP_SCAN_CHECKPOINT, "NUM", 0, "Number of files scanned before a WAL checkpoint.", 0 },
+#ifdef ENABLE_IMA_VERIFICATION
+#define ARGP_KEY_KOJI_SIGCACHE 0x100B
+   { "koji-sigcache", ARGP_KEY_KOJI_SIGCACHE, NULL, 0, "Do a koji specific mapping of rpm paths to get IMA signatures.", 0 },
+#endif
    { NULL, 0, NULL, 0, NULL, 0 },
   };
 
@@ -495,6 +506,9 @@ static bool scan_source_info = true;
 static string tmpdir;
 static bool passive_p = false;
 static long scan_checkpoint = 256;
+#ifdef ENABLE_IMA_VERIFICATION
+static bool requires_koji_sigcache_mapping = false;
+#endif
 
 static void set_metric(const string& key, double value);
 static void inc_metric(const string& key);
@@ -699,6 +713,11 @@ parse_opt (int key, char *arg,
       if (scan_checkpoint < 0)
         argp_failure(state, 1, EINVAL, "scan checkpoint");        
       break;
+#ifdef ENABLE_IMA_VERIFICATION
+    case ARGP_KEY_KOJI_SIGCACHE:
+      requires_koji_sigcache_mapping = true;
+      break;
+#endif
       // case 'h': argp_state_help (state, stderr, ARGP_HELP_LONG|ARGP_HELP_EXIT_OK);
     default: return ARGP_ERR_UNKNOWN;
     }
@@ -1959,6 +1978,145 @@ handle_buildid_r_match (bool internal_req_p,
       return 0;
     }
 
+  // Extract the IMA per-file signature (if it exists)
+  string ima_sig = "";
+  #ifdef ENABLE_IMA_VERIFICATION
+  do
+    {
+      FD_t rpm_fd;
+      if(!(rpm_fd = Fopen(b_source0.c_str(), "r.ufdio"))) // read, uncompressed, rpm/rpmio.h
+        {
+          if (verbose) obatched(clog) << "There was an error while opening " << b_source0 << endl;
+          break; // Exit IMA extraction
+        }
+
+      Header rpm_hdr;
+      if(RPMRC_FAIL == rpmReadPackageFile(NULL, rpm_fd, b_source0.c_str(), &rpm_hdr))
+        {
+          if (verbose) obatched(clog) << "There was an error while reading the header of " << b_source0 << endl;
+          Fclose(rpm_fd);
+          break; // Exit IMA extraction
+        }
+
+      // Fill sig_tag_data with an alloc'd copy of the array of IMA signatures (if they exist)
+      struct rpmtd_s sig_tag_data;
+      rpmtdReset(&sig_tag_data);
+      do{ /* A do-while so we can break out of the koji sigcache checking on failure */
+        if(requires_koji_sigcache_mapping)
+          {
+            /* NB: Koji builds result in a directory structure like the following
+               - PACKAGE/VERSION/RELEASE
+               - ARCH1
+               - foo.rpm           // The rpm known by debuginfod
+               - ...
+               - ARCHN
+               - data
+               - signed            // Periodically purged (and not scanned by debuginfod)
+               - sigcache
+               - ARCH1
+               - foo.rpm.sig   // An empty rpm header
+               - ...
+               - ARCHN
+               - PACKAGE_KEYID1
+               - ARCH1
+               - foo.rpm.sig   // The header of the signed rpm. This is the file we need to extract the IMA signatures
+               - ...
+               - ARCHN
+               - ...
+               - PACKAGE_KEYIDn
+            
+               We therefore need to do a mapping:
+      
+               P/V/R/A/N-V-R.A.rpm ->
+               P/V/R/data/sigcache/KEYID/A/N-V-R.A.rpm.sig
+
+               There are 2 key insights here         
+      
+               1. We need to go 2 directories down from sigcache to get to the
+               rpm header. So to distinguish ARCH1/foo.rpm.sig and
+               PACKAGE_KEYID1/ARCH1/foo.rpm.sig we can look 2 directories down
+      
+               2. It's safe to assume that the user will have all of the
+               required verification certs. So we can pick from any of the
+               PACKAGE_KEYID* directories.  For simplicity we choose first we
+               match against
+      
+               See: https://pagure.io/koji/issue/3670
+            */
+
+            // Do the mapping from b_source0 to the koji path for the signed rpm header
+            string signed_rpm_path = b_source0;
+            size_t insert_pos = string::npos;
+            for(int i = 0; i < 2; i++) insert_pos = signed_rpm_path.rfind("/", insert_pos) - 1;
+            string globbed_path  = signed_rpm_path.insert(insert_pos + 1, "/data/sigcache/*").append(".sig"); // The globbed path we're seeking
+            glob_t pglob;
+            int grc;
+            if(0 != (grc = glob(globbed_path.c_str(), GLOB_NOSORT, NULL, &pglob)))
+              {
+                // Break out, but only report real errors
+                if (verbose && grc != GLOB_NOMATCH) obatched(clog) << "There was an error (" << strerror(errno) << ") globbing " << globbed_path << endl;
+                break; // Exit koji sigcache check
+              }
+            signed_rpm_path = pglob.gl_pathv[0]; // See insight 2 above
+            globfree(&pglob);
+
+            if (verbose > 2) obatched(clog) << "attempting IMA signature extraction from koji header " << signed_rpm_path << endl;
+
+            FD_t sig_rpm_fd;
+            if(NULL == (sig_rpm_fd = Fopen(signed_rpm_path.c_str(), "r")))
+              {
+                if (verbose) obatched(clog) << "There was an error while opening " << signed_rpm_path << endl;
+                break; // Exit koji sigcache check
+              }
+
+            Header sig_hdr = headerRead(sig_rpm_fd, HEADER_MAGIC_YES /* Validate magic too */ );
+            if (!sig_hdr || 1 != headerGet(sig_hdr, RPMSIGTAG_FILESIGNATURES, &sig_tag_data, HEADERGET_ALLOC))
+              {
+                if (verbose) obatched(clog) << "Unable to extract RPMSIGTAG_FILESIGNATURES from " << signed_rpm_path << endl;
+              }
+            headerFree(sig_hdr); // We can free here since sig_tag_data has an alloc'd copy of the data
+            Fclose(sig_rpm_fd);
+          }
+      }while(false);
+
+      if(0 == sig_tag_data.count)
+        {
+          // In the general case (or a fallback from the koji sigcache mapping not finding signatures)
+          // we can just (try) extract the signatures from the rpm header
+          if (1 != headerGet(rpm_hdr, RPMTAG_FILESIGNATURES, &sig_tag_data, HEADERGET_ALLOC))
+            {
+              if (verbose) obatched(clog) << "Unable to extract RPMTAG_FILESIGNATURES from " << b_source0 << endl;
+            }
+        }
+      // Search the array for the signature coresponding to b_source1
+      int idx = -1;
+      char *sig = NULL;
+      rpmfi hdr_fi = rpmfiNew(NULL, rpm_hdr, RPMTAG_BASENAMES, RPMFI_FLAGS_QUERY);
+      do
+        {
+          sig = (char*)rpmtdNextString(&sig_tag_data);
+          idx = rpmfiNext(hdr_fi);
+        }
+      while (idx != -1 && 0 != strcmp(b_source1.c_str(), rpmfiFN(hdr_fi)));
+      rpmfiFree(hdr_fi);
+
+      if(sig && 0 != strlen(sig) && idx != -1)
+        {
+          if (verbose > 2) obatched(clog) << "Found IMA signature for " << b_source1 << ":\n" << sig << endl;
+          ima_sig = sig;
+          inc_metric("http_responses_total","extra","ima-sigs-extracted");
+        }
+      else
+        {
+          if (verbose > 2) obatched(clog) << "Could not find IMA signature for " << b_source1 << endl;
+        }
+
+      rpmtdFreeData (&sig_tag_data);
+      headerFree(rpm_hdr);
+      Fclose(rpm_fd);
+    } while(false);
+  #endif
+
   // check for a match in the fdcache first
   int fd = fdcache.lookup(b_source0, b_source1);
   while (fd >= 0) // got one!; NB: this is really an if() with a possible branch out to the end
@@ -2016,11 +2174,13 @@ handle_buildid_r_match (bool internal_req_p,
 			       to_string(fs.st_size).c_str());
       add_mhd_response_header (r, "X-DEBUGINFOD-ARCHIVE", b_source0.c_str());
       add_mhd_response_header (r, "X-DEBUGINFOD-FILE", b_source1.c_str());
+      if(!ima_sig.empty()) add_mhd_response_header(r, "X-DEBUGINFOD-IMASIGNATURE", ima_sig.c_str());
       add_mhd_last_modified (r, fs.st_mtime);
       if (verbose > 1)
 	obatched(clog) << "serving fdcache archive " << b_source0
 		       << " file " << b_source1
-		       << " section=" << section << endl;
+		       << " section=" << section
+		       << " IMA signature=" << ima_sig << endl;
       /* libmicrohttpd will close it. */
       if (result_fd)
         *result_fd = fd;
@@ -2204,11 +2364,13 @@ handle_buildid_r_match (bool internal_req_p,
                                    to_string(archive_entry_size(e)).c_str());
           add_mhd_response_header (r, "X-DEBUGINFOD-ARCHIVE", b_source0.c_str());
           add_mhd_response_header (r, "X-DEBUGINFOD-FILE", b_source1.c_str());
+          if(!ima_sig.empty()) add_mhd_response_header(r, "X-DEBUGINFOD-IMASIGNATURE", ima_sig.c_str());
           add_mhd_last_modified (r, archive_entry_mtime(e));
           if (verbose > 1)
 	    obatched(clog) << "serving archive " << b_source0
 			   << " file " << b_source1
-			   << " section=" << section << endl;
+			   << " section=" << section
+			   << " IMA signature=" << ima_sig << endl;
           /* libmicrohttpd will close it. */
           if (result_fd)
             *result_fd = fd;

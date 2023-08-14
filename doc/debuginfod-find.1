@@ -129,10 +129,18 @@ and printing the http response headers from the server.
 
 .SH "SECURITY"
 
-debuginfod-find \fBdoes not\fP include any particular security
-features.  It trusts that the binaries returned by the debuginfod(s)
-are accurate.  Therefore, the list of servers should include only
-trustworthy ones.  If accessed across HTTP rather than HTTPS, the
+If IMA signature(s) are available from the RPMs that contain
+requested files, then
+.BR debuginfod
+will extract those signatures into response headers, and
+.BR debuginfod-find
+will perform verification upon the files.
+Validation policy is controlled via tags inserted into
+$DEBUGINFOD_URLS.  By default, 
+.BR debuginfod-find
+acts in ignore mode.
+
+If accessed across HTTP rather than HTTPS, the
 network should be trustworthy.  Authentication information through
 the internal \fIlibcurl\fP library is not currently enabled, except
 for the basic plaintext \%\fIhttp[s]://userid:password@hostname/\fP style.

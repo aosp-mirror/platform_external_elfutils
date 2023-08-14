@@ -278,6 +278,9 @@ if !OLD_LIBMICROHTTPD
 # Too many open file descriptors confuses libmicrohttpd < 0.9.51
 TESTS += run-debuginfod-federation-metrics.sh
 endif
+if ENABLE_IMA_VERIFICATION
+TESTS += run-debuginfod-ima-verification.sh
+endif
 endif
 
 if HAVE_CXX11
@@ -600,6 +603,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
              run-debuginfod-webapi-concurrency.sh \
 	     run-debuginfod-section.sh \
 	     run-debuginfod-IXr.sh \
+		 run-debuginfod-ima-verification.sh \
 	     debuginfod-rpms/fedora30/hello2-1.0-2.src.rpm \
 	     debuginfod-rpms/fedora30/hello2-1.0-2.x86_64.rpm \
 	     debuginfod-rpms/fedora30/hello2-debuginfo-1.0-2.x86_64.rpm \
@@ -623,6 +627,11 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     debuginfod-rpms/rhel7/hello2-debuginfo-1.0-2.x86_64.rpm \
 	     debuginfod-rpms/rhel7/hello2-two-1.0-2.x86_64.rpm \
 	     debuginfod-rpms/rhel7/hello2-two-1.0-2.x86_64.rpm \
+             debuginfod-ima/koji/arch/hello-2.10-9.fc38.x86_64.rpm \
+             debuginfod-ima/koji/data/sigcache/keyid/arch/hello-2.10-9.fc38.x86_64.rpm.sig \
+	     debuginfod-ima/koji/fedora-38-ima.pem \
+	     debuginfod-ima/rhel9/hello2-1.0-1.x86_64.rpm \
+	     debuginfod-ima/rhel9/imacert.der \
 	     debuginfod-debs/hithere-dbgsym_1.0-1_amd64.ddeb \
 	     debuginfod-debs/hithere_1.0-1.debian.tar.xz \
 	     debuginfod-debs/hithere_1.0-1.dsc \

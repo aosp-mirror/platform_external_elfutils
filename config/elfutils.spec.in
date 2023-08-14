@@ -43,6 +43,12 @@ BuildRequires: curl
 # For run-debuginfod-response-headers.sh test case
 BuildRequires: socat
 
+# For debuginfod rpm IMA verification
+BuildRequires: rpm-devel
+BuildRequires: ima-evm-utils-devel
+BuildRequires: openssl-devel
+BuildRequires: rpm-sign
+
 %define _gnu %{nil}
 %define _programprefix eu-
 

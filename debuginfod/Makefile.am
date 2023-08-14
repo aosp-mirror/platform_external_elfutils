@@ -70,7 +70,7 @@ bin_PROGRAMS += debuginfod-find
 endif
 
 debuginfod_SOURCES = debuginfod.cxx
-debuginfod_LDADD = $(libdw) $(libelf) $(libeu) $(libdebuginfod) $(argp_LDADD) $(fts_LIBS) $(libmicrohttpd_LIBS) $(sqlite3_LIBS) $(libarchive_LIBS) -lpthread -ldl
+debuginfod_LDADD = $(libdw) $(libelf) $(libeu) $(libdebuginfod) $(argp_LDADD) $(fts_LIBS) $(libmicrohttpd_LIBS) $(sqlite3_LIBS) $(libarchive_LIBS) $(rpm_LIBS) -lpthread -ldl
 
 debuginfod_find_SOURCES = debuginfod-find.c
 debuginfod_find_LDADD = $(libdw) $(libelf) $(libeu) $(libdebuginfod) $(argp_LDADD) $(fts_LIBS)
@@ -97,7 +97,7 @@ libdebuginfod_so_LIBS = libdebuginfod_pic.a
 if DUMMY_LIBDEBUGINFOD
 libdebuginfod_so_LDLIBS =
 else
-libdebuginfod_so_LDLIBS = -lpthread $(libcurl_LIBS) $(fts_LIBS) $(libelf)
+libdebuginfod_so_LDLIBS = -lpthread $(libcurl_LIBS) $(fts_LIBS) $(libelf) $(crypto_LIBS)
 endif
 $(LIBDEBUGINFOD_SONAME): $(srcdir)/libdebuginfod.map $(libdebuginfod_so_LIBS)
 	$(AM_V_CCLD)$(LINK) $(dso_LDFLAGS) -o $@ \
@@ -117,7 +117,6 @@ install: install-am libdebuginfod.so
 		$(DESTDIR)$(libdir)/libdebuginfod-$(PACKAGE_VERSION).so
 	ln -fs libdebuginfod-$(PACKAGE_VERSION).so $(DESTDIR)$(libdir)/$(LIBDEBUGINFOD_SONAME)
 	ln -fs libdebuginfod-$(PACKAGE_VERSION).so $(DESTDIR)$(libdir)/libdebuginfod.so
-
 uninstall: uninstall-am
 	rm -f $(DESTDIR)$(libdir)/libdebuginfod-$(PACKAGE_VERSION).so
 	rm -f $(DESTDIR)$(libdir)/$(LIBDEBUGINFOD_SONAME)

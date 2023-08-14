@@ -1,3 +1,8 @@
+Version 0.192 (one after 0.191)
+
+debuginfod: Add per-file signature verification for integrity
+            checking, using RPM IMA scheme from Fedora/RHEL.
+
 Version 0.191 "Bug fixes in C major"
 
 libdw: dwarf_addrdie now supports binaries lacking a .debug_aranges

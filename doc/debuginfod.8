@@ -286,6 +286,14 @@ phase somewhat, but generate much smaller "-wal" temporary files on
 busy servers.  The default is 256.  Disabled if 0.
 
 .TP
+.B "\-\-koji\-sigcache"
+Enable an additional step of RPM path mapping when extracting signatures for use 
+in RPM per-file IMA verification on koji repositories. The signatures are retrieved
+from the Fedora koji sigcache rpm.sig files as opposed to the original RPM header.
+If a signature cannot be found in the sigcache rpm.sig file, the RPM will be
+tried as a fallback.
+
+.TP
 .B "\-v"
 Increase verbosity of logging to the standard error file descriptor.
 May be repeated to increase details.  The default verbosity is 0.
@@ -300,8 +308,15 @@ Unknown buildid / request combinations result in HTTP error codes.
 This file service resemblance is intentional, so that an installation
 can take advantage of standard HTTP management infrastructure.
 
-For most queries, some custom http headers are added to the response,
-providing additional metadata about the buildid-related response.  For example:
+Upon finding a file in an archive or simply in the database, some
+custom http headers are added to the response. For files in the
+database X-DEBUGINFOD-FILE and X-DEBUGINFOD-SIZE are added.
+X-DEBUGINFOD-FILE is simply the unescaped filename and
+X-DEBUGINFOD-SIZE is the size of the file. For files found in archives,
+in addition to X-DEBUGINFOD-FILE and X-DEBUGINFOD-SIZE,
+X-DEBUGINFOD-ARCHIVE is added.  X-DEBUGINFOD-ARCHIVE is the name of the
+archive the file was found in.  X-DEBUGINFOD-IMA-SIGNATURE contains the
+per-file IMA signature as a hexadecimal blob.
 
 .SAMPLE
 % debuginfod-find -v debuginfo /bin/ls |& grep -i x-debuginfo

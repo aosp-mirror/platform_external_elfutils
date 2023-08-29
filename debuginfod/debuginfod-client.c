@@ -1533,23 +1533,37 @@ debuginfod_query_server (debuginfod_client *c,
           long pa = loops; /* default param for progress callback */
           if (target_handle) /* we've committed to a server; report its download progress */
             {
-              CURLcode curl_res;
+              /* PR30809: Check actual size of cached file.  This same
+                 fd is shared by all the multi-curl handles (but only
+                 one will end up writing to it).  Another way could be
+                 to tabulate totals in debuginfod_write_callback(). */
+              struct stat cached;
+              int statrc = fstat(fd, &cached);
+              if (statrc == 0)
+                pa = (long) cached.st_size;
+              else
+                {
+                  /* Otherwise, query libcurl for its tabulated total.
+                     However, that counts http body length, not
+                     decoded/decompressed content length, so does not
+                     measure quite the same thing as dl. */
+                  CURLcode curl_res;
 #if CURL_AT_LEAST_VERSION(7, 55, 0)
-              curl_off_t dl;
-              curl_res = curl_easy_getinfo(target_handle,
-                                           CURLINFO_SIZE_DOWNLOAD_T,
-                                           &dl);
-              if (curl_res == 0 && dl >= 0)
-                pa = (dl > LONG_MAX ? LONG_MAX : (long)dl);
+                  curl_off_t dl;
+                  curl_res = curl_easy_getinfo(target_handle,
+                                               CURLINFO_SIZE_DOWNLOAD_T,
+                                               &dl);
+                  if (curl_res == 0 && dl >= 0)
+                    pa = (dl > LONG_MAX ? LONG_MAX : (long)dl);
 #else
-              double dl;
-              curl_res = curl_easy_getinfo(target_handle,
-                                           CURLINFO_SIZE_DOWNLOAD,
-                                           &dl);
-              if (curl_res == 0)
-                pa = (dl >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)dl);
+                  double dl;
+                  curl_res = curl_easy_getinfo(target_handle,
+                                               CURLINFO_SIZE_DOWNLOAD,
+                                               &dl);
+                  if (curl_res == 0)
+                    pa = (dl >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)dl);
 #endif
-
+                }
             }
 
           if ((*c->progressfn) (c, pa, dl_size == -1 ? 0 : dl_size))

@@ -807,9 +807,14 @@ nvidia_extended_linemap_libdw_LDADD = $(libelf) $(libdw)
 
 # We want to test the libelf headers against the system elf.h header.
 # Don't include any -I CPPFLAGS. Except when we install our own elf.h.
+# For the gelf test we do want our own libelf.h, but nothing else.
+BUILT_SOURCES = libelf.h
+CLEANFILES += libelf.h
+libelf.h: $(top_srcdir)/libelf/libelf.h
+	cp $< $@
 if !INSTALL_ELFH
 system_elf_libelf_test_CPPFLAGS =
-system_elf_gelf_test_CPPFLAGS =
+system_elf_gelf_test_CPPFLAGS = -I.
 else
 system_elf_libelf_test_CPPFLAGS = -I$(top_srcdir)/libelf
 system_elf_gelf_test_CPPFLAGS = -I$(top_srcdir)/libelf

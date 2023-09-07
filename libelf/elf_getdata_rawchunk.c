@@ -107,8 +107,10 @@ elf_getdata_rawchunk (Elf *elf, int64_t offset, size_t size, Elf_Type type)
       goto out;
     }
 
-  /* New entry.  */
-  *found = NULL;
+  /* New entry.  Note that *found will point to the newly inserted
+     (dummy) key.  We'll replace it with a real rawchunk when that is
+     setup.  Make sure to tdelete the dummy key if anything goes
+     wrong.  */
 
   size_t align = __libelf_type_align (elf->class, type);
   if (elf->map_address != NULL)
@@ -134,6 +136,7 @@ elf_getdata_rawchunk (Elf *elf, int64_t offset, size_t size, Elf_Type type)
       if (rawchunk == NULL)
 	{
 	nomem:
+	  tdelete (&key, &elf->state.elf.rawchunks, &chunk_compare);
 	  __libelf_seterrno (ELF_E_NOMEM);
 	  goto out;
 	}
@@ -144,6 +147,7 @@ elf_getdata_rawchunk (Elf *elf, int64_t offset, size_t size, Elf_Type type)
 		    != size))
 	{
 	  /* Something went wrong.  */
+	  tdelete (&key, &elf->state.elf.rawchunks, &chunk_compare);
 	  free (rawchunk);
 	  __libelf_seterrno (ELF_E_READ_ERROR);
 	  goto out;

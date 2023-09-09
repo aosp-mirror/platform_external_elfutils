@@ -302,7 +302,7 @@ extern Elf_Scn *elf_getscn (Elf *__elf, size_t __index);
 
 /* Get section at OFFSET.  */
 extern Elf_Scn *elf32_offscn (Elf *__elf, Elf32_Off __offset);
-/* Similar bug this time the binary calls is ELFCLASS64.  */
+/* Similar but this time the binary calls is ELFCLASS64.  */
 extern Elf_Scn *elf64_offscn (Elf *__elf, Elf64_Off __offset);
 
 /* Get index of section.  */

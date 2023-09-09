@@ -1,3 +1,7 @@
+2023-09-09  Yanglin Xun  <xunyanglins@gmail.com>
+
+ * libelf.h: Fix typo in comment
+
 2023-04-01  Youling Tang  <tangyouling@loongson.cn>
 
 	* elf.h: Update from glibc.

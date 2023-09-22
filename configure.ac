@@ -839,6 +839,7 @@ AS_IF([test "x$enable_libdebuginfod" = "xdummy"],
       [AC_DEFINE([DUMMY_LIBDEBUGINFOD], [1], [Build dummy libdebuginfod])])
 AM_CONDITIONAL([LIBDEBUGINFOD],[test "x$enable_libdebuginfod" = "xyes" || test "x$enable_libdebuginfod" = "xdummy"])
 AM_CONDITIONAL([DUMMY_LIBDEBUGINFOD],[test "x$enable_libdebuginfod" = "xdummy"])
+AC_CHECK_HEADERS([execinfo.h])
 
 # Look for libmicrohttpd, libarchive, sqlite for debuginfo server
 # minimum versions as per rhel7.

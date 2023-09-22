@@ -44,6 +44,12 @@ extern "C" {
 }
 #endif
 
+#ifdef HAVE_EXECINFO_H
+extern "C" {
+#include <execinfo.h>
+}
+#endif
+
 extern "C" {
 #include "printversion.h"
 #include "system.h"
@@ -95,6 +101,7 @@ extern "C" {
 #include <mutex>
 #include <deque>
 #include <condition_variable>
+#include <exception>
 #include <thread>
 // #include <regex> // on rhel7 gcc 4.8, not competent
 #include <regex.h>
@@ -1152,22 +1159,13 @@ public:
 
 struct sqlite_checkpoint_pb: public periodic_barrier
 {
-  sqlite_ps ckpt;
-
+  // NB: don't use sqlite_ps since it can throw exceptions during ctor etc.
   sqlite_checkpoint_pb(unsigned t, unsigned p):
-    periodic_barrier(t, p), ckpt(db, "periodic wal checkpoint",
-                                 "pragma wal_checkpoint(truncate);") {}
+    periodic_barrier(t, p) { }
   
   void periodic_barrier_work() noexcept
   {
-    try
-      {
-        ckpt.reset().step_ok_done();
-      }
-    catch (const reportable_exception& e)
-      {
-        e.report(clog);        
-      }
+    (void) sqlite3_exec (db, "pragma wal_checkpoint(truncate);", NULL, NULL, NULL);
   }
 };
   
@@ -3714,11 +3712,9 @@ scan_archive_file (const string& rps, const stat_t& st,
 // The thread that consumes file names off of the scanq.  We hold
 // the persistent sqlite_ps's at this level and delegate file/archive
 // scanning to other functions.
-static void*
-thread_main_scanner (void* arg)
+static void
+scan ()
 {
-  (void) arg;
-
   // all the prepared statements fit to use, the _f_ set:
   sqlite_ps ps_f_upsert_buildids (db, "file-buildids-intern", "insert or ignore into " BUILDIDS "_buildids VALUES (NULL, ?);");
   sqlite_ps ps_f_upsert_fileparts (db, "file-fileparts-intern", "insert or ignore into " BUILDIDS "_fileparts VALUES (NULL, ?);");
@@ -3845,8 +3841,25 @@ thread_main_scanner (void* arg)
       inc_metric("thread_work_total","role","scan");
     }
 
-
   add_metric("thread_busy", "role", "scan", -1);
+}
+
+
+// Use this function as the thread entry point, so it can catch our
+// fleet of exceptions (incl. the sqlite_ps ctors) and report.
+static void*
+thread_main_scanner (void* arg)
+{
+  (void) arg;
+  while (! interrupted)
+    try
+      {
+        scan();
+      }
+    catch (const reportable_exception& e)
+      {
+        e.report(cerr);
+      }
   return 0;
 }
 
@@ -4359,6 +4372,20 @@ default_concurrency() // guaranteed >= 1
 }
 
 
+// 30879: Something to help out in case of an uncaught exception.
+void my_terminate_handler()
+{
+#if defined(__GLIBC__)
+  void *array[40];
+  int size = backtrace (array, 40);
+  backtrace_symbols_fd (array, size, STDERR_FILENO);
+#endif
+#if defined(__GLIBCXX__) || defined(__GLIBCPP__)
+  __gnu_cxx::__verbose_terminate_handler();
+#endif
+  abort();
+}
+
 
 int
 main (int argc, char *argv[])
@@ -4366,6 +4393,8 @@ main (int argc, char *argv[])
   (void) setlocale (LC_ALL, "");
   (void) bindtextdomain (PACKAGE_TARNAME, LOCALEDIR);
   (void) textdomain (PACKAGE_TARNAME);
+
+  std::set_terminate(& my_terminate_handler);
 
   /* Tell the library which version we are expecting.  */
   elf_version (EV_CURRENT);

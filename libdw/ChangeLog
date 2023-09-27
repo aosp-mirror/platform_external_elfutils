@@ -2,6 +2,8 @@
 
 	* libdw_find_split_unit.c (try_split_file): Make static.
 	* dwarf_entrypc.c (dwarf_entrypc): Call dwarf_lowpc.
+	* dwarf_ranges.c (dwarf_ranges): Use skeleton ranges section for
+	skeleton units.
 
 2023-02-22  Mark Wielaard  <mark@klomp.org>
 

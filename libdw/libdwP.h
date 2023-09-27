@@ -508,6 +508,8 @@ typedef struct
 /* Prototype table.  */
 typedef struct
 {
+  Dwarf *dbg;
+
   /* Offset of .debug_macro section.  */
   Dwarf_Off offset;
 

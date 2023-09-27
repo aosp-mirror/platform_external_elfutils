@@ -124,13 +124,19 @@ get_macinfo_table (Dwarf *dbg, Dwarf_Word macoff, Dwarf_Die *cudie)
     = INTUSE(dwarf_attr) (cudie, DW_AT_stmt_list, &attr_mem);
   Dwarf_Off line_offset = (Dwarf_Off) -1;
   if (attr != NULL)
-    if (unlikely (INTUSE(dwarf_formudata) (attr, &line_offset) != 0))
-      return NULL;
+    {
+      if (unlikely (INTUSE(dwarf_formudata) (attr, &line_offset) != 0))
+	return NULL;
+    }
+  else if (cudie->cu->unit_type == DW_UT_split_compile
+	   && dbg->sectiondata[IDX_debug_line] != NULL)
+    line_offset = 0;
 
   Dwarf_Macro_Op_Table *table = libdw_alloc (dbg, Dwarf_Macro_Op_Table,
 					     macinfo_data_size, 1);
   memcpy (table, macinfo_data, macinfo_data_size);
 
+  table->dbg = dbg;
   table->offset = macoff;
   table->sec_index = IDX_debug_macinfo;
   table->line_offset = line_offset;
@@ -263,6 +269,7 @@ get_table_for_offset (Dwarf *dbg, Dwarf_Word macoff,
 					     macop_table_size, 1);
 
   *table = (Dwarf_Macro_Op_Table) {
+    .dbg = dbg,
     .offset = macoff,
     .sec_index = IDX_debug_macro,
     .line_offset = line_offset,

@@ -9,15 +9,17 @@
 	DW_FORM_strx, and DW_FORM_strx[1-4].
 	* dwarf_getmacros.c (get_macinfo_table): Replace assignment of
 	table->is_64bit with assignments of table->address_size and
-	table->offset_size.
+	table->offset_size.  Assume default DW_AT_stmt_list of 0 for split
+	DWARF.  Set table->dbg.
 	(get_table_for_offset): Ditto.
 	(read_macros): Get fake CU offset_size from table->offset_size instead
 	of table->is_64bit.
 	* dwarf_macro_getsrcfiles.c (dwarf_macro_getsrcfiles): Get
 	address_size for __libdw_getsrclines from table->address_size instead
-	of table->is_64bit.
+	of table->is_64bit.  Get dbg for __libdw_getsrclines from table->dbg
+	instead of dbg parameter, which is now unused.
 	* libdwP.h (Dwarf_Macro_Op_Table): Replace is_64bit with address_size
-	and offset_size.
+	and offset_size.  Add dbg.
 
 2023-02-22  Mark Wielaard  <mark@klomp.org>
 

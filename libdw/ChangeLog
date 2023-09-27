@@ -1,3 +1,7 @@
+2023-09-27  Omar Sandoval  <osandov@fb.com>
+
+	* libdw_find_split_unit.c (try_split_file): Make static.
+
 2023-02-22  Mark Wielaard  <mark@klomp.org>
 
 	* dwarf_getscopes.c (origin_match): Don't free a->scopes.

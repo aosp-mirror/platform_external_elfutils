@@ -72,8 +72,7 @@ dwarf_macro_getsrcfiles (Dwarf *dbg, Dwarf_Macro *macro,
 	 will be broken.  */
 
       if (__libdw_getsrclines (dbg, line_offset, table->comp_dir,
-			       table->is_64bit ? 8 : 4,
-			       NULL, &table->files) < 0)
+			       table->address_size, NULL, &table->files) < 0)
 	table->files = (void *) -1;
     }
 

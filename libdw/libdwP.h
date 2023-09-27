@@ -526,7 +526,8 @@ typedef struct
   Dwarf_Half header_len;
 
   uint16_t version;
-  bool is_64bit;
+  uint8_t address_size;
+  uint8_t offset_size;
   uint8_t sec_index;	/* IDX_debug_macro or IDX_debug_macinfo.  */
 
   /* Shows where in TABLE each opcode is defined.  Since opcode 0 is

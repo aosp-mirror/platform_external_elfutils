@@ -7,6 +7,17 @@
 	* dwarf_macro_param2.c (dwarf_macro_param2): Change form condition to
 	switch statement and add DW_FORM_line_strp, DW_FORM_strp_sup,
 	DW_FORM_strx, and DW_FORM_strx[1-4].
+	* dwarf_getmacros.c (get_macinfo_table): Replace assignment of
+	table->is_64bit with assignments of table->address_size and
+	table->offset_size.
+	(get_table_for_offset): Ditto.
+	(read_macros): Get fake CU offset_size from table->offset_size instead
+	of table->is_64bit.
+	* dwarf_macro_getsrcfiles.c (dwarf_macro_getsrcfiles): Get
+	address_size for __libdw_getsrclines from table->address_size instead
+	of table->is_64bit.
+	* libdwP.h (Dwarf_Macro_Op_Table): Replace is_64bit with address_size
+	and offset_size.
 
 2023-02-22  Mark Wielaard  <mark@klomp.org>
 

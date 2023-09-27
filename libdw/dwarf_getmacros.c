@@ -134,7 +134,8 @@ get_macinfo_table (Dwarf *dbg, Dwarf_Word macoff, Dwarf_Die *cudie)
   table->offset = macoff;
   table->sec_index = IDX_debug_macinfo;
   table->line_offset = line_offset;
-  table->is_64bit = cudie->cu->address_size == 8;
+  table->address_size = cudie->cu->address_size;
+  table->offset_size = cudie->cu->offset_size;
   table->comp_dir = __libdw_getcompdir (cudie);
 
   return table;
@@ -180,6 +181,15 @@ get_table_for_offset (Dwarf *dbg, Dwarf_Word macoff,
       if (attr != NULL)
 	if (unlikely (INTUSE(dwarf_formudata) (attr, &line_offset) != 0))
 	  return NULL;
+    }
+
+  uint8_t address_size;
+  if (cudie != NULL)
+    address_size = cudie->cu->address_size;
+  else
+    {
+      char *ident = elf_getident (dbg->elf, NULL);
+      address_size = ident[EI_CLASS] == ELFCLASS32 ? 4 : 8;
     }
 
   /* """The macinfo entry types defined in this standard may, but
@@ -258,7 +268,8 @@ get_table_for_offset (Dwarf *dbg, Dwarf_Word macoff,
     .line_offset = line_offset,
     .header_len = readp - startp,
     .version = version,
-    .is_64bit = is_64bit,
+    .address_size = address_size,
+    .offset_size = is_64bit ? 8 : 4,
 
     /* NULL if CUDIE is NULL or DW_AT_comp_dir is absent.  */
     .comp_dir = __libdw_getcompdir (cudie),
@@ -368,7 +379,7 @@ read_macros (Dwarf *dbg, int sec_index,
 	.dbg = dbg,
 	.sec_idx = sec_index,
 	.version = table->version,
-	.offset_size = table->is_64bit ? 8 : 4,
+	.offset_size = table->offset_size,
 	.str_off_base = str_offsets_base_off (dbg, (cudie != NULL
 						    ? cudie->cu: NULL)),
 	.startp = (void *) startp + offset,

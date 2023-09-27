@@ -67,6 +67,8 @@ static const char dwarf_scnnames[IDX_last][19] =
   [IDX_debug_macro] = ".debug_macro",
   [IDX_debug_ranges] = ".debug_ranges",
   [IDX_debug_rnglists] = ".debug_rnglists",
+  [IDX_debug_cu_index] = ".debug_cu_index",
+  [IDX_debug_tu_index] = ".debug_tu_index",
   [IDX_gnu_debugaltlink] = ".gnu_debugaltlink"
 };
 #define ndwarf_scnnames (sizeof (dwarf_scnnames) / sizeof (dwarf_scnnames[0]))
@@ -92,6 +94,8 @@ static const enum string_section_index scn_to_string_section_idx[IDX_last] =
   [IDX_debug_macro] = STR_SCN_IDX_last,
   [IDX_debug_ranges] = STR_SCN_IDX_last,
   [IDX_debug_rnglists] = STR_SCN_IDX_last,
+  [IDX_debug_cu_index] = STR_SCN_IDX_last,
+  [IDX_debug_tu_index] = STR_SCN_IDX_last,
   [IDX_gnu_debugaltlink] = STR_SCN_IDX_last
 };
 
@@ -109,6 +113,11 @@ scn_dwarf_type (Dwarf *result, size_t shstrndx, Elf_Scn *scn)
     {
       if (startswith (scnname, ".gnu.debuglto_.debug"))
 	return TYPE_GNU_LTO;
+      else if (strcmp (scnname, ".debug_cu_index") == 0
+	       || strcmp (scnname, ".debug_tu_index") == 0
+	       || strcmp (scnname, ".zdebug_cu_index") == 0
+	       || strcmp (scnname, ".zdebug_tu_index") == 0)
+	return TYPE_DWO;
       else if (startswith (scnname, ".debug_") || startswith (scnname, ".zdebug_"))
 	{
 	  size_t len = strlen (scnname);
@@ -173,42 +182,34 @@ check_section (Dwarf *result, size_t shstrndx, Elf_Scn *scn, bool inscngrp)
   bool gnu_compressed = false;
   for (cnt = 0; cnt < ndwarf_scnnames; ++cnt)
     {
+      /* .debug_cu_index and .debug_tu_index don't have a .dwo suffix,
+	 but they are for DWO.  */
+      if (result->type != TYPE_DWO
+	  && (cnt == IDX_debug_cu_index || cnt == IDX_debug_tu_index))
+	continue;
+      bool need_dot_dwo =
+	(result->type == TYPE_DWO
+	 && cnt != IDX_debug_cu_index
+	 && cnt != IDX_debug_tu_index);
       size_t dbglen = strlen (dwarf_scnnames[cnt]);
       size_t scnlen = strlen (scnname);
       if (strncmp (scnname, dwarf_scnnames[cnt], dbglen) == 0
-	  && (dbglen == scnlen
-	      || (scnlen == dbglen + 4
+	  && ((!need_dot_dwo && dbglen == scnlen)
+	      || (need_dot_dwo
+		  && scnlen == dbglen + 4
 		  && strstr (scnname, ".dwo") == scnname + dbglen)))
-	{
-	  if (dbglen == scnlen)
-	    {
-	      if (result->type == TYPE_PLAIN)
-		break;
-	    }
-	  else if (result->type == TYPE_DWO)
-	    break;
-	}
+	break;
       else if (scnname[0] == '.' && scnname[1] == 'z'
 	       && (strncmp (&scnname[2], &dwarf_scnnames[cnt][1],
 			    dbglen - 1) == 0
-		   && (scnlen == dbglen + 1
-		       || (scnlen == dbglen + 5
+		   && ((!need_dot_dwo && scnlen == dbglen + 1)
+		       || (need_dot_dwo
+			   && scnlen == dbglen + 5
 			   && strstr (scnname,
 				      ".dwo") == scnname + dbglen + 1))))
 	{
-	  if (scnlen == dbglen + 1)
-	    {
-	      if (result->type == TYPE_PLAIN)
-		{
-		  gnu_compressed = true;
-		  break;
-		}
-	    }
-	  else if (result->type <= TYPE_DWO)
-	    {
-	      gnu_compressed = true;
-	      break;
-	    }
+	  gnu_compressed = true;
+	  break;
 	}
       else if (scnlen > 14 /* .gnu.debuglto_ prefix. */
 	       && startswith (scnname, ".gnu.debuglto_")

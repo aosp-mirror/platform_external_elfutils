@@ -20,6 +20,14 @@
 	instead of dbg parameter, which is now unused.
 	* libdwP.h (Dwarf_Macro_Op_Table): Replace is_64bit with address_size
 	and offset_size.  Add dbg.
+	Add IDX_debug_cu_index and IDX_debug_tu_index.
+	* dwarf_begin_elf.c (dwarf_scnnames): Add IDX_debug_cu_index and
+	IDX_debug_tu_index.
+	(scn_to_string_section_idx): Ditto.
+	(scn_dwarf_type): Check for .debug_cu_index, .debug_tu_index,
+	.zdebug_cu_index, and .zdebug_tu_index.
+	(check_section): Change .dwo suffix matching to account for
+	.debug_cu_index and .debug_tu_index.
 
 2023-02-22  Mark Wielaard  <mark@klomp.org>
 

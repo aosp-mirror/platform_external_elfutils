@@ -168,6 +168,10 @@ struct Dwarf
   /* The underlying ELF file.  */
   Elf *elf;
 
+  /* The (absolute) path to the ELF file, if known.  To help locating
+     dwp files.  */
+  char *elfpath;
+
   /* The (absolute) path to the ELF dir, if known.  To help locating
      alt and dwo files.  */
   char *debugdir;
@@ -1350,9 +1354,13 @@ __libdw_link_skel_split (Dwarf_CU *skel, Dwarf_CU *split)
 int __libdw_addrx (Dwarf_CU *cu, Dwarf_Word idx, Dwarf_Addr *addr);
 
 
-/* Helper function to set debugdir field in Dwarf, used from dwarf_begin_elf
+/* Helper function to set elfpath field in Dwarf, used from dwarf_begin_elf
    and libdwfl process_file.  */
-char * __libdw_debugdir (int fd);
+char * __libdw_elfpath (int fd);
+
+/* Helper function to set debugdir field in Dwarf after elfpath field has been
+   set.  */
+void __libdw_set_debugdir (Dwarf *dbg);
 
 
 /* Given the directory of a debug file, an absolute or relative dir

@@ -1,5 +1,18 @@
 2023-09-27  Omar Sandoval  <osandov@fb.com>
 
+	* libdwP.h ((Dwarf): Add elfpath.
+	* dwarf_begin_elf.c (__libdw_debugdir): Replace declaration with...
+	(__libdw_elfpath): New declaration.
+	(__libdw_set_debugdir): New declaration.
+	(__libdw_debugdir): Replace with..
+	(__libdw_elfpath): New function.
+	(__libdw_set_debugdir): New function.
+	(valid_p): Call __libdw_elfpath and __libdw_set_debugdir instead of
+	__libdw_debugdir.
+	* dwarf_end.c (dwarf_end): Free dwarf->elfpath.
+
+2023-09-27  Omar Sandoval  <osandov@fb.com>
+
 	* libdw_find_split_unit.c (try_split_file): Make static.
 	* dwarf_entrypc.c (dwarf_entrypc): Call dwarf_lowpc.
 	* dwarf_ranges.c (dwarf_ranges): Use skeleton ranges section for

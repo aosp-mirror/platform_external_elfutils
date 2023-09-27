@@ -272,24 +272,27 @@ check_section (Dwarf *result, size_t shstrndx, Elf_Scn *scn, bool inscngrp)
   return result;
 }
 
-
-/* Helper function to set debugdir field.  We want to cache the dir
-   where we found this Dwarf ELF file to locate alt and dwo files.  */
 char *
-__libdw_debugdir (int fd)
+__libdw_elfpath (int fd)
 {
   /* strlen ("/proc/self/fd/") = 14 + strlen (<MAXINT>) = 10 + 1 = 25.  */
   char devfdpath[25];
   sprintf (devfdpath, "/proc/self/fd/%u", fd);
-  char *fdpath = realpath (devfdpath, NULL);
-  char *fddir;
-  if (fdpath != NULL && fdpath[0] == '/'
-      && (fddir = strrchr (fdpath, '/')) != NULL)
-    {
-      *++fddir = '\0';
-      return fdpath;
-    }
-  return NULL;
+  return realpath (devfdpath, NULL);
+}
+
+
+void
+__libdw_set_debugdir (Dwarf *dbg)
+{
+  if (dbg->elfpath == NULL || dbg->elfpath[0] != '/')
+    return;
+  size_t dirlen = strrchr (dbg->elfpath, '/') - dbg->elfpath + 1;
+  dbg->debugdir = malloc (dirlen + 1);
+  if (dbg->debugdir == NULL)
+    return;
+  memcpy (dbg->debugdir, dbg->elfpath, dirlen);
+  dbg->debugdir[dirlen] = '\0';
 }
 
 
@@ -421,7 +424,10 @@ valid_p (Dwarf *result)
     }
 
   if (result != NULL)
-    result->debugdir = __libdw_debugdir (result->elf->fildes);
+    {
+      result->elfpath = __libdw_elfpath (result->elf->fildes);
+      __libdw_set_debugdir(result);
+    }
 
   return result;
 }

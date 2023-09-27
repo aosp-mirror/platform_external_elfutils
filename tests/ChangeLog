@@ -1,5 +1,11 @@
 2023-09-27  Omar Sandoval  <osandov@fb.com>
 
+	* dwarf-getmacros.c (mac): Add DW_MACRO_define_sup,
+	DW_MACRO_define_strx, DW_MACRO_undef_sup, and DW_MACRO_undef_strx
+	cases to opcode switch statement.
+
+2023-09-27  Omar Sandoval  <osandov@fb.com>
+
 	* run-varlocs.sh: Add entry PC to split units.
 
 2023-04-21  Frank Ch. Eigler <fche@redhat.com>

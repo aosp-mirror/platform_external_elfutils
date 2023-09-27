@@ -82,6 +82,8 @@ mac (Dwarf_Macro *macro, void *dbg)
 
     case DW_MACINFO_define:
     case DW_MACRO_define_strp:
+    case DW_MACRO_define_sup:
+    case DW_MACRO_define_strx:
       {
 	const char *value;
 	dwarf_macro_param2 (macro, NULL, &value);
@@ -91,6 +93,8 @@ mac (Dwarf_Macro *macro, void *dbg)
 
     case DW_MACINFO_undef:
     case DW_MACRO_undef_strp:
+    case DW_MACRO_undef_sup:
+    case DW_MACRO_undef_strx:
       break;
 
     default:

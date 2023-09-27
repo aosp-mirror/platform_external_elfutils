@@ -4,6 +4,9 @@
 	* dwarf_entrypc.c (dwarf_entrypc): Call dwarf_lowpc.
 	* dwarf_ranges.c (dwarf_ranges): Use skeleton ranges section for
 	skeleton units.
+	* dwarf_macro_param2.c (dwarf_macro_param2): Change form condition to
+	switch statement and add DW_FORM_line_strp, DW_FORM_strp_sup,
+	DW_FORM_strx, and DW_FORM_strx[1-4].
 
 2023-02-22  Mark Wielaard  <mark@klomp.org>
 

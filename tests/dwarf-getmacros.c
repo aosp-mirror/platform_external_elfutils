@@ -121,26 +121,57 @@ include (Dwarf *dbg, Dwarf_Off macoff, ptrdiff_t token)
       }
 }
 
+static void
+getmacros (Dwarf *dbg, Dwarf_Die *die, bool new_style)
+{
+  for (ptrdiff_t off = new_style ? DWARF_GETMACROS_START : 0;
+       (off = dwarf_getmacros (die, mac, dbg, off)); )
+    if (off == -1)
+      {
+	puts (dwarf_errmsg (-1));
+	break;
+      }
+}
+
 int
 main (int argc, char *argv[])
 {
   assert (argc >= 3);
   const char *name = argv[1];
-  ptrdiff_t cuoff = strtol (argv[2], NULL, 0);
   bool new_style = argc > 3;
 
   int fd = open (name, O_RDONLY);
   Dwarf *dbg = dwarf_begin (fd, DWARF_C_READ);
 
-  Dwarf_Die cudie_mem, *cudie = dwarf_offdie (dbg, cuoff, &cudie_mem);
-
-  for (ptrdiff_t off = new_style ? DWARF_GETMACROS_START : 0;
-       (off = dwarf_getmacros (cudie, mac, dbg, off)); )
-    if (off == -1)
-      {
-	puts (dwarf_errmsg (dwarf_errno ()));
-	break;
-      }
+  if (argv[2][0] == '\0')
+    {
+      Dwarf_CU *cu = NULL;
+      Dwarf_Die cudie, subdie;
+      uint8_t unit_type;
+      while (dwarf_get_units (dbg, cu, &cu, NULL,
+			      &unit_type, &cudie, &subdie) == 0)
+	{
+	  Dwarf_Die *die = (unit_type == DW_UT_skeleton
+			    ? &subdie : &cudie);
+	  if (! dwarf_hasattr (die, DW_AT_macro_info)
+	      && ! dwarf_hasattr (die, DW_AT_GNU_macros)
+	      && ! dwarf_hasattr (die, DW_AT_macros))
+	    continue;
+	  printf ("CU %s\n", dwarf_diename (die));
+	  getmacros (dbg, die, new_style);
+	}
+    }
+  else
+    {
+      ptrdiff_t cuoff = strtol (argv[2], NULL, 0);
+      Dwarf_Die cudie_mem, *cudie = dwarf_offdie (dbg, cuoff, &cudie_mem);
+      if (cudie == NULL)
+	{
+	  puts (dwarf_errmsg (-1));
+	  return 1;
+	}
+      getmacros (dbg, cudie, new_style);
+    }
 
   dwarf_end (dbg);
 

@@ -3,6 +3,9 @@
 	* dwarf-getmacros.c (mac): Add DW_MACRO_define_sup,
 	DW_MACRO_define_strx, DW_MACRO_undef_sup, and DW_MACRO_undef_strx
 	cases to opcode switch statement.
+	(getmacros): New function.
+	(main): If second argument is empty, call getmacros on every unit.
+	Otherwise, call getmacros on given unit.
 
 2023-09-27  Omar Sandoval  <osandov@fb.com>
 

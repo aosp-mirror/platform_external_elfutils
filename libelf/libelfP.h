@@ -514,6 +514,8 @@ extern Elf32_Shdr *__elf32_getshdr_rdlock (Elf_Scn *__scn) internal_function;
 extern Elf64_Shdr *__elf64_getshdr_rdlock (Elf_Scn *__scn) internal_function;
 extern Elf32_Shdr *__elf32_getshdr_wrlock (Elf_Scn *__scn) internal_function;
 extern Elf64_Shdr *__elf64_getshdr_wrlock (Elf_Scn *__scn) internal_function;
+extern Elf32_Chdr *__elf32_getchdr_wrlock (Elf_Scn *__scn) internal_function;
+extern Elf64_Chdr *__elf64_getchdr_wrlock (Elf_Scn *__scn) internal_function;
 extern Elf_Scn *__elf_getscn_internal (Elf *__elf, size_t __index)
      attribute_hidden;
 extern Elf_Scn *__elf_nextscn_internal (Elf *__elf, Elf_Scn *__scn)
@@ -522,6 +524,8 @@ extern int __elf_scnshndx_internal (Elf_Scn *__scn) attribute_hidden;
 extern Elf_Data *__elf_getdata_internal (Elf_Scn *__scn, Elf_Data *__data)
      attribute_hidden;
 extern Elf_Data *__elf_getdata_rdlock (Elf_Scn *__scn, Elf_Data *__data)
+     internal_function;
+extern Elf_Data *__elf_getdata_wrlock (Elf_Scn *__scn, Elf_Data *__data)
      internal_function;
 extern Elf_Data *__elf_rawdata_internal (Elf_Scn *__scn, Elf_Data *__data)
      attribute_hidden;

@@ -82,7 +82,10 @@ elf_end (Elf *elf)
       elf->state.ar.ar_sym = NULL;
 
       if (elf->state.ar.children != NULL)
-	return 0;
+	{
+	  rwlock_unlock(elf->lock);
+	  return 0;
+	}
     }
 
   /* Remove this structure from the children list.  */

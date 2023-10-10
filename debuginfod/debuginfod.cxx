@@ -1876,11 +1876,10 @@ handle_buildid_f_match (bool internal_req_t,
     }
   else
     {
-      std::string file = b_source0.substr(b_source0.find_last_of("/")+1, b_source0.length());
       add_mhd_response_header (r, "Content-Type", "application/octet-stream");
       add_mhd_response_header (r, "X-DEBUGINFOD-SIZE",
 			       to_string(s.st_size).c_str());
-      add_mhd_response_header (r, "X-DEBUGINFOD-FILE", file.c_str());
+      add_mhd_response_header (r, "X-DEBUGINFOD-FILE", b_source0.c_str());
       add_mhd_last_modified (r, s.st_mtime);
       if (verbose > 1)
 	obatched(clog) << "serving file " << b_source0 << " section=" << section << endl;
@@ -2164,14 +2163,12 @@ handle_buildid_r_match (bool internal_req_p,
         }
       else
         {
-          std::string file = b_source1.substr(b_source1.find_last_of("/")+1, b_source1.length());
           add_mhd_response_header (r, "Content-Type",
                                    "application/octet-stream");
           add_mhd_response_header (r, "X-DEBUGINFOD-SIZE",
                                    to_string(archive_entry_size(e)).c_str());
-          add_mhd_response_header (r, "X-DEBUGINFOD-ARCHIVE",
-                                   b_source0.c_str());
-          add_mhd_response_header (r, "X-DEBUGINFOD-FILE", file.c_str());
+          add_mhd_response_header (r, "X-DEBUGINFOD-ARCHIVE", b_source0.c_str());
+          add_mhd_response_header (r, "X-DEBUGINFOD-FILE", b_source1.c_str());
           add_mhd_last_modified (r, archive_entry_mtime(e));
           if (verbose > 1)
 	    obatched(clog) << "serving archive " << b_source0

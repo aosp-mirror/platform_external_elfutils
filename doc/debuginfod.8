@@ -304,18 +304,35 @@ Unknown buildid / request combinations result in HTTP error codes.
 This file service resemblance is intentional, so that an installation
 can take advantage of standard HTTP management infrastructure.
 
-Upon finding a file in an archive or simply in the database, some
-custom http headers are added to the response. For files in the
-database X-DEBUGINFOD-FILE and X-DEBUGINFOD-SIZE are added.
-X-DEBUGINFOD-FILE is simply the unescaped filename and
-X-DEBUGINFOD-SIZE is the size of the file. For files found in archives,
-in addition to X-DEBUGINFOD-FILE and X-DEBUGINFOD-SIZE,
-X-DEBUGINFOD-ARCHIVE is added.  X-DEBUGINFOD-ARCHIVE is the name of the
-archive the file was found in.
+For most queries, some custom http headers are added to the response,
+providing additional metadata about the buildid-related response.  For example:
 
-There are three requests.  In each case, the buildid is encoded as a
-lowercase hexadecimal string.  For example, for a program \fI/bin/ls\fP,
-look at the ELF note GNU_BUILD_ID:
+.SAMPLE
+% debuginfod-find -v debuginfo /bin/ls |& grep -i x-debuginfo
+x-debuginfod-size: 502024
+x-debuginfod-archive: /mnt/fedora_koji_prod/koji/packages/coreutils/9.3/4.fc39/x86_64/coreutils-debuginfo-9.3-4.fc39.x86_64.rpm
+x-debuginfod-file: /usr/lib/debug/usr/bin/ls-9.3-4.fc39.x86_64.debug
+.ESAMPLE
+
+.TP
+X-DEBUGINFOD-SIZE
+The size of the file, in bytes.  This may differ from the http Content-Length:
+field (if present), due to compression in transit.
+
+.TP
+X-DEBUGINFOD-FILE
+The full path name of the file related to the given buildid.
+
+.TP
+X-DEBUGINFOD-ARCHIVE
+The full path name of the archive that contained the above file, if any.
+
+
+
+
+There are a handful of buildid-related requests.  In each case, the
+buildid is encoded as a lowercase hexadecimal string.  For example,
+for a program \fI/bin/ls\fP, look at the ELF note GNU_BUILD_ID:
 
 .SAMPLE
 % readelf -n /bin/ls | grep -A4 build.id
@@ -391,8 +408,7 @@ contents of the section, not an ELF file.
 This endpoint returns a Prometheus formatted text/plain dump of a
 variety of statistics about the operation of the debuginfod server.
 The exact set of metrics and their meanings may change in future
-versions.  Caution: configuration information (path names, versions)
-may be disclosed.
+versions.
 
 .SH DATA MANAGEMENT
 
@@ -485,8 +501,16 @@ a denial-of-service in terms of RAM, CPU, disk I/O, or network I/O.
 If this is a problem, users are advised to install debuginfod with a
 HTTPS reverse-proxy front-end that enforces site policies for
 firewalling, authentication, integrity, authorization, and load
-control.  The \fI/metrics\fP webapi endpoint is probably not
-appropriate for disclosure to the public.
+control.
+
+Front-end proxies may elide sensitive path name components in
+X-DEBUGINFOD-FILE/ARCHIVE response headers.  For example, using Apache
+httpd's \fBmod_headers\fP, you can remove the entire directory name
+prefix:
+
+.SAMPLE
+Header edit x-debuginfod-archive ".*/" ""
+.ESAMPLE
 
 When relaying queries to upstream debuginfods, debuginfod \fBdoes not\fP
 include any particular security features.  It trusts that the binaries

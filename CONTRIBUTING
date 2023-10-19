@@ -52,8 +52,21 @@ or false name that misrepresents who you are.
 git commit --signoff will add such a Signed-off-by line at the end of
 the commit log message for you.
 
-The ideal patch contains a ChangeLog entry and a test case for the
-bug fixed or feature added.
+The ideal patch contains a ChangeLog entry for the commit message and
+a test case for the bug fixed or feature added.
+
+The commit message is expected to start with a one line summary of
+what the patch does, prefixed with the main subdir the patch applies
+to. e.g libelf: Rewind the elf_frob function bar definitions.
+
+Finally please include an ChangeLog entry explicitly listing the files
+and what changed in each of them in the commit message. This will help
+a reviewer understand which changes are expected (and which might be
+accidential). Try to follow the GNU Change Log style:
+https://www.gnu.org/prep/standards/html_node/Style-of-Change-Logs.html
+Note that elfutils previously maintained separate ChangeLog
+files. These are no longer used. All changes should be documented in
+the git commit message.
 
 The testsuite (make check) is expected to have zero failing tests.
 Do not knowingly add tests that FAIL. If there are architectures or
@@ -70,6 +83,22 @@ wrapper run-<testcase>.sh script how to regenerate the binary.
 After sending your patch to the mailinglist one of the committers
 to the project will review it, give feedback, and if perfect they
 will commit it for you.
+
+All patches sent to the mailing list are tracked at
+https://patchwork.sourceware.org/project/elfutils/list/
+
+To use this from the command line you can use git-pw
+https://patchwork.readthedocs.io/projects/git-pw/en/latest/
+
+For using it with git-pw use these .git/config settings:
+  [pw]
+    server = https://patchwork.sourceware.org/api/1.2/
+    project = elfutils
+    token = <hex-token>
+    states = committed,accepted,superseded,deferred,rejected,under-review
+
+If you would like to help maintain the pending patch list your
+patchwork account can be added as maintainer for the elfutils project.
 
 You can become a maintainer/committer yourself after you have provided
 at least a handful of accepted patches and agree to the guidelines in
@@ -101,6 +130,11 @@ yet, but should follow the above guidelines as much as possible and should
 be aimed at integration into master. For merging a branch into master
 the same process as above should be followed by posting the patches
 to the list first.
+
+Note that a branch starting with <nickname>/try... will be picked up
+by the Sourceware buildbot and can be used to test your patches before
+merging into the main branch:
+https://builder.sourceware.org/buildbot/#/builders?tags=elfutils-try
 
 committers/maintainers who repeatedly ignore the above guidelines,
 are hostile or offensive towards other committers or contributors,

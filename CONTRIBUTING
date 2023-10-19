@@ -45,7 +45,9 @@ then you just add a line saying
 
 Signed-off-by: Random J Developer <random@developer.example.org>
 
-using your real name (sorry, no pseudonyms or anonymous contributions.)
+using a known identity (sorry, no anonymous contributions.)
+The name you use as your identity should not be an anonymous id
+or false name that misrepresents who you are.
 
 git commit --signoff will add such a Signed-off-by line at the end of
 the commit log message for you.

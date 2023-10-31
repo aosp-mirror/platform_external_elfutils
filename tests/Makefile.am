@@ -419,7 +419,8 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-readelf-Dd.sh \
 	     testfile-s390x-hash-both.bz2 \
 	     run-readelf-gdb_index.sh testfilegdbindex5.bz2 \
-	     testfilegdbindex7.bz2 \
+	     testfilegdbindex7.bz2 testfilegdbindex9.bz2 \
+	     testfilegdbindex9-no-maininfo.bz2 \
 	     run-readelf-s.sh testfilebazdbg.bz2 testfilebazdyn.bz2 \
 	     testfilebazmin.bz2 testfilebazdbg.debug.bz2 testfilebazmdb.bz2 \
 	     testfilebaztab.bz2 testfilebasmin.bz2 testfilebaxmin.bz2 \

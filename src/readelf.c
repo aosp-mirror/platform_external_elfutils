@@ -11539,8 +11539,9 @@ print_gdb_index_section (Dwfl_Module *dwflmod, Ebl *ebl,
   // hash used for generating the table.  Version 6 contains symbols
   // for inlined functions, older versions didn't.  Version 7 adds
   // symbol kinds.  Version 8 just indicates that it correctly includes
-  // TUs for symbols.
-  if (vers < 4 || vers > 8)
+  // TUs for symbols.  Version 9 adds shortcut table for information
+  // regarding the main function.
+  if (vers < 4 || vers > 9)
     {
       printf (_("  unknown version, cannot parse section\n"));
       return;
@@ -11577,6 +11578,17 @@ print_gdb_index_section (Dwfl_Module *dwflmod, Ebl *ebl,
   readp += 4;
   if (unlikely (readp + 4 > dataend))
     goto invalid_data;
+
+  uint32_t shortcut_off = 0;
+  if (vers >= 9)
+    {
+      shortcut_off = read_4ubyte_unaligned (dbg, readp);
+      printf (_(" shortcut offset: %#" PRIx32 "\n"), shortcut_off);
+
+      readp += 4;
+      if (unlikely (readp + 4 > dataend))
+	goto invalid_data;
+    }
 
   uint32_t const_off = read_4ubyte_unaligned (dbg, readp);
   printf (_(" constant offset: %#" PRIx32 "\n"), const_off);
@@ -11675,8 +11687,19 @@ print_gdb_index_section (Dwfl_Module *dwflmod, Ebl *ebl,
   if (const_off >= data->d_size)
     goto invalid_data;
 
+  const unsigned char *shortcut_start = NULL;
+  if (vers >= 9)
+    {
+      if (shortcut_off >= data->d_size)
+	goto invalid_data;
+
+      shortcut_start = data->d_buf + shortcut_off;
+      nextp = shortcut_start;
+    }
+  else
+    nextp = const_start;
+
   readp = data->d_buf + sym_off;
-  nextp = const_start;
   size_t sym_nr = (nextp - readp) / 8;
 
   printf (_("\n Symbol table at offset %#" PRIx32
@@ -11750,6 +11773,49 @@ print_gdb_index_section (Dwfl_Module *dwflmod, Ebl *ebl,
 	}
       n++;
     }
+
+  if (vers < 9)
+    return;
+
+  if (unlikely (shortcut_start == NULL))
+    goto invalid_data;
+
+  readp = shortcut_start;
+  nextp = const_start;
+  size_t shortcut_nr = (nextp - readp) / 4;
+
+  if (unlikely (shortcut_nr != 2))
+    goto invalid_data;
+
+  printf (_("\nShortcut table at offset %#" PRIx32 " contains %zu slots:\n"),
+	  shortcut_off, shortcut_nr);
+
+  uint32_t lang = read_4ubyte_unaligned (dbg, readp);
+  readp += 4;
+
+  /* Include the hex number of LANG in the output if the language
+     is unknown.  */
+  const char *lang_str = dwarf_lang_string (lang);
+  lang_str = string_or_unknown (lang_str, lang, DW_LANG_lo_user,
+				DW_LANG_hi_user, true);
+
+  printf (_("Language of main: %s\n"), lang_str);
+  printf (_("Name of main: "));
+
+  if (lang != 0)
+    {
+      uint32_t name = read_4ubyte_unaligned (dbg, readp);
+      readp += 4;
+      const unsigned char *sym = const_start + name;
+
+      if (unlikely ((size_t) (dataend - const_start) < name
+		    || memchr (sym, '\0', dataend - sym) == NULL))
+	goto invalid_data;
+
+      printf ("%s\n", sym);
+    }
+  else
+    printf ("<unknown>\n");
 }
 
 /* Returns true and sets split DWARF CU id if there is a split compile

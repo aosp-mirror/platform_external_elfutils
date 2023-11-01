@@ -568,7 +568,9 @@ header_callback (char * buffer, size_t size, size_t numitems, void * userdata)
   struct handle_data *data = (struct handle_data *) userdata;
   if (size != 1)
     return 0;
-  if (data->client && data->client->verbose_fd >= 0)
+  if (data->client
+      && data->client->verbose_fd >= 0
+      && numitems > 2)
     dprintf (data->client->verbose_fd, "header %.*s", (int)numitems, buffer);
   // Some basic checks to ensure the headers received are of the expected format
   if (strncasecmp(buffer, "X-DEBUGINFOD", 11)

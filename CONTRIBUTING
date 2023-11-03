@@ -127,7 +127,7 @@ mailinglist that the patch has been pushed.
 committers may also create git branches starting with <nickname>/...
 patches on these branches are works in progress, so might not be perfect
 yet, but should follow the above guidelines as much as possible and should
-be aimed at integration into master. For merging a branch into master
+be aimed at integration into main. For merging a branch into main
 the same process as above should be followed by posting the patches
 to the list first.
 

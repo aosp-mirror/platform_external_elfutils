@@ -247,6 +247,7 @@ fi
 %{_bindir}/eu-ranlib
 %{_bindir}/eu-readelf
 %{_bindir}/eu-size
+%{_bindir}/eu-srcfiles
 %{_bindir}/eu-stack
 %{_bindir}/eu-strings
 %{_bindir}/eu-strip

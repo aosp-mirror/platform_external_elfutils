@@ -77,6 +77,7 @@ __libdw_getabbrev (Dwarf *dbg, struct Dwarf_CU *cu, Dwarf_Off offset,
 			      + dbg->sectiondata[IDX_debug_abbrev]->d_size);
   const unsigned char *start_abbrevp = abbrevp;
   unsigned int code;
+  // We start off with abbrevp at offset, which is checked above.
   get_uleb128 (code, abbrevp, end);
 
   /* Check whether this code is already in the hash table.  */

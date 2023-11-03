@@ -34,7 +34,7 @@
 #include <stdlib.h>
 
 #include "libasmP.h"
-#include "../libebl/libeblP.h"
+#include "libeblP.h"
 
 
 DisasmCtx_t *

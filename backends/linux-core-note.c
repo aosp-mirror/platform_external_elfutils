@@ -239,6 +239,7 @@ EBLHOOK(core_note) (const GElf_Nhdr *nhdr, const char *name,
 	return 0;
       *regs_offset = 0;
       *nregloc = 0;
+      *reglocs = NULL;
       *nitems = 1;
       *items = vmcoreinfo_items;
       return 1;

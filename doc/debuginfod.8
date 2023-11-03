@@ -174,6 +174,7 @@ interrupting a groom pass (if any).
 .B "\-r"
 Apply the -I and -X during groom cycles, so that files excluded by the regexes are removed from the index. These parameters are in addition to what normally qualifies a file for grooming, not a replacement.
 
+.TP
 .B "\-g SECONDS" "\-\-groom\-time=SECONDS"
 Set the groom time for the index database.  This is the amount of time
 the grooming thread will wait after finishing a grooming pass before
@@ -202,8 +203,9 @@ do maximal-grooming.  See also the \fIDATA MANAGEMENT\fP section.
 Set the concurrency limit for the scanning queue threads, which work
 together to process archives & files located by the traversal thread.
 This important for controlling CPU-intensive operations like parsing
-an ELF file and especially decompressing archives.  The default is the
-number of processors on the system; the minimum is 1.
+an ELF file and especially decompressing archives.  The default is
+related to the number of processors on the system and other
+constraints; the minimum is 1.
 
 .TP
 .B "\-C" "\-C=NUM" "\-\-connection\-pool" "\-\-connection\-pool=NUM"
@@ -216,9 +218,9 @@ no option, \-C	use a fixed thread pool sized automatically
 \-C=NUM	use a fixed thread pool sized NUM, minimum 2
 .TE
 
-The first mode is a simple and safe configuration based on the number
-of processors. The second mode is suitable for tuned load-limiting
-configurations facing unruly traffic.
+The first mode is a simple and safe configuration related to the
+number of processors and other constraints. The second mode is
+suitable for tuned load-limiting configurations facing unruly traffic.
 
 .TP
 .B "\-L"
@@ -370,7 +372,7 @@ extract the contents of an ELF/DWARF section named SECTION from the
 debuginfo file matching BUILDID.  If the debuginfo file can't be found
 or the section has type SHT_NOBITS, then the server will attempt to extract
 the section from the executable matching BUILDID.  If the section is
-succesfully extracted then this request results in a binary object
+successfully extracted then this request results in a binary object
 of the section's contents.  Note that this result is the raw binary
 contents of the section, not an ELF file.
 

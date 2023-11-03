@@ -102,7 +102,8 @@ endif
 $(LIBDEBUGINFOD_SONAME): $(srcdir)/libdebuginfod.map $(libdebuginfod_so_LIBS)
 	$(AM_V_CCLD)$(LINK) $(dso_LDFLAGS) -o $@ \
 		-Wl,--soname,$(LIBDEBUGINFOD_SONAME) \
-		-Wl,--version-script,$<,--no-undefined \
+		-Wl,--version-script,$< \
+		$(NO_UNDEFINED) \
 		-Wl,--whole-archive $(libdebuginfod_so_LIBS) -Wl,--no-whole-archive \
 		$(libdebuginfod_so_LDLIBS)
 	@$(textrel_check)

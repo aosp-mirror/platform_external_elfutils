@@ -33,7 +33,7 @@
 #include <string.h>
 
 #include "libasmP.h"
-#include "../libebl/libeblP.h"
+#include "libeblP.h"
 
 
 struct symtoken

@@ -1,3 +1,39 @@
+2023-02-10  Mark Wielaard  <mark@klomp.org>
+
+	* varlocs.c (print_expr): Handle DW_OP_GNU_uninit.
+
+2023-02-07  Mark Wielaard  <mark@klomp.org>
+
+	* tests/funcretval.c (handle_function): Check for
+	DW_TAG_unspecified_type.
+
+2023-02-03  Mark Wielaard  <mark@klomp.org>
+
+	* run-addr2line-C-test.sh: Check ELFUTILS_DISABLE_DEMANGLE.
+
+2023-01-22  Mark Wielaard  <mark@klomp.org>
+
+	* testfile-inlines-lto.bz2: New testfile.
+	* run-addr2line-i-test.sh: Add new lto inlines test.
+	* Makefile.am (EXTRA_DIST): Add testfile-inlines-lto.bz2.
+
+2023-01-19  Mark Wielaard  <mark@klomp.org>
+
+	* run-addr2line-C-test.sh: New test.
+	* Makefile.am (TESTS): Add run-addr2line-C-test.sh.
+	(EXTRA_DIST): Likewise.
+
+2023-01-19  Mark Wielaard  <mark@klomp.org>
+
+	* run-debuginfod-query-retry.sh: Use libdebuginfod.so.1 instead
+	of /bin/sh as test file.
+
+2022-12-21  Shahab Vahedi  <shahab@synopsys.email>
+
+	* hello_arc_hs4.ko.bz2: New testfile.
+	* run-strip-reloc.sh: Add ARC HS4 test.
+	* Makefile.am (EXTRA_DIST): Add hello_arc_hs4.ko.bz2.
+
 2022-11-01  Aaron Merey  <amerey@redhat.com>
 
 	* run-debuginfod-section.sh (RPM_BUILDID): Use buildid from non-zstd

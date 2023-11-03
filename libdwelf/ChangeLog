@@ -1,3 +1,7 @@
+2022-12-20  Mark Wielaard  <mark@klomp.org>
+
+	* libdwelfP.h: Include libdwP.h.
+
 2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
 
 	* dwelf_elf_begin.c: Don't include unistd.h.

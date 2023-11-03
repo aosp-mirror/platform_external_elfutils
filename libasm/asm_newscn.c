@@ -41,19 +41,25 @@
 
 
 /* Memory for the default pattern.  The type uses a flexible array
-   which does work well with a static initializer.  So we play some
-   dirty tricks here.  */
-static const struct
+   which does work well with a static initializer.  Work around this by
+   wrapping it in a union, whose second member is a char array 1 byte larger
+   than struct FillPattern.  According to 6.7.9, this does what we need:
+
+        If an object that has static or thread storage duration is not
+        initialized explicitly, then ... if it is a union, the first named
+        member is initialized (recursively) according to these rules, and
+        any padding is initialized to zero bits.  */
+
+static const union
 {
   struct FillPattern pattern;
-  char zero;
+  char zeroes[sizeof(struct FillPattern) + 1];
 } xdefault_pattern =
   {
     .pattern =
     {
       .len = 1
     },
-    .zero = '\0'
   };
 const struct FillPattern *__libasm_default_pattern = &xdefault_pattern.pattern;
 

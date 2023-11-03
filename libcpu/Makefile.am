@@ -40,7 +40,7 @@ AM_YFLAGS = -p$(<F:parse.y=)
 
 noinst_LIBRARIES = libcpu.a libcpu_pic.a
 
-noinst_HEADERS = i386_dis.h x86_64_dis.h
+noinst_HEADERS = i386_dis.h i386_mne.h x86_64_dis.h
 
 libcpu_a_SOURCES = i386_disasm.c x86_64_disasm.c bpf_disasm.c riscv_disasm.c
 
@@ -92,7 +92,6 @@ libeu = ../lib/libeu.a
 i386_lex_CFLAGS = -Wno-unused-label -Wno-unused-function -Wno-sign-compare \
 		  -Wno-implicit-fallthrough
 i386_parse.o: i386_parse.c i386.mnemonics
-i386_parse_CFLAGS = -DNMNES="`wc -l < i386.mnemonics`"
 i386_lex.o: i386_parse.h
 i386_gendis_LDADD = $(libeu) -lm $(obstack_LIBS)
 

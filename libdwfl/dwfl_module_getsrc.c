@@ -31,7 +31,7 @@
 #endif
 
 #include "libdwflP.h"
-#include "../libdw/libdwP.h"
+#include "libdwP.h"
 
 Dwfl_Line *
 dwfl_module_getsrc (Dwfl_Module *mod, Dwarf_Addr addr)

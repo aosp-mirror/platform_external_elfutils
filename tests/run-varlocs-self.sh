@@ -17,6 +17,11 @@
 
 . $srcdir/test-subr.sh
 
+if test -n "$ELFUTILS_MEMORY_SANITIZER"; then
+  echo "binaries linked with memory sanitizer are too big"
+  exit 77
+fi
+
 # Make sure varlocs doesn't crash, doesn't trigger self-check/asserts
 # or leaks running under valgrind.
 testrun_on_self_exe ${abs_top_builddir}/tests/varlocs -e

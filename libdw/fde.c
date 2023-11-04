@@ -104,9 +104,12 @@ intern_fde (Dwarf_CFI *cache, const Dwarf_FDE *entry)
       /* The CIE augmentation says the FDE has a DW_FORM_block
 	 before its actual instruction stream.  */
       Dwarf_Word len;
+      if (fde->instructions >= fde->instructions_end)
+	goto invalid;
       get_uleb128 (len, fde->instructions, fde->instructions_end);
       if ((Dwarf_Word) (fde->instructions_end - fde->instructions) < len)
 	{
+	invalid:
 	  free (fde);
 	  __libdw_seterrno (DWARF_E_INVALID_DWARF);
 	  return NULL;

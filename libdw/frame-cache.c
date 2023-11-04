@@ -30,7 +30,7 @@
 # include <config.h>
 #endif
 
-#include "../libebl/libebl.h"
+#include "libebl.h"
 #include "cfi.h"
 #include <search.h>
 #include <stdlib.h>

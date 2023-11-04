@@ -364,7 +364,7 @@ process_chunk_mb (const char *fname, const unsigned char *buf, off_t to,
 
 	      /* There is no sane way of printing the string.  If we
 		 assume the file data is encoded in UCS-2/UTF-16 or
-		 UCS-4/UTF-32 respectively we could covert the string.
+		 UCS-4/UTF-32 respectively we could convert the string.
 		 But there is no such guarantee.  */
 	      fwrite_unlocked (start, 1, buf - start, stdout);
 	      putc_unlocked ('\n', stdout);

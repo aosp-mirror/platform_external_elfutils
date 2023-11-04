@@ -29,7 +29,7 @@
 
 #include <config.h>
 #include "libdwflP.h"
-#include "../libdw/memory-access.h"
+#include "memory-access.h"
 #include "system.h"
 
 #include <fcntl.h>

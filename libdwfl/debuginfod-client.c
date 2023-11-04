@@ -35,6 +35,8 @@
 
 #ifdef ENABLE_LIBDEBUGINFOD
 
+#include "debuginfod.h"
+
 #include <pthread.h>
 #include <dlfcn.h>
 

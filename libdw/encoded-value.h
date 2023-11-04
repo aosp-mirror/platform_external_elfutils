@@ -32,7 +32,7 @@
 #include <dwarf.h>
 #include <stdlib.h>
 #include "libdwP.h"
-#include "../libelf/common.h"
+#include "common.h"
 
 
 /* Returns zero if the value is omitted, the encoding is unknown or
@@ -196,10 +196,14 @@ read_encoded_value (const Dwarf_CFI *cache, uint8_t encoding,
       break;
 
     case DW_EH_PE_uleb128:
+      if (*p >= endp)
+	goto invalid_data;
       get_uleb128 (value, *p, endp);
       break;
 
     case DW_EH_PE_sleb128:
+      if (*p >= endp)
+	goto invalid_data;
       get_sleb128 (value, *p, endp);
       break;
 

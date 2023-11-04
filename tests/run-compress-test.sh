@@ -61,6 +61,34 @@ testrun_elfcompress_file()
     echo "uncompress $elfcompressedfile -> $elfuncompressedfile"
     testrun ${abs_top_builddir}/src/elfcompress -v -t none -o ${elfuncompressedfile} ${elfcompressedfile}
     testrun ${abs_top_builddir}/src/elfcmp ${uncompressedfile} ${elfuncompressedfile}
+
+    if test -z "$ELFUTILS_ZSTD"; then
+      return;
+    fi
+
+    outputfile="${infile}.gabi.zstd"
+    tempfiles "$outputfile"
+    echo "zstd compress $elfcompressedfile -> $outputfile"
+    testrun ${abs_top_builddir}/src/elfcompress -v -t zstd -o ${outputfile} ${elfcompressedfile}
+    testrun ${abs_top_builddir}/src/elfcmp ${uncompressedfile} ${outputfile}
+    echo "checking compressed section header" $outputfile
+    testrun ${abs_top_builddir}/src/readelf -Sz ${outputfile} | grep "ELF ZSTD" >/dev/null
+
+    zstdfile="${infile}.zstd"
+    tempfiles "$zstdfile"
+    echo "zstd compress $uncompressedfile -> $zstdfile"
+    testrun ${abs_top_builddir}/src/elfcompress -v -t zstd -o ${zstdfile} ${elfuncompressedfile}
+    testrun ${abs_top_builddir}/src/elfcmp ${uncompressedfile} ${zstdfile}
+    echo "checking compressed section header" $zstdfile
+    testrun ${abs_top_builddir}/src/readelf -Sz ${zstdfile} | grep "ELF ZSTD" >/dev/null
+
+    zstdgnufile="${infile}.zstd.gnu"
+    tempfiles "$zstdgnufile"
+    echo "zstd re-compress to GNU ZLIB $zstdfile -> $zstdgnufile"
+    testrun ${abs_top_builddir}/src/elfcompress -v -t zlib-gnu -o ${zstdgnufile} ${zstdfile}
+    testrun ${abs_top_builddir}/src/elfcmp ${uncompressedfile} ${zstdgnufile}
+    echo "checking .zdebug section name" $zstdgnufile
+    testrun ${abs_top_builddir}/src/readelf -S ${zstdgnufile} | grep ".zdebug" >/dev/null
 }
 
 testrun_elfcompress()

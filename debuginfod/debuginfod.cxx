@@ -32,6 +32,18 @@
   #include "config.h"
 #endif
 
+// #define _GNU_SOURCE
+#ifdef HAVE_SCHED_H
+extern "C" {
+#include <sched.h>
+}
+#endif
+#ifdef HAVE_SYS_RESOURCE_H
+extern "C" {
+#include <sys/resource.h>
+}
+#endif
+
 extern "C" {
 #include "printversion.h"
 #include "system.h"
@@ -336,7 +348,7 @@ static const char DEBUGINFOD_SQLITE_CLEANUP_DDL[] =
 
 
 /* Name and version of program.  */
-/* ARGP_PROGRAM_VERSION_HOOK_DEF = print_version; */ // not this simple for C++
+ARGP_PROGRAM_VERSION_HOOK_DEF = print_version;
 
 /* Bug report address.  */
 ARGP_PROGRAM_BUG_ADDRESS_DEF = PACKAGE_BUGREPORT;
@@ -398,6 +410,8 @@ static const char args_doc[] = "[PATH ...]";
 /* Prototype for option handler.  */
 static error_t parse_opt (int key, char *arg, struct argp_state *state);
 
+static unsigned default_concurrency();
+
 /* Data structure to communicate with argp functions.  */
 static struct argp argp =
   {
@@ -418,7 +432,7 @@ static unsigned http_port = 8002;
 static unsigned rescan_s = 300;
 static unsigned groom_s = 86400;
 static bool maxigroom = false;
-static unsigned concurrency = std::thread::hardware_concurrency() ?: 1;
+static unsigned concurrency = default_concurrency();
 static int connection_pool = 0;
 static set<string> source_paths;
 static bool scan_files = false;
@@ -2249,85 +2263,82 @@ handle_buildid (MHD_Connection* conn,
 
   int fd = -1;
   debuginfod_client *client = debuginfod_pool_begin ();
-  if (client != NULL)
+  if (client == NULL)
+    throw libc_exception(errno, "debuginfod client pool alloc");
+  defer_dtor<debuginfod_client*,void> client_closer (client, debuginfod_pool_end);
+  
+  debuginfod_set_progressfn (client, & debuginfod_find_progress);
+
+  if (conn)
     {
-      debuginfod_set_progressfn (client, & debuginfod_find_progress);
+      // Transcribe incoming User-Agent:
+      string ua = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "User-Agent") ?: "";
+      string ua_complete = string("User-Agent: ") + ua;
+      debuginfod_add_http_header (client, ua_complete.c_str());
+      
+      // Compute larger XFF:, for avoiding info loss during
+      // federation, and for future cyclicity detection.
+      string xff = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "X-Forwarded-For") ?: "";
+      if (xff != "")
+        xff += string(", "); // comma separated list
+      
+      unsigned int xff_count = 0;
+      for (auto&& i : xff){
+        if (i == ',') xff_count++;
+      }
 
-      if (conn)
-        {
-          // Transcribe incoming User-Agent:
-          string ua = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "User-Agent") ?: "";
-          string ua_complete = string("User-Agent: ") + ua;
-          debuginfod_add_http_header (client, ua_complete.c_str());
-
-          // Compute larger XFF:, for avoiding info loss during
-          // federation, and for future cyclicity detection.
-          string xff = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "X-Forwarded-For") ?: "";
-          if (xff != "")
-            xff += string(", "); // comma separated list
-
-          unsigned int xff_count = 0;
-          for (auto&& i : xff){
-            if (i == ',') xff_count++;
-          }
-
-          // if X-Forwarded-For: exceeds N hops,
-          // do not delegate a local lookup miss to upstream debuginfods.
-          if (xff_count >= forwarded_ttl_limit)
-            throw reportable_exception(MHD_HTTP_NOT_FOUND, "not found, --forwared-ttl-limit reached \
+      // if X-Forwarded-For: exceeds N hops,
+      // do not delegate a local lookup miss to upstream debuginfods.
+      if (xff_count >= forwarded_ttl_limit)
+        throw reportable_exception(MHD_HTTP_NOT_FOUND, "not found, --forwared-ttl-limit reached \
 and will not query the upstream servers");
 
-          // Compute the client's numeric IP address only - so can't merge with conninfo()
-          const union MHD_ConnectionInfo *u = MHD_get_connection_info (conn,
-                                                                       MHD_CONNECTION_INFO_CLIENT_ADDRESS);
-          struct sockaddr *so = u ? u->client_addr : 0;
-          char hostname[256] = ""; // RFC1035
-          if (so && so->sa_family == AF_INET) {
-            (void) getnameinfo (so, sizeof (struct sockaddr_in), hostname, sizeof (hostname), NULL, 0,
-                                NI_NUMERICHOST);
-          } else if (so && so->sa_family == AF_INET6) {
-            struct sockaddr_in6* addr6 = (struct sockaddr_in6*) so;
-            if (IN6_IS_ADDR_V4MAPPED(&addr6->sin6_addr)) {
-              struct sockaddr_in addr4;
-              memset (&addr4, 0, sizeof(addr4));
-              addr4.sin_family = AF_INET;
-              addr4.sin_port = addr6->sin6_port;
-              memcpy (&addr4.sin_addr.s_addr, addr6->sin6_addr.s6_addr+12, sizeof(addr4.sin_addr.s_addr));
-              (void) getnameinfo ((struct sockaddr*) &addr4, sizeof (addr4),
-                                  hostname, sizeof (hostname), NULL, 0,
-                                  NI_NUMERICHOST);
-            } else {
-              (void) getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname), NULL, 0,
-                                  NI_NUMERICHOST);
-            }
-          }
-          
-          string xff_complete = string("X-Forwarded-For: ")+xff+string(hostname);
-          debuginfod_add_http_header (client, xff_complete.c_str());
+      // Compute the client's numeric IP address only - so can't merge with conninfo()
+      const union MHD_ConnectionInfo *u = MHD_get_connection_info (conn,
+                                                                   MHD_CONNECTION_INFO_CLIENT_ADDRESS);
+      struct sockaddr *so = u ? u->client_addr : 0;
+      char hostname[256] = ""; // RFC1035
+      if (so && so->sa_family == AF_INET) {
+        (void) getnameinfo (so, sizeof (struct sockaddr_in), hostname, sizeof (hostname), NULL, 0,
+                            NI_NUMERICHOST);
+      } else if (so && so->sa_family == AF_INET6) {
+        struct sockaddr_in6* addr6 = (struct sockaddr_in6*) so;
+        if (IN6_IS_ADDR_V4MAPPED(&addr6->sin6_addr)) {
+          struct sockaddr_in addr4;
+          memset (&addr4, 0, sizeof(addr4));
+          addr4.sin_family = AF_INET;
+          addr4.sin_port = addr6->sin6_port;
+          memcpy (&addr4.sin_addr.s_addr, addr6->sin6_addr.s6_addr+12, sizeof(addr4.sin_addr.s_addr));
+          (void) getnameinfo ((struct sockaddr*) &addr4, sizeof (addr4),
+                              hostname, sizeof (hostname), NULL, 0,
+                              NI_NUMERICHOST);
+        } else {
+          (void) getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname), NULL, 0,
+                              NI_NUMERICHOST);
         }
-
-      if (artifacttype == "debuginfo")
-	fd = debuginfod_find_debuginfo (client,
-					(const unsigned char*) buildid.c_str(),
-					0, NULL);
-      else if (artifacttype == "executable")
-	fd = debuginfod_find_executable (client,
-					 (const unsigned char*) buildid.c_str(),
-					 0, NULL);
-      else if (artifacttype == "source")
-	fd = debuginfod_find_source (client,
-				     (const unsigned char*) buildid.c_str(),
-				     0, suffix.c_str(), NULL);
-      else if (artifacttype == "section")
-	fd = debuginfod_find_section (client,
-				      (const unsigned char*) buildid.c_str(),
-				      0, section.c_str(), NULL);
-
+      }
+          
+      string xff_complete = string("X-Forwarded-For: ")+xff+string(hostname);
+      debuginfod_add_http_header (client, xff_complete.c_str());
     }
-  else
-    fd = -errno; /* Set by debuginfod_begin.  */
-  debuginfod_pool_end (client);
-
+  
+  if (artifacttype == "debuginfo")
+    fd = debuginfod_find_debuginfo (client,
+                                    (const unsigned char*) buildid.c_str(),
+                                    0, NULL);
+  else if (artifacttype == "executable")
+    fd = debuginfod_find_executable (client,
+                                     (const unsigned char*) buildid.c_str(),
+                                     0, NULL);
+  else if (artifacttype == "source")
+    fd = debuginfod_find_source (client,
+                                 (const unsigned char*) buildid.c_str(),
+                                 0, suffix.c_str(), NULL);
+  else if (artifacttype == "section")
+    fd = debuginfod_find_section (client,
+                                  (const unsigned char*) buildid.c_str(),
+                                  0, section.c_str(), NULL);
+  
   if (fd >= 0)
     {
       if (conn != 0)
@@ -4085,6 +4096,47 @@ static void sqlite3_sharedprefix_fn (sqlite3_context* c, int argc, sqlite3_value
 }
 
 
+static unsigned
+default_concurrency() // guaranteed >= 1
+{
+  // Prior to PR29975 & PR29976, we'd just use this: 
+  unsigned sth = std::thread::hardware_concurrency();
+  // ... but on many-CPU boxes, admins or distros may throttle
+  // resources in such a way that debuginfod would mysteriously fail.
+  // So we reduce the defaults:
+
+  unsigned aff = 0;
+#ifdef HAVE_SCHED_GETAFFINITY
+  {
+    int ret;
+    cpu_set_t mask;
+    CPU_ZERO(&mask);
+    ret = sched_getaffinity(0, sizeof(mask), &mask);
+    if (ret == 0)
+      aff = CPU_COUNT(&mask);
+  }
+#endif
+  
+  unsigned fn = 0;
+#ifdef HAVE_GETRLIMIT
+  {
+    struct rlimit rlim;
+    int rc = getrlimit(RLIMIT_NOFILE, &rlim);
+    if (rc == 0)
+      fn = max((rlim_t)1, (rlim.rlim_cur - 100) / 4);
+    // at least 2 fds are used by each listener thread etc.
+    // plus a bunch to account for shared libraries and such
+  }
+#endif
+
+  unsigned d = min(max(sth, 1U),
+                   min(max(aff, 1U),
+                       max(fn, 1U)));
+  return d;
+}
+
+
+
 int
 main (int argc, char *argv[])
 {
@@ -4119,7 +4171,6 @@ main (int argc, char *argv[])
 
   /* Parse and process arguments.  */
   int remaining;
-  argp_program_version_hook = print_version; // this works
   (void) argp_parse (&argp, argc, argv, ARGP_IN_ORDER, &remaining, NULL);
   if (remaining != argc)
       error (EXIT_FAILURE, 0,
@@ -4210,7 +4261,7 @@ main (int argc, char *argv[])
   /* If '-C' wasn't given or was given with no arg, pick a reasonable default
      for the number of worker threads.  */
   if (connection_pool == 0)
-    connection_pool = std::thread::hardware_concurrency() * 2 ?: 2;
+    connection_pool = default_concurrency();
 
   /* Note that MHD_USE_EPOLL and MHD_USE_THREAD_PER_CONNECTION don't
      work together.  */

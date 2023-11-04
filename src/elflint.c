@@ -329,7 +329,8 @@ static const int valid_e_machine[] =
     EM_CRIS, EM_JAVELIN, EM_FIREPATH, EM_ZSP, EM_MMIX, EM_HUANY, EM_PRISM,
     EM_AVR, EM_FR30, EM_D10V, EM_D30V, EM_V850, EM_M32R, EM_MN10300,
     EM_MN10200, EM_PJ, EM_OPENRISC, EM_ARC_A5, EM_XTENSA, EM_ALPHA,
-    EM_TILEGX, EM_TILEPRO, EM_AARCH64, EM_BPF, EM_RISCV, EM_CSKY
+    EM_TILEGX, EM_TILEPRO, EM_AARCH64, EM_BPF, EM_RISCV, EM_CSKY, EM_LOONGARCH,
+    EM_ARCV2
   };
 #define nvalid_e_machine \
   (sizeof (valid_e_machine) / sizeof (valid_e_machine[0]))
@@ -3568,9 +3569,12 @@ section [%2d] '%s': offset %zu: attribute subsection has unexpected tag %u\n"),
 		    const unsigned char *r = chunk;
 		    if (tag == 32 || (tag & 1) == 0)
 		      {
+			if (r >= q)
+			  goto invalid_uleb;
 			get_uleb128 (value, r, q);
 			if (r > q)
 			  {
+			  invalid_uleb:
 			    ERROR (_("\
 section [%2d] '%s': offset %zu: endless ULEB128 in attribute tag\n"),
 				   idx, section_name (ebl, idx), buffer_pos (data, chunk));

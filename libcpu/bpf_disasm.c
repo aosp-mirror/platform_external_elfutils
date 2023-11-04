@@ -37,8 +37,8 @@
 #include <inttypes.h>
 #include "bpf.h"
 
-#include "../libelf/common.h"
-#include "../libebl/libeblP.h"
+#include "common.h"
+#include "libeblP.h"
 
 static const char class_string[8][8] = {
   [BPF_LD]    = "ld",

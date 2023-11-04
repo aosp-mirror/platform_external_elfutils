@@ -1,3 +1,63 @@
+2023-02-22  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_getscopes.c (origin_match): Don't free a->scopes.
+	(dwarf_getscopes): Free a->scopes on error.
+
+2023-02-20  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_begin_elf.c (check_section): Use elf_rawdata.
+
+2023-02-14  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_getlocation.c (__libdw_intern_expression): Correct check
+	for deref_type.
+
+2023-02-10  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_getlocation.c (__libdw_intern_expression): Handle
+	DW_OP_GNU_uninit.
+
+2023-02-12  Mark Wielaard  <mark@klomp.org>
+
+	* cfi.c (execute_cfi): Add cfi_asser before reading second lib128.
+	* dwarf_chld.c (__libdw_find_attr): Check readp >= endp before
+	calling get_uleb128.
+	* dwarf_frame_register.c (dwarf_frame_register): Likewise for
+	p >= end.
+	* dwarf_getabbrev.c (__libdw_getabbrev): Add comment about check.
+	* dwarf_getlocation.c (__libdw_intern_expression): Update check to
+	account for both the number and uleb128.
+	* encoded-value.h (read_encoded_value): Check p >= end for
+	DW_EH_PE_(u|s)leb128.
+	* fde.c (intern_fde): Check len can be read as uleb128.
+	* libdw_form.c (__libdw_form_val_compute_len): Check valp >= endp
+	before get_uleb128.
+
+2023-01-22  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_getscopes.c (pc_record): Return nscopes when done.
+	(dwarf_getscopes): Call __libdw_visit_scopes with
+	inlined_origin CU.
+
+2022-12-20  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (AM_CPPFLAGS): Add -I$(srcdir)/../libebl.
+	* cfi.c: Include libebl.h.
+	* encoded-value.h: Likewise.
+	* frame-cache.h: Likewise.
+
+2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* memory-access.h (get_uleb128_step): Use __typeof.
+	(get_sleb128_step): Likewise.
+	(__libdw_get_sleb128) Likewise.
+	(__libdw_get_sleb128_unchecked): Likewise.
+
+2022-11-03  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_next_cfi.c (dwarf_next_cfi): Don't dereference and assign
+	bytes.
+
 2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
 
 	* dwarf_begin_elf.h: Don't include unistd.h and endian.h.

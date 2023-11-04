@@ -31,7 +31,7 @@
 #endif
 
 #include "libdwflP.h"
-#include "../libdw/libdwP.h"
+#include "libdwP.h"
 
 const char *
 dwfl_lineinfo (Dwfl_Line *line, Dwarf_Addr *addr, int *linep, int *colp,

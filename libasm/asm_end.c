@@ -541,16 +541,18 @@ free_section (AsmScn_t *scnp)
   if (scnp->subnext != NULL)
     free_section (scnp->subnext);
 
+  /* This is a circular single linked list.  */
   struct AsmData *data = scnp->content;
   if (data != NULL)
-    do
-      {
-	oldp = data;
-	data = data->next;
-	free (oldp);
-      }
-    while (oldp != scnp->content);
-
+    {
+      while (data != scnp->content)
+	{
+	  oldp = data;
+	  data = data->next;
+	  free (oldp);
+	}
+      free (scnp->content);
+    }
   free (scnp);
 }
 

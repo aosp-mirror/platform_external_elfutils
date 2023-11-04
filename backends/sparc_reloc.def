@@ -28,7 +28,7 @@
 
 /* 	    NAME,		REL|EXEC|DYN	*/
 
-RELOC_TYPE (NONE,               REL)
+RELOC_TYPE (NONE,               REL|EXEC|DYN)
 RELOC_TYPE (8,                  REL)
 RELOC_TYPE (16,                 REL)
 RELOC_TYPE (32,                 REL|DYN)

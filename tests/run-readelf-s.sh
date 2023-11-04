@@ -395,4 +395,7 @@ Symbol table [27] '.symtab' contains 42 entries:
    41: 00000000004003a8      0 FUNC    GLOBAL DEFAULT       11 _init
 EOF
 
+testrun ${abs_top_builddir}/src/readelf --elf-section -sW testfilebaxmin 2>&1 \
+  | grep "WARNING: cannot find section: 'W'" >/dev/null || exit 2
+
 exit 0

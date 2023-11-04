@@ -45,7 +45,7 @@ ps -q $PID1 -e -L -o '%p %c %a' | grep scan
 ps -q $PID1 -e -L -o '%p %c %a' | grep traverse
 
 # Make sure the initial scan has finished before copying the new files in
-# We might remove some, which we don't want to be accidentially scanned.
+# We might remove some, which we don't want to be accidentally scanned.
 wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
 
 cp -rvp ${abs_srcdir}/debuginfod-rpms R

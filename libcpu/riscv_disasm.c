@@ -39,7 +39,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../libebl/libeblP.h"
+#include "libeblP.h"
 
 #define MACHINE_ENCODING LITTLE_ENDIAN
 #include "memory-access.h"

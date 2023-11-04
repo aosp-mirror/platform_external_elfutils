@@ -86,6 +86,13 @@ enum
     IDX_last
   };
 
+/* Valid indices for the string section's information.  */
+enum string_section_index
+  {
+    STR_SCN_IDX_debug_line_str,
+    STR_SCN_IDX_debug_str,
+    STR_SCN_IDX_last
+  };
 
 /* Error values.  */
 enum
@@ -168,6 +175,10 @@ struct Dwarf
 
   /* The section data.  */
   Elf_Data *sectiondata[IDX_last];
+
+  /* Size of a prefix of string sections, where any string will be
+     null-terminated. */
+  size_t string_section_size[STR_SCN_IDX_last];
 
   /* True if the file has a byte order different from the host.  */
   bool other_byte_order;

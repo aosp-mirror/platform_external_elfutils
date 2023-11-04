@@ -1,5 +1,6 @@
 /* Common interface for libebl modules.
    Copyright (C) 2000, 2001, 2002, 2003, 2005, 2013, 2014 Red Hat, Inc.
+   Copyright (C) 2023 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -53,7 +54,9 @@ extern bool (*generic_debugscn_p) (const char *) attribute_hidden;
      dwarf_tag (_die); })
 
 /* Get a type die corresponding to DIE.  Peel CV qualifiers off
-   it.  */
+   it.  Returns zero if the DIE doesn't have a type, or the type
+   is DW_TAG_unspecified_type.  Returns -1 on error.  Otherwise
+   returns the result tag DW_AT value.  */
 static inline int
 dwarf_peeled_die_type (Dwarf_Die *die, Dwarf_Die *result)
 {
@@ -69,7 +72,29 @@ dwarf_peeled_die_type (Dwarf_Die *die, Dwarf_Die *result)
   if (dwarf_peel_type (result, result) != 0)
     return -1;
 
-  return DWARF_TAG_OR_RETURN (result);
+  if (result == NULL)
+    return -1;
+
+  int tag = dwarf_tag (result);
+  if (tag == DW_TAG_unspecified_type)
+    return 0; /* Treat an unspecified type as if there was no type.  */
+
+  return tag;
 }
+
+static inline bool
+dwarf_is_pointer (int tag)
+{
+  return tag == DW_TAG_pointer_type
+	 || tag == DW_TAG_ptr_to_member_type
+	 || tag == DW_TAG_reference_type
+	 || tag == DW_TAG_rvalue_reference_type;
+}
+
+#define CASE_POINTER \
+  case DW_TAG_pointer_type: \
+  case DW_TAG_ptr_to_member_type: \
+  case DW_TAG_reference_type: \
+  case DW_TAG_rvalue_reference_type
 
 #endif	/* libebl_CPU.h */

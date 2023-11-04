@@ -50,7 +50,7 @@ export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
 rm -rf $DEBUGINFOD_CACHE_PATH
 rm -rf $DB
 # Testing prefetch fd maximum (Set mb maximums to be beyond consideration)
-# Set --fdcache-mintmp=0 so we don't accidentially trigger an fdcache
+# Set --fdcache-mintmp=0 so we don't accidentally trigger an fdcache
 # emergency flush for filling tmpdir
 env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -p $PORT1 -d $DB \
     --fdcache-fds=$FDCACHE_FDS --fdcache-prefetch-fds=$PREFETCH_FDS  -vvvvv -g 0 -t 0 \

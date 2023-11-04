@@ -1,16 +1,7 @@
-diff --git b/config.h a/config.h
-index f929481176ba..ea86194416c7 100644
---- b/config.h
-+++ a/config.h
-@@ -29,7 +29,7 @@
- /* #undef HAVE_CFPREFERENCESCOPYAPPVALUE */
- 
- /* define if the compiler supports basic C++11 syntax */
--/* #undef HAVE_CXX11 */
-+#define HAVE_CXX11 1
- 
- /* Define if the GNU dcgettext() function is already present or preinstalled.
-    */
+diff --git a/config.h b/config.h
+index af199565..873627e0 100644
+--- a/config.h
++++ b/config.h
 @@ -60,7 +60,9 @@
  #define HAVE_DECL_STRERROR_R 1
  
@@ -28,9 +19,9 @@ index f929481176ba..ea86194416c7 100644
 -#define HAVE_GCC_STRUCT 1
 +/* #undef HAVE_GCC_STRUCT */
  
- /* Define if the GNU gettext() function is already present or preinstalled. */
- #define HAVE_GETTEXT 1
-@@ -152,7 +154,9 @@
+ /* Define to 1 if you have the `getrlimit' function. */
+ #define HAVE_GETRLIMIT 1
+@@ -167,7 +169,9 @@
  #define STDC_HEADERS 1
  
  /* Define to 1 if strerror_r returns char *. */

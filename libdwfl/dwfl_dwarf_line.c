@@ -31,7 +31,7 @@
 #endif
 
 #include "libdwflP.h"
-#include "../libdw/libdwP.h"
+#include "libdwP.h"
 
 Dwarf_Line *
 dwfl_dwarf_line (Dwfl_Line *line, Dwarf_Addr *bias)

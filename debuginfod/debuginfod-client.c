@@ -105,6 +105,13 @@ void debuginfod_end (debuginfod_client *c) { }
   #include <fts.h>
 #endif
 
+/* Older curl.h don't define CURL_AT_LEAST_VERSION.  */
+#ifndef CURL_AT_LEAST_VERSION
+  #define CURL_VERSION_BITS(x,y,z) ((x)<<16|(y)<<8|(z))
+  #define CURL_AT_LEAST_VERSION(x,y,z) \
+    (LIBCURL_VERSION_NUM >= CURL_VERSION_BITS(x, y, z))
+#endif
+
 #include <pthread.h>
 
 static pthread_once_t init_control = PTHREAD_ONCE_INIT;
@@ -309,7 +316,7 @@ debuginfod_clean_cache(debuginfod_client *c,
 
   /* Update timestamp representing when the cache was last cleaned.
      Do it at the start to reduce the number of threads trying to do a
-     cleanup simultaniously.  */
+     cleanup simultaneously.  */
   utime (interval_path, NULL);
 
   /* Read max unused age value from config file.  */
@@ -621,7 +628,7 @@ path_escape (const char *src, char *dest)
    section name was not found.  -EEXIST indicates that the section was
    found but had type SHT_NOBITS.  */
 
-int
+static int
 extract_section (int fd, const char *section, char *fd_path, char **usr_path)
 {
   elf_version (EV_CURRENT);
@@ -778,23 +785,24 @@ out:
    an ELF/DWARF section with name SCN_NAME.  If found, extract the section
    to a separate file in TARGET_CACHE_DIR and return a file descriptor
    for the section file. The path for this file will be stored in USR_PATH.
-   Return a negative errno if unsuccessful.  */
+   Return a negative errno if unsuccessful.  -ENOENT indicates that SCN_NAME
+   is confirmed to not exist.  */
 
 static int
 cache_find_section (const char *scn_name, const char *target_cache_dir,
 		    char **usr_path)
 {
-  int fd;
+  int debug_fd;
   int rc = -EEXIST;
   char parent_path[PATH_MAX];
 
   /* Check the debuginfo first.  */
   snprintf (parent_path, PATH_MAX, "%s/debuginfo", target_cache_dir);
-  fd = open (parent_path, O_RDONLY);
-  if (fd >= 0)
+  debug_fd = open (parent_path, O_RDONLY);
+  if (debug_fd >= 0)
     {
-      rc = extract_section (fd, scn_name, parent_path, usr_path);
-      close (fd);
+      rc = extract_section (debug_fd, scn_name, parent_path, usr_path);
+      close (debug_fd);
     }
 
   /* If the debuginfo file couldn't be found or the section type was
@@ -802,12 +810,17 @@ cache_find_section (const char *scn_name, const char *target_cache_dir,
   if (rc == -EEXIST)
     {
       snprintf (parent_path, PATH_MAX, "%s/executable", target_cache_dir);
-      fd = open (parent_path, O_RDONLY);
+      int exec_fd = open (parent_path, O_RDONLY);
 
-      if (fd >= 0)
+      if (exec_fd >= 0)
 	{
-	  rc = extract_section (fd, scn_name, parent_path, usr_path);
-	  close (fd);
+	  rc = extract_section (exec_fd, scn_name, parent_path, usr_path);
+	  close (exec_fd);
+
+	  /* Don't return -ENOENT if the debuginfo wasn't opened.  The
+	     section may exist in the debuginfo but not the executable.  */
+	  if (debug_fd < 0 && rc == -ENOENT)
+	    rc = -EREMOTE;
 	}
     }
 
@@ -1250,6 +1263,8 @@ debuginfod_query_server (debuginfod_client *c,
       data[i].handle = NULL;
       data[i].fd = -1;
       data[i].errbuf[0] = '\0';
+      data[i].response_data = NULL;
+      data[i].response_data_size = 0;
     }
 
   char *escaped_string = NULL;
@@ -1327,8 +1342,13 @@ debuginfod_query_server (debuginfod_client *c,
 
       /* Only allow http:// + https:// + file:// so we aren't being
 	 redirected to some unsupported protocol.  */
+#if CURL_AT_LEAST_VERSION(7, 85, 0)
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_PROTOCOLS_STR,
+			  "http,https,file");
+#else
       curl_easy_setopt_ck(data[i].handle, CURLOPT_PROTOCOLS,
 			  (CURLPROTO_HTTP | CURLPROTO_HTTPS | CURLPROTO_FILE));
+#endif
       curl_easy_setopt_ck(data[i].handle, CURLOPT_URL, data[i].url);
       if (vfd >= 0)
 	curl_easy_setopt_ck(data[i].handle, CURLOPT_ERRORBUFFER,
@@ -1346,8 +1366,6 @@ debuginfod_query_server (debuginfod_client *c,
 	  curl_easy_setopt_ck (data[i].handle, CURLOPT_LOW_SPEED_LIMIT,
 			       100 * 1024L);
 	}
-      data[i].response_data = NULL;
-      data[i].response_data_size = 0;
       curl_easy_setopt_ck(data[i].handle, CURLOPT_FILETIME, (long) 1);
       curl_easy_setopt_ck(data[i].handle, CURLOPT_FOLLOWLOCATION, (long) 1);
       curl_easy_setopt_ck(data[i].handle, CURLOPT_FAILONERROR, (long) 1);
@@ -1456,7 +1474,7 @@ debuginfod_query_server (debuginfod_client *c,
              deflate-compressing proxies, this number is likely to be
              unavailable, so -1 may show. */
           CURLcode curl_res;
-#ifdef CURLINFO_CONTENT_LENGTH_DOWNLOAD_T
+#if CURL_AT_LEAST_VERSION(7, 55, 0)
           curl_off_t cl;
           curl_res = curl_easy_getinfo(target_handle,
                                        CURLINFO_CONTENT_LENGTH_DOWNLOAD_T,
@@ -1491,7 +1509,7 @@ debuginfod_query_server (debuginfod_client *c,
           if (target_handle) /* we've committed to a server; report its download progress */
             {
               CURLcode curl_res;
-#ifdef CURLINFO_SIZE_DOWNLOAD_T
+#if CURL_AT_LEAST_VERSION(7, 55, 0)
               curl_off_t dl;
               curl_res = curl_easy_getinfo(target_handle,
                                            CURLINFO_SIZE_DOWNLOAD_T,
@@ -1936,7 +1954,7 @@ debuginfod_find_section (debuginfod_client *client,
 	}
       return -ENOENT;
     }
-  if (fd > 0)
+  if (fd >= 0)
     {
       rc = extract_section (fd, section, tmp_path, path);
       close (fd);
@@ -1944,14 +1962,18 @@ debuginfod_find_section (debuginfod_client *client,
 
   if (rc == -EEXIST)
     {
-      /* The section should be found in the executable.  */
+      /* Either the debuginfo couldn't be found or the section should
+	 be in the executable.  */
       fd = debuginfod_find_executable (client, build_id,
 				       build_id_len, &tmp_path);
-      if (fd > 0)
+      if (fd >= 0)
 	{
 	  rc = extract_section (fd, section, tmp_path, path);
 	  close (fd);
 	}
+      else
+	/* Update rc so that we return the most recent error code.  */
+	rc = fd;
     }
 
   free (tmp_path);

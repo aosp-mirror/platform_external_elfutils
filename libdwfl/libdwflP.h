@@ -38,12 +38,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../libdw/libdwP.h"	/* We need its INTDECLs.  */
-#include "../libdwelf/libdwelfP.h"
-
-#ifdef ENABLE_LIBDEBUGINFOD
-#include "../debuginfod/debuginfod.h"
-#endif
+#include "libdwP.h"	/* We need its INTDECLs.  */
+#include "libdwelfP.h"
 
 typedef struct Dwfl_Process Dwfl_Process;
 

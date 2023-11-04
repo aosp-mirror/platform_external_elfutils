@@ -11,4 +11,4 @@ URL: http://elfutils.org/
 Libs: -L${libdir} -lelf
 Cflags: -I${includedir}
 
-Requires.private: zlib
+Requires.private: zlib @LIBZSTD@

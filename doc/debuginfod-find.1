@@ -92,6 +92,19 @@ is made up of multiple CUs.  Therefore, to disambiguate, debuginfod
 expects source queries to prefix relative path names with the CU
 compilation-directory, followed by a mandatory "/".
 
+Note: for software packaged by distributions, the CU
+compilation-directory may not be obvious.  It can be found by
+inspecting AT_comp_dir values in downloaded debuginfo.  For example,
+the comp_dir of the Fedora 37 version of /bin/ls can be found as
+follows:
+
+.SAMPLE
+% debuginfod-find debuginfo /bin/ls
+~/.cache/debuginfod_client/03529d48345409576cd5c82a56ad08555088d353/
+% eu-readelf -w ~/.cache/debuginfod_client/03529d48345409576cd5c82a56ad08555088d353/debuginfo | grep comp_dir
+           comp_dir             (line_strp) "/usr/src/debug/coreutils-9.1-6.fc37.x86_64/separate"
+.ESAMPLE
+
 Note: the caller may or may not elide \fB../\fP or \fB/./\fP or extraneous
 \fB///\fP sorts of path components in the directory names.  debuginfod
 accepts both forms.  Specifically, debuginfod canonicalizes path names

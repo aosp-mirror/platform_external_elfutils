@@ -1,3 +1,56 @@
+2023-02-07  Aaron Merey  <amerey@redhat.com>
+
+	* debuginfod-client.c (cache_find_section): Avoid returning -ENOENT
+	if debuginfo wasn't found.
+
+2023-02-06  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod.h.in: Guard debuginfod_client typedef with
+	_ELFUTILS_DEBUGINFOD_CLIENT_TYPEDEF.
+
+2023-01-10  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (debuginfod_query_server): Use
+	CURL_AT_LEAST_VERSION(7.85.0) for CURLOPT_PROTOCOLS_STR.
+
+2023-01-11  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR29975 & PR29976
+	* debuginfod.cxx (default_concurrency): New function to guess a
+	reasonable default for -c/-C on large but constrained machines.
+
+2022-12-21  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c: Define CURL_AT_LEAST_VERSION.
+
+2022-12-21  Andrew Paprocki  <andrew@ishiboo.com>
+
+	* debuginfod-client.c: Make compilable against newer curl.  PR29926
+
+2022-11-15  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (debuginfod_query_server): Initialize
+	response_data early.
+
+2022-11-07  Aaron Merey  <amerey@redhat.com>
+
+	* debuginfod-client.c (debuginfod_find_section): Don't treat 0 as an
+	error code.
+
+2022-11-04  Aaron Merey  <amerey@redhat.com>
+
+	* debuginfod-client.c (debuginfod_find_section): Ensure rc
+	is always updated with the most recent error code.
+
+2022-11-03  Frank Ch. Eigler <fche@redhat.com>
+
+	* debuginfod.cxx (handle_buildid): Correctly manage lifetime
+	of debuginfod_client federation callout object.
+
+2022-11-02  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod-client.c (extract_section): Mark static.
+
 2022-11-01  Aaron Merey  <amerey@redhat.com>
 
 	* debuginfod-client.c (path_escape): Add early return.

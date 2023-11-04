@@ -129,6 +129,12 @@ add_new_line (struct line_state *state, struct linelist *new_line)
        return true;						      \
    } while (0)
 
+  /* Same as above, but don't flag as "invalid" just use truncated
+     value.  Used for discriminator for which llvm might use a value
+     that won't fit 24 bits.  */
+#define SETX(field)						      \
+     new_line->line.field = state->field;			      \
+
   SET (addr);
   SET (op_index);
   SET (file);
@@ -140,7 +146,7 @@ add_new_line (struct line_state *state, struct linelist *new_line)
   SET (prologue_end);
   SET (epilogue_begin);
   SET (isa);
-  SET (discriminator);
+  SETX (discriminator);
   SET (context);
   SET (function_name);
 
@@ -572,6 +578,8 @@ read_srclines (Dwarf *dbg,
 	goto invalid_data;
 
       size_t nfiles;
+      if ((size_t) (lineendp - linep) < 1)
+	goto invalid_data;
       get_uleb128 (nfiles, linep, lineendp);
 
       if (nforms == 0 && nfiles != 0)

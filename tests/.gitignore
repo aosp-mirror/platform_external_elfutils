@@ -47,6 +47,7 @@
 /dwfl-bug-report
 /dwfl-proc-attach
 /dwfl-report-elf-align
+/dwfl-report-offline-memory
 /dwfl-report-segment-contiguous
 /dwfllines
 /dwflmodtest
@@ -65,6 +66,7 @@
 /fillfile
 /find-prologues
 /funcretval
+/funcretval_test++11
 /funcscopes
 /get-aranges
 /get-files

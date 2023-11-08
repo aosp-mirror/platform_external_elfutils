@@ -829,7 +829,7 @@ show_symbols_sysv (Ebl *ebl, GElf_Word strndx, const char *fullname,
 	  putchar_unlocked (':');
 	}
 
-      /* Covert the address.  */
+      /* Convert the address.  */
       if (syms[cnt].sym.st_shndx == SHN_UNDEF)
 	{
 	  sprintf (addressbuf, "%*c", digits, ' ');

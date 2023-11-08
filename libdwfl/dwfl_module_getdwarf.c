@@ -34,8 +34,8 @@
 #include <inttypes.h>
 #include <fcntl.h>
 #include <string.h>
-#include "../libdw/libdwP.h"	/* DWARF_E_* values are here.  */
-#include "../libelf/libelfP.h"
+#include "libdwP.h"	/* DWARF_E_* values are here.  */
+#include "libelfP.h"
 #include "system.h"
 
 static inline Dwfl_Error

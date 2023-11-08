@@ -31,8 +31,8 @@
 #endif
 
 #include "libdwflP.h"
-#include "../libdw/libdwP.h"
-#include "../libdw/memory-access.h"
+#include "libdwP.h"
+#include "memory-access.h"
 #include <search.h>
 
 

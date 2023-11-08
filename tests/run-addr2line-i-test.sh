@@ -220,4 +220,47 @@ testrun_compare ${abs_top_builddir}/src/addr2line --pretty-print -a -f -i -e tes
  (inlined by) _Z2fuv at /tmp/x.cpp:33
 EOF
 
+# == x.cpp ==
+# g++ x.cpp -g -fPIC -olibx.so -shared -O0 -flto
+#
+# __attribute__((always_inline)) inline
+# int foobar(int i)
+# {
+#   return i + 1;
+# }
+#
+# __attribute__((always_inline)) inline
+# int fubar(int i)
+# {
+#   return i + 1;
+# }
+#
+# __attribute__((always_inline)) inline
+# int bar(int i)
+# {
+#   return fubar(i++);
+# }
+#
+# __attribute__((always_inline)) inline
+# int foo(int i)
+# {
+#   return foobar(i++);
+# }
+#
+# int fu(int i)
+# {
+#   return foo(i++) + bar(i++);
+# }
+
+testfiles testfile-inlines-lto
+
+testrun_compare ${abs_top_builddir}/src/addr2line --pretty -fi -e testfile-inlines-lto 0x1118 0x1137 <<\EOF
+_Z6foobari at /tmp/x.cpp:4:14
+ (inlined by) _Z3fooi at /tmp/x.cpp:22:16
+ (inlined by) _Z2fui at /tmp/x.cpp:27:13
+_Z5fubari at /tmp/x.cpp:10:14
+ (inlined by) _Z3bari at /tmp/x.cpp:16:15
+ (inlined by) _Z2fui at /tmp/x.cpp:27:24
+EOF
+
 exit 0

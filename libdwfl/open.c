@@ -31,8 +31,7 @@
 # include <config.h>
 #endif
 
-#include "../libelf/libelfP.h"
-#undef	_
+#include "libelfP.h"
 #include "libdwflP.h"
 
 #if !USE_BZLIB
@@ -206,12 +205,16 @@ __libdw_open_elf_memory (char *data, size_t size, Elf **elfp, bool archive_ok)
 {
   /* It is ok to use `fd == -1` here, because libelf uses it as a value for
      "no file opened" and code supports working with this value, and also
-     `never_close_fd == false` is passed to prevent closing non-existant file.
+     `never_close_fd == false` is passed to prevent closing non-existent file.
      The only caveat is in `decompress` method, which doesn't support
      decompressing from memory, so reading compressed zImage using this method
      won't work.  */
   int fd = -1;
   *elfp = elf_memory (data, size);
+  if (unlikely(*elfp == NULL))
+    {
+      return DWFL_E_LIBELF;
+    }
   /* Allow using this ELF as reference for subsequent elf_begin calls.  */
   (*elfp)->cmd = ELF_C_READ_MMAP_PRIVATE;
   return libdw_open_elf (&fd, elfp, false, archive_ok, true, false, true);

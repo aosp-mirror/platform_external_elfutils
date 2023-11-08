@@ -1,3 +1,24 @@
+2023-03-03  Mark Wielaard  <mark@klomp.org>
+
+	* NEWS: Add ELFCOMPRESS_ZSTD support for libelf and elfcompress.
+
+2023-02-23  Mark Wielaard  <mark@klomp.org>
+
+	* NEWS: Add old version code names.
+
+2023-02-21  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac: Check for -Wuse-after-free=3
+
+2023-02-15  Mark Wielaard  <mark@klomp.org>
+
+	* configure.ac: Error out when demangler is enabled, but
+	__cxa_demangle cannot be found.
+
+2023-01-11  Frank Ch. Eigler  <fche@redhat.com>
+
+	* configure.ac: Add some rlimit/affinity checks.
+
 2022-11-02  Mark Wielaard  <mark@klomp.org>
 
 	* configure.ac (AC_INIT): Set version to 0.188.

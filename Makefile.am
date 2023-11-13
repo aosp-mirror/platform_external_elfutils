@@ -47,9 +47,9 @@ rpm: dist
 	rpmbuild -ts elfutils-@PACKAGE_VERSION@.tar.bz2
 
 rpmbuild: dist
-	mkdir rpmbuild
+	mkdir -p rpmbuild
 	rpmbuild -ta elfutils-@PACKAGE_VERSION@.tar.bz2 \
-		--define "_topdir $(pwd)/rpmbuild"
+		--define "_topdir $(shell pwd)/rpmbuild"
 
 if GCOV
 

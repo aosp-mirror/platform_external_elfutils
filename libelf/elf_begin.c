@@ -492,7 +492,7 @@ file_read_elf (int fildes, void *map_address, unsigned char *e_ident,
 	    goto free_and_out;
 
 	  if (scncnt > 0)
-	    elf->state.elf64.shdr = (Elf64_Shdr *) (ehdr + e_shoff);
+	    elf->state.elf64.shdr = (Elf64_Shdr *) (ehdr + (ptrdiff_t) e_shoff);
 
 	  for (size_t cnt = 0; cnt < scncnt; ++cnt)
 	    {

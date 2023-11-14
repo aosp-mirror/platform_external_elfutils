@@ -48,16 +48,10 @@ AT_comp_dir (compilation directory) attributes inside it.  Caution:
 source files listed in the DWARF may be a path \fIanywhere\fP in the
 file system, and debuginfod will readily serve their content on
 demand.  (Imagine a doctored DWARF file that lists \fI/etc/passwd\fP
-as a source file.)  If this is a concern, audit your binaries with
-tools such as:
+as a source file.)  If this is a concern, audit your binaries:
 
 .SAMPLE
-% eu-readelf -wline BINARY | sed -n '/^Directory.table/,/^File.name.table/p'
-or
-% eu-readelf -wline BINARY | sed -n '/^Directory.table/,/^Line.number/p'
-or even use debuginfod itself:
-% debuginfod -vvv -d :memory: -F BINARY 2>&1 | grep 'recorded.*source'
-^C
+% eu-srcfiles -e BINARY
 .ESAMPLE
 
 If any of the \fB\-R\fP, \fB-U\fP, or \fB-Z\fP options is given, each
@@ -65,12 +59,17 @@ file is scanned as an archive file that may contain ELF/DWARF/source
 files.  Archive files are recognized by extension.  If \-R is given,
 ".rpm" files are scanned; if \-U is given, ".deb" and ".ddeb" files
 are scanned; if \-Z is given, the listed extensions are scanned.
-Because of complications such as DWZ-compressed debuginfo, may require
-\fItwo\fP traversal passes to identify all source code.  Source files
-for RPMs are only served from other RPMs, so the caution for \-F does
-not apply.  Note that due to Debian/Ubuntu packaging policies &
-mechanisms, debuginfod cannot resolve source files for DEB/DDEB at
-all.
+
+Because of complications such as DWZ-compressed debuginfo, it may
+require \fItwo\fP traversal passes to identify all source code.
+Source files for binaries in archives are only served from archives,
+so the caution for \-F does not apply.  If the same source file may be
+found in multiple different archives, a heuristic chooses the one
+closest to the archive holding the debuginfo.  ("closest" means
+"longest common archive name prefix").  Note that due to Debian/Ubuntu
+packaging policies & mechanisms, debuginfod cannot resolve source
+files for DEB/DDEB at all.  Consider using the
+\-\-disable\-source\-scan option.
 
 If no PATH is listed, or none of the scanning options is given, then
 \fBdebuginfod\fP will simply serve content that it accumulated into

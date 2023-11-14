@@ -39,8 +39,19 @@ license {
     ],
 }
 
+// Properties to apply to all static libraries that use elfutils.
+// Soong doesn't have propagation for static library dependencies,
+// and this have to be included explicitly by elfutils users.
+cc_defaults {
+    name: "elfutils_transitive_defaults",
+    static_libs: [
+        "libz",
+    ],
+}
+
 cc_defaults {
     name: "elfutils_defaults",
+    defaults: ["elfutils_transitive_defaults"],
     cflags: [
         "-DHAVE_CONFIG_H",
         "-D_GNU_SOURCE",
@@ -74,8 +85,6 @@ cc_library {
     defaults: ["elfutils_defaults"],
 
     srcs:  ["libelf/*.c",],
-
-    static_libs: ["libz"],
 
     export_include_dirs: ["libelf"],
 
@@ -139,7 +148,6 @@ cc_library_host_static {
         musl: {
             static_libs: [
                 "libfts",
-                "libz",
             ],
         },
     },

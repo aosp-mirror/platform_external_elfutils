@@ -3644,11 +3644,12 @@ print_hash_info (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, size_t shstrndx,
 	  success += counts[cnt] * acc;
 	}
 
-      printf (_("\
+      if (nzero_counts > 0)
+	printf (_("\
  Average number of tests:   successful lookup: %f\n\
 			  unsuccessful lookup: %f\n"),
-	      (double) success / (double) nzero_counts,
-	      (double) nzero_counts / (double) nbucket);
+		(double) success / (double) nzero_counts,
+		(double) nzero_counts / (double) nbucket);
     }
 
   free (counts);

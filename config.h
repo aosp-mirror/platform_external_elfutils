@@ -189,10 +189,10 @@
 #define USE_ZLIB 1
 
 /* Support ZSTD (zst) decompression via -lzstd. */
-/* #undef USE_ZSTD */
+#define USE_ZSTD 1
 
 /* zstd compression support */
-/* #undef USE_ZSTD_COMPRESS */
+#define USE_ZSTD_COMPRESS 1
 
 /* Version number of package */
 #define VERSION "0.189"

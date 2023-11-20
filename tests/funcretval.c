@@ -1,5 +1,6 @@
 /* Test program for dwfl_module_return_value_location.
    Copyright (C) 2005 Red Hat, Inc.
+   Copyright (C) 2023 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -67,7 +68,18 @@ handle_function (Dwarf_Die *funcdie, void *arg)
     error (EXIT_FAILURE, 0, "dwfl_module_return_value_location: %s",
 	   dwfl_errmsg (-1));
   else if (nlocops == 0)
-    puts ("returns no value");
+    {
+      // Check if this is the special unspecified type
+      // https://sourceware.org/bugzilla/show_bug.cgi?id=30047
+      Dwarf_Die die_mem, *typedie = &die_mem;
+      Dwarf_Attribute attr_mem, *attr;
+      attr = dwarf_attr_integrate (funcdie, DW_AT_type, &attr_mem);
+      if (dwarf_formref_die (attr, typedie) != NULL
+	  && dwarf_tag (typedie) == DW_TAG_unspecified_type)
+	puts ("returns unspecified type");
+      else
+	puts ("returns no value");
+    }
   else
     {
       printf ("return value location:");

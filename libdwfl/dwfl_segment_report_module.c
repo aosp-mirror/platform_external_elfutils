@@ -28,8 +28,7 @@
    not, see <http://www.gnu.org/licenses/>.  */
 
 #include <config.h>
-#include "../libelf/libelfP.h"	/* For NOTE_ALIGN4 and NOTE_ALIGN8.  */
-#undef	_
+#include "libelfP.h"	/* For NOTE_ALIGN4 and NOTE_ALIGN8.  */
 #include "libdwflP.h"
 #include "common.h"
 
@@ -441,17 +440,6 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 		    start + phoff, xlatefrom.d_size))
     goto out;
 
-  /* ph_buffer_size will be zero if we got everything from the initial
-     buffer, otherwise it will be the size of the new buffer that
-     could be read.  */
-  if (ph_buffer_size != 0)
-    {
-      phnum = ph_buffer_size / phentsize;
-      if (phnum == 0)
-	goto out;
-      xlatefrom.d_size = ph_buffer_size;
-    }
-
   xlatefrom.d_buf = ph_buffer;
 
   bool class32 = ei_class == ELFCLASS32;
@@ -533,17 +521,11 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
               /* We calculate from the p_offset of the note segment,
                because we don't yet know the bias for its p_vaddr.  */
               const GElf_Addr note_vaddr = start + offset;
-              void *data;
-              size_t data_size;
+              void *data = NULL;
+              size_t data_size = 0;
               if (read_portion (&read_state, &data, &data_size,
 				start, segment, note_vaddr, filesz))
                 continue; /* Next header */
-
-              /* data_size will be zero if we got everything from the initial
-                 buffer, otherwise it will be the size of the new buffer that
-                 could be read.  */
-              if (data_size != 0)
-                filesz = data_size;
 
 	      if (filesz > SIZE_MAX / sizeof (Elf32_Nhdr))
 		continue;
@@ -821,12 +803,6 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
       && ! read_portion (&read_state, &dyn_data, &dyn_data_size,
 			 start, segment, dyn_vaddr, dyn_filesz))
     {
-      /* dyn_data_size will be zero if we got everything from the initial
-         buffer, otherwise it will be the size of the new buffer that
-         could be read.  */
-      if (dyn_data_size != 0)
-	dyn_filesz = dyn_data_size;
-
       if ((dyn_filesz / dyn_entsize) == 0
 	  || dyn_filesz > (SIZE_MAX / dyn_entsize))
 	goto out;

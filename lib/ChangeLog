@@ -1,3 +1,7 @@
+2022-12-20  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (xmalloc_CFLAGS): Remove.
+
 2022-09-21  Yonggang Luo  <luoyonggang@gmail.com>
 
 	* color.c: Don't include unistd.h.

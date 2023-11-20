@@ -632,7 +632,8 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-nvidia-extended-linemap-libdw.sh run-nvidia-extended-linemap-readelf.sh \
 	     testfile_nvidia_linemap.bz2 \
 	     testfile-largealign.o.bz2 run-strip-largealign.sh \
-	     run-funcretval++11.sh
+	     run-funcretval++11.sh \
+	     test-ar-duplicates.a.bz2
 
 
 if USE_VALGRIND

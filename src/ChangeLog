@@ -1,3 +1,62 @@
+2023-03-03  Mark Wielaard  <mark@klomp.org>
+
+	* readelf (process_elf_file): ebl_closebackend only after
+	comparing ebl pointer.
+
+2023-02-12  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (print_attributes): Add comment about check.
+	(read_encoded): Check readp >= endp before reading
+	DW_EH_PE_uleb128 and DW_EH_PE_sleb128.
+	* elflint.c (check_attributes): Check r >= q before reading
+	uleb128.
+	(print_debug_frame_section): Check augmentation length can be read
+	as uleb128.
+	(print_debug_exception_table): Likewise for ttype_base_offset,
+	call_site_table_len and action.
+
+2023-01-22  Mark Wielaard  <mark@klomp.org>
+
+	* addr2line.c (options): Separate --demangle and -C.
+	(parse_opt): Ignore 'b'.
+
+2023-01-10  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (get_debug_elf_data): New function.
+	(print_debug_abbrev_section): Use get_debug_elf_data.
+	(print_debug_addr_section): Likewise.
+	(print_debug_aranges_section): Likewise.
+	(print_debug_rnglists_section): Likewise.
+	(print_debug_ranges_section): Likewise.
+	(print_debug_frame_section): Likewise.
+	(print_debug_units): Likewise.
+	(print_debug_line_section): Likewise.
+	(print_debug_loclists_section): Likewise.
+	(print_debug_loc_section): Likewise.
+	(print_debug_macinfo_section): Likewise.
+	(print_debug_macro_section): Likewise.
+	(print_debug_str_section): Likewise.
+	(print_debug_str_offsets_section): Likewise.
+	(print_debug_pubnames_section): Likewise.
+
+2022-12-21  Shahab Vahedi  <shahab@synopsys.email>
+
+	* elflint.c (valid_e_machine): Add EM_ARCV2.
+
+2022-12-02  Hengqi Chen  <hengqi.chen@gmail.com>
+
+	* elflint.c (valid_e_machine): Add EM_LOONGARCH.
+
+2022-11-03  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (get_dynscn_addrs): Check gelf_getdyn doesn't
+	return NULL.
+
+2022-11-03  Mark Wielaard  <mark@klomp.org>
+
+	* readelf.c (handle_dynamic): Check phdr != NULL when
+	use_dynamic_segment, otherwise check shdr != NULL.
+
 2022-10-28  Arsen Arsenović  <arsen@aarsen.me>
 
 	* readelf.c (options): Add Binutils-style --syms alias.

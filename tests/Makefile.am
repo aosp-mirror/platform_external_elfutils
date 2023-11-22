@@ -88,11 +88,15 @@ endif
 
 # test_nlist checks its own symbol table, and expects various symbols
 # to be in the order as specified in the source file. Explicitly set
-# minimal CFLAGS. But add address sanitizer if in use.
+# minimal CFLAGS. But add sanitizers if in use.
 if USE_ADDRESS_SANITIZER
 EXTRA_NLIST_CFLAGS=-fsanitize=address
 else
+if USE_MEMORY_SANITIZER
+EXTRA_NLIST_CFLAGS=-fsanitize=memory -fsanitize-memory-track-origins
+else
 EXTRA_NLIST_CFLAGS=
+endif
 endif
 
 test-nlist$(EXEEXT): test-nlist.c
@@ -151,6 +155,7 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-readelf-variant.sh run-readelf-fat-lto.sh \
 	run-dwfl-report-elf-align.sh run-addr2line-test.sh \
 	run-dwfl-report-offline-memory.sh \
+	run-addr2line-C-test.sh \
 	run-addr2line-i-test.sh run-addr2line-i-lex-test.sh \
 	run-addr2line-i-demangle-test.sh run-addr2line-alt-debugpath.sh \
 	run-varlocs.sh run-exprlocs.sh run-varlocs-vars.sh run-funcretval.sh \
@@ -220,6 +225,14 @@ if HAVE_ZSTD
 TESTS += run-readelf-compressed-zstd.sh
 endif
 
+if USE_ZSTD_COMPRESS
+export ELFUTILS_ZSTD = 1
+endif
+
+if USE_MEMORY_SANITIZER
+export ELFUTILS_MEMORY_SANITIZER = 1
+endif
+
 if DEBUGINFOD
 check_PROGRAMS += debuginfod_build_id_find
 # With the dummy delegation doesn't work
@@ -257,6 +270,12 @@ TESTS += run-debuginfod-federation-metrics.sh
 endif
 endif
 
+if HAVE_CXX11
+check_PROGRAMS += funcretval_test++11
+funcretval_test__11_SOURCES = funcretval_test++11.cxx
+TESTS += run-funcretval++11.sh
+endif
+
 EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-ar-N.sh \
 	     run-show-die-info.sh run-get-files.sh run-get-lines.sh \
@@ -285,6 +304,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-strip-reloc.sh hello_i386.ko.bz2 hello_x86_64.ko.bz2 \
 	     hello_ppc64.ko.bz2 hello_s390.ko.bz2 hello_aarch64.ko.bz2 \
 	     hello_m68k.ko.bz2 hello_riscv64.ko.bz2 hello_csky.ko.bz2 \
+	     hello_arc_hs4.ko.bz2 \
 	     run-unstrip-test.sh run-unstrip-test2.sh \
 	     testfile-info-link.bz2 testfile-info-link.debuginfo.bz2 \
 	     testfile-info-link.stripped.bz2 run-unstrip-test3.sh \
@@ -420,7 +440,9 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile-dwfl-report-elf-align-shlib.so.bz2 \
 	     testfilenolines.bz2 test-core-lib.so.bz2 test-core.core.bz2 \
 	     test-core.exec.bz2 run-addr2line-test.sh \
+	     run-addr2line-C-test.sh \
 	     run-addr2line-i-test.sh testfile-inlines.bz2 \
+	     testfile-inlines-lto.bz2 \
 	     run-addr2line-i-lex-test.sh testfile-lex-inlines.bz2 \
 	     run-addr2line-i-demangle-test.sh run-addr2line-alt-debugpath.sh \
 	     testfileppc32.bz2 testfileppc64.bz2 \
@@ -596,7 +618,8 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-readelf-dw-form-indirect.sh testfile-dw-form-indirect.bz2 \
 	     run-nvidia-extended-linemap-libdw.sh run-nvidia-extended-linemap-readelf.sh \
 	     testfile_nvidia_linemap.bz2 \
-	     testfile-largealign.o.bz2 run-strip-largealign.sh
+	     testfile-largealign.o.bz2 run-strip-largealign.sh \
+	     run-funcretval++11.sh
 
 
 if USE_VALGRIND

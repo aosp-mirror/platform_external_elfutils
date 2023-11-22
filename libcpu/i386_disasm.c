@@ -41,15 +41,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../libebl/libeblP.h"
+#include "libeblP.h"
 
 #define MACHINE_ENCODING LITTLE_ENDIAN
 #include "memory-access.h"
 
-
-#ifndef MNEFILE
-# define MNEFILE "i386.mnemonics"
-#endif
+#include "i386_mne.h"
 
 #define MNESTRFIELD(line) MNESTRFIELD1 (line)
 #define MNESTRFIELD1(line) str##line
@@ -69,15 +66,6 @@ static const union mnestr_t
 #include MNEFILE
 #undef MNE
     }
-  };
-
-/* The index can be stored in the instrtab.  */
-enum
-  {
-#define MNE(name) MNE_##name,
-#include MNEFILE
-#undef MNE
-    MNE_INVALID
   };
 
 static const unsigned short int mneidx[] =
@@ -480,8 +468,8 @@ i386_disasm (Ebl *ebl __attribute__((unused)),
 
 	      /* gcc is not clever enough to see the following variables
 		 are not used uninitialized.  */
-	      asm (""
-		   : "=mr" (opoff), "=mr" (correct_prefix), "=mr" (codep),
+	      __asm (""
+		     : "=mr" (opoff), "=mr" (correct_prefix), "=mr" (codep),
 		     "=mr" (next_curr), "=mr" (len));
 	    }
 

@@ -40,6 +40,9 @@ cc_binary_host {
         "i386_lex.l",
         "i386_gendis.c",
     ],
+    generated_headers: [
+        "i386_mnemonics",
+    ],
     yacc: {
         flags: ["-pi386_",]
     },

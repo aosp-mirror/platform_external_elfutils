@@ -341,6 +341,19 @@ exit 0
 %systemd_postun_with_restart debuginfod.service
 
 %changelog
+* Fri Mar  3 2023 Mark Wielaard <mark@klomp.org> 0.189-1
+- configure: eu-nm, eu-addr2line and eu-stack can provide demangled
+  symbols when linked with libstdc++. Use --disable-demangler to disable.
+  A new option --enable-sanitize-memory has been added for msan sanitizer
+  support.
+- libelf: elf_compress now supports ELFCOMPRESS_ZSTD when build
+  against libzstd
+- libdwfl: dwfl_module_return_value_location now returns 0 (no return
+  type) for DIEs that point to a DW_TAG_unspecified_type.
+- elfcompress: -t, --type= now support zstd if libelf has been build
+  with ELFCOMPRESS_ZSTD support.
+- backends: Add support for LoongArch and Synopsys ARCv2 processors.
+
 * Wed Nov  2 2022 Mark Wielaard <mark@klomp.org> 0.188-1
 - readelf: Add -D, --use-dynamic option.
 - debuginfod-client: Add $DEBUGINFOD_HEADERS_FILE setting to supply

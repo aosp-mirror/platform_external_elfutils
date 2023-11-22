@@ -73,6 +73,9 @@
 /* Defined if __attribute__((gcc_struct)) is supported */
 /* #undef HAVE_GCC_STRUCT */
 
+/* Define to 1 if you have the `getrlimit' function. */
+#define HAVE_GETRLIMIT 1
+
 /* Define if the GNU gettext() function is already present or preinstalled. */
 #define HAVE_GETTEXT 1
 
@@ -90,6 +93,12 @@
 
 /* Enable pthread_setname_np */
 #define HAVE_PTHREAD_SETNAME_NP 1
+
+/* Define to 1 if you have the `sched_getaffinity' function. */
+#define HAVE_SCHED_GETAFFINITY 1
+
+/* Define to 1 if you have the <sched.h> header file. */
+#define HAVE_SCHED_H 1
 
 /* Define to 1 if `stdatomic.h` is provided by the system, 0 otherwise. */
 #define HAVE_STDATOMIC_H 1
@@ -111,6 +120,9 @@
 
 /* Define to 1 if you have the <string.h> header file. */
 #define HAVE_STRING_H 1
+
+/* Define to 1 if you have the <sys/resource.h> header file. */
+#define HAVE_SYS_RESOURCE_H 1
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #define HAVE_SYS_STAT_H 1
@@ -137,7 +149,7 @@
 #define PACKAGE_NAME "elfutils"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "elfutils 0.188"
+#define PACKAGE_STRING "elfutils 0.189"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "elfutils"
@@ -146,7 +158,7 @@
 #define PACKAGE_URL "http://elfutils.org/"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.188"
+#define PACKAGE_VERSION "0.189"
 
 /* The size of `long', as computed by sizeof. */
 #define SIZEOF_LONG 8
@@ -177,10 +189,13 @@
 #define USE_ZLIB 1
 
 /* Support ZSTD (zst) decompression via -lzstd. */
-/* #undef USE_ZSTD */
+#define USE_ZSTD 1
+
+/* zstd compression support */
+#define USE_ZSTD_COMPRESS 1
 
 /* Version number of package */
-#define VERSION "0.188"
+#define VERSION "0.189"
 
 /* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
    `char[]'. */

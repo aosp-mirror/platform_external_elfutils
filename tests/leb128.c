@@ -118,6 +118,19 @@ test_sleb (void)
 }
 
 static int
+test_sleb_safety (void)
+{
+  const int64_t expected_error = INT64_MAX;
+  int64_t value;
+  const unsigned char *test = NULL;
+  get_sleb128 (value, test, test);
+  if (value != expected_error)
+    return FAIL;
+
+  return OK;
+}
+
+static int
 test_one_uleb (const unsigned char *data, size_t len, uint64_t expect)
 {
   uint64_t value;
@@ -166,8 +179,22 @@ test_uleb (void)
   return OK;
 }
 
+static int
+test_uleb_safety (void)
+{
+  const uint64_t expected_error = UINT64_MAX;
+  uint64_t value;
+  const unsigned char *test = NULL;
+  get_uleb128 (value, test, test);
+  if (value != expected_error)
+    return FAIL;
+
+  return OK;
+}
+
 int
 main (void)
 {
-  return test_sleb () || test_uleb ();
+  return test_sleb () || test_sleb_safety () || test_uleb ()
+	 || test_uleb_safety ();
 }

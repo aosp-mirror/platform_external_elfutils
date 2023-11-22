@@ -31,7 +31,7 @@
 #endif
 
 #include "libdwflP.h"
-#include "../libdw/cfi.h"
+#include "cfi.h"
 #include <search.h>
 
 static void

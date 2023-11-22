@@ -77,8 +77,13 @@ main (int argc, char **argv)
   Dwfl *dwfl = dwfl_begin (&offline_callbacks);
   assert (dwfl != NULL);
 
-  Dwfl_Module *mod =
-      dwfl_report_offline_memory (dwfl, argv[1], argv[1], data, size);
+  Dwfl_Module *mod;
+
+  /* Check error handling by suppling zero data */
+  mod = dwfl_report_offline_memory(dwfl, argv[1], argv[1], NULL, 0);
+  assert(mod == NULL);
+
+  mod = dwfl_report_offline_memory(dwfl, argv[1], argv[1], data, size);
   assert (mod != NULL);
   dwfl_report_end (dwfl, NULL, NULL);
 

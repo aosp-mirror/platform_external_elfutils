@@ -66,7 +66,9 @@ cu_free (void *arg)
 	  /* The fake_addr_cu might be shared, only release one.  */
 	  if (p->dbg->fake_addr_cu == p->split->dbg->fake_addr_cu)
 	    p->split->dbg->fake_addr_cu = NULL;
-	  INTUSE(dwarf_end) (p->split->dbg);
+	  /* There is only one DWP file. We free it later.  */
+	  if (p->split->dbg != p->dbg->dwp_dwarf)
+	    INTUSE(dwarf_end) (p->split->dbg);
 	}
     }
 }
@@ -145,6 +147,12 @@ dwarf_end (Dwarf *dwarf)
 	{
 	  INTUSE(dwarf_end) (dwarf->alt_dwarf);
 	  close (dwarf->alt_fd);
+	}
+
+      if (dwarf->dwp_fd != -1)
+	{
+	  INTUSE(dwarf_end) (dwarf->dwp_dwarf);
+	  close (dwarf->dwp_fd);
 	}
 
       /* The cached path and dir we found the Dwarf ELF file in.  */

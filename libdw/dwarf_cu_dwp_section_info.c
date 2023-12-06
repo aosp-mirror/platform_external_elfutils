@@ -340,6 +340,25 @@ __libdw_dwp_find_unit (Dwarf *dbg, bool debug_types, Dwarf_Off off,
 				   abbrev_offsetp, NULL);
 }
 
+Dwarf_CU *
+internal_function
+__libdw_dwp_findcu_id (Dwarf *dbg, uint64_t unit_id8)
+{
+  Dwarf_Package_Index *index = __libdw_package_index (dbg, false);
+  uint32_t unit_row;
+  Dwarf_Off offset;
+  Dwarf_CU *cu;
+  if (__libdw_dwp_unit_row (index, unit_id8, &unit_row) == 0
+      && __libdw_dwp_section_info (index, unit_row, DW_SECT_INFO, &offset,
+				   NULL) == 0
+      && (cu = __libdw_findcu (dbg, offset, false)) != NULL
+      && cu->unit_type == DW_UT_split_compile
+      && cu->unit_id8 == unit_id8)
+    return cu;
+  else
+    return NULL;
+}
+
 int
 dwarf_cu_dwp_section_info (Dwarf_CU *cu, unsigned int section,
 			   Dwarf_Off *offsetp, Dwarf_Off *sizep)

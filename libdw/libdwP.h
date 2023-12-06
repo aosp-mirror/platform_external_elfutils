@@ -180,6 +180,9 @@ struct Dwarf
   /* dwz alternate DWARF file.  */
   Dwarf *alt_dwarf;
 
+  /* DWARF package file.  */
+  Dwarf *dwp_dwarf;
+
   /* The section data.  */
   Elf_Data *sectiondata[IDX_last];
 
@@ -196,6 +199,9 @@ struct Dwarf
   /* If >= 0, we allocated the alt_dwarf ourselves and must end it and
      close this file descriptor.  */
   int alt_fd;
+
+  /* File descriptor of DWARF package file.  */
+  int dwp_fd;
 
   /* Information for traversing the .debug_pubnames section.  This is
      an array and separately allocated with malloc.  */
@@ -759,6 +765,10 @@ extern int __libdw_dwp_find_unit (Dwarf *dbg, bool debug_types, Dwarf_Off off,
 				  uint64_t unit_id8, uint32_t *unit_rowp,
 				  Dwarf_Off *abbrev_offsetp)
      __nonnull_attribute__ (1, 7, 8) internal_function;
+
+/* Find the compilation unit in a DWARF package file with the given id.  */
+extern Dwarf_CU *__libdw_dwp_findcu_id (Dwarf *dbg, uint64_t unit_id8)
+     __nonnull_attribute__ (1) internal_function;
 
 /* Get abbreviation with given code.  */
 extern Dwarf_Abbrev *__libdw_findabbrev (struct Dwarf_CU *cu,
@@ -1411,12 +1421,19 @@ __libdw_link_skel_split (Dwarf_CU *skel, Dwarf_CU *split)
 
   /* Get .debug_addr and addr_base greedy.
      We also need it for the fake addr cu.
-     There is only one per split debug.  */
+     This needs to be done for each split unit (one per .dwo file, or multiple
+     per .dwp file).  */
   Dwarf *dbg = skel->dbg;
   Dwarf *sdbg = split->dbg;
-  if (sdbg->sectiondata[IDX_debug_addr] == NULL
-      && dbg->sectiondata[IDX_debug_addr] != NULL)
+  if (dbg->sectiondata[IDX_debug_addr] != NULL
+      /* If this split file hasn't been linked yet...  */
+      && (sdbg->sectiondata[IDX_debug_addr] == NULL
+	  /* ... or it was linked to the same skeleton file for another
+	     unit...  */
+	  || (sdbg->sectiondata[IDX_debug_addr]
+	      == dbg->sectiondata[IDX_debug_addr])))
     {
+      /* ... then link the address information for this file and unit.  */
       sdbg->sectiondata[IDX_debug_addr]
 	= dbg->sectiondata[IDX_debug_addr];
       split->addr_base = __libdw_cu_addr_base (skel);

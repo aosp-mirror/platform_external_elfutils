@@ -77,6 +77,9 @@ dwarf_end (Dwarf *dwarf)
 {
   if (dwarf != NULL)
     {
+      free (dwarf->tu_index);
+      free (dwarf->cu_index);
+
       if (dwarf->cfi != NULL)
 	/* Clean up the CFI cache.  */
 	__libdw_destroy_frame_cache (dwarf->cfi);

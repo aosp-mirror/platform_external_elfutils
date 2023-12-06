@@ -28,6 +28,7 @@
 /backtrace-dwarf
 /buildid
 /core-dump-backtrace.lock
+/cu-dwp-section-info
 /debugaltlink
 /debuginfod_build_id_find
 /debuglink

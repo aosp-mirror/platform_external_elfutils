@@ -147,6 +147,7 @@ enum
   DWARF_E_NOT_CUDIE,
   DWARF_E_UNKNOWN_LANGUAGE,
   DWARF_E_NO_DEBUG_ADDR,
+  DWARF_E_UNKNOWN_SECTION,
 };
 
 
@@ -230,6 +231,11 @@ struct Dwarf
 
   /* Cached info from the CFI section.  */
   struct Dwarf_CFI_s *cfi;
+
+  /* DWARF package file CU index section.  */
+  struct Dwarf_Package_Index_s *cu_index;
+  /* DWARF package file TU index section.  */
+  struct Dwarf_Package_Index_s *tu_index;
 
   /* Fake loc CU.  Used when synthesizing attributes for Dwarf_Ops that
      came from a location list entry in dwarf_getlocation_attr.
@@ -343,6 +349,23 @@ struct Dwarf_Aranges_s
   } info[0];
 };
 
+/* DWARF package file unit index.  */
+typedef struct Dwarf_Package_Index_s
+{
+  Dwarf *dbg;
+  uint32_t section_count;
+  uint32_t unit_count;
+  uint32_t slot_count;
+  /* Mapping from DW_SECT_* - 1 to column number in the section tables, or
+     UINT32_MAX if not present.  */
+  uint32_t sections[DW_SECT_RNGLISTS];
+  /* Row number of last unit found in the index.  */
+  uint32_t last_unit_found;
+  const unsigned char *hash_table;
+  const unsigned char *indices;
+  const unsigned char *section_offsets;
+  const unsigned char *section_sizes;
+} Dwarf_Package_Index;
 
 /* CU representation.  */
 struct Dwarf_CU
@@ -350,6 +373,8 @@ struct Dwarf_CU
   Dwarf *dbg;
   Dwarf_Off start;
   Dwarf_Off end;
+  /* Row number of this unit in DWARF package file index.  */
+  uint32_t dwp_row;
   uint8_t address_size;
   uint8_t offset_size;
   uint16_t version;
@@ -421,6 +446,7 @@ INTDECL (dwarf_attr_integrate)
 INTDECL (dwarf_begin)
 INTDECL (dwarf_begin_elf)
 INTDECL (dwarf_child)
+INTDECL (dwarf_cu_dwp_section_info)
 INTDECL (dwarf_default_lower_bound)
 INTDECL (dwarf_dieoffset)
 INTDECL (dwarf_diename)
@@ -726,6 +752,13 @@ extern struct Dwarf *__libdw_find_split_dbg_addr (Dwarf *dbg, void *addr)
 /* Find the split (or skeleton) unit.  */
 extern struct Dwarf_CU *__libdw_find_split_unit (Dwarf_CU *cu)
      internal_function;
+
+/* Find a unit in a DWARF package file for __libdw_intern_next_unit.  */
+extern int __libdw_dwp_find_unit (Dwarf *dbg, bool debug_types, Dwarf_Off off,
+				  uint16_t version, uint8_t unit_type,
+				  uint64_t unit_id8, uint32_t *unit_rowp,
+				  Dwarf_Off *abbrev_offsetp)
+     __nonnull_attribute__ (1, 7, 8) internal_function;
 
 /* Get abbreviation with given code.  */
 extern Dwarf_Abbrev *__libdw_findabbrev (struct Dwarf_CU *cu,

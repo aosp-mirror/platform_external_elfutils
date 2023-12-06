@@ -99,8 +99,8 @@ dwarf_next_lines (Dwarf *dbg, Dwarf_Off off,
       Dwarf_CU *given_cu = *cu;
       Dwarf_CU *next_cu = given_cu;
       bool found = false;
-      while (dwarf_get_units (dbg, next_cu, &next_cu, NULL, NULL,
-			      &cudie, NULL) == 0)
+      while (INTUSE(dwarf_get_units) (dbg, next_cu, &next_cu, NULL, NULL,
+				      &cudie, NULL) == 0)
 	{
 	  if (dwarf_hasattr (&cudie, DW_AT_stmt_list))
 	    {
@@ -131,8 +131,8 @@ dwarf_next_lines (Dwarf *dbg, Dwarf_Off off,
 	     tables. Need to do a linear search (but stop at the given
 	     CU, since we already searched those.  */
 	  next_cu = NULL;
-	  while (dwarf_get_units (dbg, next_cu, &next_cu, NULL, NULL,
-				  &cudie, NULL) == 0
+	  while (INTUSE(dwarf_get_units) (dbg, next_cu, &next_cu, NULL, NULL,
+					  &cudie, NULL) == 0
 		 && next_cu != given_cu)
 	    {
 	      Dwarf_Attribute attr;

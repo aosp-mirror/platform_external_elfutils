@@ -51,8 +51,8 @@ try_split_file (Dwarf_CU *cu, const char *dwo_path)
       if (split_dwarf != NULL)
 	{
 	  Dwarf_CU *split = NULL;
-	  while (dwarf_get_units (split_dwarf, split, &split,
-				  NULL, NULL, NULL, NULL) == 0)
+	  while (INTUSE(dwarf_get_units) (split_dwarf, split, &split,
+					  NULL, NULL, NULL, NULL) == 0)
 	    {
 	      if (split->unit_type == DW_UT_split_compile
 		  && cu->unit_id8 == split->unit_id8)

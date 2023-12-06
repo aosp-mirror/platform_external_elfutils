@@ -414,6 +414,49 @@ struct Dwarf_CU
   void *endp;
 };
 
+/* Aliases to avoid PLTs.  */
+INTDECL (dwarf_aggregate_size)
+INTDECL (dwarf_attr)
+INTDECL (dwarf_attr_integrate)
+INTDECL (dwarf_begin)
+INTDECL (dwarf_begin_elf)
+INTDECL (dwarf_child)
+INTDECL (dwarf_default_lower_bound)
+INTDECL (dwarf_dieoffset)
+INTDECL (dwarf_diename)
+INTDECL (dwarf_end)
+INTDECL (dwarf_entrypc)
+INTDECL (dwarf_errmsg)
+INTDECL (dwarf_formaddr)
+INTDECL (dwarf_formblock)
+INTDECL (dwarf_formref_die)
+INTDECL (dwarf_formsdata)
+INTDECL (dwarf_formstring)
+INTDECL (dwarf_formudata)
+INTDECL (dwarf_getabbrevattr_data)
+INTDECL (dwarf_getalt)
+INTDECL (dwarf_getarange_addr)
+INTDECL (dwarf_getarangeinfo)
+INTDECL (dwarf_getaranges)
+INTDECL (dwarf_getlocation_die)
+INTDECL (dwarf_getsrcfiles)
+INTDECL (dwarf_getsrclines)
+INTDECL (dwarf_get_units)
+INTDECL (dwarf_hasattr)
+INTDECL (dwarf_haschildren)
+INTDECL (dwarf_haspc)
+INTDECL (dwarf_highpc)
+INTDECL (dwarf_lowpc)
+INTDECL (dwarf_nextcu)
+INTDECL (dwarf_next_unit)
+INTDECL (dwarf_offdie)
+INTDECL (dwarf_peel_type)
+INTDECL (dwarf_ranges)
+INTDECL (dwarf_setalt)
+INTDECL (dwarf_siblingof)
+INTDECL (dwarf_srclang)
+INTDECL (dwarf_tag)
+
 #define ISV4TU(cu) ((cu)->version == 4 && (cu)->sec_idx == IDX_debug_types)
 
 /* Compute the offset of a CU's first DIE from the CU offset.
@@ -1061,8 +1104,8 @@ str_offsets_base_off (Dwarf *dbg, Dwarf_CU *cu)
   if (cu == NULL && dbg != NULL)
     {
       Dwarf_CU *first_cu;
-      if (dwarf_get_units (dbg, NULL, &first_cu,
-			   NULL, NULL, NULL, NULL) == 0)
+      if (INTUSE(dwarf_get_units) (dbg, NULL, &first_cu,
+				   NULL, NULL, NULL, NULL) == 0)
 	cu = first_cu;
     }
 
@@ -1379,48 +1422,4 @@ void __libdw_set_debugdir (Dwarf *dbg);
 char * __libdw_filepath (const char *debugdir, const char *dir,
 			 const char *file)
   internal_function;
-
-
-/* Aliases to avoid PLTs.  */
-INTDECL (dwarf_aggregate_size)
-INTDECL (dwarf_attr)
-INTDECL (dwarf_attr_integrate)
-INTDECL (dwarf_begin)
-INTDECL (dwarf_begin_elf)
-INTDECL (dwarf_child)
-INTDECL (dwarf_default_lower_bound)
-INTDECL (dwarf_dieoffset)
-INTDECL (dwarf_diename)
-INTDECL (dwarf_end)
-INTDECL (dwarf_entrypc)
-INTDECL (dwarf_errmsg)
-INTDECL (dwarf_formaddr)
-INTDECL (dwarf_formblock)
-INTDECL (dwarf_formref_die)
-INTDECL (dwarf_formsdata)
-INTDECL (dwarf_formstring)
-INTDECL (dwarf_formudata)
-INTDECL (dwarf_getabbrevattr_data)
-INTDECL (dwarf_getalt)
-INTDECL (dwarf_getarange_addr)
-INTDECL (dwarf_getarangeinfo)
-INTDECL (dwarf_getaranges)
-INTDECL (dwarf_getlocation_die)
-INTDECL (dwarf_getsrcfiles)
-INTDECL (dwarf_getsrclines)
-INTDECL (dwarf_hasattr)
-INTDECL (dwarf_haschildren)
-INTDECL (dwarf_haspc)
-INTDECL (dwarf_highpc)
-INTDECL (dwarf_lowpc)
-INTDECL (dwarf_nextcu)
-INTDECL (dwarf_next_unit)
-INTDECL (dwarf_offdie)
-INTDECL (dwarf_peel_type)
-INTDECL (dwarf_ranges)
-INTDECL (dwarf_setalt)
-INTDECL (dwarf_siblingof)
-INTDECL (dwarf_srclang)
-INTDECL (dwarf_tag)
-
 #endif	/* libdwP.h */

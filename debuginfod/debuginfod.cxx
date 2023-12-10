@@ -50,11 +50,6 @@ extern "C" {
 }
 #endif
 
-extern "C" {
-#include "printversion.h"
-#include "system.h"
-}
-
 #include "debuginfod.h"
 #include <dwarf.h>
 
@@ -134,6 +129,11 @@ using namespace std;
 #else
 #define tid() pthread_self()
 #endif
+
+extern "C" {
+#include "printversion.h"
+#include "system.h"
+}
 
 
 inline bool
@@ -3194,16 +3194,16 @@ register_file_name(sqlite_ps& ps_upsert_fileparts,
                    const string& name)
 {
   std::size_t slash = name.rfind('/');
-  string dirname, basename;
+  string dirname, filename;
   if (slash == std::string::npos)
     {
       dirname = "";
-      basename = name;
+      filename = name;
     }
   else
     {
       dirname = name.substr(0, slash);
-      basename = name.substr(slash+1);
+      filename = name.substr(slash+1);
     }
 
   // intern the two substrings
@@ -3213,21 +3213,21 @@ register_file_name(sqlite_ps& ps_upsert_fileparts,
     .step_ok_done();
   ps_upsert_fileparts
     .reset()
-    .bind(1, basename)
+    .bind(1, filename)
     .step_ok_done();
 
   // intern the tuple
   ps_upsert_file
     .reset()
     .bind(1, dirname)
-    .bind(2, basename)
+    .bind(2, filename)
     .step_ok_done();
 
   // look up the tuple's id
   ps_lookup_file
     .reset()
     .bind(1, dirname)
-    .bind(2, basename);
+    .bind(2, filename);
   int rc = ps_lookup_file.step();
   if (rc != SQLITE_ROW) throw sqlite_exception(rc, "step");
   

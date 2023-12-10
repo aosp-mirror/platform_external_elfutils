@@ -718,7 +718,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 	      bias += fixup;
 	      if (module->name[0] != '\0')
 		{
-		  name = basename (module->name);
+		  name = xbasename (module->name);
 		  name_is_final = true;
 		}
 	      break;
@@ -743,7 +743,7 @@ dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
 		   prevents premature closure of the correct ELF in cases
 		   where segments of a module are non-contiguous in memory.  */
 		if (name != NULL && module->name[0] != '\0'
-		    && strcmp (basename (module->name), basename (name)) == 0)
+		    && strcmp (xbasename (module->name), xbasename (name)) == 0)
 		  {
 		    elf_end (module->elf);
 		    close (module->fd);

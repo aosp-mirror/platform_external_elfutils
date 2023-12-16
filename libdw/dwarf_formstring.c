@@ -173,10 +173,10 @@ dwarf_formstring (Dwarf_Attribute *attrp)
 	off = read_4ubyte_unaligned (dbg, datap);
       else
 	off = read_8ubyte_unaligned (dbg, datap);
-
-      if (off >= data_size)
-	goto invalid_offset;
     }
+
+  if (off >= data_size)
+    goto invalid_offset;
 
   return (const char *) data->d_buf + off;
 }

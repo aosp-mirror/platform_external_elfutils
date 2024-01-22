@@ -63,6 +63,7 @@
 /elfshphehdr
 /elfstrmerge
 /elfstrtab
+/elf-print-reloc-syms
 /emptyfile
 /fillfile
 /find-prologues

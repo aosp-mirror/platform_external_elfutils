@@ -62,7 +62,7 @@ check_PROGRAMS = arextract arsymtest newfile saridx scnnames sectiondump \
 		  dwelf_elf_e_machine_string \
 		  getphdrnum leb128 read_unaligned \
 		  msg_tst system-elf-libelf-test system-elf-gelf-test \
-		  nvidia_extended_linemap_libdw \
+		  nvidia_extended_linemap_libdw elf-print-reloc-syms \
 		  $(asm_TESTS)
 
 asm_TESTS = asm-tst1 asm-tst2 asm-tst3 asm-tst4 asm-tst5 \
@@ -810,6 +810,7 @@ getphdrnum_LDADD = $(libelf) $(libdw)
 leb128_LDADD = $(libelf) $(libdw)
 read_unaligned_LDADD = $(libelf) $(libdw)
 nvidia_extended_linemap_libdw_LDADD = $(libelf) $(libdw)
+elf_print_reloc_syms_LDADD = $(libelf)
 
 # We want to test the libelf headers against the system elf.h header.
 # Don't include any -I CPPFLAGS. Except when we install our own elf.h.

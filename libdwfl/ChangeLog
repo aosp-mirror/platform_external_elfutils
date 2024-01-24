@@ -1,3 +1,16 @@
+2023-09-27  Omar Sandoval  <osandov@fb.com>
+	* dwfl_module.c (__libdwfl_module_free): Free mod->elfpath instead of
+	mod->elfdir.
+	* dwfl_module_getdwarf.c (load_dw): Set mod->dw->elfpath and call
+	__libdw_set_debugdir instead of setting mod->dw->debugdir.
+	* libdwflP.h (Dwfl_Module): Replace elfdir with elfpath.
+	* offline.c (process_elf): Call __libdw_elfpath and set mod->elfpath
+	instead of mod->elfdir.
+
+2023-04-24  John Gallagher  <john@gllghr.com>
+
+	* gzip.c: Fix memory leak in unzip()
+
 2023-02-06  Mark Wielaard  <mark@klomp.org>
 
 	* libdwfl.h: Guard debuginfod_client typedef with

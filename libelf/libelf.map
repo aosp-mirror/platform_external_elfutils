@@ -50,7 +50,6 @@ ELFUTILS_1.0 {
     elf_rand;
     elf_rawdata;
     elf_rawfile;
-    elf_scncnt;
     elf_strptr;
     elf_update;
     elf_version;

@@ -50,10 +50,11 @@ dwfl_offline_section_address (Dwfl_Module *mod,
 			      const GElf_Shdr *shdr __attribute__ ((unused)),
 			      Dwarf_Addr *addr)
 {
-  assert (mod->e_type == ET_REL);
-  assert (shdr->sh_addr == 0);
-  assert (shdr->sh_flags & SHF_ALLOC);
-  assert (shndx != 0);
+  if (mod->e_type != ET_REL
+      || shdr->sh_addr != 0
+      || !(shdr->sh_flags & SHF_ALLOC)
+      || shndx == 0)
+    return -1;
 
   if (mod->debug.elf == NULL)
     /* We are only here because sh_addr is zero even though layout is complete.
@@ -151,9 +152,9 @@ process_elf (Dwfl *dwfl, const char *name, const char *file_name, int fd,
       /* Don't keep the file descriptor around.  */
       if (mod->main.fd != -1 && elf_cntl (mod->main.elf, ELF_C_FDREAD) == 0)
 	{
-	  /* Grab the dir path in case we want to report this file as
+	  /* Grab the path in case we want to report this file as
 	     Dwarf later.  */
-	  mod->elfdir = __libdw_debugdir (mod->main.fd);
+	  mod->elfpath = __libdw_elfpath (mod->main.fd);
 	  close (mod->main.fd);
 	  mod->main.fd = -1;
 	}

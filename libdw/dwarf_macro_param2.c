@@ -44,12 +44,21 @@ dwarf_macro_param2 (Dwarf_Macro *macro, Dwarf_Word *paramp, const char **strp)
   if (dwarf_macro_param (macro, 1, &param) != 0)
     return -1;
 
-  if (param.form == DW_FORM_string
-      || param.form == DW_FORM_strp)
+  switch (param.form)
     {
-      *strp = dwarf_formstring (&param);
-      return 0;
+      /* String forms allowed by libdw_valid_user_form.  */
+      case DW_FORM_line_strp:
+      case DW_FORM_string:
+      case DW_FORM_strp:
+      case DW_FORM_strp_sup:
+      case DW_FORM_strx:
+      case DW_FORM_strx1:
+      case DW_FORM_strx2:
+      case DW_FORM_strx3:
+      case DW_FORM_strx4:
+	*strp = dwarf_formstring (&param);
+	return 0;
+      default:
+	return dwarf_formudata (&param, paramp);
     }
-  else
-    return dwarf_formudata (&param, paramp);
 }

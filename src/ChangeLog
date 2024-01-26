@@ -1,3 +1,19 @@
+2023-03-27  Di Chen  <dichen@redhat.com>
+
+	* readelf.c (options): Support dynamic symtab print with '-Ds'.
+	(process_symtab): New function.
+	(handle_dynamic_symtab): Likewise.
+	(handle_symtab): Return true if symtab was printed. Move printing
+	code to process_symtab and call that function.
+	(print_symtab): Call handle_dynamic_symtab for SHT_DYNSYM when
+	using dynamic segment.
+	(enum dyn_idx): Include i_symtab_shndx, i_verneednum and
+	i_verdefnum.
+	(process_elf_file): Only call print_symtab for SHT_SYMTAB when not
+	use_dynamic_segment.
+	(get_dynscn_addrs): Handle DT_VERDEFNUM, DT_VERNEEDNUM and
+	DT_SYMTAB_SHNDX.
+
 2023-03-03  Mark Wielaard  <mark@klomp.org>
 
 	* readelf (process_elf_file): ebl_closebackend only after

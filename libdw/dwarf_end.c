@@ -144,7 +144,8 @@ dwarf_end (Dwarf *dwarf)
 	  close (dwarf->alt_fd);
 	}
 
-      /* The cached dir we found the Dwarf ELF file in.  */
+      /* The cached path and dir we found the Dwarf ELF file in.  */
+      free (dwarf->elfpath);
       free (dwarf->debugdir);
 
       /* Free the context descriptor.  */

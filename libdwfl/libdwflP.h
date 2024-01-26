@@ -186,7 +186,7 @@ struct Dwfl_Module
   Elf_Data *symxndxdata;	/* Data in the extended section index table. */
   Elf_Data *aux_symxndxdata;	/* Data in the extended auxiliary table. */
 
-  char *elfdir;			/* The dir where we found the main Elf.  */
+  char *elfpath;		/* The path where we found the main Elf.  */
 
   Dwarf *dw;			/* libdw handle for its debugging info.  */
   Dwarf *alt;			/* Dwarf used for dwarf_setalt, or NULL.  */

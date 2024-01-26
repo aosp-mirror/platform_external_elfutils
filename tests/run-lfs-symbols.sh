@@ -42,13 +42,13 @@ LFS_FORMAT='BEGIN {
 LFS=$(printf "$LFS_FORMAT" "${abs_srcdir}/lfs-symbols")
 
 makeprint() {
-  make print-$1 -C $2 |& awk -F= "/^$1=/{ print \$2 }"
+  make print-$1 -C $2 |& gawk -F= "/^$1=/{ print \$2 }"
 }
 
 testrun_lfs() {
   echo "checking $1"
   if [ -e "$1" ]; then
-    bad=$(testrun ${abs_top_builddir}/src/nm -u "$1" | awk "$LFS")
+    bad=$(testrun ${abs_top_builddir}/src/nm -u "$1" | gawk "$LFS")
     if [ -n "$bad" ]; then
       echo "$1 contains non-lfs symbols:" $bad
       exit_status=1

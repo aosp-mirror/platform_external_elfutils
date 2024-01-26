@@ -11,6 +11,7 @@
 /ranlib
 /readelf
 /size
+/srcfiles
 /stack
 /strings
 /strip

@@ -1,3 +1,28 @@
+Version 0.190 "Woke!"
+
+CONTRIBUTING: Switch from real name policy to known identity policy.
+              Updated ChangeLog policy (no more separate ChangeLog files).
+              There is a SECURITY bug policy now.
+              The default branch is now 'main'.
+
+libelf: Add RELR support.
+
+libdw: Recognize .debug_[ct]u_index sections
+
+readelf: Support readelf -Ds, --use-dynamic --symbol.
+         Support .gdb_index version 9
+
+scrlines: New tool that compiles a list of source files associated
+          with a specified dwarf/elf file.
+
+debuginfod: Schema change (reindexing required, sorry!) for a 60%
+            compression in filename representation, which was a large
+            part of the sqlite index; also, more deliberate sqlite
+            -wal management during scanning using the
+            --scan-checkpoint option.
+
+backends: Various LoongArch updates.
+
 Version 0.189 "Don't deflate!"
 
 configure: eu-nm, eu-addr2line and eu-stack can provide demangled symbols

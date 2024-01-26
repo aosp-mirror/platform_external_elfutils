@@ -66,13 +66,13 @@ dwarf_peeled_die_type (Dwarf_Die *die, Dwarf_Die *result)
     /* The function has no return value, like a `void' function in C.  */
     return 0;
 
+  if (result == NULL)
+    return -1;
+
   if (dwarf_formref_die (attr, result) == NULL)
     return -1;
 
   if (dwarf_peel_type (result, result) != 0)
-    return -1;
-
-  if (result == NULL)
     return -1;
 
   int tag = dwarf_tag (result);

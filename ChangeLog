@@ -1,3 +1,8 @@
+2023-03-27  Di Chen  <dichen@redhat.com>
+
+	* NEWS: Support readelf -Ds for using dynamic segment to
+	print symbol table.
+
 2023-03-03  Mark Wielaard  <mark@klomp.org>
 
 	* NEWS: Add ELFCOMPRESS_ZSTD support for libelf and elfcompress.

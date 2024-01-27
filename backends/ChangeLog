@@ -1,3 +1,43 @@
+2023-05-09  Youling Tang  <tangyouling@loongson.cn>
+
+	* Makefile.am (loongarch_SRCS): Add loongarch_initreg.c.
+	* loongarch_initreg.c: New file.
+	* loongarch_init.c (loongarch_init): Hook set_initial_registers_tid.
+
+2023-04-07  Youling Tang  <tangyouling@loongson.cn>
+
+	* Makefile.am (loongarch_SRCS): Add loongarch_corenote.c.
+	* loongarch_init.c (loongarch_init): Hook core_note.
+	* loongarch_corenote.c: New file.
+
+2023-04-07  Youling Tang  <tangyouling@loongson.cn>
+
+	* Makefile.am (loongarch_SRCS): Add loongarch_unwind.c.
+	* loongarch_init.c (loongarch_init): Hook unwind.
+	* loongarch_unwind.c: New file.
+
+2023-04-07  Youling Tang  <tangyouling@loongson.cn>
+
+	* Makefile.am (loongarch_SRCS): Add loongarch_retval.c.
+	* loongarch_init.c (loongarch_init): Hook return_value_location.
+	* loongarch_retval.c: New file.
+
+2023-04-07  Youling Tang  <tangyouling@loongson.cn>
+
+	* Makefile.am (loongarch_SRCS): Add loongarch_cfi.c and loongarch_regs.c.
+	* loongarch_cfi.c: New file.
+	* loongarch_regs.c: Likewise.
+	* loongarch_init.c (loongarch_init): Hook register_info and abi_cfi.
+
+2023-04-01  Youling Tang  <tangyouling@loongson.cn>
+
+	* loongarch_init.c (loongarch_init): Hook check_special_symbol.
+	* loongarch_symbol.c (loongarch_check_special_symbol): New function.
+
+2023-04-01  Youling Tang  <tangyouling@loongson.cn>
+
+	* loongarch_reloc.def: Add RELOC_TYPE B16 to RELAX.
+
 2023-02-07  Mark Wielaard  <mark@klomp.org>
 
 	* libebl_CPU.h (dwarf_peeled_die_type): Explicitly handle

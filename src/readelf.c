@@ -1,5 +1,6 @@
 /* Print information from ELF file in human-readable form.
    Copyright (C) 1999-2018 Red Hat, Inc.
+   Copyright (C) 2023 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -301,13 +302,29 @@ static void print_shdr (Ebl *ebl, GElf_Ehdr *ehdr);
 static void print_phdr (Ebl *ebl, GElf_Ehdr *ehdr);
 static void print_scngrp (Ebl *ebl);
 static void print_dynamic (Ebl *ebl);
-static void print_relocs (Ebl *ebl, GElf_Ehdr *ehdr);
+static void print_relocs (Ebl *ebl, Dwfl_Module *mod, GElf_Ehdr *ehdr);
 static void handle_relocs_rel (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 			       GElf_Shdr *shdr);
 static void handle_relocs_rela (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn,
 				GElf_Shdr *shdr);
+static void handle_relocs_relr (Ebl *ebl, Dwfl_Module *mod, Elf_Scn *scn,
+				GElf_Shdr *shdr);
 static bool print_symtab (Ebl *ebl, int type);
-static void handle_symtab (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr);
+static bool handle_symtab (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr);
+static bool handle_dynamic_symtab (Ebl *ebl);
+static void
+process_symtab(
+	Ebl * ebl,
+	unsigned int nsyms,
+	Elf64_Word idx,
+	Elf32_Word verneed_stridx,
+	Elf32_Word verdef_stridx,
+	Elf_Data * symdata,
+	Elf_Data * versym_data,
+	Elf_Data * symstr_data,
+	Elf_Data * verneed_data,
+	Elf_Data * verdef_data,
+	Elf_Data * xndx_data);
 static void print_verinfo (Ebl *ebl);
 static void handle_verneed (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr);
 static void handle_verdef (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr);
@@ -322,12 +339,17 @@ static void dump_data (Ebl *ebl);
 static void dump_strings (Ebl *ebl);
 static void print_strings (Ebl *ebl);
 static void dump_archive_index (Elf *, const char *);
+static void print_dwarf_addr (Dwfl_Module *dwflmod, int address_size,
+			      Dwarf_Addr address, Dwarf_Addr raw);
 
 enum dyn_idx
 {
+  i_symtab_shndx,
   i_strsz,
   i_verneed,
+  i_verneednum,
   i_verdef,
+  i_verdefnum,
   i_versym,
   i_symtab,
   i_strtab,
@@ -1035,14 +1057,14 @@ process_elf_file (Dwfl_Module *dwflmod, int fd)
   if (print_dynamic_table)
     print_dynamic (ebl);
   if (print_relocations)
-    print_relocs (pure_ebl, ehdr);
+    print_relocs (pure_ebl, dwflmod, ehdr);
   if (print_histogram)
     handle_hash (ebl);
   if (print_symbol_table || print_dynsym_table)
     symtab_printed |= print_symtab (ebl, SHT_DYNSYM);
   if (print_version_info)
     print_verinfo (ebl);
-  if (print_symbol_table)
+  if (print_symbol_table && !use_dynamic_segment)
     symtab_printed |= print_symtab (ebl, SHT_SYMTAB);
 
   if ((print_symbol_table || print_dynsym_table)
@@ -1606,7 +1628,7 @@ static const char *
 section_name (Ebl *ebl, GElf_Shdr *shdr)
 {
   size_t shstrndx;
-  if (elf_getshdrstrndx (ebl->elf, &shstrndx) < 0)
+  if (shdr == NULL || elf_getshdrstrndx (ebl->elf, &shstrndx) < 0)
     return "???";
   return elf_strptr (ebl->elf, shstrndx, shdr->sh_name) ?: "???";
 }
@@ -1954,9 +1976,11 @@ handle_dynamic (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, GElf_Phdr *phdr)
 	case DT_RELASZ:
 	case DT_STRSZ:
 	case DT_RELSZ:
+	case DT_RELRSZ:
 	case DT_RELAENT:
 	case DT_SYMENT:
 	case DT_RELENT:
+	case DT_RELRENT:
 	case DT_PLTPADSZ:
 	case DT_MOVEENT:
 	case DT_MOVESZ:
@@ -2032,7 +2056,7 @@ print_dynamic (Ebl *ebl)
 
 /* Print relocations.  */
 static void
-print_relocs (Ebl *ebl, GElf_Ehdr *ehdr)
+print_relocs (Ebl *ebl, Dwfl_Module *mod, GElf_Ehdr *ehdr)
 {
   /* Find all relocation sections and handle them.  */
   Elf_Scn *scn = NULL;
@@ -2049,6 +2073,8 @@ print_relocs (Ebl *ebl, GElf_Ehdr *ehdr)
 	    handle_relocs_rel (ebl, ehdr, scn, shdr);
 	  else if (shdr->sh_type == SHT_RELA)
 	    handle_relocs_rela (ebl, ehdr, scn, shdr);
+	  else if (shdr->sh_type == SHT_RELR)
+	    handle_relocs_relr (ebl, mod, scn, shdr);
 	}
     }
 }
@@ -2437,12 +2463,124 @@ handle_relocs_rela (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
     }
 }
 
+/* Handle a relocation section.  */
+static void
+handle_relocs_relr (Ebl *ebl, Dwfl_Module *mod, Elf_Scn *scn, GElf_Shdr *shdr)
+{
+  int class = gelf_getclass (ebl->elf);
+  size_t sh_entsize = gelf_fsize (ebl->elf, ELF_T_RELR, 1, EV_CURRENT);
+  int nentries = shdr->sh_size / sh_entsize;
+
+  /* Get the data of the section.  */
+  Elf_Data *data = elf_getdata (scn, NULL);
+  if (data == NULL)
+    return;
+
+  /* Get the section header string table index.  */
+  size_t shstrndx;
+  if (unlikely (elf_getshdrstrndx (ebl->elf, &shstrndx) < 0))
+    error_exit (0, _("cannot get section header string table index"));
+
+  /* A .relr.dyn section does not refer to a specific section.  */
+  printf (ngettext ("\
+\nRelocation section [%2u] '%s' at offset %#0" PRIx64 " contains %d entry:\n",
+		    "\
+\nRelocation section [%2u] '%s' at offset %#0" PRIx64 " contains %d entries:\n",
+		    nentries),
+	  (unsigned int) elf_ndxscn (scn),
+	  elf_strptr (ebl->elf, shstrndx, shdr->sh_name),
+	  shdr->sh_offset,
+	  nentries);
+
+  if (class == ELFCLASS32)
+    {
+      uint32_t base = 0;
+      for (int cnt = 0; cnt < nentries; ++cnt)
+	{
+	  Elf32_Word *words = data->d_buf;
+	  Elf32_Word entry = words[cnt];
+
+	  /* Just the raw entries?  */
+	  if (print_unresolved_addresses)
+            printf ("  %#010" PRIx32 "%s\n", entry,
+                    (entry & 1) == 0 ? " *" : "");
+	  else
+	    {
+	      /* A real address, also sets base.  */
+	      if ((entry & 1) == 0)
+		{
+		  printf ("  ");
+		  print_dwarf_addr (mod, 4, entry, entry);
+		  printf (" *\n");
+
+		  base = entry + 4;
+		}
+	      else
+		{
+		  /* Untangle address from base and bits.  */
+		  uint32_t addr;
+		  for (addr = base; (entry >>= 1) != 0; addr += 4)
+		    if ((entry & 1) != 0)
+		      {
+			printf ("  ");
+			print_dwarf_addr (mod, 4, addr, addr);
+			printf ("\n");
+		      }
+		  base += 4 * (4 * 8 - 1);
+		}
+	    }
+	}
+    }
+  else
+    {
+      uint64_t base = 0;
+      for (int cnt = 0; cnt < nentries; ++cnt)
+	{
+	  Elf64_Xword *xwords = data->d_buf;
+	  Elf64_Xword entry = xwords[cnt];
+
+	  /* Just the raw entries?  */
+	  if (print_unresolved_addresses)
+	    printf ("  %#018" PRIx64 "%s\n", entry,
+		    (entry & 1) == 0 ? " *" : "");
+	  else
+	    {
+	      /* A real address, also sets base.  */
+	      if ((entry & 1) == 0)
+		{
+		  printf ("  ");
+		  print_dwarf_addr (mod, 8, entry, entry);
+		  printf (" *\n");
+
+		  base = entry + 8;
+		}
+	      else
+		{
+		  /* Untangle address from base and bits.  */
+		  uint64_t addr;
+		  for (addr = base; (entry >>= 1) != 0; addr += 8)
+		    if ((entry & 1) != 0)
+		      {
+			printf ("  ");
+			print_dwarf_addr (mod, 8, addr, addr);
+			printf ("\n");
+		      }
+		  base += 8 * (8 * 8 - 1);
+		}
+	    }
+	}
+    }
+}
 
 /* Print the program header.  Return true if a symtab is printed,
    false otherwise.  */
 static bool
 print_symtab (Ebl *ebl, int type)
 {
+  /* Use the dynamic section info to display symbol tables.  */
+  if (use_dynamic_segment && type == SHT_DYNSYM)
+    return handle_dynamic_symtab(ebl);
+
   /* Find the symbol table(s).  For this we have to search through the
      section table.  */
   Elf_Scn *scn = NULL;
@@ -2481,8 +2619,7 @@ print_symtab (Ebl *ebl, int type)
 			    _("cannot get section [%zd] header: %s"),
 			    elf_ndxscn (scn), elf_errmsg (-1));
 	    }
-	  handle_symtab (ebl, scn, shdr);
-	  symtab_printed = true;
+	  symtab_printed = handle_symtab (ebl, scn, shdr);
 	}
     }
 
@@ -2491,6 +2628,179 @@ print_symtab (Ebl *ebl, int type)
 
 
 static void
+process_symtab (Ebl *ebl, unsigned int nsyms, Elf64_Word idx,
+                Elf32_Word verneed_stridx, Elf32_Word verdef_stridx,
+                Elf_Data *symdata, Elf_Data *versym_data,
+                Elf_Data *symstr_data, Elf_Data *verneed_data,
+                Elf_Data *verdef_data, Elf_Data *xndx_data)
+{
+  for (unsigned int cnt = 0; cnt < nsyms; ++cnt)
+    {
+      char typebuf[64];
+      char bindbuf[64];
+      char scnbuf[64];
+      Elf32_Word xndx;
+      GElf_Sym sym_mem;
+      GElf_Sym *sym
+          = gelf_getsymshndx (symdata, xndx_data, cnt, &sym_mem, &xndx);
+
+      if (unlikely (sym == NULL))
+        continue;
+
+      /* Determine the real section index.  */
+      if (likely (sym->st_shndx != SHN_XINDEX))
+        xndx = sym->st_shndx;
+
+      printf (_ ("\
+%5u: %0*" PRIx64 " %6" PRId64 " %-7s %-6s %-9s %6s %s"),
+              cnt, gelf_getclass (ebl->elf) == ELFCLASS32 ? 8 : 16,
+              sym->st_value, sym->st_size,
+              ebl_symbol_type_name (ebl, GELF_ST_TYPE (sym->st_info), typebuf,
+                                    sizeof (typebuf)),
+              ebl_symbol_binding_name (ebl, GELF_ST_BIND (sym->st_info),
+                                       bindbuf, sizeof (bindbuf)),
+              get_visibility_type (GELF_ST_VISIBILITY (sym->st_other)),
+              ebl_section_name (ebl, sym->st_shndx, xndx, scnbuf,
+                                sizeof (scnbuf), NULL, shnum),
+              use_dynamic_segment == true
+                  ? (char *)symstr_data->d_buf + sym->st_name
+                  : elf_strptr (ebl->elf, idx, sym->st_name));
+
+      if (versym_data != NULL)
+        {
+          /* Get the version information.  */
+          GElf_Versym versym_mem;
+          GElf_Versym *versym = gelf_getversym (versym_data, cnt, &versym_mem);
+
+          if (versym != NULL && ((*versym & 0x8000) != 0 || *versym > 1))
+            {
+              bool is_nobits = false;
+              bool check_def = xndx != SHN_UNDEF;
+
+              if (xndx < SHN_LORESERVE || sym->st_shndx == SHN_XINDEX)
+                {
+                  GElf_Shdr symshdr_mem;
+                  GElf_Shdr *symshdr = gelf_getshdr (
+                      elf_getscn (ebl->elf, xndx), &symshdr_mem);
+
+                  is_nobits
+                      = (symshdr != NULL && symshdr->sh_type == SHT_NOBITS);
+                }
+
+              if (is_nobits || !check_def)
+                {
+                  /* We must test both.  */
+                  GElf_Vernaux vernaux_mem;
+                  GElf_Vernaux *vernaux = NULL;
+                  size_t vn_offset = 0;
+
+                  GElf_Verneed verneed_mem;
+                  GElf_Verneed *verneed
+                      = gelf_getverneed (verneed_data, 0, &verneed_mem);
+                  while (verneed != NULL)
+                    {
+                      size_t vna_offset = vn_offset;
+
+                      vernaux = gelf_getvernaux (verneed_data,
+                                                 vna_offset += verneed->vn_aux,
+                                                 &vernaux_mem);
+                      while (vernaux != NULL && vernaux->vna_other != *versym
+                             && vernaux->vna_next != 0
+                             && (verneed_data->d_size - vna_offset
+                                 >= vernaux->vna_next))
+                        {
+                          /* Update the offset.  */
+                          vna_offset += vernaux->vna_next;
+
+                          vernaux = (vernaux->vna_next == 0
+                                         ? NULL
+                                         : gelf_getvernaux (verneed_data,
+                                                            vna_offset,
+                                                            &vernaux_mem));
+                        }
+
+                      /* Check whether we found the version.  */
+                      if (vernaux != NULL && vernaux->vna_other == *versym)
+                        /* Found it.  */
+                        break;
+
+                      if (verneed_data->d_size - vn_offset < verneed->vn_next)
+                        break;
+
+                      vn_offset += verneed->vn_next;
+                      verneed
+                          = (verneed->vn_next == 0
+                                 ? NULL
+                                 : gelf_getverneed (verneed_data, vn_offset,
+                                                    &verneed_mem));
+                    }
+
+                  if (vernaux != NULL && vernaux->vna_other == *versym)
+                    {
+                      printf ("@%s (%u)",
+                              use_dynamic_segment == true
+                                  ? (char *)symstr_data->d_buf
+                                        + vernaux->vna_name
+                                  : elf_strptr (ebl->elf, verneed_stridx,
+                                                vernaux->vna_name),
+                              (unsigned int)vernaux->vna_other);
+                      check_def = 0;
+                    }
+                  else if (unlikely (!is_nobits))
+                    error (0, 0, _ ("bad dynamic symbol"));
+                  else
+                    check_def = 1;
+                }
+
+              if (check_def && *versym != 0x8001)
+                {
+                  /* We must test both.  */
+                  size_t vd_offset = 0;
+
+                  GElf_Verdef verdef_mem;
+                  GElf_Verdef *verdef
+                      = gelf_getverdef (verdef_data, 0, &verdef_mem);
+                  while (verdef != NULL)
+                    {
+                      if (verdef->vd_ndx == (*versym & 0x7fff))
+                        /* Found the definition.  */
+                        break;
+
+                      if (verdef_data->d_size - vd_offset < verdef->vd_next)
+                        break;
+
+                      vd_offset += verdef->vd_next;
+                      verdef = (verdef->vd_next == 0
+                                    ? NULL
+                                    : gelf_getverdef (verdef_data, vd_offset,
+                                                      &verdef_mem));
+                    }
+
+                  if (verdef != NULL)
+                    {
+                      GElf_Verdaux verdaux_mem;
+                      GElf_Verdaux *verdaux = gelf_getverdaux (
+                          verdef_data, vd_offset + verdef->vd_aux,
+                          &verdaux_mem);
+
+                      if (verdaux != NULL)
+                        printf ((*versym & 0x8000) ? "@%s" : "@@%s",
+                                use_dynamic_segment == true
+                                    ? (char *)symstr_data->d_buf
+                                          + verdaux->vda_name
+                                    : elf_strptr (ebl->elf, verdef_stridx,
+                                                  verdaux->vda_name));
+                    }
+                }
+            }
+        }
+
+      putchar_unlocked ('\n');
+    }
+}
+
+
+static bool
 handle_symtab (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 {
   Elf_Data *versym_data = NULL;
@@ -2504,7 +2814,7 @@ handle_symtab (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
   /* Get the data of the section.  */
   Elf_Data *data = elf_getdata (scn, NULL);
   if (data == NULL)
-    return;
+    return false;
 
   /* Find out whether we have other sections we might need.  */
   Elf_Scn *runscn = NULL;
@@ -2574,163 +2884,184 @@ handle_symtab (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
   Num:            Value   Size Type    Bind   Vis          Ndx Name\n"),
 		  stdout);
 
-  for (unsigned int cnt = 0; cnt < nsyms; ++cnt)
+	process_symtab(ebl, nsyms, shdr->sh_link, verneed_stridx, verdef_stridx,
+	data, versym_data, NULL, verneed_data, verdef_data, xndx_data);
+    return true;
+}
+
+
+static bool
+handle_dynamic_symtab (Ebl *ebl)
+{
+  GElf_Phdr phdr_mem;
+  GElf_Phdr *phdr = NULL;
+  /* phnum is a static variable which was already fetched in function
+     process_elf_file.  */
+  for (size_t i = 0; i < phnum; ++i)
     {
-      char typebuf[64];
-      char bindbuf[64];
-      char scnbuf[64];
-      Elf32_Word xndx;
-      GElf_Sym sym_mem;
-      GElf_Sym *sym = gelf_getsymshndx (data, xndx_data, cnt, &sym_mem, &xndx);
-
-      if (unlikely (sym == NULL))
-	continue;
-
-      /* Determine the real section index.  */
-      if (likely (sym->st_shndx != SHN_XINDEX))
-	xndx = sym->st_shndx;
-
-      printf (_("\
-%5u: %0*" PRIx64 " %6" PRId64 " %-7s %-6s %-9s %6s %s"),
-	      cnt,
-	      class == ELFCLASS32 ? 8 : 16,
-	      sym->st_value,
-	      sym->st_size,
-	      ebl_symbol_type_name (ebl, GELF_ST_TYPE (sym->st_info),
-				    typebuf, sizeof (typebuf)),
-	      ebl_symbol_binding_name (ebl, GELF_ST_BIND (sym->st_info),
-				       bindbuf, sizeof (bindbuf)),
-	      get_visibility_type (GELF_ST_VISIBILITY (sym->st_other)),
-	      ebl_section_name (ebl, sym->st_shndx, xndx, scnbuf,
-				sizeof (scnbuf), NULL, shnum),
-	      elf_strptr (ebl->elf, shdr->sh_link, sym->st_name));
-
-      if (versym_data != NULL)
-	{
-	  /* Get the version information.  */
-	  GElf_Versym versym_mem;
-	  GElf_Versym *versym = gelf_getversym (versym_data, cnt, &versym_mem);
-
-	  if (versym != NULL && ((*versym & 0x8000) != 0 || *versym > 1))
-	    {
-	      bool is_nobits = false;
-	      bool check_def = xndx != SHN_UNDEF;
-
-	      if (xndx < SHN_LORESERVE || sym->st_shndx == SHN_XINDEX)
-		{
-		  GElf_Shdr symshdr_mem;
-		  GElf_Shdr *symshdr =
-		    gelf_getshdr (elf_getscn (ebl->elf, xndx), &symshdr_mem);
-
-		  is_nobits = (symshdr != NULL
-			       && symshdr->sh_type == SHT_NOBITS);
-		}
-
-	      if (is_nobits || ! check_def)
-		{
-		  /* We must test both.  */
-		  GElf_Vernaux vernaux_mem;
-		  GElf_Vernaux *vernaux = NULL;
-		  size_t vn_offset = 0;
-
-		  GElf_Verneed verneed_mem;
-		  GElf_Verneed *verneed = gelf_getverneed (verneed_data, 0,
-							   &verneed_mem);
-		  while (verneed != NULL)
-		    {
-		      size_t vna_offset = vn_offset;
-
-		      vernaux = gelf_getvernaux (verneed_data,
-						 vna_offset += verneed->vn_aux,
-						 &vernaux_mem);
-		      while (vernaux != NULL
-			     && vernaux->vna_other != *versym
-			     && vernaux->vna_next != 0
-			     && (verneed_data->d_size - vna_offset
-				 >= vernaux->vna_next))
-			{
-			  /* Update the offset.  */
-			  vna_offset += vernaux->vna_next;
-
-			  vernaux = (vernaux->vna_next == 0
-				     ? NULL
-				     : gelf_getvernaux (verneed_data,
-							vna_offset,
-							&vernaux_mem));
-			}
-
-		      /* Check whether we found the version.  */
-		      if (vernaux != NULL && vernaux->vna_other == *versym)
-			/* Found it.  */
-			break;
-
-		      if (verneed_data->d_size - vn_offset < verneed->vn_next)
-			break;
-
-		      vn_offset += verneed->vn_next;
-		      verneed = (verneed->vn_next == 0
-				 ? NULL
-				 : gelf_getverneed (verneed_data, vn_offset,
-						    &verneed_mem));
-		    }
-
-		  if (vernaux != NULL && vernaux->vna_other == *versym)
-		    {
-		      printf ("@%s (%u)",
-			      elf_strptr (ebl->elf, verneed_stridx,
-					  vernaux->vna_name),
-			      (unsigned int) vernaux->vna_other);
-		      check_def = 0;
-		    }
-		  else if (unlikely (! is_nobits))
-		    error (0, 0, _("bad dynamic symbol"));
-		  else
-		    check_def = 1;
-		}
-
-	      if (check_def && *versym != 0x8001)
-		{
-		  /* We must test both.  */
-		  size_t vd_offset = 0;
-
-		  GElf_Verdef verdef_mem;
-		  GElf_Verdef *verdef = gelf_getverdef (verdef_data, 0,
-							&verdef_mem);
-		  while (verdef != NULL)
-		    {
-		      if (verdef->vd_ndx == (*versym & 0x7fff))
-			/* Found the definition.  */
-			break;
-
-		      if (verdef_data->d_size - vd_offset < verdef->vd_next)
-			break;
-
-		      vd_offset += verdef->vd_next;
-		      verdef = (verdef->vd_next == 0
-				? NULL
-				: gelf_getverdef (verdef_data, vd_offset,
-						  &verdef_mem));
-		    }
-
-		  if (verdef != NULL)
-		    {
-		      GElf_Verdaux verdaux_mem;
-		      GElf_Verdaux *verdaux
-			= gelf_getverdaux (verdef_data,
-					   vd_offset + verdef->vd_aux,
-					   &verdaux_mem);
-
-		      if (verdaux != NULL)
-			printf ((*versym & 0x8000) ? "@%s" : "@@%s",
-				elf_strptr (ebl->elf, verdef_stridx,
-					    verdaux->vda_name));
-		    }
-		}
-	    }
-	}
-
-      putchar_unlocked ('\n');
+      phdr = gelf_getphdr (ebl->elf, i, &phdr_mem);
+      if (phdr->p_type == PT_DYNAMIC)
+	break;
     }
+  if (phdr == NULL)
+    return false;
+
+  GElf_Addr addrs[i_max] = {
+    0,
+  };
+  GElf_Off offs[i_max] = {
+    0,
+  };
+  get_dynscn_addrs (ebl->elf, phdr, addrs);
+  find_offsets (ebl->elf, 0, i_max, addrs, offs);
+
+  size_t syments = 0;
+
+  GElf_Ehdr ehdr_mem;
+  GElf_Ehdr *ehdr = gelf_getehdr (ebl->elf, &ehdr_mem);
+
+  if (offs[i_hash] != 0)
+    {
+      /* In the original format, .hash says the size of .dynsym.  */
+
+      size_t entsz = SH_ENTSIZE_HASH (ehdr);
+      Elf_Data *data
+          = elf_getdata_rawchunk (ebl->elf, offs[i_hash] + entsz, entsz,
+                                  (entsz == 4 ? ELF_T_WORD : ELF_T_XWORD));
+      if (data != NULL)
+        syments = (entsz == 4 ? *(const GElf_Word *)data->d_buf
+                              : *(const GElf_Xword *)data->d_buf);
+    }
+  if (offs[i_gnu_hash] != 0 && syments == 0)
+    {
+      /* In the new format, we can derive it with some work.  */
+
+      const struct
+      {
+        Elf32_Word nbuckets;
+        Elf32_Word symndx;
+        Elf32_Word maskwords;
+        Elf32_Word shift2;
+      } * header;
+
+      Elf_Data *data = elf_getdata_rawchunk (ebl->elf, offs[i_gnu_hash],
+                                             sizeof *header, ELF_T_WORD);
+      if (data != NULL)
+        {
+          header = data->d_buf;
+          Elf32_Word nbuckets = header->nbuckets;
+          Elf32_Word symndx = header->symndx;
+          GElf_Off buckets_at
+              = (offs[i_gnu_hash] + sizeof *header
+                 + (gelf_getclass (ebl->elf) * sizeof (Elf32_Word)
+                    * header->maskwords));
+
+          // elf_getdata_rawchunk takes a size_t, make sure it
+          // doesn't overflow.
+#if SIZE_MAX <= UINT32_MAX
+          if (nbuckets > SIZE_MAX / sizeof (Elf32_Word))
+            data = NULL;
+          else
+#endif
+            data = elf_getdata_rawchunk (ebl->elf, buckets_at,
+                                         nbuckets * sizeof (Elf32_Word),
+                                         ELF_T_WORD);
+          if (data != NULL && symndx < nbuckets)
+            {
+              const Elf32_Word *const buckets = data->d_buf;
+              Elf32_Word maxndx = symndx;
+              for (Elf32_Word bucket = 0; bucket < nbuckets; ++bucket)
+                if (buckets[bucket] > maxndx)
+                  maxndx = buckets[bucket];
+
+              GElf_Off hasharr_at
+                  = (buckets_at + nbuckets * sizeof (Elf32_Word));
+              hasharr_at += (maxndx - symndx) * sizeof (Elf32_Word);
+              do
+                {
+                  data = elf_getdata_rawchunk (
+                      ebl->elf, hasharr_at, sizeof (Elf32_Word), ELF_T_WORD);
+                  if (data != NULL && (*(const Elf32_Word *)data->d_buf & 1u))
+                    {
+                      syments = maxndx + 1;
+                      break;
+                    }
+                  ++maxndx;
+                  hasharr_at += sizeof (Elf32_Word);
+                }
+              while (data != NULL);
+            }
+        }
+    }
+  if (offs[i_strtab] > offs[i_symtab] && syments == 0)
+    syments = ((offs[i_strtab] - offs[i_symtab])
+               / gelf_fsize (ebl->elf, ELF_T_SYM, 1, EV_CURRENT));
+
+  if (syments <= 0 || offs[i_strtab] == 0 || offs[i_symtab] == 0)
+    {
+      error_exit (0, _ ("Dynamic symbol information is not available for "
+                        "displaying symbols."));
+    }
+
+  /* All the data chunk initializaion.  */
+  Elf_Data *symdata = NULL;
+  Elf_Data *symstrdata = NULL;
+  Elf_Data *versym_data = NULL;
+  Elf_Data *verdef_data = NULL;
+  Elf_Data *verneed_data = NULL;
+
+  symdata = elf_getdata_rawchunk (
+      ebl->elf, offs[i_symtab],
+      gelf_fsize (ebl->elf, ELF_T_SYM, syments, EV_CURRENT), ELF_T_SYM);
+  symstrdata = elf_getdata_rawchunk (ebl->elf, offs[i_strtab], addrs[i_strsz],
+                                     ELF_T_BYTE);
+  versym_data = elf_getdata_rawchunk (
+      ebl->elf, offs[i_versym], syments * sizeof (Elf64_Half), ELF_T_HALF);
+
+  /* Get the verneed_data without vernaux.  */
+  verneed_data = elf_getdata_rawchunk (
+      ebl->elf, offs[i_verneed], addrs[i_verneednum] * sizeof (Elf64_Verneed),
+      ELF_T_VNEED);
+  size_t vernauxnum = 0;
+  size_t vn_next_offset = 0;
+
+  for (size_t i = 0; i < addrs[i_verneednum]; i++)
+    {
+      GElf_Verneed *verneed
+          = (GElf_Verneed *)(verneed_data->d_buf + vn_next_offset);
+      vernauxnum += verneed->vn_cnt;
+      vn_next_offset += verneed->vn_next;
+    }
+
+  /* Update the verneed_data to include the vernaux.  */
+  verneed_data = elf_getdata_rawchunk (
+      ebl->elf, offs[i_verneed],
+      (addrs[i_verneednum] + vernauxnum) * sizeof (GElf_Verneed), ELF_T_VNEED);
+
+  /* Get the verdef_data without verdaux.  */
+  verdef_data = elf_getdata_rawchunk (
+      ebl->elf, offs[i_verdef], addrs[i_verdefnum] * sizeof (Elf64_Verdef),
+      ELF_T_VDEF);
+  size_t verdauxnum = 0;
+  size_t vd_next_offset = 0;
+
+  for (size_t i = 0; i < addrs[i_verdefnum]; i++)
+    {
+      GElf_Verdef *verdef
+          = (GElf_Verdef *)(verdef_data->d_buf + vd_next_offset);
+      verdauxnum += verdef->vd_cnt;
+      vd_next_offset += verdef->vd_next;
+    }
+
+  /* Update the verdef_data to include the verdaux.  */
+  verdef_data = elf_getdata_rawchunk (
+      ebl->elf, offs[i_verdef],
+      (addrs[i_verdefnum] + verdauxnum) * sizeof (GElf_Verdef), ELF_T_VDEF);
+
+  unsigned int nsyms = (unsigned int)syments;
+  process_symtab (ebl, nsyms, 0, 0, 0, symdata, versym_data, symstrdata,
+                  verneed_data, verdef_data, NULL);
+  return true;
 }
 
 
@@ -3893,7 +4224,7 @@ get_debug_elf_data (Dwarf *dbg, Ebl *ebl, int idx, Elf_Scn *scn)
   return elf_getdata (scn, NULL);
 }
 
-void
+static void
 print_dwarf_addr (Dwfl_Module *dwflmod,
 		  int address_size, Dwarf_Addr address, Dwarf_Addr raw)
 {
@@ -4990,12 +5321,24 @@ get_dynscn_addrs(Elf *elf, GElf_Phdr *phdr, GElf_Addr addrs[i_max])
       addrs[i_verdef] = dyn->d_un.d_ptr;
       break;
 
+    case DT_VERDEFNUM:
+      addrs[i_verdefnum] = dyn->d_un.d_val;
+      break;
+
     case DT_VERNEED:
       addrs[i_verneed] = dyn->d_un.d_ptr;
       break;
 
+    case DT_VERNEEDNUM:
+      addrs[i_verneednum] = dyn->d_un.d_val;
+      break;
+
     case DT_STRSZ:
       addrs[i_strsz] = dyn->d_un.d_val;
+      break;
+
+    case DT_SYMTAB_SHNDX:
+      addrs[i_symtab_shndx] = dyn->d_un.d_ptr;
       break;
     }
   }
@@ -11196,8 +11539,9 @@ print_gdb_index_section (Dwfl_Module *dwflmod, Ebl *ebl,
   // hash used for generating the table.  Version 6 contains symbols
   // for inlined functions, older versions didn't.  Version 7 adds
   // symbol kinds.  Version 8 just indicates that it correctly includes
-  // TUs for symbols.
-  if (vers < 4 || vers > 8)
+  // TUs for symbols.  Version 9 adds shortcut table for information
+  // regarding the main function.
+  if (vers < 4 || vers > 9)
     {
       printf (_("  unknown version, cannot parse section\n"));
       return;
@@ -11234,6 +11578,17 @@ print_gdb_index_section (Dwfl_Module *dwflmod, Ebl *ebl,
   readp += 4;
   if (unlikely (readp + 4 > dataend))
     goto invalid_data;
+
+  uint32_t shortcut_off = 0;
+  if (vers >= 9)
+    {
+      shortcut_off = read_4ubyte_unaligned (dbg, readp);
+      printf (_(" shortcut offset: %#" PRIx32 "\n"), shortcut_off);
+
+      readp += 4;
+      if (unlikely (readp + 4 > dataend))
+	goto invalid_data;
+    }
 
   uint32_t const_off = read_4ubyte_unaligned (dbg, readp);
   printf (_(" constant offset: %#" PRIx32 "\n"), const_off);
@@ -11332,8 +11687,19 @@ print_gdb_index_section (Dwfl_Module *dwflmod, Ebl *ebl,
   if (const_off >= data->d_size)
     goto invalid_data;
 
+  const unsigned char *shortcut_start = NULL;
+  if (vers >= 9)
+    {
+      if (shortcut_off >= data->d_size)
+	goto invalid_data;
+
+      shortcut_start = data->d_buf + shortcut_off;
+      nextp = shortcut_start;
+    }
+  else
+    nextp = const_start;
+
   readp = data->d_buf + sym_off;
-  nextp = const_start;
   size_t sym_nr = (nextp - readp) / 8;
 
   printf (_("\n Symbol table at offset %#" PRIx32
@@ -11407,6 +11773,49 @@ print_gdb_index_section (Dwfl_Module *dwflmod, Ebl *ebl,
 	}
       n++;
     }
+
+  if (vers < 9)
+    return;
+
+  if (unlikely (shortcut_start == NULL))
+    goto invalid_data;
+
+  readp = shortcut_start;
+  nextp = const_start;
+  size_t shortcut_nr = (nextp - readp) / 4;
+
+  if (unlikely (shortcut_nr != 2))
+    goto invalid_data;
+
+  printf (_("\nShortcut table at offset %#" PRIx32 " contains %zu slots:\n"),
+	  shortcut_off, shortcut_nr);
+
+  uint32_t lang = read_4ubyte_unaligned (dbg, readp);
+  readp += 4;
+
+  /* Include the hex number of LANG in the output if the language
+     is unknown.  */
+  const char *lang_str = dwarf_lang_string (lang);
+  lang_str = string_or_unknown (lang_str, lang, DW_LANG_lo_user,
+				DW_LANG_hi_user, true);
+
+  printf (_("Language of main: %s\n"), lang_str);
+  printf (_("Name of main: "));
+
+  if (lang != 0)
+    {
+      uint32_t name = read_4ubyte_unaligned (dbg, readp);
+      readp += 4;
+      const unsigned char *sym = const_start + name;
+
+      if (unlikely ((size_t) (dataend - const_start) < name
+		    || memchr (sym, '\0', dataend - sym) == NULL))
+	goto invalid_data;
+
+      printf ("%s\n", sym);
+    }
+  else
+    printf ("<unknown>\n");
 }
 
 /* Returns true and sets split DWARF CU id if there is a split compile

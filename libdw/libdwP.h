@@ -82,6 +82,8 @@ enum
     IDX_debug_macro,
     IDX_debug_ranges,
     IDX_debug_rnglists,
+    IDX_debug_cu_index,
+    IDX_debug_tu_index,
     IDX_gnu_debugaltlink,
     IDX_last
   };
@@ -165,6 +167,10 @@ struct Dwarf
 {
   /* The underlying ELF file.  */
   Elf *elf;
+
+  /* The (absolute) path to the ELF file, if known.  To help locating
+     dwp files.  */
+  char *elfpath;
 
   /* The (absolute) path to the ELF dir, if known.  To help locating
      alt and dwo files.  */
@@ -508,6 +514,8 @@ typedef struct
 /* Prototype table.  */
 typedef struct
 {
+  Dwarf *dbg;
+
   /* Offset of .debug_macro section.  */
   Dwarf_Off offset;
 
@@ -526,7 +534,8 @@ typedef struct
   Dwarf_Half header_len;
 
   uint16_t version;
-  bool is_64bit;
+  uint8_t address_size;
+  uint8_t offset_size;
   uint8_t sec_index;	/* IDX_debug_macro or IDX_debug_macinfo.  */
 
   /* Shows where in TABLE each opcode is defined.  Since opcode 0 is
@@ -1345,9 +1354,13 @@ __libdw_link_skel_split (Dwarf_CU *skel, Dwarf_CU *split)
 int __libdw_addrx (Dwarf_CU *cu, Dwarf_Word idx, Dwarf_Addr *addr);
 
 
-/* Helper function to set debugdir field in Dwarf, used from dwarf_begin_elf
+/* Helper function to set elfpath field in Dwarf, used from dwarf_begin_elf
    and libdwfl process_file.  */
-char * __libdw_debugdir (int fd);
+char * __libdw_elfpath (int fd);
+
+/* Helper function to set debugdir field in Dwarf after elfpath field has been
+   set.  */
+void __libdw_set_debugdir (Dwarf *dbg);
 
 
 /* Given the directory of a debug file, an absolute or relative dir

@@ -27,7 +27,8 @@
 # in all builds.
 
 tempfiles native.c native
-echo 'main () { while (1) pause (); }' > native.c
+printf '#include <unistd.h>\nint main (void) { while (1) pause (); }\n' \
+  > native.c
 
 native=0
 kill_native()

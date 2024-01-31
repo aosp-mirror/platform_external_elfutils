@@ -153,8 +153,8 @@ add_sections (const char *name, size_t nr, int use_mmap, size_t sec_size)
   size_t bufsz;
   if (sec_size == 0)
     {
-      buf = strdup ("extra");
-      bufsz = strlen ("extra") + 1;
+      buf = "";
+      bufsz = 1;
     }
   else
     {
@@ -293,7 +293,8 @@ add_sections (const char *name, size_t nr, int use_mmap, size_t sec_size)
       exit (1);
     }
 
-  free (buf);
+  if (sec_size != 0)
+    free (buf);
   free (new_shstrtab_buf);
 }
 

@@ -233,7 +233,7 @@ fi
 
 %files
 %license COPYING COPYING-GPLV2 COPYING-LGPLV3 doc/COPYING-GFDL
-%doc README TODO CONTRIBUTING
+%doc README TODO CONTRIBUTING SECURITY
 %{_bindir}/eu-addr2line
 %{_bindir}/eu-ar
 %{_bindir}/eu-elfclassify
@@ -341,6 +341,22 @@ exit 0
 %systemd_postun_with_restart debuginfod.service
 
 %changelog
+* Fri Nov  3 2023 Mark Wielaard <mark@klomp.org> 0.190-1
+- CONTRIBUTING: Switch from real name policy to known identity policy.
+  Updated ChangeLog policy (no more separate ChangeLog files).
+  There is a SECURITY bug policy now. The default branch is now 'main'.
+- libelf: Add RELR support.
+- libdw: Recognize .debug_[ct]u_index sections.
+- readelf: Support readelf -Ds, --use-dynamic --symbol.
+  Support .gdb_index version 9
+- scrlines: New tool that compiles a list of source files associated
+  with a specified dwarf/elf file.
+- debuginfod: Schema change (reindexing required, sorry!) for a 60%
+  compression in filename representation, which was a large
+  part of the sqlite index; also, more deliberate sqlite
+  -wal management during scanning using the --scan-checkpoint option.
+- backends: Various LoongArch updates.
+
 * Fri Mar  3 2023 Mark Wielaard <mark@klomp.org> 0.189-1
 - configure: eu-nm, eu-addr2line and eu-stack can provide demangled
   symbols when linked with libstdc++. Use --disable-demangler to disable.

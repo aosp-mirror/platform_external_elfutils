@@ -78,8 +78,8 @@ tempfiles vlog-find$PORT1.1
 errfiles vlog-find$PORT1.1
 cat vlog-find$PORT1.1
 grep 'Headers:' vlog-find$PORT1.1
-grep -i 'X-DEBUGINFOD-FILE: prog' vlog-find$PORT1.1
-grep -i 'X-DEBUGINFOD-SIZE: '     vlog-find$PORT1.1
+grep -i 'X-DEBUGINFOD-FILE: .*/prog' vlog-find$PORT1.1
+grep -i 'X-DEBUGINFOD-SIZE: '        vlog-find$PORT1.1
 
 # Check to see if an executable file located in an archive prints the file's description and archive
 env DEBUGINFOD_URLS="http://127.0.0.1:"$PORT1 LD_LIBRARY_PATH=$ldpath ${abs_top_builddir}/debuginfod/debuginfod-find\
@@ -88,9 +88,9 @@ tempfiles vlog-find$PORT1.2
 errfiles vlog-find$PORT1.2
 cat vlog-find$PORT1.2
 grep 'Headers:'               vlog-find$PORT1.2
-grep -i 'X-DEBUGINFOD-FILE: '    vlog-find$PORT1.2
+grep -i 'X-DEBUGINFOD-FILE: .*/.*'    vlog-find$PORT1.2
 grep -i 'X-DEBUGINFOD-SIZE: '    vlog-find$PORT1.2
-grep -i 'X-DEBUGINFOD-ARCHIVE: ' vlog-find$PORT1.2
+grep -i 'X-DEBUGINFOD-ARCHIVE: .*/.*' vlog-find$PORT1.2
 
 # Check that X-DEBUGINFOD-SIZE matches the size of each file
 for file in vlog-find$PORT1.1 vlog-find$PORT1.2

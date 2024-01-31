@@ -36,6 +36,9 @@ int
 dwarf_macro_getsrcfiles (Dwarf *dbg, Dwarf_Macro *macro,
 			 Dwarf_Files **files, size_t *nfiles)
 {
+  /* This was needed before Dwarf_Macro_Op_Table stored the Dwarf handle.  */
+  (void)dbg;
+
   /* macro is declared NN */
   Dwarf_Macro_Op_Table *const table = macro->table;
   if (table->files == NULL)
@@ -71,9 +74,8 @@ dwarf_macro_getsrcfiles (Dwarf *dbg, Dwarf_Macro *macro,
 	 the same unit through dwarf_getsrcfiles, and the file names
 	 will be broken.  */
 
-      if (__libdw_getsrclines (dbg, line_offset, table->comp_dir,
-			       table->is_64bit ? 8 : 4,
-			       NULL, &table->files) < 0)
+      if (__libdw_getsrclines (table->dbg, line_offset, table->comp_dir,
+			       table->address_size, NULL, &table->files) < 0)
 	table->files = (void *) -1;
     }
 

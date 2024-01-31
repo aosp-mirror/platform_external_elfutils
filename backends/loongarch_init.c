@@ -1,5 +1,7 @@
 /* Initialization of LoongArch specific backend library.
    Copyright (C) 2022 Hengqi Chen
+   Copyright (C) 2023 OpenAnolis community LoongArch SIG.
+   Copyright (C) 2023 Loongson Technology Corporation Limted.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -45,6 +47,16 @@ loongarch_init (Elf *elf __attribute__ ((unused)),
 {
   loongarch_init_reloc (eh);
   HOOK (eh, reloc_simple_type);
+  HOOK (eh, machine_flag_check);
+  HOOK (eh, register_info);
+  HOOK (eh, core_note);
+  HOOK (eh, abi_cfi);
+  /* gcc/config/ #define DWARF_FRAME_REGISTERS.  */
+  eh->frame_nregs = 74;
+  HOOK (eh, check_special_symbol);
+  HOOK (eh, set_initial_registers_tid);
+  HOOK (eh, return_value_location);
+  HOOK (eh, unwind);
 
   return eh;
 }

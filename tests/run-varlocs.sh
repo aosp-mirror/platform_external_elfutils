@@ -206,7 +206,7 @@ testfiles testfilesplitranges5.debug
 testfiles testfile-ranges-hello5.dwo testfile-ranges-world5.dwo
 testrun_compare ${abs_top_builddir}/tests/varlocs --debug -e testfilesplitranges5.debug <<\EOF
 module 'testfilesplitranges5.debug'
-[14] CU 'hello.c'
+[14] CU 'hello.c'@0
   [1d] function 'no_say'@401160
     frame_base: {call_frame_cfa {...}}
     [33] parameter 'prefix'
@@ -236,7 +236,7 @@ module 'testfilesplitranges5.debug'
     [111] parameter 'count'
       [401150,401160) {reg4}
 module 'testfilesplitranges5.debug'
-[14] CU 'world.c'
+[14] CU 'world.c'@401180
   [1d] function 'no_main'@4011d0
     frame_base: {call_frame_cfa {...}}
     [35] parameter 'argc'
@@ -282,7 +282,7 @@ testfiles testfilesplitranges4.debug
 testfiles testfile-ranges-hello.dwo testfile-ranges-world.dwo
 testrun_compare ${abs_top_builddir}/tests/varlocs --debug -e testfilesplitranges4.debug <<\EOF
 module 'testfilesplitranges4.debug'
-[b] CU 'hello.c'
+[b] CU 'hello.c'@0
   [18] function 'no_say'@4004f0
     frame_base: {call_frame_cfa {...}}
     [2f] parameter 'prefix'
@@ -310,7 +310,7 @@ module 'testfilesplitranges4.debug'
     [102] parameter 'count'
       [4004e0,4004f0) {reg4}
 module 'testfilesplitranges4.debug'
-[b] CU 'world.c'
+[b] CU 'world.c'@400500
   [18] function 'no_main'@400550
     frame_base: {call_frame_cfa {...}}
     [2f] parameter 'argc'
@@ -373,7 +373,7 @@ EOF
 testfiles testfile-addrx_constx-5 addrx_constx-5.dwo
 testrun_compare ${abs_top_builddir}/tests/varlocs --exprlocs -e testfile-addrx_constx-5 <<\EOF
 module 'testfile-addrx_constx-5'
-[14] CU 'addrx_constx.c'
+[14] CU 'addrx_constx.c'@0
   producer (strx)
   language (data1)
   name (strx)
@@ -467,7 +467,7 @@ EOF
 testfiles testfile-addrx_constx-4 addrx_constx-4.dwo
 testrun_compare ${abs_top_builddir}/tests/varlocs --exprlocs -e testfile-addrx_constx-4 <<\EOF
 module 'testfile-addrx_constx-4'
-[b] CU 'addrx_constx.c'
+[b] CU 'addrx_constx.c'@0
   producer (GNU_str_index)
   language (data1)
   name (GNU_str_index)
@@ -565,7 +565,7 @@ testfiles splitdwarf4-not-split4.dwo
 
 testrun_compare ${abs_top_builddir}/tests/varlocs --debug -e testfile-splitdwarf4-not-split4.debug <<\EOF
 module 'testfile-splitdwarf4-not-split4.debug'
-[b] CU 'splitdwarf4-not-split4.c'
+[b] CU 'splitdwarf4-not-split4.c'@0
   [18] function 'main'@401050
     frame_base: {call_frame_cfa {...}}
     [30] parameter 'argc'

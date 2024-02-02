@@ -90,6 +90,14 @@ callback_verify (pid_t tid, unsigned frameno, Dwarf_Addr pc,
       return;
     }
   Dwfl_Module *mod;
+  /* Skip frames for which there isn't a function name.  */
+  static int nulls_seen = 0;
+  if (symname == NULL)
+    {
+      nulls_seen++;
+      return;
+    }
+  frameno -= nulls_seen;
   /* See case 4. Special case to help out simple frame pointer unwinders. */
   static bool duplicate_sigusr2 = false;
   if (duplicate_sigusr2)

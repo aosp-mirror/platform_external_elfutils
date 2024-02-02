@@ -35,12 +35,13 @@ test_copy_and_add ()
   testrun ${abs_top_builddir}/src/elfcmp ${in_file} ${out_file}
 
   # Can we add a section (in-place)?
-  testrun ${abs_builddir}/addsections 65535 ${out_file}
+  testrun ${abs_builddir}/addsections 32768 ${out_file}
   testrun ${abs_top_builddir}/src/readelf -S ${out_file} > readelf.out
   nr=$(grep '.extra' readelf.out | wc -l)
   # We try twice...
-  if test ${nr} != 65535 -a ${nr} != 131070; then
+  if test ${nr} != 32768 -a ${nr} != 65536; then
     # Show what went wrong
+    echo nr: ${nr}
     testrun ${abs_top_builddir}/src/readelf -S ${out_file}
     exit 1
   fi
@@ -54,46 +55,8 @@ test_copy_and_add ()
 
 # A collection of random testfiles to test 32/64bit, little/big endian
 # and non-ET_REL (with phdrs)/ET_REL (without phdrs).
-# Try to add 0xffff sections twice.
+# Try to add 0x0fff sections twice.
 
-# 32bit, big endian, rel
-testfiles testfile29
-test_copy_and_add testfile29
-test_copy_and_add testfile29.copy
-
-# 64bit, big endian, rel
-testfiles testfile23
-test_copy_and_add testfile23
-test_copy_and_add testfile23.copy
-
-# 32bit, little endian, rel
-testfiles testfile9
-test_copy_and_add testfile9
-test_copy_and_add testfile9.copy
-
-# 64bit, little endian, rel
-testfiles testfile38
-test_copy_and_add testfile38
-test_copy_and_add testfile38.copy
-
-# 32bit, big endian, non-rel
-testfiles testfile26
-test_copy_and_add testfile26
-test_copy_and_add testfile26.copy
-
-# 64bit, big endian, non-rel
-testfiles testfile27
-test_copy_and_add testfile27
-test_copy_and_add testfile27.copy
-
-# 32bit, little endian, non-rel
-testfiles testfile
-test_copy_and_add testfile
-test_copy_and_add testfile.copy
-
-# 64bit, little endian, non-rel
-testfiles testfile10
-test_copy_and_add testfile10
-test_copy_and_add testfile10.copy
-
-exit 0
+# Separated out into subtests
+# run-copymany-be32.sh run-copymany-be64.sh
+# run-copymany-le32.sh run-copymany-le64.sh

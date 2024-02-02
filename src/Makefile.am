@@ -27,7 +27,7 @@ AM_LDFLAGS = -Wl,-rpath-link,../libelf:../libdw $(STACK_USAGE_NO_ERROR)
 
 bin_PROGRAMS = readelf nm size strip elflint findtextrel addr2line \
 	       elfcmp objdump ranlib strings ar unstrip stack elfcompress \
-	       elfclassify
+	       elfclassify srcfiles
 
 noinst_LIBRARIES = libar.a
 
@@ -42,7 +42,7 @@ CLEANFILES += make-debug-archive
 if BUILD_STATIC
 libasm = ../libasm/libasm.a
 libdw = ../libdw/libdw.a -lz $(zip_LIBS) $(libelf) -ldl -lpthread
-libelf = ../libelf/libelf.a -lz
+libelf = ../libelf/libelf.a -lz $(zstd_LIBS)
 else
 libasm = ../libasm/libasm.so
 libdw = ../libdw/libdw.so
@@ -84,6 +84,8 @@ unstrip_LDADD = $(libebl) $(libelf) $(libdw) $(libeu) $(argp_LDADD)
 stack_LDADD = $(libebl) $(libelf) $(libdw) $(libeu) $(argp_LDADD) $(demanglelib)
 elfcompress_LDADD = $(libebl) $(libelf) $(libdw) $(libeu) $(argp_LDADD)
 elfclassify_LDADD = $(libelf) $(libdw) $(libeu) $(argp_LDADD)
+srcfiles_SOURCES = srcfiles.cxx
+srcfiles_LDADD = $(libdw) $(libelf) $(libeu)  $(argp_LDADD)
 
 installcheck-binPROGRAMS: $(bin_PROGRAMS)
 	bad=0; pid=$$$$; list="$(bin_PROGRAMS)"; for p in $$list; do \

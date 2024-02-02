@@ -2543,8 +2543,7 @@ while computing checksum for debug information"));
     {
       error (0, 0, _("%s: error while creating ELF header: %s"),
 	     output_fname ?: fname, elf_errmsg (-1));
-      cleanup_debug ();
-      return 1;
+      result = 1;
     }
 
   /* The new section header string table index.  */
@@ -2552,8 +2551,7 @@ while computing checksum for debug information"));
     {
       error (0, 0, _("%s: error updating shdrstrndx: %s"),
 	     output_fname ?: fname, elf_errmsg (-1));
-      cleanup_debug ();
-      return 1;
+      result = 1;
     }
 
   /* We have everything from the old file.  */
@@ -2561,8 +2559,7 @@ while computing checksum for debug information"));
     {
       error (0, 0, _("%s: error while reading the file: %s"),
 	     fname, elf_errmsg (-1));
-      cleanup_debug ();
-      return 1;
+      result = 1;
     }
 
   /* The ELF library better follows our layout when this is not a

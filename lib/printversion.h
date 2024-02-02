@@ -32,6 +32,9 @@
 #include <argp.h>
 #include <stdio.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 /* Defined in version.c.  Common ARGP_PROGRAM_VERSION_HOOK_DEF.  */
 void print_version (FILE *stream, struct argp_state *state);
 
@@ -48,5 +51,9 @@ extern void (*const apvh) (FILE *, struct argp_state *);
 extern const char *const apba__;
 #define ARGP_PROGRAM_BUG_ADDRESS_DEF \
   const char *const apba__ __asm ("argp_program_bug_address")
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // PRINTVERSION_H

@@ -276,10 +276,11 @@ __libdwfl_report_elf (Dwfl *dwfl, const char *name, const char *file_name,
 	}
       else
 	{
-	  elf_end (elf);
 	  if (m->main_bias != bias
 	      || m->main.vaddr != vaddr || m->main.address_sync != address_sync)
 	    goto overlap;
+	  elf_end (m->main.elf);
+	  m->main.elf = elf;
 	}
     }
   return m;

@@ -37,12 +37,10 @@
 int
 dwarf_entrypc (Dwarf_Die *die, Dwarf_Addr *return_addr)
 {
-  Dwarf_Attribute attr_mem;
-
-  return INTUSE(dwarf_formaddr) (INTUSE(dwarf_attr) (die, DW_AT_entry_pc,
-						     &attr_mem)
-				 ?: INTUSE(dwarf_attr) (die, DW_AT_low_pc,
-							&attr_mem),
-				 return_addr);
+  Dwarf_Attribute attr_mem, *attr;
+  if ((attr = INTUSE(dwarf_attr) (die, DW_AT_entry_pc, &attr_mem)) != NULL)
+    return INTUSE(dwarf_formaddr) (attr, return_addr);
+  else
+    return INTUSE(dwarf_lowpc) (die, return_addr);
 }
 INTDEF(dwarf_entrypc)

@@ -1,0 +1,36 @@
+From 1bd9deb9aa19ac2e2fa9665009e0d5924adcf4d3 Mon Sep 17 00:00:00 2001
+From: Aleksei Vetrov <vvvvvv@google.com>
+Date: Thu, 16 Nov 2023 21:29:22 +0000
+Subject: [PATCH] libdw: check offset dwarf_formstring in all cases
+
+This check was initially added to test if offset overflows the safe
+prefix where any string will be null-terminated. However the check
+was placed in a wrong place and didn't cover all `attrp->form` cases.
+
+    * libdw/dwarf_formstring.c (dwarf_formstring): Move offset check
+      right before returning the result.
+
+Signed-off-by: Aleksei Vetrov <vvvvvv@google.com>
+
+diff --git a/libdw/dwarf_formstring.c b/libdw/dwarf_formstring.c
+index 0ee42411..65f03a5e 100644
+--- a/libdw/dwarf_formstring.c
++++ b/libdw/dwarf_formstring.c
+@@ -173,11 +173,11 @@ dwarf_formstring (Dwarf_Attribute *attrp)
+ 	off = read_4ubyte_unaligned (dbg, datap);
+       else
+ 	off = read_8ubyte_unaligned (dbg, datap);
+-
+-      if (off >= data_size)
+-	goto invalid_offset;
+     }
+ 
++  if (off >= data_size)
++    goto invalid_offset;
++
+   return (const char *) data->d_buf + off;
+ }
+ INTDEF(dwarf_formstring)
+-- 
+2.43.0.rc1.413.gea7ed67945-goog
+

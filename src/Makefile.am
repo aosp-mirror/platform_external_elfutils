@@ -43,18 +43,23 @@ if BUILD_STATIC
 libasm = ../libasm/libasm.a
 libdw = ../libdw/libdw.a -lz $(zip_LIBS) $(libelf) -ldl -lpthread
 libelf = ../libelf/libelf.a -lz $(zstd_LIBS)
+if LIBDEBUGINFOD
+libdebuginfod = ../debuginfod/libdebuginfod.a -lpthread $(libcurl_LIBS)
+else
+libdebuginfod =
+endif
 else
 libasm = ../libasm/libasm.so
 libdw = ../libdw/libdw.so
 libelf = ../libelf/libelf.so
-endif
-libebl = ../libebl/libebl.a ../backends/libebl_backends.a ../libcpu/libcpu.a
-libeu = ../lib/libeu.a
 if LIBDEBUGINFOD
 libdebuginfod = ../debuginfod/libdebuginfod.so
 else
 libdebuginfod =
 endif
+endif
+libebl = ../libebl/libebl.a ../backends/libebl_backends.a ../libcpu/libcpu.a
+libeu = ../lib/libeu.a
 
 if DEMANGLE
 demanglelib = -lstdc++

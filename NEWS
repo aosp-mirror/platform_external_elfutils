@@ -1,4 +1,4 @@
-Version 0.191 (after 0.189)
+Version 0.191 (after 0.190)
 
 srcfiles: Can now fetch the source files of a DWARF/ELF file and
           place them into a zip.
@@ -13,9 +13,6 @@ CONTRIBUTING: Switch from real name policy to known identity policy.
 libelf: Add RELR support.
 
 libdw: Recognize .debug_[ct]u_index sections
-
-srcfiles: added srcfiles tool that lists all the source files of a given
-          DWARF/ELF file.
 
 readelf: Support readelf -Ds, --use-dynamic --symbol.
          Support .gdb_index version 9

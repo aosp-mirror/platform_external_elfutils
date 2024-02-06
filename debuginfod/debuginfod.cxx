@@ -2996,8 +2996,6 @@ dwarf_extract_source_paths (Elf *elf, set<string>& debug_sourcefiles)
 
       if (comp_dir[0] == '\0' && cuname[0] != '/')
         {
-          // This is a common symptom for dwz-compressed debug files,
-          // where the altdebug file cannot be resolved.
           if (verbose > 3)
             obatched(clog) << "skipping cu=" << cuname << " due to empty comp_dir" << endl;
           continue;

@@ -841,7 +841,7 @@ AM_CONDITIONAL([LIBDEBUGINFOD],[test "x$enable_libdebuginfod" = "xyes" || test "
 AM_CONDITIONAL([DUMMY_LIBDEBUGINFOD],[test "x$enable_libdebuginfod" = "xdummy"])
 AC_CHECK_HEADERS([execinfo.h])
 
-# Look for libmicrohttpd, libarchive, sqlite for debuginfo server
+# Look for libmicrohttpd, libarchive, sqlite for debuginfo server and srcfiles tool
 # minimum versions as per rhel7.
 AC_ARG_ENABLE([debuginfod],AS_HELP_STRING([--enable-debuginfod], [Build debuginfod server]))
 AS_IF([test "x$enable_debuginfod" != "xno"], [
@@ -853,11 +853,12 @@ AS_IF([test "x$enable_debuginfod" != "xno"], [
       AC_MSG_ERROR([need libdebuginfod (or dummy), use --disable-debuginfod to disable.])
     fi
     enable_debuginfod=yes # presume success
+    AC_DEFINE([HAVE_LIBARCHIVE], [1], [Define to 1 if libarchive is available]) # presume success
     PKG_PROG_PKG_CONFIG
     PKG_CHECK_MODULES([libmicrohttpd],[libmicrohttpd >= 0.9.33],[],[enable_debuginfod=no])
     PKG_CHECK_MODULES([oldlibmicrohttpd],[libmicrohttpd < 0.9.51],[old_libmicrohttpd=yes],[old_libmicrohttpd=no])
     PKG_CHECK_MODULES([sqlite3],[sqlite3 >= 3.7.17],[],[enable_debuginfod=no])
-    PKG_CHECK_MODULES([libarchive],[libarchive >= 3.1.2],[],[enable_debuginfod=no])
+    PKG_CHECK_MODULES([libarchive],[libarchive >= 3.1.2],[],[enable_debuginfod=no], AC_DEFINE([HAVE_LIBARCHIVE], [0], [Define to 0 if libarchive is not available]))
     if test "x$enable_debuginfod" = "xno"; then
       AC_MSG_ERROR([dependencies not found, use --disable-debuginfod to disable.])
     fi

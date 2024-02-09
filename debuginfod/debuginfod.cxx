@@ -1,5 +1,5 @@
 /* Debuginfo-over-http server.
-   Copyright (C) 2019-2021 Red Hat, Inc.
+   Copyright (C) 2019-2024 Red Hat, Inc.
    Copyright (C) 2021, 2022 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
@@ -69,6 +69,8 @@ extern "C" {
 #include <unistd.h>
 #include <fcntl.h>
 #include <netdb.h>
+#include <math.h>
+#include <float.h>
 
 
 /* If fts.h is included before config.h, its indirect inclusions may not
@@ -417,7 +419,7 @@ static const struct argp_option options[] =
    { "verbose", 'v', NULL, 0, "Increase verbosity.", 0 },
    { "regex-groom", 'r', NULL, 0,"Uses regexes from -I and -X arguments to groom the database.",0},
 #define ARGP_KEY_FDCACHE_FDS 0x1001
-   { "fdcache-fds", ARGP_KEY_FDCACHE_FDS, "NUM", 0, "Maximum number of archive files to keep in fdcache.", 0 },
+   { "fdcache-fds", ARGP_KEY_FDCACHE_FDS, "NUM", OPTION_HIDDEN, NULL, 0 },
 #define ARGP_KEY_FDCACHE_MBS 0x1002
    { "fdcache-mbs", ARGP_KEY_FDCACHE_MBS, "MB", 0, "Maximum total size of archive file fdcache.", 0 },
 #define ARGP_KEY_FDCACHE_PREFETCH 0x1003
@@ -425,11 +427,9 @@ static const struct argp_option options[] =
 #define ARGP_KEY_FDCACHE_MINTMP 0x1004
    { "fdcache-mintmp", ARGP_KEY_FDCACHE_MINTMP, "NUM", 0, "Minimum free space% on tmpdir.", 0 },
 #define ARGP_KEY_FDCACHE_PREFETCH_MBS 0x1005
-   { "fdcache-prefetch-mbs", ARGP_KEY_FDCACHE_PREFETCH_MBS, "MB", 0,"Megabytes allocated to the \
-      prefetch cache.", 0},
+   { "fdcache-prefetch-mbs", ARGP_KEY_FDCACHE_PREFETCH_MBS, "MB", OPTION_HIDDEN, NULL, 0},
 #define ARGP_KEY_FDCACHE_PREFETCH_FDS 0x1006
-   { "fdcache-prefetch-fds", ARGP_KEY_FDCACHE_PREFETCH_FDS, "NUM", 0,"Number of files allocated to the \
-      prefetch cache.", 0},
+   { "fdcache-prefetch-fds", ARGP_KEY_FDCACHE_PREFETCH_FDS, "NUM", OPTION_HIDDEN, NULL, 0},
 #define ARGP_KEY_FORWARDED_TTL_LIMIT 0x1007
    {"forwarded-ttl-limit", ARGP_KEY_FORWARDED_TTL_LIMIT, "NUM", 0, "Limit of X-Forwarded-For hops, default 8.", 0},
 #define ARGP_KEY_PASSIVE 0x1008
@@ -482,12 +482,9 @@ static regex_t file_include_regex;
 static regex_t file_exclude_regex;
 static bool regex_groom = false;
 static bool traverse_logical;
-static long fdcache_fds;
 static long fdcache_mbs;
 static long fdcache_prefetch;
 static long fdcache_mintmp;
-static long fdcache_prefetch_mbs;
-static long fdcache_prefetch_fds;
 static unsigned forwarded_ttl_limit = 8;
 static bool scan_source_info = true;
 static string tmpdir;
@@ -495,7 +492,9 @@ static bool passive_p = false;
 static long scan_checkpoint = 256;
 
 static void set_metric(const string& key, double value);
-// static void inc_metric(const string& key);
+static void inc_metric(const string& key);
+static void add_metric(const string& metric,
+                       double value);
 static void set_metric(const string& metric,
                        const string& lname, const string& lvalue,
                        double value);
@@ -653,7 +652,7 @@ parse_opt (int key, char *arg,
       regex_groom = true;
       break;
     case ARGP_KEY_FDCACHE_FDS:
-      fdcache_fds = atol (arg);
+      // deprecated
       break;
     case ARGP_KEY_FDCACHE_MBS:
       fdcache_mbs = atol (arg);
@@ -673,14 +672,10 @@ parse_opt (int key, char *arg,
       source_paths.insert(string(arg));
       break;
     case ARGP_KEY_FDCACHE_PREFETCH_FDS:
-      fdcache_prefetch_fds = atol(arg);
-      if ( fdcache_prefetch_fds < 0)
-        argp_failure(state, 1, EINVAL, "fdcache prefetch fds");
+      // deprecated
       break;
     case ARGP_KEY_FDCACHE_PREFETCH_MBS:
-      fdcache_prefetch_mbs = atol(arg);
-      if ( fdcache_prefetch_mbs < 0)
-        argp_failure(state, 1, EINVAL, "fdcache prefetch mbs");
+      // deprecated
       break;
     case ARGP_KEY_PASSIVE:
       passive_p = true;
@@ -1438,76 +1433,79 @@ class libarchive_fdcache
 private:
   mutex fdcache_lock;
 
+  typedef pair<string,string> key; // archive, entry
   struct fdcache_entry
   {
-    string archive;
-    string entry;
-    string fd;
+    string fd; // file name (probably in $TMPDIR), not an actual open fd (EMFILE)
     double fd_size_mb; // slightly rounded up megabytes
+    time_t freshness; // when was this entry created or requested last
+    unsigned request_count; // how many requests were made; or 0=prefetch only
+    double latency; // how many seconds it took to extract the file
   };
-  deque<fdcache_entry> lru; // @head: most recently used
+
+  map<key,fdcache_entry> entries; // optimized for lookup
+  time_t last_cleaning;
   long max_fds;
-  deque<fdcache_entry> prefetch; // prefetched
   long max_mbs;
-  long max_prefetch_mbs;
-  long max_prefetch_fds;
 
 public:
   void set_metrics()
   {
     double fdcache_mb = 0.0;
     double prefetch_mb = 0.0;
-    for (auto i = lru.begin(); i < lru.end(); i++)
-      fdcache_mb += i->fd_size_mb;
-    for (auto j = prefetch.begin(); j < prefetch.end(); j++)
-      prefetch_mb += j->fd_size_mb;
+    unsigned fdcache_count = 0;
+    unsigned prefetch_count = 0;
+    for (auto &i : entries) {
+      if (i.second.request_count) {
+        fdcache_mb += i.second.fd_size_mb;
+        fdcache_count ++;
+      } else {
+        prefetch_mb += i.second.fd_size_mb;
+        prefetch_count ++;
+      }
+    }
     set_metric("fdcache_bytes", fdcache_mb*1024.0*1024.0);
-    set_metric("fdcache_count", lru.size());
+    set_metric("fdcache_count", fdcache_count);
     set_metric("fdcache_prefetch_bytes", prefetch_mb*1024.0*1024.0);
-    set_metric("fdcache_prefetch_count", prefetch.size());
+    set_metric("fdcache_prefetch_count", prefetch_count);
   }
 
-  void intern(const string& a, const string& b, string fd, off_t sz, bool front_p)
+  void intern(const string& a, const string& b, string fd, off_t sz,
+              bool requested_p, double lat)
   {
     {
       unique_lock<mutex> lock(fdcache_lock);
-      // nuke preexisting copy
-      for (auto i = lru.begin(); i < lru.end(); i++)
+      time_t now = time(NULL);
+      // there is a chance it's already in here, just wasn't found last time
+      // if so, there's nothing to do but count our luck
+      auto i = entries.find(make_pair(a,b));
+      if (i != entries.end())
         {
-          if (i->archive == a && i->entry == b)
-            {
-              unlink (i->fd.c_str());
-              lru.erase(i);
-              inc_metric("fdcache_op_count","op","dequeue");
-              break; // must not continue iterating
-            }
-        }
-      // nuke preexisting copy in prefetch
-      for (auto i = prefetch.begin(); i < prefetch.end(); i++)
-        {
-          if (i->archive == a && i->entry == b)
-            {
-              unlink (i->fd.c_str());
-              prefetch.erase(i);
-              inc_metric("fdcache_op_count","op","prefetch_dequeue");
-              break; // must not continue iterating
-            }
+          inc_metric("fdcache_op_count","op","redundant_intern");
+          if (requested_p) i->second.request_count ++; // repeat prefetch doesn't count
+          i->second.freshness = now;
+          // We need to nuke the temp file, since interning passes
+          // responsibility over the path to this structure.  It is
+          // possible that the caller still has an fd open, but that's
+          // OK.
+          unlink (fd.c_str());
+          return;
         }
       double mb = (sz+65535)/1048576.0; // round up to 64K block
-      fdcache_entry n = { a, b, fd, mb };
-      if (front_p)
-        {
-          inc_metric("fdcache_op_count","op","enqueue");
-          lru.push_front(n);
-        }
+      fdcache_entry n = { .fd=fd, .fd_size_mb=mb,
+                          .freshness=now, .request_count = requested_p?1U:0U,
+                          .latency=lat};
+      entries.insert(make_pair(make_pair(a,b),n));
+      
+      if (requested_p)
+        inc_metric("fdcache_op_count","op","enqueue");
       else
-        {
-          inc_metric("fdcache_op_count","op","prefetch_enqueue");
-          prefetch.push_front(n);
-        }
+        inc_metric("fdcache_op_count","op","prefetch_enqueue");
+      
       if (verbose > 3)
         obatched(clog) << "fdcache interned a=" << a << " b=" << b
-                       << " fd=" << fd << " mb=" << mb << " front=" << front_p << endl;
+                       << " fd=" << fd << " mb=" << mb << " front=" << requested_p
+                       << " latency=" << lat << endl;
       
       set_metrics();
     }
@@ -1517,10 +1515,10 @@ public:
       {
         inc_metric("fdcache_op_count","op","emerg-flush");
         obatched(clog) << "fdcache emergency flush for filling tmpdir" << endl;
-        this->limit(0, 0, 0, 0); // emergency flush
+        this->limit(0); // emergency flush
       }
-    else if (front_p)
-      this->limit(max_fds, max_mbs, max_prefetch_fds, max_prefetch_mbs); // age cache if required
+    else // age cache normally
+      this->limit(max_mbs);
   }
 
   int lookup(const string& a, const string& b)
@@ -1528,156 +1526,163 @@ public:
     int fd = -1;
     {
       unique_lock<mutex> lock(fdcache_lock);
-      for (auto i = lru.begin(); i < lru.end(); i++)
+      auto i = entries.find(make_pair(a,b));
+      if (i != entries.end())
         {
-          if (i->archive == a && i->entry == b)
-            { // found it; move it to head of lru
-              fdcache_entry n = *i;
-              lru.erase(i); // invalidates i, so no more iteration!
-              lru.push_front(n);
-              inc_metric("fdcache_op_count","op","requeue_front");
-              fd = open(n.fd.c_str(), O_RDONLY); 
-              break;
+          if (i->second.request_count == 0) // was a prefetch!
+            {
+              inc_metric("fdcache_prefetch_saved_milliseconds_count");
+              add_metric("fdcache_prefetch_saved_milliseconds_sum", i->second.latency*1000.);
             }
-        }
-      // Iterate through prefetch while fd == -1 to ensure that no duplication between lru and 
-      // prefetch occurs.
-      for ( auto i = prefetch.begin(); fd == -1 && i < prefetch.end(); ++i)
-        {
-          if (i->archive == a && i->entry == b)
-            { // found it; take the entry from the prefetch deque to the lru deque, since it has now been accessed.
-              fdcache_entry n = *i;
-              prefetch.erase(i);
-              lru.push_front(n);
-              inc_metric("fdcache_op_count","op","prefetch_access");
-              fd = open(n.fd.c_str(), O_RDONLY); 
-              break;
-            }
+          i->second.request_count ++;
+          i->second.freshness = time(NULL);
+          // brag about our success
+          inc_metric("fdcache_op_count","op","prefetch_access"); // backward compat
+          inc_metric("fdcache_saved_milliseconds_count");
+          add_metric("fdcache_saved_milliseconds_sum", i->second.latency*1000.);
+          fd = open(i->second.fd.c_str(), O_RDONLY); 
         }
     }
 
-    if (statfs_free_enough_p(tmpdir, "tmpdir", fdcache_mintmp))
-      {
-        inc_metric("fdcache_op_count","op","emerg-flush");
-        obatched(clog) << "fdcache emergency flush for filling tmpdir" << endl;
-        this->limit(0, 0, 0, 0); // emergency flush
-      }
-    else if (fd >= 0)
-      this->limit(max_fds, max_mbs, max_prefetch_fds, max_prefetch_mbs); // age cache if required
+    if (fd >= 0)
+      inc_metric("fdcache_op_count","op","lookup_hit");
+    else
+      inc_metric("fdcache_op_count","op","lookup_miss");
+    
+    // NB: no need to age the cache after just a lookup
 
     return fd;
   }
 
-  int probe(const string& a, const string& b) // just a cache residency check - don't modify LRU state, don't open
+  int probe(const string& a, const string& b) // just a cache residency check - don't modify state, don't open
   {
     unique_lock<mutex> lock(fdcache_lock);
-    for (auto i = lru.begin(); i < lru.end(); i++)
-      {
-        if (i->archive == a && i->entry == b)
-          {
-            inc_metric("fdcache_op_count","op","probe_hit");
-            return true;
-          }
-      }
-    for (auto i = prefetch.begin(); i < prefetch.end(); i++)
-      {
-        if (i->archive == a && i->entry == b)
-          {
-            inc_metric("fdcache_op_count","op","prefetch_probe_hit");
-            return true;
-          }
-      }
-    inc_metric("fdcache_op_count","op","probe_miss");
-    return false;
+    auto i = entries.find(make_pair(a,b));
+    if (i != entries.end()) {
+      inc_metric("fdcache_op_count","op","probe_hit");
+      return true;
+    } else {
+      inc_metric("fdcache_op_count","op","probe_miss");
+      return false;
+   }
   }
-
+  
   void clear(const string& a, const string& b)
   {
     unique_lock<mutex> lock(fdcache_lock);
-    for (auto i = lru.begin(); i < lru.end(); i++)
-      {
-        if (i->archive == a && i->entry == b)
-          { // found it; erase it from lru
-            fdcache_entry n = *i;
-            lru.erase(i); // invalidates i, so no more iteration!
-            inc_metric("fdcache_op_count","op","clear");
-            unlink (n.fd.c_str());
-            set_metrics();
-            return;
-          }
-      }
-    for (auto i = prefetch.begin(); i < prefetch.end(); i++)
-      {
-        if (i->archive == a && i->entry == b)
-          { // found it; erase it from lru
-            fdcache_entry n = *i;
-            prefetch.erase(i); // invalidates i, so no more iteration!
-            inc_metric("fdcache_op_count","op","prefetch_clear");
-            unlink (n.fd.c_str());
-            set_metrics();
-            return;
-          }
-      }
+    auto i = entries.find(make_pair(a,b));
+    if (i != entries.end()) {
+      inc_metric("fdcache_op_count","op",
+                 i->second.request_count > 0 ? "clear" : "prefetch_clear");
+      unlink (i->second.fd.c_str());
+      entries.erase(i);
+      set_metrics();
+      return;
+    }
   }
 
-  void limit(long maxfds, long maxmbs, long maxprefetchfds, long maxprefetchmbs , bool metrics_p = true)
+  void limit(long maxmbs, bool metrics_p = true)
   {
-    if (verbose > 3 && (this->max_fds != maxfds || this->max_mbs != maxmbs))
-      obatched(clog) << "fdcache limited to maxfds=" << maxfds << " maxmbs=" << maxmbs << endl;
+    time_t now = time(NULL);
+
+    // avoid overly frequent limit operations
+    if (maxmbs > 0 && (now - this->last_cleaning) < 10) // probably not worth parametrizing
+      return;
+    this->last_cleaning = now;
+    
+    if (verbose > 3 && (this->max_mbs != maxmbs))
+      obatched(clog) << "fdcache limited to maxmbs=" << maxmbs << endl;
 
     unique_lock<mutex> lock(fdcache_lock);
-    this->max_fds = maxfds;
+    
     this->max_mbs = maxmbs;
-    this->max_prefetch_fds = maxprefetchfds;
-    this->max_prefetch_mbs = maxprefetchmbs;
-    long total_fd = 0;
     double total_mb = 0.0;
-    for (auto i = lru.begin(); i < lru.end(); i++)
+
+    map<double, pair<string,string>> sorted_entries;
+    for (auto &i: entries)
       {
-        // accumulate totals from most recently used one going backward
-        total_fd ++;
-        total_mb += i->fd_size_mb;
-        if (total_fd > this->max_fds || total_mb > this->max_mbs)
-          {
-            // found the cut here point!
+        total_mb += i.second.fd_size_mb;
 
-            for (auto j = i; j < lru.end(); j++) // close all the fds from here on in
-              {
-                if (verbose > 3)
-                  obatched(clog) << "fdcache evicted a=" << j->archive << " b=" << j->entry
-                                 << " fd=" << j->fd << " mb=" << j->fd_size_mb << endl;
-                if (metrics_p)
-                  inc_metric("fdcache_op_count","op","evict");
-                unlink (j->fd.c_str());
-              }
+        // need a scalar quantity that combines these inputs in a sensible way:
+        //
+        // 1) freshness of this entry (last time it was accessed)
+        // 2) size of this entry
+        // 3) number of times it has been accessed (or if just prefetched with 0 accesses)
+        // 4) latency it required to extract
+        //
+        // The lower the "score", the earlier garbage collection will
+        // nuke it, so to prioritize entries for preservation, the
+        // score should be higher, and vice versa.
+        time_t factor_1_freshness = (now - i.second.freshness); // seconds
+        double factor_2_size = i.second.fd_size_mb; // megabytes
+        unsigned factor_3_accesscount = i.second.request_count; // units
+        double factor_4_latency = i.second.latency; // seconds
 
-            lru.erase(i, lru.end()); // erase the nodes generally
-            break;
-          }
+        #if 0
+        double score = - factor_1_freshness; // simple LRU
+        #endif
+
+        double score = 0.
+          - log1p(factor_1_freshness)                // penalize old file
+          - log1p(factor_2_size)                     // penalize large file
+          + factor_4_latency * factor_3_accesscount; // reward slow + repeatedly read files
+
+        if (verbose > 4)
+          obatched(clog) << "fdcache scored score=" << score
+                         << " a=" << i.first.first << " b=" << i.first.second
+                         << " f1=" << factor_1_freshness << " f2=" << factor_2_size
+                         << " f3=" << factor_3_accesscount << " f4=" << factor_4_latency
+                         << endl;
+        
+        sorted_entries.insert(make_pair(score, i.first));
       }
-    total_fd = 0;
-    total_mb = 0.0;
-    for(auto i = prefetch.begin(); i < prefetch.end(); i++){
-      // accumulate totals from most recently used one going backward
-        total_fd ++;
-        total_mb += i->fd_size_mb;
-        if (total_fd > this->max_prefetch_fds || total_mb > this->max_prefetch_mbs)
-          {
-            // found the cut here point!
-            for (auto j = i; j < prefetch.end(); j++) // close all the fds from here on in
-              {
-                if (verbose > 3)
-                  obatched(clog) << "fdcache evicted from prefetch a=" << j->archive << " b=" << j->entry
-                                 << " fd=" << j->fd << " mb=" << j->fd_size_mb << endl;
-                if (metrics_p)
-                  inc_metric("fdcache_op_count","op","prefetch_evict");
-                unlink (j->fd.c_str());
-              }
 
-            prefetch.erase(i, prefetch.end()); // erase the nodes generally
-            break;
-          }
-    }
+    unsigned cleaned = 0;
+    unsigned entries_original = entries.size();
+    double cleaned_score_min = DBL_MAX;
+    double cleaned_score_max = DBL_MIN;
+    
+    // drop as many entries[] as needed to bring total mb down to the threshold
+    for (auto &i: sorted_entries) // in increasing score order!
+      {
+        if (this->max_mbs > 0 // if this is not a "clear entire table"
+            && total_mb < this->max_mbs) // we've cleared enough to meet threshold
+          break; // stop clearing
+
+        auto j = entries.find(i.second);
+        if (j == entries.end())
+          continue; // should not happen
+
+        if (cleaned == 0)
+          cleaned_score_min = i.first;
+        cleaned++;
+        cleaned_score_max = i.first;
+        
+        if (verbose > 3)
+          obatched(clog) << "fdcache evicted score=" << i.first
+                         << " a=" << i.second.first << " b=" << i.second.second
+                         << " fd=" << j->second.fd << " mb=" << j->second.fd_size_mb
+                         << " rq=" << j->second.request_count << " lat=" << j->second.latency
+                         << " fr=" << (now - j->second.freshness)
+                         << endl;
+        if (metrics_p)
+          inc_metric("fdcache_op_count","op","evict");
+        
+        total_mb -= j->second.fd_size_mb;
+        unlink (j->second.fd.c_str());
+        entries.erase(j);
+      }
+
+    if (metrics_p)
+      inc_metric("fdcache_op_count","op","evict_cycle");
+    
+    if (verbose > 1 && cleaned > 0)
+      {
+        obatched(clog) << "fdcache evicted num=" << cleaned << " of=" << entries_original
+                       << " min=" << cleaned_score_min << " max=" << cleaned_score_max
+                       << endl;
+      }
+    
     if (metrics_p) set_metrics();
   }
 
@@ -1686,7 +1691,7 @@ public:
   {
     // unlink any fdcache entries in $TMPDIR
     // don't update metrics; those globals may be already destroyed
-    limit(0, 0, 0, 0, false);
+    limit(0, false);
   }
 };
 static libarchive_fdcache fdcache;
@@ -1701,7 +1706,8 @@ static libarchive_fdcache fdcache;
 
 static int
 extract_section (int elf_fd, int64_t parent_mtime,
-		 const string& b_source, const string& section)
+		 const string& b_source, const string& section,
+                 const timespec& extract_begin)
 {
   /* Search the fdcache.  */
   struct stat fs;
@@ -1771,29 +1777,41 @@ extract_section (int elf_fd, int64_t parent_mtime,
 
 	      /* Create temporary file containing the section.  */
 	      char *tmppath = NULL;
-	      rc = asprintf (&tmppath, "%s/debuginfod.XXXXXX", tmpdir.c_str());
+	      rc = asprintf (&tmppath, "%s/debuginfod-section.XXXXXX", tmpdir.c_str());
 	      if (rc < 0)
 		throw libc_exception (ENOMEM, "cannot allocate tmppath");
 	      defer_dtor<void*,void> tmmpath_freer (tmppath, free);
 	      fd = mkstemp (tmppath);
 	      if (fd < 0)
 		throw libc_exception (errno, "cannot create temporary file");
+
 	      ssize_t res = write_retry (fd, data->d_buf, data->d_size);
-	      if (res < 0 || (size_t) res != data->d_size)
+	      if (res < 0 || (size_t) res != data->d_size) {
+                close (fd);
+                unlink (tmppath);
 		throw libc_exception (errno, "cannot write to temporary file");
+              }
 
 	      /* Set mtime to be the same as the parent file's mtime.  */
 	      struct timespec tvs[2];
-	      if (fstat (elf_fd, &fs) != 0)
+	      if (fstat (elf_fd, &fs) != 0) {
+                close (fd);
+                unlink (tmppath);
 		throw libc_exception (errno, "cannot fstat file");
-
+              }
+              
 	      tvs[0].tv_sec = 0;
 	      tvs[0].tv_nsec = UTIME_OMIT;
 	      tvs[1] = fs.st_mtim;
 	      (void) futimens (fd, tvs);
 
+              struct timespec extract_end;
+              clock_gettime (CLOCK_MONOTONIC, &extract_end);
+              double extract_time = (extract_end.tv_sec - extract_begin.tv_sec)
+                + (extract_end.tv_nsec - extract_begin.tv_nsec)/1.e9;
+              
 	      /* Add to fdcache.  */
-	      fdcache.intern (b_source, section, tmppath, data->d_size, true);
+	      fdcache.intern (b_source, section, tmppath, data->d_size, true, extract_time);
 	      break;
 	    }
 	}
@@ -1817,10 +1835,14 @@ handle_buildid_f_match (bool internal_req_t,
                         int *result_fd)
 {
   (void) internal_req_t; // ignored
+
+  struct timespec extract_begin;
+  clock_gettime (CLOCK_MONOTONIC, &extract_begin);
+  
   int fd = open(b_source0.c_str(), O_RDONLY);
   if (fd < 0)
     throw libc_exception (errno, string("open ") + b_source0);
-
+  
   // NB: use manual close(2) in error case instead of defer_dtor, because
   // in the normal case, we want to hand the fd over to libmicrohttpd for
   // file transfer.
@@ -1843,7 +1865,7 @@ handle_buildid_f_match (bool internal_req_t,
 
   if (!section.empty ())
     {
-      int scn_fd = extract_section (fd, s.st_mtime, b_source0, section);
+      int scn_fd = extract_section (fd, s.st_mtime, b_source0, section, extract_begin);
       close (fd);
 
       if (scn_fd >= 0)
@@ -1918,6 +1940,9 @@ handle_buildid_r_match (bool internal_req_p,
                         const string& section,
                         int *result_fd)
 {
+  struct timespec extract_begin;
+  clock_gettime (CLOCK_MONOTONIC, &extract_begin);
+
   struct stat fs;
   int rc = stat (b_source0.c_str(), &fs);
   if (rc != 0)
@@ -1948,7 +1973,7 @@ handle_buildid_r_match (bool internal_req_p,
 	{
 	  int scn_fd = extract_section (fd, fs.st_mtime,
 					b_source0 + ":" + b_source1,
-					section);
+					section, extract_begin);
 	  close (fd);
 	  if (scn_fd >= 0)
 	    fd = scn_fd;
@@ -2009,6 +2034,7 @@ handle_buildid_r_match (bool internal_req_p,
         archive_decoder = arch.second;
       }
   FILE* fp;
+  
   defer_dtor<FILE*,int>::dtor_fn dfn;
   if (archive_decoder != "cat")
     {
@@ -2079,7 +2105,7 @@ handle_buildid_r_match (bool internal_req_p,
 
       // extract this file to a temporary file
       char* tmppath = NULL;
-      rc = asprintf (&tmppath, "%s/debuginfod.XXXXXX", tmpdir.c_str());
+      rc = asprintf (&tmppath, "%s/debuginfod-fdcache.XXXXXX", tmpdir.c_str());
       if (rc < 0)
         throw libc_exception (ENOMEM, "cannot allocate tmppath");
       defer_dtor<void*,void> tmmpath_freer (tmppath, free);
@@ -2106,13 +2132,18 @@ handle_buildid_r_match (bool internal_req_p,
       tvs[1].tv_nsec = archive_entry_mtime_nsec(e);
       (void) futimens (fd, tvs);  /* best effort */
 
+      struct timespec extract_end;
+      clock_gettime (CLOCK_MONOTONIC, &extract_end);
+      double extract_time = (extract_end.tv_sec - extract_begin.tv_sec)
+        + (extract_end.tv_nsec - extract_begin.tv_nsec)/1.e9;
+      
       if (r != 0) // stage 3
         {
           // NB: now we know we have a complete reusable file; make fdcache
           // responsible for unlinking it later.
           fdcache.intern(b_source0, fn,
                          tmppath, archive_entry_size(e),
-                         false); // prefetched ones go to the prefetch cache
+                         false, extract_time); // prefetched ones go to the prefetch cache
           prefetch_count --;
           close (fd); // we're not saving this fd to make a mhd-response from!
           continue;
@@ -2122,13 +2153,13 @@ handle_buildid_r_match (bool internal_req_p,
       // responsible for unlinking it later.
       fdcache.intern(b_source0, b_source1,
                      tmppath, archive_entry_size(e),
-                     true); // requested ones go to the front of lru
+                     true, extract_time); // requested ones go to the front of the line
 
       if (!section.empty ())
 	{
 	  int scn_fd = extract_section (fd, b_mtime,
 					b_source0 + ":" + b_source1,
-					section);
+					section, extract_begin);
 	  close (fd);
 	  if (scn_fd >= 0)
 	    fd = scn_fd;
@@ -2583,14 +2614,12 @@ set_metric(const string& metric, double value)
   unique_lock<mutex> lock(metrics_lock);
   metrics[metric] = value;
 }
-#if 0 /* unused */
 static void
 inc_metric(const string& metric)
 {
   unique_lock<mutex> lock(metrics_lock);
   metrics[metric] ++;
 }
-#endif
 static void
 set_metric(const string& metric,
            const string& lname, const string& lvalue,
@@ -2618,7 +2647,6 @@ add_metric(const string& metric,
   unique_lock<mutex> lock(metrics_lock);
   metrics[key] += value;
 }
-#if 0
 static void
 add_metric(const string& metric,
            double value)
@@ -2626,7 +2654,6 @@ add_metric(const string& metric,
   unique_lock<mutex> lock(metrics_lock);
   metrics[metric] += value;
 }
-#endif
 
 
 // and more for higher arity labels if needed
@@ -3479,7 +3506,7 @@ archive_classify (const string& rps, string& archive_extension, int64_t archivei
 
           // extract this file to a temporary file
           char* tmppath = NULL;
-          rc = asprintf (&tmppath, "%s/debuginfod.XXXXXX", tmpdir.c_str());
+          rc = asprintf (&tmppath, "%s/debuginfod-classify.XXXXXX", tmpdir.c_str());
           if (rc < 0)
             throw libc_exception (ENOMEM, "cannot allocate tmppath");
           defer_dtor<void*,void> tmmpath_freer (tmppath, free);
@@ -3490,8 +3517,10 @@ archive_classify (const string& rps, string& archive_extension, int64_t archivei
           defer_dtor<int,int> minifd_closer (fd, close);
 
           rc = archive_read_data_into_fd (a, fd);
-          if (rc != ARCHIVE_OK)
+          if (rc != ARCHIVE_OK) {
+            close (fd);
             throw archive_exception(a, "cannot extract file");
+          }
 
           // finally ... time to run elf_classify on this bad boy and update the database
           bool executable_p = false, debuginfo_p = false;
@@ -4199,9 +4228,12 @@ void groom()
   sqlite3_db_release_memory(dbq); // ... for both connections
   debuginfod_pool_groom(); // and release any debuginfod_client objects we've been holding onto
 
-  fdcache.limit(0,0,0,0); // release the fdcache contents
-  fdcache.limit(fdcache_fds, fdcache_mbs, fdcache_prefetch_fds, fdcache_prefetch_mbs); // restore status quo parameters
-
+#if 0 /* PR31265: don't jettison cache unnecessarily */
+  
+  fdcache.limit(0); // release the fdcache contents
+  fdcache.limit(fdcache_mbs); // restore status quo parameters
+#endif
+  
   clock_gettime (CLOCK_MONOTONIC, &ts_end);
   double deltas = (ts_end.tv_sec - ts_start.tv_sec) + (ts_end.tv_nsec - ts_start.tv_nsec)/1.e9;
 
@@ -4414,7 +4446,6 @@ main (int argc, char *argv[])
     fdcache_mbs = sfs.f_bavail * sfs.f_bsize / 1024 / 1024 / 4; // 25% of free space
   fdcache_mintmp = 25; // emergency flush at 25% remaining (75% full)
   fdcache_prefetch = 64; // guesstimate storage is this much less costly than re-decompression
-  fdcache_fds = (concurrency + fdcache_prefetch) * 2;
 
   /* Parse and process arguments.  */
   int remaining;
@@ -4423,17 +4454,10 @@ main (int argc, char *argv[])
       error (EXIT_FAILURE, 0,
              "unexpected argument: %s", argv[remaining]);
 
-  // Make the prefetch cache spaces a fraction of the main fdcache if
-  // unspecified.
-  if (fdcache_prefetch_fds == 0)
-    fdcache_prefetch_fds = fdcache_fds / 2;
-  if (fdcache_prefetch_mbs == 0)
-    fdcache_prefetch_mbs = fdcache_mbs / 2;
-
   if (scan_archives.size()==0 && !scan_files && source_paths.size()>0)
     obatched(clog) << "warning: without -F -R -U -Z, ignoring PATHs" << endl;
 
-  fdcache.limit(fdcache_fds, fdcache_mbs, fdcache_prefetch_fds, fdcache_prefetch_mbs);
+  fdcache.limit(fdcache_mbs);
 
   (void) signal (SIGPIPE, SIG_IGN); // microhttpd can generate it incidentally, ignore
   (void) signal (SIGINT, signal_handler); // ^C
@@ -4615,15 +4639,12 @@ main (int argc, char *argv[])
     obatched(clog) << "rescan time " << rescan_s << endl;
     obatched(clog) << "scan checkpoint " << scan_checkpoint << endl;
   }
-  obatched(clog) << "fdcache fds " << fdcache_fds << endl;
   obatched(clog) << "fdcache mbs " << fdcache_mbs << endl;
   obatched(clog) << "fdcache prefetch " << fdcache_prefetch << endl;
   obatched(clog) << "fdcache tmpdir " << tmpdir << endl;
   obatched(clog) << "fdcache tmpdir min% " << fdcache_mintmp << endl;
   if (! passive_p)
     obatched(clog) << "groom time " << groom_s << endl;
-  obatched(clog) << "prefetch fds " << fdcache_prefetch_fds << endl;
-  obatched(clog) << "prefetch mbs " << fdcache_prefetch_mbs << endl;
   obatched(clog) << "forwarded ttl limit " << forwarded_ttl_limit << endl;
 
   if (scan_archives.size()>0)

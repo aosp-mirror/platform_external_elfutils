@@ -234,29 +234,26 @@ loops in the symbolic directory tree might lead to \fIinfinite
 traversal\fP.
 
 .TP
-.B "\-\-fdcache\-fds=NUM"  "\-\-fdcache\-mbs=MB"
+.B "\-\-fdcache\-mbs=MB"
 Configure limits on a cache that keeps recently extracted files from
-archives.  Up to NUM requested files and up to a total of MB megabytes
-will be kept extracted, in order to avoid having to decompress their
-archives over and over again. The default NUM and MB values depend on
-the concurrency of the system, and on the available disk space on the
-$TMPDIR or \fB/tmp\fP filesystem.  This is because that is where the
-most recently used extracted files are kept.  Grooming cleans out this
-cache.
+archives.  Up to a total of MB megabytes will be kept extracted, in
+order to avoid having to decompress their archives over and over
+again. The default MB values depend on the concurrency of the system,
+and on the available disk space on the $TMPDIR or \fB/tmp\fP
+filesystem.  (This is because that is where the most recently used
+extracted files are kept.)  While previous versions used plain LRU,
+the cache now attempts to preserve more frequently & recently accessed
+files, and especially those that took a long time to extract (e.g.,
+vdso.debug!), and penalizes large / old files.
 
 .TP
-.B "\-\-fdcache\-prefetch\-fds=NUM"  "\-\-fdcache\-prefetch\-mbs=MB"
-.B "\-\-fdcache\-prefetch=NUM2"
-
-In addition to the main fdcache, up to NUM2 other files from an
-archive may be prefetched into another cache before they are even
-requested.  Configure how many file descriptors (fds) and megabytes
-(mbs) are allocated to the prefetch fdcache. If unspecified, these
-values depend on concurrency of the system and on the available disk
-space on the $TMPDIR.  Allocating more to the prefetch cache will
-improve performance in environments where different parts of several
-large archives are being accessed.  This cache is also cleaned out
-during grooming.
+.B "\-\-fdcache\-prefetch=NUM"
+Up to NUM other files from an archive may be prefetched into the
+cache before they are even requested.  If unspecified, these values
+depend on concurrency of the system and on the available disk space on
+the $TMPDIR.  Allocating more will improve performance in environments
+where multiple different parts of several large archives are being
+accessed.
 
 .TP
 .B "\-\-fdcache\-mintmp=NUM"

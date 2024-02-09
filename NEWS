@@ -1,5 +1,8 @@
 Version 0.191 (after 0.190)
 
+debuginfod: Caching eviction logic improvements to improve retention
+            of small/frequent/slow files such as Fedora's vdso.debug.
+
 srcfiles: Can now fetch the source files of a DWARF/ELF file and
           place them into a zip.
 

@@ -634,7 +634,8 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile-largealign.o.bz2 run-strip-largealign.sh \
 	     run-funcretval++11.sh \
 	     test-ar-duplicates.a.bz2 \
-	     run-dwfl-core-noncontig.sh testcore-noncontig.bz2
+	     run-dwfl-core-noncontig.sh testcore-noncontig.bz2 \
+	     testfile-dwarf5-line-clang.bz2
 
 
 if USE_VALGRIND

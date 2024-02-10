@@ -48,13 +48,6 @@ dwarf_decl_file (Dwarf_Die *die)
 			       &idx) != 0)
     return NULL;
 
-  /* Zero means no source file information available.  */
-  if (idx == 0)
-    {
-      __libdw_seterrno (DWARF_E_NO_ENTRY);
-      return NULL;
-    }
-
   /* Get the array of source files for the CU.  */
   struct Dwarf_CU *cu = attr_mem.cu;
   if (cu->lines == NULL)
@@ -70,8 +63,8 @@ dwarf_decl_file (Dwarf_Die *die)
 
   if (cu->lines == (void *) -1l)
     {
-      /* If the file index is not zero, there must be file information
-	 available.  */
+      /* If DW_AT_decl_file was present, there should be file information
+	available.  */
       __libdw_seterrno (DWARF_E_INVALID_DWARF);
       return NULL;
     }

@@ -107,8 +107,8 @@ with \fB\%\-Z\ .rpm='(rpm2cpio|zstdcat)<'\fP instead of \fB\-R\fP.
 .TP
 .B "\-U"
 Activate DEB/DDEB patterns in archive scanning.  The default is off.
-Equivalent to \fB\%\-Z\ .deb='dpkg-deb\ \-\-fsys\-tarfile\fP'
-\fB\%\-Z\ .ddeb='dpkg-deb\ \-\-fsys\-tarfile'\fP.
+Equivalent to \fB\%\-Z\ .deb='(bsdtar\ \-O\ \-x\ \-f\ \-\ data.tar\\*)<\fP'
+and same for \fB.ddeb\fP and \fB.ipk\fP.
 
 .TP
 .B "\-d FILE" "\-\-database=FILE"

@@ -32,6 +32,9 @@
 #include <argp.h>
 #include <stdio.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 /* Defined in version.c.  Common ARGP_PROGRAM_VERSION_HOOK_DEF.  */
 void print_version (FILE *stream, struct argp_state *state);
 
@@ -39,11 +42,18 @@ void print_version (FILE *stream, struct argp_state *state);
    argp_program_bug_address, in all programs.  argp.h declares these
    variables as non-const (which is correct in general).  But we can
    do better, it is not going to change.  So we want to move them into
-   the .rodata section.  Define macros to do the trick.  */
+   the .rodata section.  Define macros to do the trick.  The default
+   linkage for consts in C++ is internal, so declare them extern.  */
+extern void (*const apvh) (FILE *, struct argp_state *);
 #define ARGP_PROGRAM_VERSION_HOOK_DEF \
   void (*const apvh) (FILE *, struct argp_state *) \
    __asm ("argp_program_version_hook")
+extern const char *const apba__;
 #define ARGP_PROGRAM_BUG_ADDRESS_DEF \
   const char *const apba__ __asm ("argp_program_bug_address")
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // PRINTVERSION_H

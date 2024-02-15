@@ -29,7 +29,7 @@
 
 #include <config.h>
 #include "libdwflP.h"
-#include "../libdw/memory-access.h"
+#include "memory-access.h"
 #include "system.h"
 
 #include <fcntl.h>
@@ -331,11 +331,17 @@ report_r_debug (uint_fast8_t elfclass, uint_fast8_t elfdata,
   int result = 0;
 
   /* There can't be more elements in the link_map list than there are
-     segments.  DWFL->lookup_elts is probably twice that number, so it
-     is certainly above the upper bound.  If we iterate too many times,
-     there must be a loop in the pointers due to link_map clobberation.  */
+     segments.  A segment is created for each PT_LOAD and there can be
+     up to 5 per module (-z separate-code, tends to create four LOAD
+     segments, gold has -z text-unlikely-segment, which might result
+     in creating that number of load segments) DWFL->lookup_elts is
+     probably twice the number of modules, so that multiplied by max
+     PT_LOADs is certainly above the upper bound.  If we iterate too
+     many times, there must be a loop in the pointers due to link_map
+     clobberation.  */
+#define MAX_PT_LOAD 5
   size_t iterations = 0;
-  while (next != 0 && ++iterations < dwfl->lookup_elts)
+  while (next != 0 && ++iterations < dwfl->lookup_elts * MAX_PT_LOAD)
     {
       if (read_addrs (&memory_closure, elfclass, elfdata,
 		      &buffer, &buffer_available, next, &read_vaddr,

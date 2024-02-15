@@ -1,6 +1,7 @@
 ## Common automake fragments for elfutils subdirectory makefiles.
 ##
 ## Copyright (C) 2010, 2014, 2016 Red Hat, Inc.
+## Copyright (C) 2023, Mark J. Wielaard <mark@klomp.org>
 ##
 ## This file is part of elfutils.
 ##
@@ -87,10 +88,17 @@ else
 NO_PACKED_NOT_ALIGNED_WARNING=
 endif
 
+if HAVE_USE_AFTER_FREE3_WARNING
+USE_AFTER_FREE3_WARNING=-Wuse-after-free=3
+else
+USE_AFTER_FREE3_WARNING=
+endif
+
 AM_CFLAGS = -std=gnu99 -Wall -Wshadow -Wformat=2 \
 	    -Wold-style-definition -Wstrict-prototypes $(TRAMPOLINES_WARNING) \
 	    $(LOGICAL_OP_WARNING) $(DUPLICATED_COND_WARNING) \
 	    $(NULL_DEREFERENCE_WARNING) $(IMPLICIT_FALLTHROUGH_WARNING) \
+	    $(USE_AFTER_FREE3_WARNING) \
 	    $(if $($(*F)_no_Werror),,-Werror) \
 	    $(if $($(*F)_no_Wunused),,-Wunused -Wextra) \
 	    $(if $($(*F)_no_Wstack_usage),,$(STACK_USAGE_WARNING)) \

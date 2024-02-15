@@ -34,7 +34,7 @@
 #include <fcntl.h>
 #include "system.h"
 
-#include "../libdw/memory-access.h"
+#include "memory-access.h"
 
 struct core_arg
 {

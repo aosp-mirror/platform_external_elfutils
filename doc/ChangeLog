@@ -1,3 +1,11 @@
+2023-02-14  Mark Wielaard  <mark@klomp.org>
+
+	* debuginfod.8: Add .TP before -g.
+
+2023-01-11  Frank Ch. Eigler  <fche@redhat.com>
+
+	* debuginfod.8: Tweak -c/-C documentation for heuristic defaults.
+
 2022-10-31  Aaron Merey  <amerey@redhat.com>
 
 	* Makefile.am (notrans_dist_man3_MANS): Add debuginfod_find_section.3.

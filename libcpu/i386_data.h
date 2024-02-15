@@ -1153,7 +1153,7 @@ FCT_mod$64r_m (struct output_data *d)
   return general_mod$r_m (d);
 }
 #else
-static typeof (FCT_mod$r_m) FCT_mod$64r_m __attribute__ ((alias ("FCT_mod$r_m")));
+#define FCT_mod$64r_m FCT_mod$r_m
 #endif
 
 

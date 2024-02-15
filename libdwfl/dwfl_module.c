@@ -31,7 +31,7 @@
 #endif
 
 #include "libdwflP.h"
-#include "../libdw/cfi.h"
+#include "cfi.h"
 #include <search.h>
 
 static void
@@ -119,7 +119,7 @@ __libdwfl_module_free (Dwfl_Module *mod)
     free (mod->reloc_info);
 
   free (mod->name);
-  free (mod->elfdir);
+  free (mod->elfpath);
   free (mod);
 }
 

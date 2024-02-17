@@ -18,7 +18,7 @@ dnl  GNU General Public License for more details.
 dnl
 dnl  You should have received a copy of the GNU General Public License
 dnl  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-AC_INIT([elfutils],[0.189],[https://sourceware.org/bugzilla],[elfutils],[http://elfutils.org/])
+AC_INIT([elfutils],[0.190],[https://sourceware.org/bugzilla],[elfutils],[http://elfutils.org/])
 
 dnl Workaround for older autoconf < 2.64
 m4_ifndef([AC_PACKAGE_URL],
@@ -169,7 +169,7 @@ if test "$use_msan" = yes; then
   CXXFLAGS="$CXXFLAGS -fsanitize=memory -fsanitize-memory-track-origins -D_FORTIFY_SOURCE=0"
   LDFLAGS="-shared"
   AC_LINK_IFELSE([AC_LANG_SOURCE([int main (int argc, char **argv) { return 0; }])], use_msan=yes, use_msan=no)
-  AS_IF([test "x$use_msan" == xyes],
+  AS_IF([test "x$use_msan" = xyes],
         ac_cv_zdefs=no NO_UNDEFINED=,
         AC_MSG_WARN([clang memory sanitizer not available])
         CFLAGS="$old_CFLAGS" CXXFLAGS="$old_CXXFLAGS")
@@ -493,7 +493,7 @@ AC_ARG_ENABLE([demangler],
 AS_HELP_STRING([--disable-demangler],
 	       [Disable libstdc++ demangle support]),
 	       [], [enable_demangler=yes])
-AS_IF([test "x$enable_demangler" == xyes],
+AS_IF([test "x$enable_demangler" = xyes],
 AC_CHECK_LIB([stdc++], [__cxa_demangle], [dnl
 AC_DEFINE([USE_DEMANGLE], [1], [Defined if demangling is enabled])])
 AM_CONDITIONAL(DEMANGLE, test "x$ac_cv_lib_stdcpp___cxa_demangle" = "xyes")
@@ -839,6 +839,7 @@ AS_IF([test "x$enable_libdebuginfod" = "xdummy"],
       [AC_DEFINE([DUMMY_LIBDEBUGINFOD], [1], [Build dummy libdebuginfod])])
 AM_CONDITIONAL([LIBDEBUGINFOD],[test "x$enable_libdebuginfod" = "xyes" || test "x$enable_libdebuginfod" = "xdummy"])
 AM_CONDITIONAL([DUMMY_LIBDEBUGINFOD],[test "x$enable_libdebuginfod" = "xdummy"])
+AC_CHECK_HEADERS([execinfo.h])
 
 # Look for libmicrohttpd, libarchive, sqlite for debuginfo server
 # minimum versions as per rhel7.

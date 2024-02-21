@@ -3159,7 +3159,7 @@ handle_verneed (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 	  elf_strptr (ebl->elf, shstrndx, glink->sh_name));
 
   unsigned int offset = 0;
-  for (int cnt = shdr->sh_info; --cnt >= 0; )
+  for (unsigned int cnt = shdr->sh_info; cnt > 0; cnt--)
     {
       /* Get the data at the next offset.  */
       GElf_Verneed needmem;
@@ -3173,7 +3173,7 @@ handle_verneed (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 	      (unsigned short int) need->vn_cnt);
 
       unsigned int auxoffset = offset + need->vn_aux;
-      for (int cnt2 = need->vn_cnt; --cnt2 >= 0; )
+      for (unsigned int cnt2 = need->vn_cnt; cnt2 > 0; cnt2--)
 	{
 	  GElf_Vernaux auxmem;
 	  GElf_Vernaux *aux = gelf_getvernaux (data, auxoffset, &auxmem);
@@ -3236,7 +3236,7 @@ handle_verdef (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 	  elf_strptr (ebl->elf, shstrndx, glink->sh_name));
 
   unsigned int offset = 0;
-  for (int cnt = shdr->sh_info; --cnt >= 0; )
+  for (unsigned int cnt = shdr->sh_info; cnt > 0; cnt--)
     {
       /* Get the data at the next offset.  */
       GElf_Verdef defmem;
@@ -3259,7 +3259,7 @@ handle_verdef (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr)
 	      elf_strptr (ebl->elf, shdr->sh_link, aux->vda_name));
 
       auxoffset += aux->vda_next;
-      for (int cnt2 = 1; cnt2 < def->vd_cnt; ++cnt2)
+      for (unsigned int cnt2 = 1; cnt2 < def->vd_cnt; ++cnt2)
 	{
 	  aux = gelf_getverdaux (data, auxoffset, &auxmem);
 	  if (unlikely (aux == NULL))

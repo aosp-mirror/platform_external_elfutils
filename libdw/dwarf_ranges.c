@@ -489,10 +489,10 @@ dwarf_ranges (Dwarf_Die *die, ptrdiff_t offset, Dwarf_Addr *basep,
 
   size_t secidx = (cu->version < 5 ? IDX_debug_ranges : IDX_debug_rnglists);
   const Elf_Data *d = cu->dbg->sectiondata[secidx];
-  if (d == NULL && cu->unit_type == DW_UT_split_compile)
+  if (cu->unit_type == DW_UT_split_compile && (d == NULL || is_cudie (die)))
     {
       Dwarf_CU *skel = __libdw_find_split_unit (cu);
-      if (skel != NULL)
+      if (skel != NULL && skel->dbg->sectiondata[secidx] != NULL)
 	{
 	  cu = skel;
 	  d = cu->dbg->sectiondata[secidx];

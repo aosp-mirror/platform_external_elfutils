@@ -41,7 +41,7 @@ include_HEADERS = libelf.h gelf.h nlist.h
 
 noinst_HEADERS = abstract.h common.h exttypes.h gelf_xlate.h libelfP.h \
 		 version_xlate.h gnuhash_xlate.h note_xlate.h dl-hash.h \
-		 chdr_xlate.h
+		 chdr_xlate.h elf32_getchdr.h
 
 if INSTALL_ELFH
 include_HEADERS += elf.h

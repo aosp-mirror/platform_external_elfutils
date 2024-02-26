@@ -63,7 +63,7 @@ check_PROGRAMS = arextract arsymtest newfile saridx scnnames sectiondump \
 		  getphdrnum leb128 read_unaligned \
 		  msg_tst system-elf-libelf-test system-elf-gelf-test \
 		  nvidia_extended_linemap_libdw elf-print-reloc-syms \
-		  cu-dwp-section-info \
+		  cu-dwp-section-info declfiles \
 		  $(asm_TESTS)
 
 asm_TESTS = asm-tst1 asm-tst2 asm-tst3 asm-tst4 asm-tst5 \
@@ -213,7 +213,8 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	$(asm_TESTS) run-disasm-bpf.sh run-low_high_pc-dw-form-indirect.sh \
 	run-nvidia-extended-linemap-libdw.sh run-nvidia-extended-linemap-readelf.sh \
 	run-readelf-dw-form-indirect.sh run-strip-largealign.sh \
-	run-readelf-Dd.sh run-dwfl-core-noncontig.sh run-cu-dwp-section-info.sh
+	run-readelf-Dd.sh run-dwfl-core-noncontig.sh run-cu-dwp-section-info.sh \
+	run-declfiles.sh
 
 if !BIARCH
 export ELFUTILS_DISABLE_BIARCH = 1
@@ -640,7 +641,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile-dwp-4.bz2 testfile-dwp-4.dwp.bz2 \
 	     testfile-dwp-4-strict.bz2 testfile-dwp-4-strict.dwp.bz2 \
 	     testfile-dwp-5.bz2 testfile-dwp-5.dwp.bz2 testfile-dwp.source \
-	     run-cu-dwp-section-info.sh
+	     run-cu-dwp-section-info.sh run-declfiles.sh
 
 
 if USE_VALGRIND
@@ -818,6 +819,7 @@ read_unaligned_LDADD = $(libelf) $(libdw)
 nvidia_extended_linemap_libdw_LDADD = $(libelf) $(libdw)
 elf_print_reloc_syms_LDADD = $(libelf)
 cu_dwp_section_info_LDADD = $(libdw)
+declfiles_LDADD = $(libdw)
 
 # We want to test the libelf headers against the system elf.h header.
 # Don't include any -I CPPFLAGS. Except when we install our own elf.h.

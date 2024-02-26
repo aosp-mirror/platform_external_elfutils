@@ -32,6 +32,7 @@
 /debugaltlink
 /debuginfod_build_id_find
 /debuglink
+/declfiles
 /deleted
 /dwarf-die-addr-die
 /dwarf-getmacros

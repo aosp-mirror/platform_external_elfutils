@@ -48,35 +48,17 @@ dwarf_decl_file (Dwarf_Die *die)
 			       &idx) != 0)
     return NULL;
 
-  /* Get the array of source files for the CU.  */
-  struct Dwarf_CU *cu = attr_mem.cu;
-  if (cu->lines == NULL)
-    {
-      Dwarf_Lines *lines;
-      size_t nlines;
+  Dwarf_Files *files;
+  size_t nfiles;
+  if (INTUSE(dwarf_getsrcfiles) (&CUDIE (attr_mem.cu), &files, &nfiles) != 0)
+    return NULL;
 
-      /* Let the more generic function do the work.  It'll create more
-	 data but that will be needed in an real program anyway.  */
-      (void) INTUSE(dwarf_getsrclines) (&CUDIE (cu), &lines, &nlines);
-      assert (cu->lines != NULL);
-    }
-
-  if (cu->lines == (void *) -1l)
-    {
-      /* If DW_AT_decl_file was present, there should be file information
-	available.  */
-      __libdw_seterrno (DWARF_E_INVALID_DWARF);
-      return NULL;
-    }
-
-  assert (cu->files != NULL && cu->files != (void *) -1l);
-
-  if (idx >= cu->files->nfiles)
+  if (idx >= nfiles)
     {
       __libdw_seterrno (DWARF_E_INVALID_DWARF);
       return NULL;
     }
 
-  return cu->files->info[idx].name;
+  return files->info[idx].name;
 }
 OLD_VERSION (dwarf_decl_file, ELFUTILS_0.122)

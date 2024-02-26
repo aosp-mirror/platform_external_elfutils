@@ -132,6 +132,11 @@ dwarf_next_lines (Dwarf *dbg, Dwarf_Off off,
 		   && next_cu->unit_type != DW_UT_split_type)
 	    continue;
 
+	  Dwarf_Off dwp_off;
+	  if (INTUSE(dwarf_cu_dwp_section_info) (next_cu, DW_SECT_LINE,
+						 &dwp_off, NULL) == 0)
+	    stmt_off += dwp_off;
+
 	  if (stmt_off == off)
 	    {
 	      *cu = next_cu;

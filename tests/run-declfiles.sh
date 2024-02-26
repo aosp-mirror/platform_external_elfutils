@@ -231,3 +231,93 @@ file: testfile-splitdwarf-5
   exit@/usr/include/stdlib.h:542:13
   baz@/home/mark/src/elfutils/tests/hello.h:2:12
 EOF
+
+# See testfile-dwp.source.
+testfiles testfile-dwp-5 testfile-dwp-5.dwp
+testfiles testfile-dwp-4 testfile-dwp-4.dwp
+
+testrun_compare ${abs_builddir}/declfiles testfile-dwp-5 << EOF
+file: testfile-dwp-5
+ cu: foo.cc
+  foo@/home/osandov/src/elfutils/tests/foobar.h:4:7
+  foo@/home/osandov/src/elfutils/tests/foo.cc:14:1
+   x@/home/osandov/src/elfutils/tests/foo.cc:16:7
+   x_x@/home/osandov/src/elfutils/tests/foo.cc:6:1
+    x@/home/osandov/src/elfutils/tests/foo.cc:6:10
+    i@/home/osandov/src/elfutils/tests/foo.cc:8:12
+  x_x@/home/osandov/src/elfutils/tests/foo.cc:6:1
+   x@/home/osandov/src/elfutils/tests/foo.cc:6:10
+   i@/home/osandov/src/elfutils/tests/foo.cc:8:12
+  x_x@/home/osandov/src/elfutils/tests/foo.cc:6:1
+   x@/home/osandov/src/elfutils/tests/foo.cc:6:10
+   i@/home/osandov/src/elfutils/tests/foo.cc:8:12
+ cu: bar.cc
+  bar@/home/osandov/src/elfutils/tests/foobar.h:10:8
+  bar@/home/osandov/src/elfutils/tests/bar.cc:6:1
+ cu: main.cc
+  foo@/home/osandov/src/elfutils/tests/foobar.h:4:7
+  bar@/home/osandov/src/elfutils/tests/foobar.h:10:8
+  main@/home/osandov/src/elfutils/tests/main.cc:6:1
+   argc@/home/osandov/src/elfutils/tests/main.cc:6:6
+   argv@/home/osandov/src/elfutils/tests/main.cc:6:6
+   myfoo@/home/osandov/src/elfutils/tests/main.cc:8:14
+   mybar@/home/osandov/src/elfutils/tests/main.cc:9:14
+   fibonacci@/home/osandov/src/elfutils/tests/foobar.h:17:1
+    n@/home/osandov/src/elfutils/tests/foobar.h:17:25
+    fibonacci@/home/osandov/src/elfutils/tests/foobar.h:17:1
+     n@/home/osandov/src/elfutils/tests/foobar.h:17:25
+     a@/home/osandov/src/elfutils/tests/foobar.h:23:12
+     b@/home/osandov/src/elfutils/tests/foobar.h:24:12
+     i@/home/osandov/src/elfutils/tests/foobar.h:25:25
+     tmp@/home/osandov/src/elfutils/tests/foobar.h:27:9
+  fibonacci@/home/osandov/src/elfutils/tests/foobar.h:17:1
+   n@/home/osandov/src/elfutils/tests/foobar.h:17:25
+   a@/home/osandov/src/elfutils/tests/foobar.h:23:12
+   b@/home/osandov/src/elfutils/tests/foobar.h:24:12
+   i@/home/osandov/src/elfutils/tests/foobar.h:25:25
+   tmp@/home/osandov/src/elfutils/tests/foobar.h:27:9
+EOF
+
+testrun_compare ${abs_builddir}/declfiles testfile-dwp-4 << EOF
+file: testfile-dwp-4
+ cu: foo.cc
+  foo@/home/osandov/src/elfutils/tests/foobar.h:4:7
+  foo@/home/osandov/src/elfutils/tests/foo.cc:14:1
+   x@/home/osandov/src/elfutils/tests/foo.cc:16:7
+   x_x@/home/osandov/src/elfutils/tests/foo.cc:6:1
+    x@/home/osandov/src/elfutils/tests/foo.cc:6:10
+    i@/home/osandov/src/elfutils/tests/foo.cc:8:12
+  x_x@/home/osandov/src/elfutils/tests/foo.cc:6:1
+   x@/home/osandov/src/elfutils/tests/foo.cc:6:10
+   i@/home/osandov/src/elfutils/tests/foo.cc:8:12
+  x_x@/home/osandov/src/elfutils/tests/foo.cc:6:1
+   x@/home/osandov/src/elfutils/tests/foo.cc:6:10
+   i@/home/osandov/src/elfutils/tests/foo.cc:8:12
+ cu: bar.cc
+  bar@/home/osandov/src/elfutils/tests/foobar.h:10:8
+  bar@/home/osandov/src/elfutils/tests/bar.cc:6:1
+ cu: main.cc
+  foo@/home/osandov/src/elfutils/tests/foobar.h:4:7
+  bar@/home/osandov/src/elfutils/tests/foobar.h:10:8
+  main@/home/osandov/src/elfutils/tests/main.cc:6:1
+   argc@/home/osandov/src/elfutils/tests/main.cc:6:6
+   argv@/home/osandov/src/elfutils/tests/main.cc:6:6
+   myfoo@/home/osandov/src/elfutils/tests/main.cc:8:14
+   mybar@/home/osandov/src/elfutils/tests/main.cc:9:14
+   fibonacci@/home/osandov/src/elfutils/tests/foobar.h:17:1
+    n@/home/osandov/src/elfutils/tests/foobar.h:17:25
+    fibonacci@/home/osandov/src/elfutils/tests/foobar.h:17:1
+     n@/home/osandov/src/elfutils/tests/foobar.h:17:25
+     a@/home/osandov/src/elfutils/tests/foobar.h:23:12
+     b@/home/osandov/src/elfutils/tests/foobar.h:24:12
+     i@/home/osandov/src/elfutils/tests/foobar.h:25:25
+     tmp@/home/osandov/src/elfutils/tests/foobar.h:27:9
+   foo@/home/osandov/src/elfutils/tests/foobar.h:4:7
+   bar@/home/osandov/src/elfutils/tests/foobar.h:10:8
+  fibonacci@/home/osandov/src/elfutils/tests/foobar.h:17:1
+   n@/home/osandov/src/elfutils/tests/foobar.h:17:25
+   a@/home/osandov/src/elfutils/tests/foobar.h:23:12
+   b@/home/osandov/src/elfutils/tests/foobar.h:24:12
+   i@/home/osandov/src/elfutils/tests/foobar.h:25:25
+   tmp@/home/osandov/src/elfutils/tests/foobar.h:27:9
+EOF

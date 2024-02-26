@@ -1155,25 +1155,30 @@ str_offsets_base_off (Dwarf *dbg, Dwarf_CU *cu)
 	cu = first_cu;
     }
 
+  Dwarf_Off off = 0;
   if (cu != NULL)
     {
       if (cu->str_off_base == (Dwarf_Off) -1)
 	{
+	  Dwarf_Off dwp_offset;
+	  if (dwarf_cu_dwp_section_info (cu, DW_SECT_STR_OFFSETS, &dwp_offset,
+					 NULL) == 0)
+	    off = dwp_offset;
 	  Dwarf_Die cu_die = CUDIE(cu);
 	  Dwarf_Attribute attr;
 	  if (dwarf_attr (&cu_die, DW_AT_str_offsets_base, &attr) != NULL)
 	    {
-	      Dwarf_Word off;
-	      if (dwarf_formudata (&attr, &off) == 0)
+	      Dwarf_Word base;
+	      if (dwarf_formudata (&attr, &base) == 0)
 		{
-		  cu->str_off_base = off;
+		  cu->str_off_base = off + base;
 		  return cu->str_off_base;
 		}
 	    }
 	  /* For older DWARF simply assume zero (no header).  */
 	  if (cu->version < 5)
 	    {
-	      cu->str_off_base = 0;
+	      cu->str_off_base = off;
 	      return cu->str_off_base;
 	    }
 
@@ -1186,7 +1191,6 @@ str_offsets_base_off (Dwarf *dbg, Dwarf_CU *cu)
 
   /* No str_offsets_base attribute, we have to assume "zero".
      But there could be a header first.  */
-  Dwarf_Off off = 0;
   if (dbg == NULL)
     goto no_header;
 
@@ -1228,7 +1232,7 @@ str_offsets_base_off (Dwarf *dbg, Dwarf_CU *cu)
   /* padding */
   read_2ubyte_unaligned_inc (dbg, readp);
 
-  off = (Dwarf_Off) (readp - start);
+  off += (Dwarf_Off) (readp - start);
 
  no_header:
   if (cu != NULL)
@@ -1266,18 +1270,23 @@ __libdw_cu_ranges_base (Dwarf_CU *cu)
 	}
       else
 	{
+	  Dwarf_Off dwp_offset;
+	  if (dwarf_cu_dwp_section_info (cu, DW_SECT_RNGLISTS, &dwp_offset,
+					 NULL) == 0)
+	    offset = dwp_offset;
+
 	  if (dwarf_attr (&cu_die, DW_AT_rnglists_base, &attr) != NULL)
 	    {
 	      Dwarf_Word off;
 	      if (dwarf_formudata (&attr, &off) == 0)
-		offset = off;
+		offset += off;
 	    }
 
 	  /* There wasn't an rnglists_base, if the Dwarf does have a
 	     .debug_rnglists section, then it might be we need the
 	     base after the first header. */
 	  Elf_Data *data = cu->dbg->sectiondata[IDX_debug_rnglists];
-	  if (offset == 0 && data != NULL)
+	  if (offset == dwp_offset && data != NULL)
 	    {
 	      Dwarf *dbg = cu->dbg;
 	      const unsigned char *readp = data->d_buf;
@@ -1323,8 +1332,8 @@ __libdw_cu_ranges_base (Dwarf_CU *cu)
 	      if (unit_length - 8 < needed)
 		goto no_header;
 
-	      offset = (Dwarf_Off) (offset_array_start
-				    - (unsigned char *) data->d_buf);
+	      offset += (Dwarf_Off) (offset_array_start
+				     - (unsigned char *) data->d_buf);
 	    }
 	}
     no_header:
@@ -1342,20 +1351,25 @@ __libdw_cu_locs_base (Dwarf_CU *cu)
   if (cu->locs_base == (Dwarf_Off) -1)
     {
       Dwarf_Off offset = 0;
+      Dwarf_Off dwp_offset;
+      if (dwarf_cu_dwp_section_info (cu, DW_SECT_LOCLISTS, &dwp_offset, NULL)
+	  == 0)
+	offset = dwp_offset;
+
       Dwarf_Die cu_die = CUDIE(cu);
       Dwarf_Attribute attr;
       if (dwarf_attr (&cu_die, DW_AT_loclists_base, &attr) != NULL)
 	{
 	  Dwarf_Word off;
 	  if (dwarf_formudata (&attr, &off) == 0)
-	    offset = off;
+	    offset += off;
 	}
 
       /* There wasn't an loclists_base, if the Dwarf does have a
 	 .debug_loclists section, then it might be we need the
 	 base after the first header. */
       Elf_Data *data = cu->dbg->sectiondata[IDX_debug_loclists];
-      if (offset == 0 && data != NULL)
+      if (offset == dwp_offset && data != NULL)
 	{
 	  Dwarf *dbg = cu->dbg;
 	  const unsigned char *readp = data->d_buf;
@@ -1401,8 +1415,8 @@ __libdw_cu_locs_base (Dwarf_CU *cu)
 	  if (unit_length - 8 < needed)
 	    goto no_header;
 
-	  offset = (Dwarf_Off) (offset_array_start
-				- (unsigned char *) data->d_buf);
+	  offset += (Dwarf_Off) (offset_array_start
+				 - (unsigned char *) data->d_buf);
 	}
 
     no_header:

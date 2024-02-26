@@ -374,6 +374,9 @@ typedef struct Dwarf_Package_Index_s
   const unsigned char *indices;
   const unsigned char *section_offsets;
   const unsigned char *section_sizes;
+  /* If DW_SECT_INFO section offsets were truncated to 32 bits, recovered
+     64-bit offsets.  */
+  Dwarf_Off *debug_info_offsets;
 } Dwarf_Package_Index;
 
 /* CU representation.  */

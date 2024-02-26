@@ -30,6 +30,8 @@
 # include <config.h>
 #endif
 
+#include <assert.h>
+
 #include "libdwP.h"
 
 static Dwarf_Package_Index *
@@ -110,7 +112,9 @@ __libdw_read_package_index (Dwarf *dbg, bool tu)
 
   index->dbg = dbg;
   /* Set absent sections to UINT32_MAX.  */
-  memset (index->sections, 0xff, sizeof (index->sections));
+  for (size_t i = 0;
+       i < sizeof (index->sections) / sizeof (index->sections[0]); i++)
+    index->sections[i] = UINT32_MAX;
   for (size_t i = 0; i < section_count; i++)
     {
       uint32_t section = read_4ubyte_unaligned (dbg, sections + i * 4);
@@ -161,6 +165,7 @@ __libdw_read_package_index (Dwarf *dbg, bool tu)
   index->indices = indices;
   index->section_offsets = section_offsets;
   index->section_sizes = section_sizes;
+  index->debug_info_offsets = NULL;
 
   return index;
 }
@@ -176,6 +181,138 @@ __libdw_package_index (Dwarf *dbg, bool tu)
   Dwarf_Package_Index *index = __libdw_read_package_index (dbg, tu);
   if (index == NULL)
     return NULL;
+
+  /* Offsets in the section offset table are 32-bit unsigned integers.  In
+     practice, the .debug_info.dwo section for very large executables can be
+     larger than 4GB.  GNU dwp as of binutils 2.41 and llvm-dwp before LLVM 15
+     both accidentally truncate offsets larger than 4GB.
+
+     LLVM 15 detects the overflow and errors out instead; see LLVM commit
+     f8df8114715b ("[DWP][DWARF] Detect and error on debug info offset
+     overflow").  However, lldb in LLVM 16 supports using dwp files with
+     truncated offsets by recovering them directly from the unit headers in the
+     .debug_info.dwo section; see LLVM commit c0db06227721 ("[DWARFLibrary] Add
+     support to re-construct cu-index").  Since LLVM 17, the overflow error can
+     be turned into a warning instead; see LLVM commit 53a483cee801 ("[DWP] add
+     overflow check for llvm-dwp tools if offset overflow").
+
+     LLVM's support for > 4GB offsets is effectively an extension to the DWARF
+     package file format, which we implement here.  The strategy is to walk the
+     unit headers in .debug_info.dwo in lockstep with the DW_SECT_INFO columns
+     in the section offset tables.  As long as they are in the same order
+     (which they are in practice for both GNU dwp and llvm-dwp), we can
+     correlate the truncated offset and produce a corrected array of offsets.
+
+     Note that this will be fixed properly in DWARF 6:
+     https://dwarfstd.org/issues/220708.2.html.  */
+  if (index->sections[DW_SECT_INFO - 1] != UINT32_MAX
+      && dbg->sectiondata[IDX_debug_info]->d_size > UINT32_MAX)
+    {
+      Dwarf_Package_Index *cu_index, *tu_index = NULL;
+      if (tu)
+	{
+	  tu_index = index;
+	  assert (dbg->cu_index == NULL);
+	  cu_index = __libdw_read_package_index (dbg, false);
+	  if (cu_index == NULL)
+	    {
+	      free(index);
+	      return NULL;
+	    }
+	}
+      else
+	{
+	  cu_index = index;
+	  if (dbg->sectiondata[IDX_debug_tu_index] != NULL
+	      && dbg->sectiondata[IDX_debug_types] == NULL)
+	    {
+	      assert (dbg->tu_index == NULL);
+	      tu_index = __libdw_read_package_index (dbg, true);
+	      if (tu_index == NULL)
+		{
+		  free(index);
+		  return NULL;
+		}
+	    }
+	}
+
+      cu_index->debug_info_offsets = malloc (cu_index->unit_count
+					     * sizeof (Dwarf_Off));
+      if (cu_index->debug_info_offsets == NULL)
+	{
+	  free (tu_index);
+	  free (cu_index);
+	  __libdw_seterrno (DWARF_E_NOMEM);
+	  return NULL;
+	}
+      if (tu_index != NULL)
+	{
+	  tu_index->debug_info_offsets = malloc (tu_index->unit_count
+						 * sizeof (Dwarf_Off));
+	  if (tu_index->debug_info_offsets == NULL)
+	    {
+	      free (tu_index);
+	      free (cu_index->debug_info_offsets);
+	      free (cu_index);
+	      __libdw_seterrno (DWARF_E_NOMEM);
+	      return NULL;
+	    }
+	}
+
+      Dwarf_Off off = 0;
+      uint32_t cui = 0, tui = 0;
+      uint32_t cu_count = cu_index->unit_count;
+      const unsigned char *cu_offset
+	= cu_index->section_offsets + cu_index->sections[DW_SECT_INFO - 1] * 4;
+      uint32_t tu_count = 0;
+      const unsigned char *tu_offset;
+      if (tu_index != NULL)
+	{
+	  tu_count = tu_index->unit_count;
+	  tu_offset = tu_index->section_offsets
+		      + tu_index->sections[DW_SECT_INFO - 1] * 4;
+	}
+      while (cui < cu_count || tui < tu_count)
+	{
+	  Dwarf_Off next_off;
+	  uint8_t unit_type;
+	  if (__libdw_next_unit (dbg, false, off, &next_off, NULL, NULL,
+				 &unit_type, NULL, NULL, NULL, NULL, NULL)
+	      != 0)
+	    {
+	    not_sorted:
+	      free (cu_index->debug_info_offsets);
+	      cu_index->debug_info_offsets = NULL;
+	      if (tu_index != NULL)
+		{
+		  free (tu_index->debug_info_offsets);
+		  tu_index->debug_info_offsets = NULL;
+		}
+	      break;
+	    }
+	  if (unit_type != DW_UT_split_type && cui < cu_count)
+	    {
+	      if ((off & UINT32_MAX) != read_4ubyte_unaligned (dbg, cu_offset))
+		goto not_sorted;
+	      cu_index->debug_info_offsets[cui++] = off;
+	      cu_offset += cu_index->section_count * 4;
+	    }
+	  else if (unit_type == DW_UT_split_type && tu_index != NULL
+		   && tui < tu_count)
+	    {
+	      if ((off & UINT32_MAX) != read_4ubyte_unaligned (dbg, tu_offset))
+		goto not_sorted;
+	      tu_index->debug_info_offsets[tui++] = off;
+	      tu_offset += tu_index->section_count * 4;
+	    }
+	  off = next_off;
+	}
+
+      if (tu)
+	dbg->cu_index = cu_index;
+      else if (tu_index != NULL)
+	dbg->tu_index = tu_index;
+    }
 
   if (tu)
     dbg->tu_index = index;
@@ -244,8 +381,13 @@ __libdw_dwp_section_info (Dwarf_Package_Index *index, uint32_t unit_row,
   size_t i = (size_t)(unit_row - 1) * index->section_count
 	     + index->sections[section - 1];
   if (offsetp != NULL)
-    *offsetp = read_4ubyte_unaligned (index->dbg,
-				      index->section_offsets + i * 4);
+    {
+      if (section == DW_SECT_INFO && index->debug_info_offsets != NULL)
+	*offsetp = index->debug_info_offsets[unit_row - 1];
+      else
+	*offsetp = read_4ubyte_unaligned (index->dbg,
+					  index->section_offsets + i * 4);
+    }
   if (sizep != NULL)
     *sizep = read_4ubyte_unaligned (index->dbg,
 				    index->section_sizes + i * 4);

@@ -41,6 +41,17 @@
 
 
 static void
+dwarf_package_index_free (Dwarf_Package_Index *index)
+{
+  if (index != NULL)
+    {
+      free (index->debug_info_offsets);
+      free (index);
+    }
+}
+
+
+static void
 noop_free (void *arg __attribute__ ((unused)))
 {
 }
@@ -79,8 +90,8 @@ dwarf_end (Dwarf *dwarf)
 {
   if (dwarf != NULL)
     {
-      free (dwarf->tu_index);
-      free (dwarf->cu_index);
+      dwarf_package_index_free (dwarf->tu_index);
+      dwarf_package_index_free (dwarf->cu_index);
 
       if (dwarf->cfi != NULL)
 	/* Clean up the CFI cache.  */

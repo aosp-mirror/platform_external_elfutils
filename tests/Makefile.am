@@ -641,7 +641,12 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile-dwp-4.bz2 testfile-dwp-4.dwp.bz2 \
 	     testfile-dwp-4-strict.bz2 testfile-dwp-4-strict.dwp.bz2 \
 	     testfile-dwp-5.bz2 testfile-dwp-5.dwp.bz2 testfile-dwp.source \
-	     run-cu-dwp-section-info.sh run-declfiles.sh
+	     run-cu-dwp-section-info.sh run-declfiles.sh \
+	     testfile-dwp-5-cu-index-overflow.bz2 \
+	     testfile-dwp-5-cu-index-overflow.dwp.bz2 \
+	     testfile-dwp-4-cu-index-overflow.bz2 \
+	     testfile-dwp-4-cu-index-overflow.dwp.bz2 \
+	     testfile-dwp-cu-index-overflow.source
 
 
 if USE_VALGRIND

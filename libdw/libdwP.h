@@ -232,8 +232,11 @@ struct Dwarf
   /* Search tree for decoded .debug_line units.  */
   void *files_lines;
 
-  /* Address ranges.  */
+  /* Address ranges read from .debug_aranges.  */
   Dwarf_Aranges *aranges;
+
+  /* Address ranges inferred from CUs.  */
+  Dwarf_Aranges *dieranges;
 
   /* Cached info from the CFI section.  */
   struct Dwarf_CFI_s *cfi;
@@ -1472,4 +1475,12 @@ void __libdw_set_debugdir (Dwarf *dbg);
 char * __libdw_filepath (const char *debugdir, const char *dir,
 			 const char *file)
   internal_function;
+
+/* Like dwarf_getaranges but aranges are generated from CU address
+   ranges instead of being read from .debug_aranges.
+
+   Returns 0 if successful and updates ARANGES and NARANGES.  Otherwise
+   returns -1 and sets libdw_errno.
+*/
+int __libdw_getdieranges (Dwarf *dbg, Dwarf_Aranges **aranges, size_t *naranges);
 #endif	/* libdwP.h */

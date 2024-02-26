@@ -1,5 +1,8 @@
 Version 0.191 (after 0.190)
 
+libdw: dwarf_addrdie now supports binaries lacking a .debug_aranges
+       section.
+
 debuginfod: Caching eviction logic improvements to improve retention
             of small/frequent/slow files such as Fedora's vdso.debug.
 

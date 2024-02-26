@@ -95,62 +95,49 @@ dwarf_next_lines (Dwarf *dbg, Dwarf_Off off,
     {
       /* We need to find the matching CU to get the comp_dir.  Use the
 	 given CU as hint where to start searching.  Normally it will
-	 be the next CU that has a statement list. */
+	 be the next CU that has a statement list.  If the CUs are in a
+	 different order from the line tables, then we do a linear
+	 search.  */
       Dwarf_CU *given_cu = *cu;
       Dwarf_CU *next_cu = given_cu;
-      bool found = false;
-      while (INTUSE(dwarf_get_units) (dbg, next_cu, &next_cu, NULL, NULL,
-				      &cudie, NULL) == 0)
+      bool restarted = false;
+      while (1)
 	{
+	  if (restarted && next_cu == given_cu)
+	    {
+	      /* We checked all of the CUs and there was no match.  */
+	      *cu = NULL;
+	      break;
+	    }
+	  if (INTUSE(dwarf_get_units) (dbg, next_cu, &next_cu, NULL, NULL,
+				       &cudie, NULL) != 0)
+	    {
+	      /* We didn't find the matching CU after the starting point.
+	         Check the CUs up to the starting point.  */
+	      next_cu = NULL;
+	      restarted = true;
+	      continue;
+	    }
+
+	  Dwarf_Word stmt_off = 0;
 	  if (dwarf_hasattr (&cudie, DW_AT_stmt_list))
 	    {
 	      Dwarf_Attribute attr;
-	      Dwarf_Word stmt_off;
 	      if (dwarf_formudata (dwarf_attr (&cudie, DW_AT_stmt_list, &attr),
-				   &stmt_off) == 0
-		  && stmt_off == off)
-		{
-		  found = true;
-		  break;
-		}
+				   &stmt_off) != 0)
+		continue;
 	    }
-	  else if (off == 0
-		   && (next_cu->unit_type == DW_UT_split_compile
-		       || next_cu->unit_type == DW_UT_split_type))
+	  /* Split units have an implicit offset of 0.  */
+	  else if (next_cu->unit_type != DW_UT_split_compile
+		   && next_cu->unit_type != DW_UT_split_type)
+	    continue;
+
+	  if (stmt_off == off)
 	    {
-	      /* For split units (in .dwo files) there is only one table
-		 at offset zero (containing just the files, no lines).  */
-	      found = true;
+	      *cu = next_cu;
 	      break;
 	    }
 	}
-
-      if (!found && given_cu != NULL)
-	{
-	  /* The CUs might be in a different order from the line
-	     tables. Need to do a linear search (but stop at the given
-	     CU, since we already searched those.  */
-	  next_cu = NULL;
-	  while (INTUSE(dwarf_get_units) (dbg, next_cu, &next_cu, NULL, NULL,
-					  &cudie, NULL) == 0
-		 && next_cu != given_cu)
-	    {
-	      Dwarf_Attribute attr;
-	      Dwarf_Word stmt_off;
-	      if (dwarf_formudata (dwarf_attr (&cudie, DW_AT_stmt_list, &attr),
-				   &stmt_off) == 0
-		  && stmt_off == off)
-		{
-		  found = true;
-		  break;
-		}
-	    }
-	}
-
-      if (found)
-	*cu = next_cu;
-      else
-	*cu = NULL;
     }
   else
     *cu = NULL;

@@ -265,7 +265,7 @@ __libdw_package_index (Dwarf *dbg, bool tu)
       const unsigned char *cu_offset
 	= cu_index->section_offsets + cu_index->sections[DW_SECT_INFO - 1] * 4;
       uint32_t tu_count = 0;
-      const unsigned char *tu_offset;
+      const unsigned char *tu_offset = NULL;
       if (tu_index != NULL)
 	{
 	  tu_count = tu_index->unit_count;

@@ -1,7 +1,10 @@
-Version 0.191 (after 0.190)
+Version 0.191 "Bug fixes in C major"
 
 libdw: dwarf_addrdie now supports binaries lacking a .debug_aranges
        section.
+
+       Improved support for DWARF package files.  Add new function
+       dwarf_cu_dwp_section_info.
 
 debuginfod: Caching eviction logic improvements to improve retention
             of small/frequent/slow files such as Fedora's vdso.debug.

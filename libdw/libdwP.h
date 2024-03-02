@@ -1153,8 +1153,7 @@ str_offsets_base_off (Dwarf *dbg, Dwarf_CU *cu)
   if (cu == NULL && dbg != NULL)
     {
       Dwarf_CU *first_cu;
-      if (INTUSE(dwarf_get_units) (dbg, NULL, &first_cu,
-				   NULL, NULL, NULL, NULL) == 0)
+      if (dwarf_get_units (dbg, NULL, &first_cu, NULL, NULL, NULL, NULL) == 0)
 	cu = first_cu;
     }
 

@@ -51,6 +51,9 @@ mips_init (Elf *elf __attribute__ ((unused)),
   HOOK (eh, set_initial_registers_tid);
   HOOK (eh, abi_cfi);
   HOOK (eh, unwind);
+  HOOK (eh, register_info);
+  HOOK (eh, return_value_location);
+  HOOK (eh, core_note);
   eh->frame_nregs = 71;
   return eh;
 }

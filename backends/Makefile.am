@@ -37,7 +37,7 @@ AM_CPPFLAGS += -I$(top_srcdir)/libebl -I$(top_srcdir)/libasm \
 noinst_LIBRARIES = libebl_backends.a libebl_backends_pic.a
 
 modules = i386 sh x86_64 ia64 alpha arm aarch64 sparc ppc ppc64 s390 \
-	  m68k bpf riscv csky loongarch arc
+	  m68k bpf riscv csky loongarch arc mips
 
 i386_SRCS = i386_init.c i386_symbol.c i386_corenote.c i386_cfi.c \
 	    i386_retval.c i386_regs.c i386_auxv.c \
@@ -102,12 +102,14 @@ loongarch_SRCS = loongarch_init.c loongarch_symbol.c loongarch_cfi.c \
 
 arc_SRCS = arc_init.c arc_symbol.c
 
+mips_SRCS = mips_init.c mips_symbol.c
+
 libebl_backends_a_SOURCES = $(i386_SRCS) $(sh_SRCS) $(x86_64_SRCS) \
 			    $(ia64_SRCS) $(alpha_SRCS) $(arm_SRCS) \
 			    $(aarch64_SRCS) $(sparc_SRCS) $(ppc_SRCS) \
 			    $(ppc64_SRCS) $(s390_SRCS) \
 			    $(m68k_SRCS) $(bpf_SRCS) $(riscv_SRCS) $(csky_SRCS) \
-			    $(loongarch_SRCS) $(arc_SRCS)
+			    $(loongarch_SRCS) $(arc_SRCS) $(mips_SRCS)
 
 libebl_backends_pic_a_SOURCES =
 am_libebl_backends_pic_a_OBJECTS = $(libebl_backends_a_SOURCES:.c=.os)

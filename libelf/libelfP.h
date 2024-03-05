@@ -617,4 +617,7 @@ extern void __libelf_reset_rawdata (Elf_Scn *scn, void *buf, size_t size,
 #define INVALID_NDX(ndx, type, data) \
   unlikely ((data)->d_size / sizeof (type) <= (unsigned int) (ndx))
 
+#define ELF64_MIPS_R_TYPE1(i)          ((i) & 0xff)
+#define ELF64_MIPS_R_TYPE2(i)           (((i) >> 8) & 0xff)
+#define ELF64_MIPS_R_TYPE3(i)           (((i) >> 16) & 0xff)
 #endif  /* libelfP.h */

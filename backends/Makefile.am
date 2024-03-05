@@ -102,7 +102,8 @@ loongarch_SRCS = loongarch_init.c loongarch_symbol.c loongarch_cfi.c \
 
 arc_SRCS = arc_init.c arc_symbol.c
 
-mips_SRCS = mips_init.c mips_symbol.c
+mips_SRCS = mips_init.c mips_symbol.c mips_initreg.c \
+	    mips_cfi.c mips_unwind.c
 
 hexagon_SRCS = hexagon_init.c hexagon_symbol.c
 

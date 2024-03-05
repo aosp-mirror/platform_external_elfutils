@@ -1,4 +1,4 @@
-/* Initialization of MIPS specific backend library.
+/* Fetch live process registers from TID.
    Copyright (C) 2024 CIP United Inc.
    This file is part of elfutils.
 
@@ -30,27 +30,32 @@
 # include <config.h>
 #endif
 
-#define BACKEND		mips_
-#define RELOC_PREFIX	R_MIPS_
+#include <stdlib.h>
+#if (defined(mips) || defined(__mips) || defined(__mips__) || defined(MIPS) || defined(__MIPS__)) && defined(__linux__)
+# include <sys/user.h>
+# include <sys/ptrace.h>
+#include <asm/ptrace.h>
+#endif
+
+#define BACKEND mips_
 #include "libebl_CPU.h"
-#include "libelfP.h"
 
-#define RELOC_TYPE_ID(type) ((type) & 0xff)
 
-/* This defines the common reloc hooks based on mips_reloc.def.  */
-#include "common-reloc.c"
-
-Ebl *
-mips_init (Elf *elf __attribute__ ((unused)),
-	   GElf_Half machine __attribute__ ((unused)),
-	   Ebl *eh)
+bool
+mips_set_initial_registers_tid (pid_t tid __attribute__ ((unused)),
+			  ebl_tid_registers_t *setfunc __attribute__ ((unused)),
+				  void *arg __attribute__ ((unused)))
 {
-  /* We handle it.  */
-  mips_init_reloc (eh);
-  HOOK (eh, reloc_simple_type);
-  HOOK (eh, set_initial_registers_tid);
-  HOOK (eh, abi_cfi);
-  HOOK (eh, unwind);
-  eh->frame_nregs = 71;
-  return eh;
+#if (!defined(mips) && !defined(__mips) && !defined(__mips__) && !defined(MIPS) && !defined(__MIPS__)) || !defined(__linux__)
+  return false;
+#else /* __mips__ */
+/* For PTRACE_GETREGS */
+
+  struct pt_regs gregs;
+  if (ptrace (PTRACE_GETREGS, tid, 0, &gregs) != 0)
+    return false;
+  if (! setfunc (-1, 1, (Dwarf_Word *) &gregs.cp0_epc, arg))
+    return false;
+  return setfunc (0, 32, (Dwarf_Word *) &gregs.regs[0], arg);
+#endif /* __mips__ */
 }

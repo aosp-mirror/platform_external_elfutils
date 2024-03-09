@@ -1445,7 +1445,6 @@ private:
 
   map<key,fdcache_entry> entries; // optimized for lookup
   time_t last_cleaning;
-  long max_fds;
   long max_mbs;
 
 public:

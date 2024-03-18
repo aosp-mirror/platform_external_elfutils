@@ -483,6 +483,8 @@ AC_CHECK_HEADERS([sched.h])
 AC_CHECK_FUNCS([sched_getaffinity])
 AC_CHECK_HEADERS([sys/resource.h])
 AC_CHECK_FUNCS([getrlimit])
+AC_CHECK_HEADERS([malloc.h])
+AC_CHECK_FUNCS([malloc_trim])
 
 old_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -D_GNU_SOURCE"

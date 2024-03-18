@@ -49,6 +49,11 @@ extern "C" {
 #include <execinfo.h>
 }
 #endif
+#ifdef HAVE_MALLOC_H
+extern "C" {
+#include <malloc.h>
+}
+#endif
 
 #include "debuginfod.h"
 #include <dwarf.h>
@@ -4226,9 +4231,11 @@ void groom()
   sqlite3_db_release_memory(db); // shrink the process if possible
   sqlite3_db_release_memory(dbq); // ... for both connections
   debuginfod_pool_groom(); // and release any debuginfod_client objects we've been holding onto
-
-#if 0 /* PR31265: don't jettison cache unnecessarily */
+#if HAVE_MALLOC_TRIM
+  malloc_trim(0); // PR31103: release memory allocated for temporary purposes
+#endif
   
+#if 0 /* PR31265: don't jettison cache unnecessarily */
   fdcache.limit(0); // release the fdcache contents
   fdcache.limit(fdcache_mbs); // restore status quo parameters
 #endif

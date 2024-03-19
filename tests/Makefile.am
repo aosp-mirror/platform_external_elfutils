@@ -162,6 +162,7 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-addr2line-C-test.sh \
 	run-addr2line-i-test.sh run-addr2line-i-lex-test.sh \
 	run-addr2line-i-demangle-test.sh run-addr2line-alt-debugpath.sh \
+	run-funcretval-struct.sh \
 	run-varlocs.sh run-exprlocs.sh run-varlocs-vars.sh run-funcretval.sh \
 	run-backtrace-native.sh run-backtrace-data.sh run-backtrace-dwarf.sh \
 	run-backtrace-native-biarch.sh run-backtrace-native-core.sh \
@@ -283,6 +284,10 @@ check_PROGRAMS += funcretval_test++11
 funcretval_test__11_SOURCES = funcretval_test++11.cxx
 TESTS += run-funcretval++11.sh
 endif
+
+check_PROGRAMS += funcretval_test_struct
+funcretval_test_struct_SOURCES = funcretval_test_struct.c
+TESTS += run-funcretval-struct-native.sh
 
 EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-ar-N.sh \
@@ -478,6 +483,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile_aarch64_core.bz2 testfile_i686_core.bz2 \
 	     addrx_constx-4.dwo.bz2 addrx_constx-5.dwo.bz2 \
 	     testfile-addrx_constx-4.bz2 testfile-addrx_constx-5.bz2 \
+	     run-funcretval-struct.sh funcretval_test_struct_riscv.bz2 \
 	     run-funcretval.sh funcretval_test.c funcretval_test_aarch64.bz2 \
 	     run-backtrace-data.sh run-backtrace-dwarf.sh cleanup-13.c \
 	     run-backtrace-native.sh run-backtrace-native-biarch.sh \
@@ -635,6 +641,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile_nvidia_linemap.bz2 \
 	     testfile-largealign.o.bz2 run-strip-largealign.sh \
 	     run-funcretval++11.sh \
+	     run-funcretval-struct-native.sh \
 	     test-ar-duplicates.a.bz2 \
 	     run-dwfl-core-noncontig.sh testcore-noncontig.bz2 \
 	     testfile-dwarf5-line-clang.bz2 \

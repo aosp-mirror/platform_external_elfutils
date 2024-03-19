@@ -1,6 +1,7 @@
 /* Function return value location for Linux/RISC-V ABI.
    Copyright (C) 2018 Sifive, Inc.
    Copyright (C) 2013 Red Hat, Inc.
+   Copyright (C) 2024 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -105,23 +106,123 @@ pass_in_fpr_lp64d (const Dwarf_Op **locp, Dwarf_Word size)
   return size <= 8 ? 1 : 4;
 }
 
+/* Checks if we can "flatten" the given type, Only handles the simple
+   cases where we have a struct with one or two the same base type
+   elements.  */
 static int
-flatten_aggregate_arg (Dwarf_Die *typedie __attribute__ ((unused)),
-		       Dwarf_Die *arg0 __attribute__ ((unused)),
-		       Dwarf_Die *arg1 __attribute__ ((unused)))
+flatten_aggregate_arg (Dwarf_Die *typedie,
+		       Dwarf_Word size,
+		       Dwarf_Die *arg0,
+		       Dwarf_Die *arg1)
 {
-  /* ??? */
+  int tag0, tag1;
+  Dwarf_Die member;
+  Dwarf_Word encoding0, encoding1;
+  Dwarf_Attribute attr;
+  Dwarf_Word size0, size1;
+
+  if (size < 8 || size > 16)
+    return 0;
+
+  if (dwarf_child (typedie, arg0) != 0)
+    return 0;
+
+  tag0 = dwarf_tag (arg0);
+  while (tag0 != -1 && tag0 != DW_TAG_member)
+    {
+      if (dwarf_siblingof (arg0, arg0) != 0)
+	return 0;
+      tag0 = dwarf_tag (arg0);
+    }
+
+  if (tag0 != DW_TAG_member)
+    return 0;
+
+  /* Remember where we are.  */
+  member = *arg0;
+
+  tag0 = dwarf_peeled_die_type (arg0, arg0);
+  if (tag0 != DW_TAG_base_type)
+    return 0;
+
+  if (dwarf_attr_integrate (arg0, DW_AT_encoding, &attr) == NULL
+      || dwarf_formudata (&attr, &encoding0) != 0)
+    return 0;
+
+  if (dwarf_bytesize_aux (arg0, &size0) != 0)
+    return 0;
+
+  if (size == size0)
+    return 1; /* This one member is the whole size. */
+
+  if (size != 2 * size0)
+    return 0; /* We only handle two of the same.  */
+
+  /* Look for another member with the same encoding.  */
+  if (dwarf_siblingof (&member, arg1) != 0)
+    return 0;
+
+  tag1 = dwarf_tag (arg1);
+  while (tag1 != -1 && tag1 != DW_TAG_member)
+    {
+      if (dwarf_siblingof (arg1, arg1) != 0)
+	return 0;
+      tag1 = dwarf_tag (arg1);
+    }
+
+  if (tag1 != DW_TAG_member)
+    return 0;
+
+  tag1 = dwarf_peeled_die_type (arg1, arg1);
+  if (tag1 != DW_TAG_base_type)
+    return 0; /* We can only handle two equal base types for now. */
+
+  if (dwarf_attr_integrate (arg1, DW_AT_encoding, &attr) == NULL
+      || dwarf_formudata (&attr, &encoding1) != 0
+      || encoding0 != encoding1)
+    return 0; /* We can only handle two of the same for now. */
+
+  if (dwarf_bytesize_aux (arg1, &size1) != 0)
+    return 0;
+
+  if (size0 != size1)
+    return 0; /* We can only handle two of the same for now. */
+
   return 1;
 }
 
+/* arg0 and arg1 should be the peeled die types found by
+   flatten_aggregate_arg.  */
 static int
-pass_by_flattened_arg (const Dwarf_Op **locp __attribute__ ((unused)),
-		       Dwarf_Word size __attribute__ ((unused)),
-		       Dwarf_Die *arg0 __attribute__ ((unused)),
-		       Dwarf_Die *arg1 __attribute__ ((unused)))
+pass_by_flattened_arg (const Dwarf_Op **locp,
+		       Dwarf_Word size,
+		       Dwarf_Die *arg0,
+		       Dwarf_Die *arg1 __attribute__((unused)))
 {
-  /* ??? */
-  return -2;
+  /* For now we just assume arg0 and arg1 are the same type and
+     encoding.  */
+  Dwarf_Word encoding;
+  Dwarf_Attribute attr;
+
+  if (dwarf_attr_integrate (arg0, DW_AT_encoding, &attr) == NULL
+      || dwarf_formudata (&attr, &encoding) != 0)
+    return -1;
+
+  switch (encoding)
+    {
+    case DW_ATE_boolean:
+    case DW_ATE_signed:
+    case DW_ATE_unsigned:
+    case DW_ATE_unsigned_char:
+    case DW_ATE_signed_char:
+      return pass_in_gpr_lp64 (locp, size);
+
+    case DW_ATE_float:
+      return pass_in_fpr_lp64d (locp, size);
+
+    default:
+      return -1;
+    }
 }
 
 int
@@ -158,7 +259,7 @@ riscv_return_value_location_lp64ifd (int fp, Dwarf_Die *functypedie,
 	 provided the floating-point real is no more than FLEN bits wide and
 	 the integer is no more than XLEN bits wide.  */
       if (tag == DW_TAG_structure_type
-	  && flatten_aggregate_arg (&typedie, &arg0, &arg1))
+	  && flatten_aggregate_arg (&typedie, size, &arg0, &arg1))
 	return pass_by_flattened_arg (locp, size, &arg0, &arg1);
       /* Aggregates larger than 2*XLEN bits are passed by reference.  */
       else if (size > 16)

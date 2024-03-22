@@ -1,0 +1,14 @@
+# $HOME/.profile* or similar files may first set $DEBUGINFOD_URLS.
+# If $DEBUGINFOD_URLS is not set there, we set it from system *.url files.
+# $HOME/.*rc or similar files may then amend $DEBUGINFOD_URLS.
+# See also [man debuginfod-client-config] for other environment variables
+# such as $DEBUGINFOD_MAXSIZE, $DEBUGINFOD_MAXTIME, $DEBUGINFOD_PROGRESS.
+
+if not set --query DEBUGINFOD_URLS
+    # Use local variables so we don't need to manually unset them
+    set --local prefix "@prefix@"
+    set --local DEBUGINFOD_URLS (cat /dev/null "@sysconfdir@/debuginfod"/*.urls 2>/dev/null | string replace '\n' ' ')
+    if test -n "$DEBUGINFOD_URLS"
+        set --global --export DEBUGINFOD_URLS "$DEBUGINFOD_URLS"
+    end
+end

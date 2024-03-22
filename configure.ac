@@ -881,7 +881,7 @@ AC_ARG_ENABLE(debuginfod-urls,
              fi],
             [default_debuginfod_urls=""])
 AC_SUBST(DEBUGINFOD_URLS, $default_debuginfod_urls)                
-AC_CONFIG_FILES([config/profile.sh config/profile.csh])
+AC_CONFIG_FILES([config/profile.sh config/profile.csh config/profile.fish])
 
 AC_OUTPUT
 

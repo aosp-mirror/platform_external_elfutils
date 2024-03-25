@@ -35,7 +35,7 @@ endif
 check_PROGRAMS = arextract arsymtest newfile saridx scnnames sectiondump \
 		  showptable update1 update2 update3 update4 test-nlist \
 		  show-die-info get-files next-files get-lines next-lines \
-		  get-pubnames \
+		  get-pubnames get-files-define-file \
 		  get-aranges allfcts line2addr addrscopes funcscopes \
 		  show-abbrev hash newscn ecp dwflmodtest \
 		  find-prologues funcretval allregs rdwrmmap \
@@ -655,7 +655,8 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile-dwp-5-cu-index-overflow.dwp.bz2 \
 	     testfile-dwp-4-cu-index-overflow.bz2 \
 	     testfile-dwp-4-cu-index-overflow.dwp.bz2 \
-	     testfile-dwp-cu-index-overflow.source
+	     testfile-dwp-cu-index-overflow.source \
+	     testfile-define-file.bz2
 
 
 if USE_VALGRIND
@@ -734,6 +735,7 @@ show_abbrev_LDADD = $(libdw) $(libelf)
 get_lines_LDADD = $(libdw) $(libelf)
 next_lines_LDADD = $(libdw) $(libelf)
 get_files_LDADD = $(libdw) $(libelf)
+get_files_define_file_LDADD = $(libdw) $(libelf)
 next_files_LDADD = $(libdw) $(libelf)
 get_aranges_LDADD = $(libdw) $(libelf)
 allfcts_LDADD = $(libdw) $(libelf)

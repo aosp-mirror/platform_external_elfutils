@@ -75,6 +75,7 @@
 /funcscopes
 /get-aranges
 /get-files
+/get-files-define_file
 /get-lines
 /get-pubnames
 /get-units-invalid

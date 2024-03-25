@@ -74,8 +74,8 @@ dwarf_macro_getsrcfiles (Dwarf *dbg, Dwarf_Macro *macro,
 	 the same unit through dwarf_getsrcfiles, and the file names
 	 will be broken.  */
 
-      if (__libdw_getsrclines (table->dbg, line_offset, table->comp_dir,
-			       table->address_size, NULL, &table->files) < 0)
+      if (__libdw_getsrcfiles (table->dbg, line_offset, table->comp_dir,
+			       table->address_size, &table->files) < 0)
 	table->files = (void *) -1;
     }
 

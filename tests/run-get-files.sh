@@ -18,7 +18,7 @@
 
 . $srcdir/test-subr.sh
 
-testfiles testfile testfile2
+testfiles testfile testfile2 testfile-define-file
 
 testrun_compare ${abs_builddir}/get-files testfile testfile2 <<\EOF
 cuhl = 11, o = 0, asz = 4, osz = 4, ncu = 191
@@ -244,5 +244,76 @@ cuhl = 11, o = 0, asz = 8, osz = 4, ncu = 857
  file[2] = "/home/osandov/src/elfutils/tests/foobar.h"
  file[3] = "/usr/include/stdc-predef.h"
 EOF
+
+tempfiles files define-files.out get-files-define-file.out
+
+cat > files <<\EOF
+ dirs[0] = "session"
+ dirs[1] = "/home/wcohen/minimal_mod"
+ dirs[2] = "include/asm"
+ dirs[3] = "include/linux"
+ dirs[4] = "include/asm-generic"
+ file[0] = "???"
+ file[1] = "/home/wcohen/minimal_mod/minimal_mod.c"
+ file[2] = "include/asm/gcc_intrin.h"
+ file[3] = "include/linux/kernel.h"
+ file[4] = "include/asm/processor.h"
+ file[5] = "include/asm/types.h"
+ file[6] = "include/asm/ptrace.h"
+ file[7] = "include/linux/sched.h"
+ file[8] = "include/asm/thread_info.h"
+ file[9] = "include/linux/thread_info.h"
+ file[10] = "include/asm/atomic.h"
+ file[11] = "include/linux/list.h"
+ file[12] = "include/linux/cpumask.h"
+ file[13] = "include/linux/rbtree.h"
+ file[14] = "include/asm/page.h"
+ file[15] = "include/linux/rwsem.h"
+ file[16] = "include/asm/rwsem.h"
+ file[17] = "include/asm/spinlock.h"
+ file[18] = "include/linux/completion.h"
+ file[19] = "include/linux/wait.h"
+ file[20] = "include/linux/aio.h"
+ file[21] = "include/linux/workqueue.h"
+ file[22] = "include/linux/timer.h"
+ file[23] = "include/linux/types.h"
+ file[24] = "include/asm/posix_types.h"
+ file[25] = "include/linux/pid.h"
+ file[26] = "include/linux/time.h"
+ file[27] = "include/linux/capability.h"
+ file[28] = "include/linux/signal.h"
+ file[29] = "include/linux/resource.h"
+ file[30] = "include/linux/sem.h"
+ file[31] = "include/asm/fpu.h"
+ file[32] = "include/linux/fs_struct.h"
+ file[33] = "include/asm/signal.h"
+ file[34] = "include/asm/siginfo.h"
+ file[35] = "include/asm-generic/siginfo.h"
+ file[36] = "include/asm/nodedata.h"
+ file[37] = "include/linux/mmzone.h"
+ file[38] = "include/linux/jiffies.h"
+ file[39] = "include/asm/io.h"
+ file[40] = "include/asm/machvec.h"
+ file[41] = "include/asm/smp.h"
+ file[42] = "include/asm/numa.h"
+ file[43] = "include/linux/slab.h"
+EOF
+
+# Files should be printed 3 times, followed by the two files from
+# DW_LNE_define_file
+cat files > define-files.out
+cat files >> define-files.out
+cat files >> define-files.out
+echo ' file[44] = "include/asm/abc.c"' >> define-files.out
+echo ' file[45] = "include/linux/01.c"' >> define-files.out
+
+# testfile-define-file is a copy of testfile36.debug but with a modified
+# line program.  The line program in testfile-define-file consists of
+# two DW_LNE_define_file opcodes.
+#
+# xxd was used to create a hexdump of testfile36.debug and a text editor
+# was used to modify the line program.  The modified hexdump was converted
+# back to a binary with xxd -r.
+cat define-files.out | testrun_compare ${abs_builddir}/get-files-define-file testfile-define-file
 
 exit 0

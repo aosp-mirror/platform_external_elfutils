@@ -24,6 +24,7 @@
 #include ELFUTILS_HEADER(dw)
 #include <stdio.h>
 #include <unistd.h>
+#include "../libdw/libdwP.h"
 
 
 int
@@ -72,6 +73,13 @@ main (int argc, char *argv[])
 	  if (dwarf_getsrcfiles (die, &files, &nfiles) != 0)
 	    {
 	      printf ("%s: cannot get files\n", argv[cnt]);
+	      result = 1;
+	      break;
+	    }
+
+	  if (die->cu->lines != NULL)
+	    {
+	      printf ("%s: dwarf_getsrcfiles should not get lines\n", argv[cnt]);
 	      result = 1;
 	      break;
 	    }

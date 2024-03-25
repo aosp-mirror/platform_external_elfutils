@@ -1108,6 +1108,16 @@ int __libdw_getsrclines (Dwarf *dbg, Dwarf_Off debug_line_offset,
   internal_function
   __nonnull_attribute__ (1);
 
+/* Load .debug_line unit at DEBUG_LINE_OFFSET.  COMP_DIR is a value of
+   DW_AT_comp_dir or NULL if that attribute is not available.  Caches
+   the loaded unit and set *FILESP with loaded information.  Returns 0
+   for success or a negative value for failure.  */
+int __libdw_getsrcfiles (Dwarf *dbg, Dwarf_Off debug_line_offset,
+			 const char *comp_dir, unsigned address_size,
+			 Dwarf_Files **filesp)
+  internal_function
+  __nonnull_attribute__ (1);
+
 /* Load and return value of DW_AT_comp_dir from CUDIE.  */
 const char *__libdw_getcompdir (Dwarf_Die *cudie);
 

@@ -209,6 +209,7 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-disasm-riscv64.sh \
 	run-pt_gnu_prop-tests.sh \
 	run-getphdrnum.sh run-test-includes.sh \
+	run-debuginfod-client-profile.sh \
 	leb128 read_unaligned \
 	msg_tst system-elf-libelf-test system-elf-gelf-test \
 	$(asm_TESTS) run-disasm-bpf.sh run-low_high_pc-dw-form-indirect.sh \
@@ -636,6 +637,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile_pt_gnu_prop.bz2 testfile_pt_gnu_prop32.bz2 \
 	     run-getphdrnum.sh testfile-phdrs.elf.bz2 \
 	     run-test-includes.sh run-low_high_pc-dw-form-indirect.sh \
+	     run-debuginfod-client-profile.sh \
 	     run-readelf-dw-form-indirect.sh testfile-dw-form-indirect.bz2 \
 	     run-nvidia-extended-linemap-libdw.sh run-nvidia-extended-linemap-readelf.sh \
 	     testfile_nvidia_linemap.bz2 \

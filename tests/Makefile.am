@@ -841,7 +841,7 @@ declfiles_LDADD = $(libdw)
 BUILT_SOURCES = libelf.h
 CLEANFILES += libelf.h
 libelf.h: $(top_srcdir)/libelf/libelf.h
-	cp $< $@
+	ln -s $< $@
 if !INSTALL_ELFH
 system_elf_libelf_test_CPPFLAGS =
 system_elf_gelf_test_CPPFLAGS = -I.

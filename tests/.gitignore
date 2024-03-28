@@ -71,6 +71,7 @@
 /find-prologues
 /funcretval
 /funcretval_test++11
+/funcretval_test_struct
 /funcscopes
 /get-aranges
 /get-files
@@ -81,6 +82,7 @@
 /getphdrnum
 /getsrc_die
 /hash
+/libelf.h
 /leb128
 /line2addr
 /low_high_pc
@@ -104,6 +106,7 @@
 /showptable
 /strptr
 /system-elf-libelf-test
+/system-elf-gelf-test
 /test-elf_cntl_gelf_getshdr
 /test-flag-nobits
 /test-nlist

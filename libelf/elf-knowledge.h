@@ -119,6 +119,7 @@
 #define EF_HEXAGON_MACH_V71T 0x00008071 /* Hexagon V71T */
 #define EF_HEXAGON_MACH_V73  0x00000073 /* Hexagon V73 */
 #define EF_HEXAGON_MACH      0x000003ff /* Hexagon V.. */
+#define EF_HEXAGON_TINY      0x00008000 /* Hexagon V..T */
 
 /* Special section indices.  */
 #define SHN_HEXAGON_SCOMMON    0xff00 /* Other access sizes */

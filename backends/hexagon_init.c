@@ -45,6 +45,7 @@ hexagon_init (Elf *elf __attribute__ ((unused)),
 {
   hexagon_init_reloc (eh);
   HOOK (eh, reloc_simple_type);
+  HOOK (eh, machine_flag_check);
 
   return eh;
 }

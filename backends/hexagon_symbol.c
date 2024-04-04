@@ -56,3 +56,10 @@ hexagon_reloc_simple_type (Ebl *ebl __attribute__ ((unused)), int type,
       return ELF_T_NUM;
     }
 }
+
+bool
+hexagon_machine_flag_check (GElf_Word flags)
+{
+  GElf_Word reserved_flags = ~(EF_HEXAGON_TINY | EF_HEXAGON_MACH);
+  return (flags & reserved_flags) == 0;
+}

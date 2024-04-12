@@ -115,11 +115,19 @@ void debuginfod_end (debuginfod_client *c) { }
 #include <pthread.h>
 
 static pthread_once_t init_control = PTHREAD_ONCE_INIT;
+static bool curl_has_https; // = false
 
 static void
 libcurl_init(void)
 {
   curl_global_init(CURL_GLOBAL_DEFAULT);
+
+  for (const char *const *protocol = curl_version_info(CURLVERSION_NOW)->protocols;
+       *protocol != NULL; ++protocol)
+    {
+      if(strcmp("https", *protocol) == 0)
+        curl_has_https = true;
+    }
 }
 
 struct debuginfod_client
@@ -1368,13 +1376,15 @@ debuginfod_query_server (debuginfod_client *c,
       } while (0)
 
       /* Only allow http:// + https:// + file:// so we aren't being
-	 redirected to some unsupported protocol.  */
+	 redirected to some unsupported protocol.
+         libcurl will fail if we request a single protocol that is not
+         available. https missing is the most likely issue  */
 #if CURL_AT_LEAST_VERSION(7, 85, 0)
       curl_easy_setopt_ck(data[i].handle, CURLOPT_PROTOCOLS_STR,
-			  "http,https,file");
+			  curl_has_https ? "https,http,file" : "http,file");
 #else
       curl_easy_setopt_ck(data[i].handle, CURLOPT_PROTOCOLS,
-			  (CURLPROTO_HTTP | CURLPROTO_HTTPS | CURLPROTO_FILE));
+			  ((curl_has_https ? CURLPROTO_HTTPS : 0) | CURLPROTO_HTTP | CURLPROTO_FILE));
 #endif
       curl_easy_setopt_ck(data[i].handle, CURLOPT_URL, data[i].url);
       if (vfd >= 0)

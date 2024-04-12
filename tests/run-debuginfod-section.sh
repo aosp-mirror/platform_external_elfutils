@@ -81,6 +81,9 @@ wait_ready $PORT1 'thread_busy{role="scan"}' 0
 # Build-id for a file in the one of the testsuite's F31 rpms
 RPM_BUILDID=d44d42cbd7d915bc938c81333a21e355a6022fb7
 
+# PR31637 argc range checking
+(testrun ${abs_top_builddir}/debuginfod/debuginfod-find -v 2>&1 || true) | grep Usage:
+
 # Download sections from files indexed with -F
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find -vvv section $BUILDID .debug_info
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find -vvv section $BUILDID .text

@@ -25,3 +25,6 @@ set -e
 set -o pipefail
 
 source ${abs_top_builddir}/config/profile.sh
+
+type fish 2>/dev/null || (echo "no fish installed"; exit 77)
+fish ${abs_top_builddir}/config/profile.fish

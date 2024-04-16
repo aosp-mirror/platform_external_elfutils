@@ -7,7 +7,8 @@
 if not set --query DEBUGINFOD_URLS
     # Use local variables so we don't need to manually unset them
     set --local prefix "@prefix@"
-    set --local DEBUGINFOD_URLS (cat /dev/null "@sysconfdir@/debuginfod"/*.urls 2>/dev/null | string replace '\n' ' ')
+    set --local files "@sysconfdir@/debuginfod/"*.urls
+    set --local DEBUGINFOD_URLS (cat /dev/null $files 2>/dev/null | string replace '\n' ' ')
     if test -n "$DEBUGINFOD_URLS"
         set --global --export DEBUGINFOD_URLS "$DEBUGINFOD_URLS"
     end

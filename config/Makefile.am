@@ -41,6 +41,7 @@ pkgconfig_DATA += libdebuginfod.pc
 install-data-local:
 	$(INSTALL_DATA) profile.sh -D $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.sh
 	$(INSTALL_DATA) profile.csh -D $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.csh
+	sed -i 's/{prefix}/prefix/g' profile.fish
 	$(INSTALL_DATA) profile.fish -D $(DESTDIR)$(datadir)/fish/vendor_conf.d/debuginfod.fish
 	mkdir -p $(DESTDIR)$(sysconfdir)/debuginfod
 	if [ -n "@DEBUGINFOD_URLS@" ]; then \

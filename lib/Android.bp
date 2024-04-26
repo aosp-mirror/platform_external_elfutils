@@ -10,5 +10,6 @@ cc_library_host_static {
         "color.c", // uses argp
         "dynamicsizehash*.c",
         "printversion.c", // uses argp
+        "crc32.c",
     ],
 }

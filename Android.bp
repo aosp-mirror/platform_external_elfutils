@@ -110,6 +110,7 @@ cc_library {
     },
 
     visibility: [
+        "//art:__subpackages__", // For use in tests only.
         "//device/google/contexthub/util/nanoapp_postprocess",
         "//external/bcc/libbpf-tools",
         "//external/bpftool",

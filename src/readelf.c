@@ -8869,11 +8869,12 @@ print_form_data (Dwarf *dbg, int form, const unsigned char *readp,
     strx_val:
       data = dbg->sectiondata[IDX_debug_str_offsets];
       if (data == NULL
-	  || data->d_size - str_offsets_base < val)
+	  || data->d_size - str_offsets_base < val * offset_len)
 	str = "???";
       else
 	{
-	  const unsigned char *strreadp = data->d_buf + str_offsets_base + val;
+	  const unsigned char *strreadp = (data->d_buf + str_offsets_base
+					   + val * offset_len);
 	  const unsigned char *strreadendp = data->d_buf + data->d_size;
 	  if ((size_t) (strreadendp - strreadp) < offset_len)
 	    str = "???";
@@ -10853,8 +10854,6 @@ print_debug_macro_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
 
 	    case DW_MACRO_define_sup:
 	      get_uleb128 (u128, readp, readendp);
-	      if (readp + offset_len > readendp)
-		goto invalid_data;
 	      printf ("%*s#define ", level, "");
 	      readp =  print_form_data (dbg, DW_FORM_strp_sup,
 					readp, readendp, offset_len,
@@ -10864,8 +10863,6 @@ print_debug_macro_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
 
 	    case DW_MACRO_undef_sup:
 	      get_uleb128 (u128, readp, readendp);
-	      if (readp + offset_len > readendp)
-		goto invalid_data;
 	      printf ("%*s#undef ", level, "");
 	      readp =  print_form_data (dbg, DW_FORM_strp_sup,
 					readp, readendp, offset_len,
@@ -10887,8 +10884,6 @@ print_debug_macro_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
 
 	    case DW_MACRO_define_strx:
 	      get_uleb128 (u128, readp, readendp);
-	      if (readp + offset_len > readendp)
-		goto invalid_data;
 	      printf ("%*s#define ", level, "");
 	      readp =  print_form_data (dbg, DW_FORM_strx,
 					readp, readendp, offset_len,
@@ -10898,8 +10893,6 @@ print_debug_macro_section (Dwfl_Module *dwflmod __attribute__ ((unused)),
 
 	    case DW_MACRO_undef_strx:
 	      get_uleb128 (u128, readp, readendp);
-	      if (readp + offset_len > readendp)
-		goto invalid_data;
 	      printf ("%*s#undef ", level, "");
 	      readp =  print_form_data (dbg, DW_FORM_strx,
 					readp, readendp, offset_len,

@@ -322,6 +322,10 @@ if test "$use_gcov" = yes; then
 fi
 AM_CONDITIONAL(GCOV, test "$use_gcov" = yes)
 
+# Check if lcov/genhtml supports ignoring additional errors.
+AM_CONDITIONAL([LCOV_OLD],
+  [test "$LCOV" = "lcov" && lcov --version | grep -E -q "version 0|version 1"])
+
 AC_ARG_ENABLE([sanitize-undefined],
               AS_HELP_STRING([--enable-sanitize-undefined],
                              [Use gcc undefined behaviour sanitizer]),

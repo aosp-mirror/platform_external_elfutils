@@ -78,56 +78,35 @@ coverage: $(COVERAGE_OUTPUT_INDEX_HTML)
 	@echo 'file://$(abs_builddir)/$(COVERAGE_OUTPUT_INDEX_HTML)'
 
 if LCOV_OLD
-$(COVERAGE_OUTPUT_INDEX_HTML): $(COVERAGE_OUTPUT_FILE)
-	LC_ALL=C $(GENHTML) \
-		--legend \
-		--show-details \
-		--rc=genhtml_branch_coverage=1 \
-		--title='$(COVERAGE_TITLE)' \
-		--prefix='$(abspath $(abs_srcdir))' \
-		--prefix='$(realpath $(abs_srcdir))' \
-		--prefix='$(abspath $(abs_builddir)/..)' \
-		--prefix='$(realpath $(abs_builddir)/..)' \
-		--output-directory='$(COVERAGE_OUTPUT_DIRECTORY)' \
-		$<
+ignore_errors =
 else
-$(COVERAGE_OUTPUT_INDEX_HTML): $(COVERAGE_OUTPUT_FILE)
-	LC_ALL=C $(GENHTML) \
-		--legend \
-		--show-details \
-		--ignore-errors empty,negative \
-		--rc=genhtml_branch_coverage=1 \
-		--title='$(COVERAGE_TITLE)' \
-		--prefix='$(abspath $(abs_srcdir))' \
-		--prefix='$(realpath $(abs_srcdir))' \
-		--prefix='$(abspath $(abs_builddir)/..)' \
-		--prefix='$(realpath $(abs_builddir)/..)' \
-		--output-directory='$(COVERAGE_OUTPUT_DIRECTORY)' \
-		$<
+ignore_errors = --ignore-errors empty,negative
 endif
 
-if LCOV_OLD
+$(COVERAGE_OUTPUT_INDEX_HTML): $(COVERAGE_OUTPUT_FILE)
+	LC_ALL=C $(GENHTML) \
+		--legend \
+		--show-details \
+		$(ignore_errors) \
+		--rc=genhtml_branch_coverage=1 \
+		--title='$(COVERAGE_TITLE)' \
+		--prefix='$(abspath $(abs_srcdir))' \
+		--prefix='$(realpath $(abs_srcdir))' \
+		--prefix='$(abspath $(abs_builddir)/..)' \
+		--prefix='$(realpath $(abs_builddir)/..)' \
+		--output-directory='$(COVERAGE_OUTPUT_DIRECTORY)' \
+		$<
+
 $(COVERAGE_OUTPUT_FILE):
 	$(LCOV) \
 		--capture \
 		--no-external \
 		--no-checksum \
+		$(ignore_errors) \
 		--rc=lcov_branch_coverage=1 \
 		--gcov-tool='$(GCOV)' \
 		--output-file='$@' \
 		$(LCOV_DIRS_ARGS)
-else
-$(COVERAGE_OUTPUT_FILE):
-	$(LCOV) \
-		--capture \
-		--no-external \
-		--no-checksum \
-		--ignore-errors empty,negative \
-		--rc=lcov_branch_coverage=1 \
-		--gcov-tool='$(GCOV)' \
-		--output-file='$@' \
-		$(LCOV_DIRS_ARGS)
-endif
 endif
 
 # Tell version 3.79 and up of GNU make to not build goals in this

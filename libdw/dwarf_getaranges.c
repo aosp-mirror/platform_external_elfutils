@@ -1,5 +1,6 @@
 /* Return list address ranges.
    Copyright (C) 2000-2010, 2016, 2017 Red Hat, Inc.
+   Copyright (C) 2023 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2000.
 
@@ -124,6 +125,10 @@ dwarf_getaranges (Dwarf *dbg, Dwarf_Aranges **aranges, size_t *naranges)
 			 && length <= DWARF3_LENGTH_MAX_ESCAPE_CODE))
 	goto invalid;
 
+      const unsigned char *endp = readp + length;
+      if (unlikely (endp > readendp))
+	goto invalid;
+
       if (unlikely (readp + 2 > readendp))
 	goto invalid;
 
@@ -182,9 +187,17 @@ dwarf_getaranges (Dwarf *dbg, Dwarf_Aranges **aranges, size_t *naranges)
 	  else
 	    range_length = read_8ubyte_unaligned_inc (dbg, readp);
 
-	  /* Two zero values mark the end.  */
+	  /* Two zero values mark the end.  But in some cases (bugs)
+	     there might be such entries in the middle of the table.
+	     Ignore and continue, we'll check the actual length of
+	     the table to see if we are really at the end.  */
 	  if (range_address == 0 && range_length == 0)
-	    break;
+	    {
+	      if (readp >= endp)
+		break;
+	      else
+		continue;
+	    }
 
 	  /* We don't use alloca for these temporary structures because
 	     the total number of them can be quite large.  */

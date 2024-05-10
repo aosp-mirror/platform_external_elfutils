@@ -42,7 +42,7 @@
 static size_t
 lookup (NAME *htab, HASHTYPE hval)
 {
-  /* First hash function: simply take the modul but prevent zero.  Small values
+  /* First hash function: simply take the modulus but prevent zero.  Small values
       can skip the division, which helps performance when this is common.  */
   size_t idx = 1 + (hval < htab->size ? hval : hval % htab->size);
 
@@ -77,7 +77,7 @@ lookup (NAME *htab, HASHTYPE hval)
 static int
 insert_helper (NAME *htab, HASHTYPE hval, TYPE val)
 {
-  /* First hash function: simply take the modul but prevent zero.  Small values
+  /* First hash function: simply take the modulus but prevent zero.  Small values
       can skip the division, which helps performance when this is common.  */
   size_t idx = 1 + (hval < htab->size ? hval : hval % htab->size);
 

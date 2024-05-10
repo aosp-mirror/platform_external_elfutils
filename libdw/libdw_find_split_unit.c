@@ -41,7 +41,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-void
+static void
 try_split_file (Dwarf_CU *cu, const char *dwo_path)
 {
   int split_fd = open (dwo_path, O_RDONLY);

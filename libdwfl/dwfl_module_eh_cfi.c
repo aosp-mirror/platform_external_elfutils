@@ -31,7 +31,7 @@
 #endif
 
 #include "libdwflP.h"
-#include "../libdw/cfi.h"
+#include "cfi.h"
 
 Dwarf_CFI *
 dwfl_module_eh_cfi (Dwfl_Module *mod, Dwarf_Addr *bias)

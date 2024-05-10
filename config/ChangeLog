@@ -1,3 +1,8 @@
+2023-02-21  Mark Wielaard  <mark@klomp.org>
+
+	* eu.am (USE_AFTER_FREE3_WARNING): Define.
+	(AM_CFLAGS): Use USE_AFTER_FREE3_WARNING.
+
 2022-10-02  Mark Wielaard  <mark@klomp.org>
 
 	* elfutils.spec.in: Update for 0.188.

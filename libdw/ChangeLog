@@ -1,3 +1,107 @@
+2023-09-27  Omar Sandoval  <osandov@fb.com>
+
+	* libdwP.h ((Dwarf): Add elfpath.
+	* dwarf_begin_elf.c (__libdw_debugdir): Replace declaration with...
+	(__libdw_elfpath): New declaration.
+	(__libdw_set_debugdir): New declaration.
+	(__libdw_debugdir): Replace with..
+	(__libdw_elfpath): New function.
+	(__libdw_set_debugdir): New function.
+	(valid_p): Call __libdw_elfpath and __libdw_set_debugdir instead of
+	__libdw_debugdir.
+	* dwarf_end.c (dwarf_end): Free dwarf->elfpath.
+
+2023-09-27  Omar Sandoval  <osandov@fb.com>
+
+	* libdw_find_split_unit.c (try_split_file): Make static.
+	* dwarf_entrypc.c (dwarf_entrypc): Call dwarf_lowpc.
+	* dwarf_ranges.c (dwarf_ranges): Use skeleton ranges section for
+	skeleton units.
+	* dwarf_macro_param2.c (dwarf_macro_param2): Change form condition to
+	switch statement and add DW_FORM_line_strp, DW_FORM_strp_sup,
+	DW_FORM_strx, and DW_FORM_strx[1-4].
+	* dwarf_getmacros.c (get_macinfo_table): Replace assignment of
+	table->is_64bit with assignments of table->address_size and
+	table->offset_size.  Assume default DW_AT_stmt_list of 0 for split
+	DWARF.  Set table->dbg.
+	(get_table_for_offset): Ditto.
+	(read_macros): Get fake CU offset_size from table->offset_size instead
+	of table->is_64bit.
+	* dwarf_macro_getsrcfiles.c (dwarf_macro_getsrcfiles): Get
+	address_size for __libdw_getsrclines from table->address_size instead
+	of table->is_64bit.  Get dbg for __libdw_getsrclines from table->dbg
+	instead of dbg parameter, which is now unused.
+	* libdwP.h (Dwarf_Macro_Op_Table): Replace is_64bit with address_size
+	and offset_size.  Add dbg.
+	Add IDX_debug_cu_index and IDX_debug_tu_index.
+	* dwarf_begin_elf.c (dwarf_scnnames): Add IDX_debug_cu_index and
+	IDX_debug_tu_index.
+	(scn_to_string_section_idx): Ditto.
+	(scn_dwarf_type): Check for .debug_cu_index, .debug_tu_index,
+	.zdebug_cu_index, and .zdebug_tu_index.
+	(check_section): Change .dwo suffix matching to account for
+	.debug_cu_index and .debug_tu_index.
+
+2023-02-22  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_getscopes.c (origin_match): Don't free a->scopes.
+	(dwarf_getscopes): Free a->scopes on error.
+
+2023-02-20  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_begin_elf.c (check_section): Use elf_rawdata.
+
+2023-02-14  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_getlocation.c (__libdw_intern_expression): Correct check
+	for deref_type.
+
+2023-02-10  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_getlocation.c (__libdw_intern_expression): Handle
+	DW_OP_GNU_uninit.
+
+2023-02-12  Mark Wielaard  <mark@klomp.org>
+
+	* cfi.c (execute_cfi): Add cfi_asser before reading second lib128.
+	* dwarf_chld.c (__libdw_find_attr): Check readp >= endp before
+	calling get_uleb128.
+	* dwarf_frame_register.c (dwarf_frame_register): Likewise for
+	p >= end.
+	* dwarf_getabbrev.c (__libdw_getabbrev): Add comment about check.
+	* dwarf_getlocation.c (__libdw_intern_expression): Update check to
+	account for both the number and uleb128.
+	* encoded-value.h (read_encoded_value): Check p >= end for
+	DW_EH_PE_(u|s)leb128.
+	* fde.c (intern_fde): Check len can be read as uleb128.
+	* libdw_form.c (__libdw_form_val_compute_len): Check valp >= endp
+	before get_uleb128.
+
+2023-01-22  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_getscopes.c (pc_record): Return nscopes when done.
+	(dwarf_getscopes): Call __libdw_visit_scopes with
+	inlined_origin CU.
+
+2022-12-20  Mark Wielaard  <mark@klomp.org>
+
+	* Makefile.am (AM_CPPFLAGS): Add -I$(srcdir)/../libebl.
+	* cfi.c: Include libebl.h.
+	* encoded-value.h: Likewise.
+	* frame-cache.h: Likewise.
+
+2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
+
+	* memory-access.h (get_uleb128_step): Use __typeof.
+	(get_sleb128_step): Likewise.
+	(__libdw_get_sleb128) Likewise.
+	(__libdw_get_sleb128_unchecked): Likewise.
+
+2022-11-03  Mark Wielaard  <mark@klomp.org>
+
+	* dwarf_next_cfi.c (dwarf_next_cfi): Don't dereference and assign
+	bytes.
+
 2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
 
 	* dwarf_begin_elf.h: Don't include unistd.h and endian.h.

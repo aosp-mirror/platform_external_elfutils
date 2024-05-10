@@ -32,6 +32,24 @@
   #include "config.h"
 #endif
 
+// #define _GNU_SOURCE
+#ifdef HAVE_SCHED_H
+extern "C" {
+#include <sched.h>
+}
+#endif
+#ifdef HAVE_SYS_RESOURCE_H
+extern "C" {
+#include <sys/resource.h>
+}
+#endif
+
+#ifdef HAVE_EXECINFO_H
+extern "C" {
+#include <execinfo.h>
+}
+#endif
+
 extern "C" {
 #include "printversion.h"
 #include "system.h"
@@ -73,6 +91,7 @@ extern "C" {
 #include <cstring>
 #include <vector>
 #include <set>
+#include <unordered_set>
 #include <map>
 #include <string>
 #include <iostream>
@@ -82,6 +101,7 @@ extern "C" {
 #include <mutex>
 #include <deque>
 #include <condition_variable>
+#include <exception>
 #include <thread>
 // #include <regex> // on rhel7 gcc 4.8, not competent
 #include <regex.h>
@@ -126,7 +146,7 @@ string_endswith(const string& haystack, const string& needle)
 
 
 // Roll this identifier for every sqlite schema incompatibility.
-#define BUILDIDS "buildids9"
+#define BUILDIDS "buildids10"
 
 #if SQLITE_VERSION_NUMBER >= 3008000
 #define WITHOUT_ROWID "without rowid"
@@ -145,10 +165,23 @@ static const char DEBUGINFOD_SQLITE_DDL[] =
   // NB: all these are overridable with -D option
 
   // Normalization table for interning file names
-  "create table if not exists " BUILDIDS "_files (\n"
+  "create table if not exists " BUILDIDS "_fileparts (\n"
   "        id integer primary key not null,\n"
   "        name text unique not null\n"
   "        );\n"
+  "create table if not exists " BUILDIDS "_files (\n"
+  "        id integer primary key not null,\n"
+  "        dirname integer not null,\n"
+  "        basename integer not null,\n"
+  "        unique (dirname, basename),\n"
+  "        foreign key (dirname) references " BUILDIDS "_fileparts(id) on delete cascade,\n"
+  "        foreign key (basename) references " BUILDIDS "_fileparts(id) on delete cascade\n"
+  "        );\n"
+  "create view if not exists " BUILDIDS "_files_v as\n" // a 
+  "        select f.id, n1.name || '/' || n2.name as name\n"
+  "        from " BUILDIDS "_files f, " BUILDIDS "_fileparts n1, " BUILDIDS "_fileparts n2\n"
+  "        where f.dirname = n1.id and f.basename = n2.id;\n"
+  
   // Normalization table for interning buildids
   "create table if not exists " BUILDIDS "_buildids (\n"
   "        id integer primary key not null,\n"
@@ -218,33 +251,33 @@ static const char DEBUGINFOD_SQLITE_DDL[] =
   "create view if not exists " BUILDIDS "_query_d as \n"
   "select\n"
   "        b.hex as buildid, n.mtime, 'F' as sourcetype, f0.name as source0, n.mtime as mtime, null as source1\n"
-  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files f0, " BUILDIDS "_f_de n\n"
+  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files_v f0, " BUILDIDS "_f_de n\n"
   "        where b.id = n.buildid and f0.id = n.file and n.debuginfo_p = 1\n"
   "union all select\n"
   "        b.hex as buildid, n.mtime, 'R' as sourcetype, f0.name as source0, n.mtime as mtime, f1.name as source1\n"
-  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files f0, " BUILDIDS "_files f1, " BUILDIDS "_r_de n\n"
+  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files_v f0, " BUILDIDS "_files_v f1, " BUILDIDS "_r_de n\n"
   "        where b.id = n.buildid and f0.id = n.file and f1.id = n.content and n.debuginfo_p = 1\n"
   ";"
   // ... and for E queries
   "create view if not exists " BUILDIDS "_query_e as \n"
   "select\n"
   "        b.hex as buildid, n.mtime, 'F' as sourcetype, f0.name as source0, n.mtime as mtime, null as source1\n"
-  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files f0, " BUILDIDS "_f_de n\n"
+  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files_v f0, " BUILDIDS "_f_de n\n"
   "        where b.id = n.buildid and f0.id = n.file and n.executable_p = 1\n"
   "union all select\n"
   "        b.hex as buildid, n.mtime, 'R' as sourcetype, f0.name as source0, n.mtime as mtime, f1.name as source1\n"
-  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files f0, " BUILDIDS "_files f1, " BUILDIDS "_r_de n\n"
+  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files_v f0, " BUILDIDS "_files_v f1, " BUILDIDS "_r_de n\n"
   "        where b.id = n.buildid and f0.id = n.file and f1.id = n.content and n.executable_p = 1\n"
   ";"
   // ... and for S queries
   "create view if not exists " BUILDIDS "_query_s as \n"
   "select\n"
   "        b.hex as buildid, fs.name as artifactsrc, 'F' as sourcetype, f0.name as source0, n.mtime as mtime, null as source1, null as source0ref\n"
-  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files f0, " BUILDIDS "_files fs, " BUILDIDS "_f_s n\n"
+  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files_v f0, " BUILDIDS "_files_v fs, " BUILDIDS "_f_s n\n"
   "        where b.id = n.buildid and f0.id = n.file and fs.id = n.artifactsrc\n"
   "union all select\n"
   "        b.hex as buildid, f1.name as artifactsrc, 'R' as sourcetype, f0.name as source0, sd.mtime as mtime, f1.name as source1, fsref.name as source0ref\n"
-  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files f0, " BUILDIDS "_files f1, " BUILDIDS "_files fsref, "
+  "        from " BUILDIDS "_buildids b, " BUILDIDS "_files_v f0, " BUILDIDS "_files_v f1, " BUILDIDS "_files_v fsref, "
   "        " BUILDIDS "_r_sdef sd, " BUILDIDS "_r_sref sr, " BUILDIDS "_r_de sde\n"
   "        where b.id = sr.buildid and f0.id = sd.file and fsref.id = sde.file and f1.id = sd.content\n"
   "        and sr.artifactsrc = sd.content and sde.buildid = sr.buildid\n"
@@ -259,6 +292,7 @@ static const char DEBUGINFOD_SQLITE_DDL[] =
   "union all select 'archive sdef',count(*) from " BUILDIDS "_r_sdef\n"
   "union all select 'buildids',count(*) from " BUILDIDS "_buildids\n"
   "union all select 'filenames',count(*) from " BUILDIDS "_files\n"
+  "union all select 'fileparts',count(*) from " BUILDIDS "_fileparts\n"  
   "union all select 'files scanned (#)',count(*) from " BUILDIDS "_file_mtime_scanned\n"
   "union all select 'files scanned (mb)',coalesce(sum(size)/1024/1024,0) from " BUILDIDS "_file_mtime_scanned\n"
 #if SQLITE_VERSION_NUMBER >= 3016000
@@ -269,10 +303,26 @@ static const char DEBUGINFOD_SQLITE_DDL[] =
 // schema change history & garbage collection
 //
 // XXX: we could have migration queries here to bring prior-schema
-// data over instead of just dropping it.
+// data over instead of just dropping it.  But that could incur
+// doubled storage costs.
 //
-// buildids9: widen the mtime_scanned table
+// buildids10: split the _files table into _parts
   "" // <<< we are here
+// buildids9: widen the mtime_scanned table
+  "DROP VIEW IF EXISTS buildids9_stats;\n"
+  "DROP INDEX IF EXISTS buildids9_r_de_idx;\n"
+  "DROP INDEX IF EXISTS buildids9_f_de_idx;\n"
+  "DROP VIEW IF EXISTS buildids9_query_s;\n"
+  "DROP VIEW IF EXISTS buildids9_query_e;\n"
+  "DROP VIEW IF EXISTS buildids9_query_d;\n"
+  "DROP TABLE IF EXISTS buildids9_r_sdef;\n"
+  "DROP TABLE IF EXISTS buildids9_r_sref;\n"
+  "DROP TABLE IF EXISTS buildids9_r_de;\n"
+  "DROP TABLE IF EXISTS buildids9_f_s;\n"
+  "DROP TABLE IF EXISTS buildids9_f_de;\n"
+  "DROP TABLE IF EXISTS buildids9_file_mtime_scanned;\n"
+  "DROP TABLE IF EXISTS buildids9_buildids;\n"
+  "DROP TABLE IF EXISTS buildids9_files;\n"
 // buildids8: slim the sref table
   "drop table if exists buildids8_f_de;\n"
   "drop table if exists buildids8_f_s;\n"
@@ -336,7 +386,7 @@ static const char DEBUGINFOD_SQLITE_CLEANUP_DDL[] =
 
 
 /* Name and version of program.  */
-/* ARGP_PROGRAM_VERSION_HOOK_DEF = print_version; */ // not this simple for C++
+ARGP_PROGRAM_VERSION_HOOK_DEF = print_version;
 
 /* Bug report address.  */
 ARGP_PROGRAM_BUG_ADDRESS_DEF = PACKAGE_BUGREPORT;
@@ -386,6 +436,8 @@ static const struct argp_option options[] =
    { "passive", ARGP_KEY_PASSIVE, NULL, 0, "Do not scan or groom, read-only database.", 0 },
 #define ARGP_KEY_DISABLE_SOURCE_SCAN 0x1009
    { "disable-source-scan", ARGP_KEY_DISABLE_SOURCE_SCAN, NULL, 0, "Do not scan dwarf source info.", 0 },
+#define ARGP_SCAN_CHECKPOINT 0x100A
+   { "scan-checkpoint", ARGP_SCAN_CHECKPOINT, "NUM", 0, "Number of files scanned before a WAL checkpoint.", 0 },
    { NULL, 0, NULL, 0, NULL, 0 },
   };
 
@@ -397,6 +449,8 @@ static const char args_doc[] = "[PATH ...]";
 
 /* Prototype for option handler.  */
 static error_t parse_opt (int key, char *arg, struct argp_state *state);
+
+static unsigned default_concurrency();
 
 /* Data structure to communicate with argp functions.  */
 static struct argp argp =
@@ -418,7 +472,7 @@ static unsigned http_port = 8002;
 static unsigned rescan_s = 300;
 static unsigned groom_s = 86400;
 static bool maxigroom = false;
-static unsigned concurrency = std::thread::hardware_concurrency() ?: 1;
+static unsigned concurrency = default_concurrency();
 static int connection_pool = 0;
 static set<string> source_paths;
 static bool scan_files = false;
@@ -438,6 +492,7 @@ static unsigned forwarded_ttl_limit = 8;
 static bool scan_source_info = true;
 static string tmpdir;
 static bool passive_p = false;
+static long scan_checkpoint = 256;
 
 static void set_metric(const string& key, double value);
 // static void inc_metric(const string& key);
@@ -639,6 +694,11 @@ parse_opt (int key, char *arg,
     case ARGP_KEY_DISABLE_SOURCE_SCAN:
       scan_source_info = false;
       break;
+    case ARGP_SCAN_CHECKPOINT:
+      scan_checkpoint = atol (arg);
+      if (scan_checkpoint < 0)
+        argp_failure(state, 1, EINVAL, "scan checkpoint");        
+      break;
       // case 'h': argp_state_help (state, stderr, ARGP_HELP_LONG|ARGP_HELP_EXIT_OK);
     default: return ARGP_ERR_UNKNOWN;
     }
@@ -722,7 +782,7 @@ struct elfutils_exception: public reportable_exception
 template <typename Payload>
 class workq
 {
-  set<Payload> q; // eliminate duplicates
+  unordered_set<Payload> q; // eliminate duplicates
   mutex mtx;
   condition_variable cv;
   bool dead;
@@ -811,6 +871,24 @@ inline bool operator< (const scan_payload& a, const scan_payload& b)
 {
   return a.first < b.first; // don't bother compare the stat fields
 }
+
+namespace std { // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=56480
+  template<> struct hash<::scan_payload>
+  {
+    std::size_t operator() (const ::scan_payload& p) const noexcept
+    {
+      return hash<string>()(p.first);
+    }
+  };
+  template<> struct equal_to<::scan_payload>
+  {
+    std::size_t operator() (const ::scan_payload& a, const ::scan_payload& b) const noexcept
+    {
+      return a.first == b.first;
+    }
+  };
+}
+
 static workq<scan_payload> scanq; // just a single one
 // producer & idler: thread_main_fts_source_paths()
 // consumer: thread_main_scanner()
@@ -864,6 +942,72 @@ public:
     please_hold(t), mine(value)  { please_hold.acquire(mine); }
   ~unique_set_reserver() { please_hold.release(mine); }
 };
+
+
+////////////////////////////////////////////////////////////////////////
+
+// periodic_barrier is a concurrency control object that lets N threads
+// periodically (based on counter value) agree to wait at a barrier,
+// let one of them carry out some work, then be set free
+
+class periodic_barrier
+{
+private:
+  unsigned period; // number of count() reports to trigger barrier activation
+  unsigned threads; // number of threads participating
+  mutex mtx; // protects all the following fields
+  unsigned counter; // count of count() reports in the current generation
+  unsigned generation; // barrier activation generation
+  unsigned waiting; // number of threads waiting for barrier
+  bool dead; // bring out your
+  condition_variable cv;
+public:
+  periodic_barrier(unsigned t, unsigned p):
+    period(p), threads(t), counter(0), generation(0), waiting(0), dead(false) { }
+  virtual ~periodic_barrier() {}
+
+  virtual void periodic_barrier_work() noexcept = 0;
+  void nuke() {
+    unique_lock<mutex> lock(mtx);
+    dead = true;
+    cv.notify_all();
+  }
+  
+  void count()
+  {
+    unique_lock<mutex> lock(mtx);
+    unsigned prev_generation = this->generation;
+    if (counter < period-1) // normal case: counter just freely running
+      {
+        counter ++;
+        return;
+      }
+    else if (counter == period-1) // we're the doer
+      {
+        counter = period; // entering barrier holding phase
+        cv.notify_all();
+        while (waiting < threads-1 && !dead)
+          cv.wait(lock);
+        // all other threads are now stuck in the barrier
+        this->periodic_barrier_work(); // NB: we're holding the mutex the whole time
+        // reset for next barrier, releasing other waiters
+        counter = 0;
+        generation ++;
+        cv.notify_all();
+        return;
+      }
+    else if (counter == period) // we're a waiter, in holding phase
+      {
+        waiting ++;
+        cv.notify_all();
+        while (counter == period && generation == prev_generation && !dead)
+          cv.wait(lock);
+        waiting --;
+        return;
+      }
+  }
+};
+
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -1008,6 +1152,24 @@ public:
   ~sqlite_ps () { sqlite3_finalize (this->pp); }
   operator sqlite3_stmt* () { return this->pp; }
 };
+
+
+////////////////////////////////////////////////////////////////////////
+
+
+struct sqlite_checkpoint_pb: public periodic_barrier
+{
+  // NB: don't use sqlite_ps since it can throw exceptions during ctor etc.
+  sqlite_checkpoint_pb(unsigned t, unsigned p):
+    periodic_barrier(t, p) { }
+  
+  void periodic_barrier_work() noexcept
+  {
+    (void) sqlite3_exec (db, "pragma wal_checkpoint(truncate);", NULL, NULL, NULL);
+  }
+};
+  
+static periodic_barrier* scan_barrier = 0; // initialized in main()
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -1621,13 +1783,14 @@ extract_section (int elf_fd, int64_t parent_mtime,
 		throw libc_exception (errno, "cannot write to temporary file");
 
 	      /* Set mtime to be the same as the parent file's mtime.  */
-	      struct timeval tvs[2];
+	      struct timespec tvs[2];
 	      if (fstat (elf_fd, &fs) != 0)
 		throw libc_exception (errno, "cannot fstat file");
 
-	      tvs[0].tv_sec = tvs[1].tv_sec = fs.st_mtime;
-	      tvs[0].tv_usec = tvs[1].tv_usec = 0;
-	      (void) futimes (fd, tvs);
+	      tvs[0].tv_sec = 0;
+	      tvs[0].tv_nsec = UTIME_OMIT;
+	      tvs[1] = fs.st_mtim;
+	      (void) futimens (fd, tvs);
 
 	      /* Add to fdcache.  */
 	      fdcache.intern (b_source, section, tmppath, data->d_size, true);
@@ -1713,11 +1876,10 @@ handle_buildid_f_match (bool internal_req_t,
     }
   else
     {
-      std::string file = b_source0.substr(b_source0.find_last_of("/")+1, b_source0.length());
       add_mhd_response_header (r, "Content-Type", "application/octet-stream");
       add_mhd_response_header (r, "X-DEBUGINFOD-SIZE",
 			       to_string(s.st_size).c_str());
-      add_mhd_response_header (r, "X-DEBUGINFOD-FILE", file.c_str());
+      add_mhd_response_header (r, "X-DEBUGINFOD-FILE", b_source0.c_str());
       add_mhd_last_modified (r, s.st_mtime);
       if (verbose > 1)
 	obatched(clog) << "serving file " << b_source0 << " section=" << section << endl;
@@ -1937,10 +2099,12 @@ handle_buildid_r_match (bool internal_req_p,
 
       // Set the mtime so the fdcache file mtimes, even prefetched ones,
       // propagate to future webapi clients.
-      struct timeval tvs[2];
-      tvs[0].tv_sec = tvs[1].tv_sec = archive_entry_mtime(e);
-      tvs[0].tv_usec = tvs[1].tv_usec = 0;
-      (void) futimes (fd, tvs);  /* best effort */
+      struct timespec tvs[2];
+      tvs[0].tv_sec = 0;
+      tvs[0].tv_nsec = UTIME_OMIT;
+      tvs[1].tv_sec = archive_entry_mtime(e);
+      tvs[1].tv_nsec = archive_entry_mtime_nsec(e);
+      (void) futimens (fd, tvs);  /* best effort */
 
       if (r != 0) // stage 3
         {
@@ -1999,14 +2163,12 @@ handle_buildid_r_match (bool internal_req_p,
         }
       else
         {
-          std::string file = b_source1.substr(b_source1.find_last_of("/")+1, b_source1.length());
           add_mhd_response_header (r, "Content-Type",
                                    "application/octet-stream");
           add_mhd_response_header (r, "X-DEBUGINFOD-SIZE",
                                    to_string(archive_entry_size(e)).c_str());
-          add_mhd_response_header (r, "X-DEBUGINFOD-ARCHIVE",
-                                   b_source0.c_str());
-          add_mhd_response_header (r, "X-DEBUGINFOD-FILE", file.c_str());
+          add_mhd_response_header (r, "X-DEBUGINFOD-ARCHIVE", b_source0.c_str());
+          add_mhd_response_header (r, "X-DEBUGINFOD-FILE", b_source1.c_str());
           add_mhd_last_modified (r, archive_entry_mtime(e));
           if (verbose > 1)
 	    obatched(clog) << "serving archive " << b_source0
@@ -2249,85 +2411,82 @@ handle_buildid (MHD_Connection* conn,
 
   int fd = -1;
   debuginfod_client *client = debuginfod_pool_begin ();
-  if (client != NULL)
+  if (client == NULL)
+    throw libc_exception(errno, "debuginfod client pool alloc");
+  defer_dtor<debuginfod_client*,void> client_closer (client, debuginfod_pool_end);
+  
+  debuginfod_set_progressfn (client, & debuginfod_find_progress);
+
+  if (conn)
     {
-      debuginfod_set_progressfn (client, & debuginfod_find_progress);
+      // Transcribe incoming User-Agent:
+      string ua = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "User-Agent") ?: "";
+      string ua_complete = string("User-Agent: ") + ua;
+      debuginfod_add_http_header (client, ua_complete.c_str());
+      
+      // Compute larger XFF:, for avoiding info loss during
+      // federation, and for future cyclicity detection.
+      string xff = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "X-Forwarded-For") ?: "";
+      if (xff != "")
+        xff += string(", "); // comma separated list
+      
+      unsigned int xff_count = 0;
+      for (auto&& i : xff){
+        if (i == ',') xff_count++;
+      }
 
-      if (conn)
-        {
-          // Transcribe incoming User-Agent:
-          string ua = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "User-Agent") ?: "";
-          string ua_complete = string("User-Agent: ") + ua;
-          debuginfod_add_http_header (client, ua_complete.c_str());
-
-          // Compute larger XFF:, for avoiding info loss during
-          // federation, and for future cyclicity detection.
-          string xff = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "X-Forwarded-For") ?: "";
-          if (xff != "")
-            xff += string(", "); // comma separated list
-
-          unsigned int xff_count = 0;
-          for (auto&& i : xff){
-            if (i == ',') xff_count++;
-          }
-
-          // if X-Forwarded-For: exceeds N hops,
-          // do not delegate a local lookup miss to upstream debuginfods.
-          if (xff_count >= forwarded_ttl_limit)
-            throw reportable_exception(MHD_HTTP_NOT_FOUND, "not found, --forwared-ttl-limit reached \
+      // if X-Forwarded-For: exceeds N hops,
+      // do not delegate a local lookup miss to upstream debuginfods.
+      if (xff_count >= forwarded_ttl_limit)
+        throw reportable_exception(MHD_HTTP_NOT_FOUND, "not found, --forwared-ttl-limit reached \
 and will not query the upstream servers");
 
-          // Compute the client's numeric IP address only - so can't merge with conninfo()
-          const union MHD_ConnectionInfo *u = MHD_get_connection_info (conn,
-                                                                       MHD_CONNECTION_INFO_CLIENT_ADDRESS);
-          struct sockaddr *so = u ? u->client_addr : 0;
-          char hostname[256] = ""; // RFC1035
-          if (so && so->sa_family == AF_INET) {
-            (void) getnameinfo (so, sizeof (struct sockaddr_in), hostname, sizeof (hostname), NULL, 0,
-                                NI_NUMERICHOST);
-          } else if (so && so->sa_family == AF_INET6) {
-            struct sockaddr_in6* addr6 = (struct sockaddr_in6*) so;
-            if (IN6_IS_ADDR_V4MAPPED(&addr6->sin6_addr)) {
-              struct sockaddr_in addr4;
-              memset (&addr4, 0, sizeof(addr4));
-              addr4.sin_family = AF_INET;
-              addr4.sin_port = addr6->sin6_port;
-              memcpy (&addr4.sin_addr.s_addr, addr6->sin6_addr.s6_addr+12, sizeof(addr4.sin_addr.s_addr));
-              (void) getnameinfo ((struct sockaddr*) &addr4, sizeof (addr4),
-                                  hostname, sizeof (hostname), NULL, 0,
-                                  NI_NUMERICHOST);
-            } else {
-              (void) getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname), NULL, 0,
-                                  NI_NUMERICHOST);
-            }
-          }
-          
-          string xff_complete = string("X-Forwarded-For: ")+xff+string(hostname);
-          debuginfod_add_http_header (client, xff_complete.c_str());
+      // Compute the client's numeric IP address only - so can't merge with conninfo()
+      const union MHD_ConnectionInfo *u = MHD_get_connection_info (conn,
+                                                                   MHD_CONNECTION_INFO_CLIENT_ADDRESS);
+      struct sockaddr *so = u ? u->client_addr : 0;
+      char hostname[256] = ""; // RFC1035
+      if (so && so->sa_family == AF_INET) {
+        (void) getnameinfo (so, sizeof (struct sockaddr_in), hostname, sizeof (hostname), NULL, 0,
+                            NI_NUMERICHOST);
+      } else if (so && so->sa_family == AF_INET6) {
+        struct sockaddr_in6* addr6 = (struct sockaddr_in6*) so;
+        if (IN6_IS_ADDR_V4MAPPED(&addr6->sin6_addr)) {
+          struct sockaddr_in addr4;
+          memset (&addr4, 0, sizeof(addr4));
+          addr4.sin_family = AF_INET;
+          addr4.sin_port = addr6->sin6_port;
+          memcpy (&addr4.sin_addr.s_addr, addr6->sin6_addr.s6_addr+12, sizeof(addr4.sin_addr.s_addr));
+          (void) getnameinfo ((struct sockaddr*) &addr4, sizeof (addr4),
+                              hostname, sizeof (hostname), NULL, 0,
+                              NI_NUMERICHOST);
+        } else {
+          (void) getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname), NULL, 0,
+                              NI_NUMERICHOST);
         }
-
-      if (artifacttype == "debuginfo")
-	fd = debuginfod_find_debuginfo (client,
-					(const unsigned char*) buildid.c_str(),
-					0, NULL);
-      else if (artifacttype == "executable")
-	fd = debuginfod_find_executable (client,
-					 (const unsigned char*) buildid.c_str(),
-					 0, NULL);
-      else if (artifacttype == "source")
-	fd = debuginfod_find_source (client,
-				     (const unsigned char*) buildid.c_str(),
-				     0, suffix.c_str(), NULL);
-      else if (artifacttype == "section")
-	fd = debuginfod_find_section (client,
-				      (const unsigned char*) buildid.c_str(),
-				      0, section.c_str(), NULL);
-
+      }
+          
+      string xff_complete = string("X-Forwarded-For: ")+xff+string(hostname);
+      debuginfod_add_http_header (client, xff_complete.c_str());
     }
-  else
-    fd = -errno; /* Set by debuginfod_begin.  */
-  debuginfod_pool_end (client);
-
+  
+  if (artifacttype == "debuginfo")
+    fd = debuginfod_find_debuginfo (client,
+                                    (const unsigned char*) buildid.c_str(),
+                                    0, NULL);
+  else if (artifacttype == "executable")
+    fd = debuginfod_find_executable (client,
+                                     (const unsigned char*) buildid.c_str(),
+                                     0, NULL);
+  else if (artifacttype == "source")
+    fd = debuginfod_find_source (client,
+                                 (const unsigned char*) buildid.c_str(),
+                                 0, suffix.c_str(), NULL);
+  else if (artifacttype == "section")
+    fd = debuginfod_find_section (client,
+                                  (const unsigned char*) buildid.c_str(),
+                                  0, section.c_str(), NULL);
+  
   if (fd >= 0)
     {
       if (conn != 0)
@@ -3026,10 +3185,65 @@ elf_classify (int fd, bool &executable_p, bool &debuginfo_p, string &buildid, se
 }
 
 
+// Intern the given file name in two parts (dirname & basename) and
+// return the resulting file's id.
+static int64_t
+register_file_name(sqlite_ps& ps_upsert_fileparts,
+                   sqlite_ps& ps_upsert_file,
+                   sqlite_ps& ps_lookup_file,
+                   const string& name)
+{
+  std::size_t slash = name.rfind('/');
+  string dirname, basename;
+  if (slash == std::string::npos)
+    {
+      dirname = "";
+      basename = name;
+    }
+  else
+    {
+      dirname = name.substr(0, slash);
+      basename = name.substr(slash+1);
+    }
+
+  // intern the two substrings
+  ps_upsert_fileparts
+    .reset()
+    .bind(1, dirname)
+    .step_ok_done();
+  ps_upsert_fileparts
+    .reset()
+    .bind(1, basename)
+    .step_ok_done();
+
+  // intern the tuple
+  ps_upsert_file
+    .reset()
+    .bind(1, dirname)
+    .bind(2, basename)
+    .step_ok_done();
+
+  // look up the tuple's id
+  ps_lookup_file
+    .reset()
+    .bind(1, dirname)
+    .bind(2, basename);
+  int rc = ps_lookup_file.step();
+  if (rc != SQLITE_ROW) throw sqlite_exception(rc, "step");
+  
+  int64_t id = sqlite3_column_int64 (ps_lookup_file, 0);
+  ps_lookup_file.reset();
+  return id;
+}
+
+
+
 static void
 scan_source_file (const string& rps, const stat_t& st,
                   sqlite_ps& ps_upsert_buildids,
-                  sqlite_ps& ps_upsert_files,
+                  sqlite_ps& ps_upsert_fileparts,
+                  sqlite_ps& ps_upsert_file,
+                  sqlite_ps& ps_lookup_file,
                   sqlite_ps& ps_upsert_de,
                   sqlite_ps& ps_upsert_s,
                   sqlite_ps& ps_query,
@@ -3039,10 +3253,12 @@ scan_source_file (const string& rps, const stat_t& st,
                   unsigned& fts_debuginfo,
                   unsigned& fts_sourcefiles)
 {
+  int64_t fileid = register_file_name(ps_upsert_fileparts, ps_upsert_file, ps_lookup_file, rps);
+
   /* See if we know of it already. */
   int rc = ps_query
     .reset()
-    .bind(1, rps)
+    .bind(1, fileid)
     .bind(2, st.st_mtime)
     .step();
   ps_query.reset();
@@ -3082,12 +3298,6 @@ scan_source_file (const string& rps, const stat_t& st,
   if (fd >= 0)
     close (fd);
 
-  // register this file name in the interning table
-  ps_upsert_files
-    .reset()
-    .bind(1, rps)
-    .step_ok_done();
-
   if (buildid == "")
     {
       // no point storing an elf file without buildid
@@ -3114,7 +3324,7 @@ scan_source_file (const string& rps, const stat_t& st,
         .bind(1, buildid)
         .bind(2, debuginfo_p ? 1 : 0)
         .bind(3, executable_p ? 1 : 0)
-        .bind(4, rps)
+        .bind(4, fileid)
         .bind(5, st.st_mtime)
         .step_ok_done();
     }
@@ -3146,11 +3356,6 @@ scan_source_file (const string& rps, const stat_t& st,
                            << " mtime=" << sfs.st_mtime
                            << " as source " << dwarfsrc << endl;
 
-          ps_upsert_files
-            .reset()
-            .bind(1, srps)
-            .step_ok_done();
-
           // PR25548: store canonicalized dwarfsrc path
           string dwarfsrc_canon = canon_pathname (dwarfsrc);
           if (dwarfsrc_canon != dwarfsrc)
@@ -3159,16 +3364,14 @@ scan_source_file (const string& rps, const stat_t& st,
                 obatched(clog) << "canonicalized src=" << dwarfsrc << " alias=" << dwarfsrc_canon << endl;
             }
 
-          ps_upsert_files
-            .reset()
-            .bind(1, dwarfsrc_canon)
-            .step_ok_done();
+          int64_t fileid1 = register_file_name (ps_upsert_fileparts, ps_upsert_file, ps_lookup_file, dwarfsrc_canon);
+          int64_t fileid2 = register_file_name (ps_upsert_fileparts, ps_upsert_file, ps_lookup_file, srps);
 
           ps_upsert_s
             .reset()
             .bind(1, buildid)
-            .bind(2, dwarfsrc_canon)
-            .bind(3, srps)
+            .bind(2, fileid1)
+            .bind(3, fileid2)
             .bind(4, sfs.st_mtime)
             .step_ok_done();
 
@@ -3178,7 +3381,7 @@ scan_source_file (const string& rps, const stat_t& st,
 
   ps_scan_done
     .reset()
-    .bind(1, rps)
+    .bind(1, fileid)
     .bind(2, st.st_mtime)
     .bind(3, st.st_size)
     .step_ok_done();
@@ -3197,8 +3400,9 @@ scan_source_file (const string& rps, const stat_t& st,
 // Analyze given archive file of given age; record buildids / exec/debuginfo-ness of its
 // constituent files with given upsert statements.
 static void
-archive_classify (const string& rps, string& archive_extension,
-                  sqlite_ps& ps_upsert_buildids, sqlite_ps& ps_upsert_files,
+archive_classify (const string& rps, string& archive_extension, int64_t archiveid,
+                  sqlite_ps& ps_upsert_buildids, sqlite_ps& ps_upsert_fileparts, sqlite_ps& ps_upsert_file,
+                  sqlite_ps& ps_lookup_file,
                   sqlite_ps& ps_upsert_de, sqlite_ps& ps_upsert_sref, sqlite_ps& ps_upsert_sdef,
                   time_t mtime,
                   unsigned& fts_executable, unsigned& fts_debuginfo, unsigned& fts_sref, unsigned& fts_sdef,
@@ -3252,8 +3456,9 @@ archive_classify (const string& rps, string& archive_extension,
     }
 
   if (verbose > 3)
-    obatched(clog) << "libarchive scanning " << rps << endl;
+    obatched(clog) << "libarchive scanning " << rps << " id " << archiveid << endl;
 
+  bool any_exceptions = false;
   while(1) // parse archive entries
     {
     if (interrupted)
@@ -3305,10 +3510,7 @@ archive_classify (const string& rps, string& archive_extension,
                 .step_ok_done();
             }
 
-          ps_upsert_files // register this rpm constituent file name in interning table
-            .reset()
-            .bind(1, fn)
-            .step_ok_done();
+          int64_t fileid = register_file_name (ps_upsert_fileparts, ps_upsert_file, ps_lookup_file, fn);
 
           if (sourcefiles.size() > 0) // sref records needed
             {
@@ -3337,15 +3539,13 @@ archive_classify (const string& rps, string& archive_extension,
                         obatched(clog) << "canonicalized src=" << dwarfsrc << " alias=" << dwarfsrc_canon << endl;
                     }
 
-                  ps_upsert_files
-                    .reset()
-                    .bind(1, dwarfsrc_canon)
-                    .step_ok_done();
-
+                  int64_t srcfileid = register_file_name(ps_upsert_fileparts, ps_upsert_file, ps_lookup_file,
+                                                         dwarfsrc_canon);
+                
                   ps_upsert_sref
                     .reset()
                     .bind(1, buildid)
-                    .bind(2, dwarfsrc_canon)
+                    .bind(2, srcfileid)
                     .step_ok_done();
 
                   fts_sref ++;
@@ -3364,9 +3564,9 @@ archive_classify (const string& rps, string& archive_extension,
                 .bind(1, buildid)
                 .bind(2, debuginfo_p ? 1 : 0)
                 .bind(3, executable_p ? 1 : 0)
-                .bind(4, rps)
+                .bind(4, archiveid)
                 .bind(5, mtime)
-                .bind(6, fn)
+                .bind(6, fileid)
                 .step_ok_done();
             }
           else // potential source - sdef record
@@ -3374,9 +3574,9 @@ archive_classify (const string& rps, string& archive_extension,
               fts_sdef ++;
               ps_upsert_sdef
                 .reset()
-                .bind(1, rps)
+                .bind(1, archiveid)
                 .bind(2, mtime)
-                .bind(3, fn)
+                .bind(3, fileid)
                 .step_ok_done();
             }
 
@@ -3391,8 +3591,17 @@ archive_classify (const string& rps, string& archive_extension,
       catch (const reportable_exception& e)
         {
           e.report(clog);
+          any_exceptions = true;
+          // NB: but we allow the libarchive iteration to continue, in
+          // case we can still gather some useful information.  That
+          // would allow some webapi queries to work, until later when
+          // this archive is rescanned.  (Its vitals won't go into the
+          // _file_mtime_scanned table until after a successful scan.)
         }
     }
+
+  if (any_exceptions)
+    throw reportable_exception("exceptions encountered during archive scan");
 }
 
 
@@ -3401,7 +3610,9 @@ archive_classify (const string& rps, string& archive_extension,
 static void
 scan_archive_file (const string& rps, const stat_t& st,
                    sqlite_ps& ps_upsert_buildids,
-                   sqlite_ps& ps_upsert_files,
+                   sqlite_ps& ps_upsert_fileparts,
+                   sqlite_ps& ps_upsert_file,
+                   sqlite_ps& ps_lookup_file,
                    sqlite_ps& ps_upsert_de,
                    sqlite_ps& ps_upsert_sref,
                    sqlite_ps& ps_upsert_sdef,
@@ -3413,10 +3624,13 @@ scan_archive_file (const string& rps, const stat_t& st,
                    unsigned& fts_sref,
                    unsigned& fts_sdef)
 {
+  // intern the archive file name
+  int64_t archiveid = register_file_name (ps_upsert_fileparts, ps_upsert_file, ps_lookup_file, rps);
+
   /* See if we know of it already. */
   int rc = ps_query
     .reset()
-    .bind(1, rps)
+    .bind(1, archiveid)
     .bind(2, st.st_mtime)
     .step();
   ps_query.reset();
@@ -3430,20 +3644,15 @@ scan_archive_file (const string& rps, const stat_t& st,
       return;
     }
 
-  // intern the archive file name
-  ps_upsert_files
-    .reset()
-    .bind(1, rps)
-    .step_ok_done();
-
   // extract the archive contents
   unsigned my_fts_executable = 0, my_fts_debuginfo = 0, my_fts_sref = 0, my_fts_sdef = 0;
   bool my_fts_sref_complete_p = true;
+  bool any_exceptions = false;
   try
     {
       string archive_extension;
-      archive_classify (rps, archive_extension,
-                        ps_upsert_buildids, ps_upsert_files,
+      archive_classify (rps, archive_extension, archiveid,
+                        ps_upsert_buildids, ps_upsert_fileparts, ps_upsert_file, ps_lookup_file,
                         ps_upsert_de, ps_upsert_sref, ps_upsert_sdef, // dalt
                         st.st_mtime,
                         my_fts_executable, my_fts_debuginfo, my_fts_sref, my_fts_sdef,
@@ -3461,6 +3670,7 @@ scan_archive_file (const string& rps, const stat_t& st,
   catch (const reportable_exception& e)
     {
       e.report(clog);
+      any_exceptions = true;
     }
 
   if (verbose > 2)
@@ -3470,6 +3680,7 @@ scan_archive_file (const string& rps, const stat_t& st,
                    << " debuginfos=" << my_fts_debuginfo
                    << " srefs=" << my_fts_sref
                    << " sdefs=" << my_fts_sdef
+                   << " exceptions=" << any_exceptions
                    << endl;
 
   fts_executable += my_fts_executable;
@@ -3477,10 +3688,13 @@ scan_archive_file (const string& rps, const stat_t& st,
   fts_sref += my_fts_sref;
   fts_sdef += my_fts_sdef;
 
+  if (any_exceptions)
+    throw reportable_exception("exceptions encountered during archive scan");
+
   if (my_fts_sref_complete_p) // leave incomplete?
     ps_scan_done
       .reset()
-      .bind(1, rps)
+      .bind(1, archiveid)
       .bind(2, st.st_mtime)
       .bind(3, st.st_size)
       .step_ok_done();
@@ -3495,57 +3709,63 @@ scan_archive_file (const string& rps, const stat_t& st,
 // The thread that consumes file names off of the scanq.  We hold
 // the persistent sqlite_ps's at this level and delegate file/archive
 // scanning to other functions.
-static void*
-thread_main_scanner (void* arg)
+static void
+scan ()
 {
-  (void) arg;
-
   // all the prepared statements fit to use, the _f_ set:
   sqlite_ps ps_f_upsert_buildids (db, "file-buildids-intern", "insert or ignore into " BUILDIDS "_buildids VALUES (NULL, ?);");
-  sqlite_ps ps_f_upsert_files (db, "file-files-intern", "insert or ignore into " BUILDIDS "_files VALUES (NULL, ?);");
+  sqlite_ps ps_f_upsert_fileparts (db, "file-fileparts-intern", "insert or ignore into " BUILDIDS "_fileparts VALUES (NULL, ?);");
+  sqlite_ps ps_f_upsert_file (db, "file-file-intern", "insert or ignore into " BUILDIDS "_files VALUES (NULL, \n"
+                              "(select id from " BUILDIDS "_fileparts where name = ?),\n"
+                              "(select id from " BUILDIDS "_fileparts where name = ?));");
+  sqlite_ps ps_f_lookup_file (db, "file-file-lookup",
+                              "select f.id\n"
+                              " from " BUILDIDS "_files f, " BUILDIDS "_fileparts p1, " BUILDIDS "_fileparts p2 \n"
+                              " where f.dirname = p1.id and f.basename = p2.id and p1.name = ? and p2.name = ?;\n");
   sqlite_ps ps_f_upsert_de (db, "file-de-upsert",
                           "insert or ignore into " BUILDIDS "_f_de "
                           "(buildid, debuginfo_p, executable_p, file, mtime) "
                           "values ((select id from " BUILDIDS "_buildids where hex = ?),"
-                          "        ?,?,"
-                          "        (select id from " BUILDIDS "_files where name = ?), ?);");
+                            "        ?,?,?,?);");
   sqlite_ps ps_f_upsert_s (db, "file-s-upsert",
                          "insert or ignore into " BUILDIDS "_f_s "
                          "(buildid, artifactsrc, file, mtime) "
                          "values ((select id from " BUILDIDS "_buildids where hex = ?),"
-                         "        (select id from " BUILDIDS "_files where name = ?),"
-                         "        (select id from " BUILDIDS "_files where name = ?),"
-                         "        ?);");
+                         "      ?,?,?);");
   sqlite_ps ps_f_query (db, "file-negativehit-find",
                         "select 1 from " BUILDIDS "_file_mtime_scanned where sourcetype = 'F' "
-                        "and file = (select id from " BUILDIDS "_files where name = ?) and mtime = ?;");
+                        "and file = ? and mtime = ?;");
   sqlite_ps ps_f_scan_done (db, "file-scanned",
                           "insert or ignore into " BUILDIDS "_file_mtime_scanned (sourcetype, file, mtime, size)"
-                          "values ('F', (select id from " BUILDIDS "_files where name = ?), ?, ?);");
+                          "values ('F', ?,?,?);");
 
   // and now for the _r_ set
   sqlite_ps ps_r_upsert_buildids (db, "rpm-buildid-intern", "insert or ignore into " BUILDIDS "_buildids VALUES (NULL, ?);");
-  sqlite_ps ps_r_upsert_files (db, "rpm-file-intern", "insert or ignore into " BUILDIDS "_files VALUES (NULL, ?);");
+  sqlite_ps ps_r_upsert_fileparts (db, "rpm-fileparts-intern", "insert or ignore into " BUILDIDS "_fileparts VALUES (NULL, ?);");
+  sqlite_ps ps_r_upsert_file (db, "rpm-file-intern", "insert or ignore into " BUILDIDS "_files VALUES (NULL, \n"
+                              "(select id from " BUILDIDS "_fileparts where name = ?),\n"
+                              "(select id from " BUILDIDS "_fileparts where name = ?));");
+  sqlite_ps ps_r_lookup_file (db, "rpm-file-lookup",
+                              "select f.id\n"
+                              " from " BUILDIDS "_files f, " BUILDIDS "_fileparts p1, " BUILDIDS "_fileparts p2 \n"
+                              " where f.dirname = p1.id and f.basename = p2.id and p1.name = ? and p2.name = ?;\n");
   sqlite_ps ps_r_upsert_de (db, "rpm-de-insert",
                           "insert or ignore into " BUILDIDS "_r_de (buildid, debuginfo_p, executable_p, file, mtime, content) values ("
-                          "(select id from " BUILDIDS "_buildids where hex = ?), ?, ?, "
-                          "(select id from " BUILDIDS "_files where name = ?), ?, "
-                          "(select id from " BUILDIDS "_files where name = ?));");
+                          "(select id from " BUILDIDS "_buildids where hex = ?), ?, ?, ?, ?, ?);");
   sqlite_ps ps_r_upsert_sref (db, "rpm-sref-insert",
                             "insert or ignore into " BUILDIDS "_r_sref (buildid, artifactsrc) values ("
                             "(select id from " BUILDIDS "_buildids where hex = ?), "
-                            "(select id from " BUILDIDS "_files where name = ?));");
+                            "?);");
   sqlite_ps ps_r_upsert_sdef (db, "rpm-sdef-insert",
                             "insert or ignore into " BUILDIDS "_r_sdef (file, mtime, content) values ("
-                            "(select id from " BUILDIDS "_files where name = ?), ?,"
-                            "(select id from " BUILDIDS "_files where name = ?));");
+                            "?, ?, ?);");
   sqlite_ps ps_r_query (db, "rpm-negativehit-query",
                       "select 1 from " BUILDIDS "_file_mtime_scanned where "
-                      "sourcetype = 'R' and file = (select id from " BUILDIDS "_files where name = ?) and mtime = ?;");
+                      "sourcetype = 'R' and file = ? and mtime = ?;");
   sqlite_ps ps_r_scan_done (db, "rpm-scanned",
                           "insert or ignore into " BUILDIDS "_file_mtime_scanned (sourcetype, file, mtime, size)"
-                          "values ('R', (select id from " BUILDIDS "_files where name = ?), ?, ?);");
-
+                          "values ('R', ?, ?, ?);");
+  
 
   unsigned fts_cached = 0, fts_executable = 0, fts_debuginfo = 0, fts_sourcefiles = 0;
   unsigned fts_sref = 0, fts_sdef = 0;
@@ -3557,6 +3777,9 @@ thread_main_scanner (void* arg)
       scan_payload p;
 
       add_metric("thread_busy", "role", "scan", -1);
+      // NB: threads may be blocked within either of these two waiting
+      // states, if the work queue happens to run dry.  That's OK.
+      if (scan_barrier) scan_barrier->count();
       bool gotone = scanq.wait_front(p);
       add_metric("thread_busy", "role", "scan", 1);
 
@@ -3572,7 +3795,9 @@ thread_main_scanner (void* arg)
           if (scan_archive)
             scan_archive_file (p.first, p.second,
                                ps_r_upsert_buildids,
-                               ps_r_upsert_files,
+                               ps_r_upsert_fileparts,
+                               ps_r_upsert_file,
+                               ps_r_lookup_file,
                                ps_r_upsert_de,
                                ps_r_upsert_sref,
                                ps_r_upsert_sdef,
@@ -3587,7 +3812,9 @@ thread_main_scanner (void* arg)
           if (scan_files) // NB: maybe "else if" ?
             scan_source_file (p.first, p.second,
                               ps_f_upsert_buildids,
-                              ps_f_upsert_files,
+                              ps_f_upsert_fileparts,
+                              ps_f_upsert_file,
+                              ps_f_lookup_file,
                               ps_f_upsert_de,
                               ps_f_upsert_s,
                               ps_f_query,
@@ -3611,8 +3838,25 @@ thread_main_scanner (void* arg)
       inc_metric("thread_work_total","role","scan");
     }
 
-
   add_metric("thread_busy", "role", "scan", -1);
+}
+
+
+// Use this function as the thread entry point, so it can catch our
+// fleet of exceptions (incl. the sqlite_ps ctors) and report.
+static void*
+thread_main_scanner (void* arg)
+{
+  (void) arg;
+  while (! interrupted)
+    try
+      {
+        scan();
+      }
+    catch (const reportable_exception& e)
+      {
+        e.report(cerr);
+      }
   return 0;
 }
 
@@ -3825,7 +4069,7 @@ void groom()
   // scan for files that have disappeared
   sqlite_ps files (db, "check old files",
                    "select distinct s.mtime, s.file, f.name from "
-                   BUILDIDS "_file_mtime_scanned s, " BUILDIDS "_files f "
+                   BUILDIDS "_file_mtime_scanned s, " BUILDIDS "_files_v f "
                    "where f.id = s.file");
   // NB: Because _ftime_mtime_scanned can contain both F and
   // R records for the same file, this query would return duplicates if the
@@ -3863,7 +4107,7 @@ void groom()
         {
           bool reg_include = !regexec (&file_include_regex, filename, 0, 0, 0);
           bool reg_exclude = !regexec (&file_exclude_regex, filename, 0, 0, 0);
-          regex_file_drop = reg_exclude && !reg_include;
+          regex_file_drop = !reg_include || reg_exclude; // match logic of scan_source_paths  
         }
 
       rc = stat(filename, &s);
@@ -4085,12 +4329,69 @@ static void sqlite3_sharedprefix_fn (sqlite3_context* c, int argc, sqlite3_value
 }
 
 
+static unsigned
+default_concurrency() // guaranteed >= 1
+{
+  // Prior to PR29975 & PR29976, we'd just use this: 
+  unsigned sth = std::thread::hardware_concurrency();
+  // ... but on many-CPU boxes, admins or distros may throttle
+  // resources in such a way that debuginfod would mysteriously fail.
+  // So we reduce the defaults:
+
+  unsigned aff = 0;
+#ifdef HAVE_SCHED_GETAFFINITY
+  {
+    int ret;
+    cpu_set_t mask;
+    CPU_ZERO(&mask);
+    ret = sched_getaffinity(0, sizeof(mask), &mask);
+    if (ret == 0)
+      aff = CPU_COUNT(&mask);
+  }
+#endif
+  
+  unsigned fn = 0;
+#ifdef HAVE_GETRLIMIT
+  {
+    struct rlimit rlim;
+    int rc = getrlimit(RLIMIT_NOFILE, &rlim);
+    if (rc == 0)
+      fn = max((rlim_t)1, (rlim.rlim_cur - 100) / 4);
+    // at least 2 fds are used by each listener thread etc.
+    // plus a bunch to account for shared libraries and such
+  }
+#endif
+
+  unsigned d = min(max(sth, 1U),
+                   min(max(aff, 1U),
+                       max(fn, 1U)));
+  return d;
+}
+
+
+// 30879: Something to help out in case of an uncaught exception.
+void my_terminate_handler()
+{
+#if defined(__GLIBC__)
+  void *array[40];
+  int size = backtrace (array, 40);
+  backtrace_symbols_fd (array, size, STDERR_FILENO);
+#endif
+#if defined(__GLIBCXX__) || defined(__GLIBCPP__)
+  __gnu_cxx::__verbose_terminate_handler();
+#endif
+  abort();
+}
+
+
 int
 main (int argc, char *argv[])
 {
   (void) setlocale (LC_ALL, "");
   (void) bindtextdomain (PACKAGE_TARNAME, LOCALEDIR);
   (void) textdomain (PACKAGE_TARNAME);
+
+  std::set_terminate(& my_terminate_handler);
 
   /* Tell the library which version we are expecting.  */
   elf_version (EV_CURRENT);
@@ -4119,7 +4420,6 @@ main (int argc, char *argv[])
 
   /* Parse and process arguments.  */
   int remaining;
-  argp_program_version_hook = print_version; // this works
   (void) argp_parse (&argp, argc, argv, ARGP_IN_ORDER, &remaining, NULL);
   if (remaining != argc)
       error (EXIT_FAILURE, 0,
@@ -4210,7 +4510,7 @@ main (int argc, char *argv[])
   /* If '-C' wasn't given or was given with no arg, pick a reasonable default
      for the number of worker threads.  */
   if (connection_pool == 0)
-    connection_pool = std::thread::hardware_concurrency() * 2 ?: 2;
+    connection_pool = default_concurrency();
 
   /* Note that MHD_USE_EPOLL and MHD_USE_THREAD_PER_CONNECTION don't
      work together.  */
@@ -4313,8 +4613,10 @@ main (int argc, char *argv[])
     obatched(clog) << "search concurrency " << concurrency << endl;
   obatched(clog) << "webapi connection pool " << connection_pool
                  << (connection_pool ? "" : " (unlimited)") << endl;
-  if (! passive_p)
+  if (! passive_p) {
     obatched(clog) << "rescan time " << rescan_s << endl;
+    obatched(clog) << "scan checkpoint " << scan_checkpoint << endl;
+  }
   obatched(clog) << "fdcache fds " << fdcache_fds << endl;
   obatched(clog) << "fdcache mbs " << fdcache_mbs << endl;
   obatched(clog) << "fdcache prefetch " << fdcache_prefetch << endl;
@@ -4356,6 +4658,9 @@ main (int argc, char *argv[])
 
       if (scan_files || scan_archives.size() > 0)
         {
+          if (scan_checkpoint > 0)
+            scan_barrier = new sqlite_checkpoint_pb(concurrency, (unsigned) scan_checkpoint);
+
           rc = pthread_create (& pt, NULL, thread_main_fts_source_paths, NULL);
           if (rc)
             error (EXIT_FAILURE, rc, "cannot spawn thread to traverse source paths\n");
@@ -4382,6 +4687,7 @@ main (int argc, char *argv[])
   while (! interrupted)
     pause ();
   scanq.nuke(); // wake up any remaining scanq-related threads, let them die
+  if (scan_barrier) scan_barrier->nuke(); // ... in case they're stuck in a barrier
   set_metric("ready", 0);
 
   if (verbose)
@@ -4407,6 +4713,7 @@ main (int argc, char *argv[])
     }
 
   debuginfod_pool_groom ();
+  delete scan_barrier;
 
   // NB: no problem with unconditional free here - an earlier failed regcomp would exit program
   (void) regfree (& file_include_regex);

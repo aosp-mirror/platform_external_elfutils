@@ -32,7 +32,7 @@ DB=${PWD}/.debuginfod_tmp.sqlite
 tempfiles $DB
 export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
 
-env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -d $DB -F -R -Z .tar.xz -Z .tar.bz2=bzcat -p $PORT1 -t0 -g0 -v R Z > vlog$PORT1 2>&1 &
+env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -d $DB -F -R -Z .tar.xz -Z .tar.bz2=bzcat -p $PORT1 --scan-checkpoint=1 -t0 -g0 -v R Z > vlog$PORT1 2>&1 &
 PID1=$!
 tempfiles vlog$PORT1
 errfiles vlog$PORT1
@@ -45,7 +45,7 @@ ps -q $PID1 -e -L -o '%p %c %a' | grep scan
 ps -q $PID1 -e -L -o '%p %c %a' | grep traverse
 
 # Make sure the initial scan has finished before copying the new files in
-# We might remove some, which we don't want to be accidentially scanned.
+# We might remove some, which we don't want to be accidentally scanned.
 wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
 
 cp -rvp ${abs_srcdir}/debuginfod-rpms R
@@ -60,6 +60,9 @@ kill -USR1 $PID1
 wait_ready $PORT1 'thread_work_total{role="traverse"}' 2
 wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
+
+# Take a dump if possible
+type sqlite3 2>/dev/null && sqlite3 $DB '.d'
 
 ########################################################################
 # All rpms need to be in the index, except the dummy permission-000 one

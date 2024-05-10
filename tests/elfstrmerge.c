@@ -157,7 +157,7 @@ newsecndx (size_t secndx, size_t shdrstrndx, size_t shdrnum,
   if (unlikely (secndx == 0 || secndx == shdrstrndx || secndx >= shdrnum))
     {
       /* Don't use fail... too specialized messages.  Call release
-	 outselves and then error.  Ignores midx if widx is
+	 ourselves and then error.  Ignores midx if widx is
 	 zero.  */
       release ();
       if (widx == 0)

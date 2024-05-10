@@ -61,7 +61,7 @@ check_PROGRAMS = arextract arsymtest newfile saridx scnnames sectiondump \
 		  elfcopy addsections xlate_notes elfrdwrnop \
 		  dwelf_elf_e_machine_string \
 		  getphdrnum leb128 read_unaligned \
-		  msg_tst system-elf-libelf-test \
+		  msg_tst system-elf-libelf-test system-elf-gelf-test \
 		  nvidia_extended_linemap_libdw \
 		  $(asm_TESTS)
 
@@ -88,11 +88,15 @@ endif
 
 # test_nlist checks its own symbol table, and expects various symbols
 # to be in the order as specified in the source file. Explicitly set
-# minimal CFLAGS. But add address sanitizer if in use.
+# minimal CFLAGS. But add sanitizers if in use.
 if USE_ADDRESS_SANITIZER
 EXTRA_NLIST_CFLAGS=-fsanitize=address
 else
+if USE_MEMORY_SANITIZER
+EXTRA_NLIST_CFLAGS=-fsanitize=memory -fsanitize-memory-track-origins
+else
 EXTRA_NLIST_CFLAGS=
+endif
 endif
 
 test-nlist$(EXEEXT): test-nlist.c
@@ -114,7 +118,9 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-strip-test9.sh run-strip-test10.sh run-strip-test11.sh \
 	run-strip-test12.sh \
 	run-strip-nothing.sh run-strip-g.sh run-annobingroup.sh \
-	run-strip-groups.sh run-strip-reloc.sh run-strip-strmerge.sh \
+	run-strip-groups.sh run-strip-strmerge.sh \
+	run-strip-reloc-ko.sh run-strip-reloc-self.sh \
+	run-strip-reloc-ppc64.sh \
 	run-strip-nobitsalign.sh run-strip-remove-keep.sh \
 	run-unstrip-test.sh run-unstrip-test2.sh run-unstrip-test3.sh \
 	run-unstrip-test4.sh run-unstrip-M.sh run-elfstrmerge-test.sh \
@@ -125,6 +131,7 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-find-prologues.sh run-allregs.sh run-addrcfi.sh \
 	run-dwarfcfi.sh run-nm-syms.sh \
 	run-nm-self.sh run-readelf-self.sh run-readelf-info-plus.sh \
+	run-srcfiles-self.sh \
 	run-readelf-compressed.sh \
 	run-readelf-const-values.sh \
 	run-varlocs-self.sh run-exprlocs-self.sh \
@@ -151,6 +158,7 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-readelf-variant.sh run-readelf-fat-lto.sh \
 	run-dwfl-report-elf-align.sh run-addr2line-test.sh \
 	run-dwfl-report-offline-memory.sh \
+	run-addr2line-C-test.sh \
 	run-addr2line-i-test.sh run-addr2line-i-lex-test.sh \
 	run-addr2line-i-demangle-test.sh run-addr2line-alt-debugpath.sh \
 	run-varlocs.sh run-exprlocs.sh run-varlocs-vars.sh run-funcretval.sh \
@@ -188,7 +196,9 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-reloc-bpf.sh \
 	run-next-cfi.sh run-next-cfi-self.sh \
 	run-reverse-sections.sh run-reverse-sections-self.sh \
-	run-copyadd-sections.sh run-copymany-sections.sh \
+	run-copyadd-sections.sh \
+	run-copymany-be32.sh run-copymany-le32.sh \
+	run-copymany-be64.sh run-copymany-le64.sh \
 	run-typeiter-many.sh run-strip-test-many.sh \
 	run-strip-version.sh run-xlate-note.sh \
 	run-readelf-discr.sh \
@@ -198,7 +208,7 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-pt_gnu_prop-tests.sh \
 	run-getphdrnum.sh run-test-includes.sh \
 	leb128 read_unaligned \
-	msg_tst system-elf-libelf-test \
+	msg_tst system-elf-libelf-test system-elf-gelf-test \
 	$(asm_TESTS) run-disasm-bpf.sh run-low_high_pc-dw-form-indirect.sh \
 	run-nvidia-extended-linemap-libdw.sh run-nvidia-extended-linemap-readelf.sh \
 	run-readelf-dw-form-indirect.sh run-strip-largealign.sh \
@@ -218,6 +228,14 @@ endif
 
 if HAVE_ZSTD
 TESTS += run-readelf-compressed-zstd.sh
+endif
+
+if USE_ZSTD_COMPRESS
+export ELFUTILS_ZSTD = 1
+endif
+
+if USE_MEMORY_SANITIZER
+export ELFUTILS_MEMORY_SANITIZER = 1
 endif
 
 if DEBUGINFOD
@@ -248,13 +266,20 @@ TESTS += run-debuginfod-dlopen.sh \
          run-debuginfod-response-headers.sh \
          run-debuginfod-extraction-passive.sh \
 	 run-debuginfod-webapi-concurrency.sh \
-	 run-debuginfod-section.sh
+	 run-debuginfod-section.sh \
+	 run-debuginfod-IXr.sh
 endif
 if !OLD_LIBMICROHTTPD
 # Will crash on too old libmicrohttpd
 # Too many open file descriptors confuses libmicrohttpd < 0.9.51
 TESTS += run-debuginfod-federation-metrics.sh
 endif
+endif
+
+if HAVE_CXX11
+check_PROGRAMS += funcretval_test++11
+funcretval_test__11_SOURCES = funcretval_test++11.cxx
+TESTS += run-funcretval++11.sh
 endif
 
 EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
@@ -282,9 +307,12 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile-annobingroup-x86_64.o.bz2 \
 	     run-strip-strmerge.sh run-strip-nobitsalign.sh \
 	     testfile-nobitsalign.bz2 testfile-nobitsalign.strip.bz2 \
-	     run-strip-reloc.sh hello_i386.ko.bz2 hello_x86_64.ko.bz2 \
+	     run-strip-reloc-ko.sh run-strip-reloc-self.sh \
+	     run-strip-reloc-ppc64.sh strip-reloc-subr.sh \
+	     hello_i386.ko.bz2 hello_x86_64.ko.bz2 \
 	     hello_ppc64.ko.bz2 hello_s390.ko.bz2 hello_aarch64.ko.bz2 \
 	     hello_m68k.ko.bz2 hello_riscv64.ko.bz2 hello_csky.ko.bz2 \
+	     hello_arc_hs4.ko.bz2 \
 	     run-unstrip-test.sh run-unstrip-test2.sh \
 	     testfile-info-link.bz2 testfile-info-link.debuginfo.bz2 \
 	     testfile-info-link.stripped.bz2 run-unstrip-test3.sh \
@@ -296,7 +324,8 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-addrscopes.sh run-strings-test.sh run-funcscopes.sh \
 	     run-nm-syms.sh testfilesyms32.bz2 testfilesyms64.bz2 \
 	     run-nm-self.sh run-readelf-self.sh run-readelf-info-plus.sh \
-	     run-readelf-compressed.sh \
+	     run-srcfiles-self.sh \
+		 run-readelf-compressed.sh \
 	     run-readelf-compressed-zstd.sh \
 	     run-readelf-const-values.sh testfile-const-values.debug.bz2 \
 	     run-addrcfi.sh run-dwarfcfi.sh \
@@ -390,7 +419,8 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-readelf-Dd.sh \
 	     testfile-s390x-hash-both.bz2 \
 	     run-readelf-gdb_index.sh testfilegdbindex5.bz2 \
-	     testfilegdbindex7.bz2 \
+	     testfilegdbindex7.bz2 testfilegdbindex9.bz2 \
+	     testfilegdbindex9-no-maininfo.bz2 \
 	     run-readelf-s.sh testfilebazdbg.bz2 testfilebazdyn.bz2 \
 	     testfilebazmin.bz2 testfilebazdbg.debug.bz2 testfilebazmdb.bz2 \
 	     testfilebaztab.bz2 testfilebasmin.bz2 testfilebaxmin.bz2 \
@@ -420,7 +450,9 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile-dwfl-report-elf-align-shlib.so.bz2 \
 	     testfilenolines.bz2 test-core-lib.so.bz2 test-core.core.bz2 \
 	     test-core.exec.bz2 run-addr2line-test.sh \
+	     run-addr2line-C-test.sh \
 	     run-addr2line-i-test.sh testfile-inlines.bz2 \
+	     testfile-inlines-lto.bz2 \
 	     run-addr2line-i-lex-test.sh testfile-lex-inlines.bz2 \
 	     run-addr2line-i-demangle-test.sh run-addr2line-alt-debugpath.sh \
 	     testfileppc32.bz2 testfileppc64.bz2 \
@@ -516,7 +548,9 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile-riscv64.bz2 testfile-riscv64-s.bz2 \
 	     testfile-riscv64-core.bz2 \
 	     run-reverse-sections.sh run-reverse-sections-self.sh \
-	     run-copyadd-sections.sh run-copymany-sections.sh \
+	     run-copyadd-sections.sh test-copymany-subr.sh \
+	     run-copymany-be32.sh run-copymany-le32.sh \
+	     run-copymany-be64.sh run-copymany-le64.sh \
 	     run-large-elf-file.sh \
 	     run-typeiter-many.sh run-strip-test-many.sh \
 	     testfile-debug-rel-ppc64-g.o.bz2 \
@@ -556,6 +590,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
              run-debuginfod-extraction-passive.sh \
              run-debuginfod-webapi-concurrency.sh \
 	     run-debuginfod-section.sh \
+	     run-debuginfod-IXr.sh \
 	     debuginfod-rpms/fedora30/hello2-1.0-2.src.rpm \
 	     debuginfod-rpms/fedora30/hello2-1.0-2.x86_64.rpm \
 	     debuginfod-rpms/fedora30/hello2-debuginfo-1.0-2.x86_64.rpm \
@@ -596,7 +631,8 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-readelf-dw-form-indirect.sh testfile-dw-form-indirect.bz2 \
 	     run-nvidia-extended-linemap-libdw.sh run-nvidia-extended-linemap-readelf.sh \
 	     testfile_nvidia_linemap.bz2 \
-	     testfile-largealign.o.bz2 run-strip-largealign.sh
+	     testfile-largealign.o.bz2 run-strip-largealign.sh \
+	     run-funcretval++11.sh
 
 
 if USE_VALGRIND
@@ -641,7 +677,7 @@ installcheck-local:
 
 if BUILD_STATIC
 libdw = ../libdw/libdw.a -lz $(zip_LIBS) $(libelf) $(libebl) -ldl -lpthread
-libelf = ../libelf/libelf.a -lz
+libelf = ../libelf/libelf.a -lz $(zstd_LIBS)
 libasm = ../libasm/libasm.a
 else
 libdw = ../libdw/libdw.so
@@ -772,14 +808,22 @@ leb128_LDADD = $(libelf) $(libdw)
 read_unaligned_LDADD = $(libelf) $(libdw)
 nvidia_extended_linemap_libdw_LDADD = $(libelf) $(libdw)
 
-# We want to test the libelf header against the system elf.h header.
+# We want to test the libelf headers against the system elf.h header.
 # Don't include any -I CPPFLAGS. Except when we install our own elf.h.
+# For the gelf test we do want our own libelf.h, but nothing else.
+BUILT_SOURCES = libelf.h
+CLEANFILES += libelf.h
+libelf.h: $(top_srcdir)/libelf/libelf.h
+	cp $< $@
 if !INSTALL_ELFH
 system_elf_libelf_test_CPPFLAGS =
+system_elf_gelf_test_CPPFLAGS = -I.
 else
 system_elf_libelf_test_CPPFLAGS = -I$(top_srcdir)/libelf
+system_elf_gelf_test_CPPFLAGS = -I$(top_srcdir)/libelf
 endif
 system_elf_libelf_test_LDADD = $(libelf)
+system_elf_gelf_test_LDADD = $(libelf)
 
 # A lock file used to make sure only one test dumps core at a time
 CLEANFILES += core-dump-backtrace.lock

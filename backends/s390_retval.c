@@ -91,8 +91,7 @@ s390_return_value_location (Dwarf_Die *functypedie, const Dwarf_Op **locp)
 
     case DW_TAG_base_type:
     case DW_TAG_enumeration_type:
-    case DW_TAG_pointer_type:
-    case DW_TAG_ptr_to_member_type:
+    CASE_POINTER:
       {
 	Dwarf_Die cudie;
 	uint8_t asize;
@@ -103,7 +102,7 @@ s390_return_value_location (Dwarf_Die *functypedie, const Dwarf_Op **locp)
 	if (dwarf_formudata (dwarf_attr (typedie, DW_AT_byte_size,
 					 &attr_mem), &size) != 0)
 	  {
-	    if (tag == DW_TAG_pointer_type || tag == DW_TAG_ptr_to_member_type)
+	    if (dwarf_is_pointer (tag))
 	      size = asize;
 	    else
 	      return -1;

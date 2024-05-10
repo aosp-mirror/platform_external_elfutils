@@ -61,6 +61,9 @@ dwarf_formstring (Dwarf_Attribute *attrp)
   Elf_Data *data = ((attrp->form == DW_FORM_line_strp)
 		    ? dbg_ret->sectiondata[IDX_debug_line_str]
 		    : dbg_ret->sectiondata[IDX_debug_str]);
+  size_t data_size = ((attrp->form == DW_FORM_line_strp)
+		      ? dbg_ret->string_section_size[STR_SCN_IDX_debug_line_str]
+		      : dbg_ret->string_section_size[STR_SCN_IDX_debug_str]);
   if (data == NULL)
     {
       __libdw_seterrno ((attrp->form == DW_FORM_line_strp)
@@ -170,10 +173,10 @@ dwarf_formstring (Dwarf_Attribute *attrp)
 	off = read_4ubyte_unaligned (dbg, datap);
       else
 	off = read_8ubyte_unaligned (dbg, datap);
-
-      if (off > dbg->sectiondata[IDX_debug_str]->d_size)
-	goto invalid_offset;
     }
+
+  if (off >= data_size)
+    goto invalid_offset;
 
   return (const char *) data->d_buf + off;
 }

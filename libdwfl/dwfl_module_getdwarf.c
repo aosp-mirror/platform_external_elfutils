@@ -34,8 +34,8 @@
 #include <inttypes.h>
 #include <fcntl.h>
 #include <string.h>
-#include "../libdw/libdwP.h"	/* DWARF_E_* values are here.  */
-#include "../libelf/libelfP.h"
+#include "libdwP.h"	/* DWARF_E_* values are here.  */
+#include "libelfP.h"
 #include "system.h"
 
 static inline Dwfl_Error
@@ -1362,11 +1362,14 @@ load_dw (Dwfl_Module *mod, struct dwfl_file *debugfile)
     }
 
   /* We might have already closed the fd when we asked dwarf_begin_elf to
-     create an Dwarf.  Help out a little in case we need to find an alt or
-     dwo file later.  */
-  if (mod->dw->debugdir == NULL && mod->elfdir != NULL
+     create an Dwarf.  Help out a little in case we need to find an alt,
+     dwo, or dwp file later.  */
+  if (mod->dw->elfpath == NULL && mod->elfpath != NULL
       && debugfile == &mod->main)
-    mod->dw->debugdir = strdup (mod->elfdir);
+    {
+      mod->dw->elfpath = strdup (mod->elfpath);
+      __libdw_set_debugdir (mod->dw);
+    }
 
   /* Until we have iterated through all CU's, we might do lazy lookups.  */
   mod->lazycu = 1;

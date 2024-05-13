@@ -11,7 +11,7 @@ if [ -z "$DEBUGINFOD_URLS" ]; then
 fi
 
 if [ -z "$DEBUGINFOD_IMA_CERT_PATH" ]; then
-    DEBUGINFOD_IMA_CERT_PATH=$(cat "@sysconfdir@/debuginfod"/*.certpath 2>/dev/null | tr '\n' ':' || :)
+    DEBUGINFOD_IMA_CERT_PATH=$(cat /dev/null "@sysconfdir@/debuginfod"/*.certpath 2>/dev/null | tr '\n' ':' || :)
     [ -n "$DEBUGINFOD_IMA_CERT_PATH" ] && export DEBUGINFOD_IMA_CERT_PATH || unset DEBUGINFOD_IMA_CERT_PATH
 fi
 unset prefix

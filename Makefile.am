@@ -30,7 +30,7 @@ SUBDIRS = config lib libelf libcpu backends libebl libdwelf libdwfl libdw \
 	  libasm debuginfod src po doc tests
 
 EXTRA_DIST = elfutils.spec GPG-KEY NOTES CONTRIBUTING SECURITY \
-	     COPYING COPYING-GPLV2 COPYING-LGPLV3
+	     COPYING COPYING-GPLV2 COPYING-LGPLV3 CONDUCT
 
 # Make sure the test install uses lib64 when $LIB will yield lib64.
 # Make sure the test build uses the same compiler, which on e.g. ppc64

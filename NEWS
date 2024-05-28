@@ -1,5 +1,8 @@
 Version 0.192 (one after 0.191)
 
+CONDUCT: A new code of conduct has been adopted.  See the
+	 CONDUCT file for more information.
+
 debuginfod: Add per-file signature verification for integrity
             checking, using RPM IMA scheme from Fedora/RHEL.
 

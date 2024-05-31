@@ -1234,6 +1234,10 @@ typedef struct
 #define AT_RSEQ_FEATURE_SIZE	27	/* rseq supported feature size.  */
 #define AT_RSEQ_ALIGN	28		/* rseq allocation alignment.  */
 
+/* More machine-dependent hints about processor capabilities.  */
+#define AT_HWCAP3	29		/* extension of AT_HWCAP.  */
+#define AT_HWCAP4	30		/* extension of AT_HWCAP.  */
+
 #define AT_EXECFN	31		/* Filename of executable.  */
 
 /* Pointer to the global system page used for system calls and other
@@ -1333,8 +1337,12 @@ typedef struct
 #define NT_GNU_PROPERTY_TYPE_0 5
 
 /* Packaging metadata as defined on
-   https://systemd.io/COREDUMP_PACKAGE_METADATA/ */
+   https://systemd.io/ELF_PACKAGE_METADATA/ */
 #define NT_FDO_PACKAGING_METADATA 0xcafe1a7e
+
+/* dlopen metadata as defined on
+   https://systemd.io/ELF_DLOPEN_METADATA/ */
+#define NT_FDO_DLOPEN_METADATA 0x407c0c0a
 
 /* Note section name of program property.   */
 #define NOTE_GNU_PROPERTY_SECTION_NAME ".note.gnu.property"
@@ -4237,6 +4245,8 @@ enum
 #define R_LARCH_TLS_TPREL32	10
 #define R_LARCH_TLS_TPREL64	11
 #define R_LARCH_IRELATIVE	12
+#define R_LARCH_TLS_DESC32	13
+#define R_LARCH_TLS_DESC64	14
 
 /* Reserved for future relocs that the dynamic linker must understand.  */
 

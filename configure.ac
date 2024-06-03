@@ -671,41 +671,6 @@ case "$ac_cv_search__obstack_free" in
 esac
 AC_SUBST([obstack_LIBS])
 
-enable_ima_verification="x"
-AC_CHECK_LIB(rpm, headerGet, [
-  AC_CHECK_DECL(RPMSIGTAG_FILESIGNATURES,
-  [
-    enable_ima_verification=$enable_ima_verification"rpm"
-    AC_SUBST(rpm_LIBS, '-lrpm -lrpmio')
-  ],
-  [], [#include <rpm/rpmlib.h>])
-])
-
-dnl we use only the header, not the code of this library
-AC_CHECK_HEADER(imaevm.h, [
-  enable_ima_verification=$enable_ima_verification"imaevm"
-])
-
-AC_CHECK_LIB(crypto, EVP_MD_CTX_new, [
-  enable_ima_verification=$enable_ima_verification"crypto"
-  AC_SUBST(crypto_LIBS, '-lcrypto')
-])
-
-AC_ARG_ENABLE(debuginfod-ima-verification,
-             [AS_HELP_STRING([--enable-debuginfod-ima-verification],[enable per-file signature verification])],
-             [want_ima_verification=$enableval],[want_ima_verification=auto])
-
-debuginfod_ima_verification_enabled="no"
-if test "x$want_ima_verification" = "xno"; then
-  enable_ima_verification=nope # indicate failure of prerequisites for AM_CONDITIONAL below
-elif test "$enable_ima_verification" = "xrpmimaevmcrypto"; then
-  debuginfod_ima_verification_enabled="yes"
-  AC_DEFINE([ENABLE_IMA_VERIFICATION], [1], [Define if the required ima verification libraries are available])
-elif test "x$want_ima_verification" = "xyes"; then
-  AC_MSG_ERROR("missing prerequisites for ima verification")
-fi
-AM_CONDITIONAL([ENABLE_IMA_VERIFICATION],[test "$enable_ima_verification" = "xrpmimaevmcrypto"])
-
 dnl The directories with content.
 
 dnl Documentation.
@@ -855,53 +820,71 @@ AX_CXX_COMPILE_STDCXX(11, noext, optional)
 AS_IF([test "x$HAVE_CXX11" = "x1"], [HAVE_CXX11=yes], [HAVE_CXX11=no])
 AM_CONDITIONAL([HAVE_CXX11],[test "x$HAVE_CXX11" = "xyes"])
 
-# Look for libcurl for libdebuginfod minimum version as per rhel7.
-AC_ARG_ENABLE([libdebuginfod],AS_HELP_STRING([--enable-libdebuginfod], [Build debuginfod client library (can be =dummy)]))
-AS_IF([test "x$enable_libdebuginfod" != "xno"], [
-    if test "x$enable_libdebuginfod" != "xdummy"; then
-      AC_MSG_NOTICE([checking libdebuginfod dependencies, --disable-libdebuginfod or --enable-libdebuginfo=dummy to skip])
-      enable_libdebuginfod=yes # presume success
-      PKG_PROG_PKG_CONFIG
-      PKG_CHECK_MODULES([libcurl],[libcurl >= 7.29.0],[],[enable_libdebuginfod=no])
-    else
-      AC_MSG_NOTICE([building (bootstrap) dummy libdebuginfo library])
-    fi
-])
-
-AC_CHECK_LIB(pthread, pthread_setname_np, [
-                      AC_DEFINE([HAVE_PTHREAD_SETNAME_NP],[1],[Enable pthread_setname_np])])
-
-AS_IF([test "x$enable_libdebuginfod" = "xyes" || test "x$enable_libdebuginfod" = "xdummy"],
-      [AC_DEFINE([ENABLE_LIBDEBUGINFOD], [1], [Enable libdebuginfod])])
-AS_IF([test "x$enable_libdebuginfod" = "xdummy"],
-      [AC_DEFINE([DUMMY_LIBDEBUGINFOD], [1], [Build dummy libdebuginfod])])
-AM_CONDITIONAL([LIBDEBUGINFOD],[test "x$enable_libdebuginfod" = "xyes" || test "x$enable_libdebuginfod" = "xdummy"])
-AM_CONDITIONAL([DUMMY_LIBDEBUGINFOD],[test "x$enable_libdebuginfod" = "xdummy"])
 AC_CHECK_HEADERS([execinfo.h])
 
-# Look for libmicrohttpd, libarchive, sqlite for debuginfo server and srcfiles tool
-# minimum versions as per rhel7.
-AC_ARG_ENABLE([debuginfod],AS_HELP_STRING([--enable-debuginfod], [Build debuginfod server]))
-AS_IF([test "x$enable_debuginfod" != "xno"], [
-    if test "x$HAVE_CXX11" = "xno"; then
-      AC_MSG_ERROR([the compiler does not support C++11, use --disable-debuginfod to disable.])
-    fi
-    AC_MSG_NOTICE([checking debuginfod dependencies, --disable-debuginfod to skip])
-    if test "x$enable_libdebuginfod" = "xno"; then
-      AC_MSG_ERROR([need libdebuginfod (or dummy), use --disable-debuginfod to disable.])
-    fi
-    enable_debuginfod=yes # presume success
-    AC_DEFINE([HAVE_LIBARCHIVE], [1], [Define to 1 if libarchive is available]) # presume success
-    PKG_PROG_PKG_CONFIG
-    PKG_CHECK_MODULES([libmicrohttpd],[libmicrohttpd >= 0.9.33],[],[enable_debuginfod=no])
-    PKG_CHECK_MODULES([oldlibmicrohttpd],[libmicrohttpd < 0.9.51],[old_libmicrohttpd=yes],[old_libmicrohttpd=no])
-    PKG_CHECK_MODULES([sqlite3],[sqlite3 >= 3.7.17],[],[enable_debuginfod=no])
-    PKG_CHECK_MODULES([libarchive],[libarchive >= 3.1.2],[],[enable_debuginfod=no])
-    PKG_CHECK_MODULES([jsonc],[json-c >= 0.11],[],[enable_debuginfod=no])    
-])
-
+# debuginfod-related checks
+#
+# autoconf enable options
+AC_ARG_ENABLE([libdebuginfod],[AS_HELP_STRING([--enable-libdebuginfod], [Build debuginfod client library (can be =dummy)])])
+AC_ARG_ENABLE([debuginfod],[AS_HELP_STRING([--enable-debuginfod], [Build debuginfod server])])
+AC_ARG_ENABLE([debuginfod-ima-verification],[AS_HELP_STRING([--enable-debuginfod-ima-verification],[enable per-file signature verification])])
+#
+# Look for various packages, minimum versions as per rhel7.
+PKG_PROG_PKG_CONFIG
+PKG_CHECK_MODULES([libcurl],[libcurl >= 7.29.0],[have_libcurl=yes],[have_libcurl=no])
+AC_CHECK_LIB(pthread, pthread_setname_np, [AC_DEFINE([HAVE_PTHREAD_SETNAME_NP],[1],[Enable pthread_setname_np])])
+PKG_CHECK_MODULES([jsonc],[json-c >= 0.11],[have_jsonc=yes],[have_jsonc=no])
+PKG_CHECK_MODULES([libmicrohttpd],[libmicrohttpd >= 0.9.33],[],[enable_debuginfod=no])
+PKG_CHECK_MODULES([oldlibmicrohttpd],[libmicrohttpd < 0.9.51],[old_libmicrohttpd=yes],[old_libmicrohttpd=no])
+PKG_CHECK_MODULES([sqlite3],[sqlite3 >= 3.7.17],[have_sqlite3=yes],[have_sqlite3=no])
+PKG_CHECK_MODULES([libarchive],[libarchive >= 3.1.2],[have_libarchive=yes],[have_libarchive=no])
+AC_CHECK_LIB(rpm, headerGet, [AC_CHECK_DECL(RPMSIGTAG_FILESIGNATURES,
+                                            [AC_SUBST(rpm_LIBS, '-lrpm -lrpmio')],[], [#include <rpm/rpmlib.h>])])
+AC_CHECK_LIB(crypto, EVP_MD_CTX_new, [AC_SUBST(crypto_LIBS, '-lcrypto')])
+AC_CHECK_HEADER(imaevm.h)
+#
+# pronounce judgement on ability to build client, overridden by =yes/=no
+if test "x$enable_libdebuginfod" = "xno"; then
+   true
+elif test "x$have_jsonc$have_libcurl" = "xyesyes"; then
+   enable_libdebuginfod=yes
+elif test "x$enable_libdebuginfod" = "xyes" -o "x$enable_libdebuginfod" = "xdummy"; then
+   AC_MSG_ERROR([unable to build libdebuginfod])
+else
+   enable_libdebuginfod=no
+fi
+#
+# pronounce judgement on ability to build server, overridden by =yes/=no
+if test "x$enable_debuginfod" = "xno"; then
+   true
+elif test "x$have_jsonc$HAVE_CXX11$have_libarchive$have_sqlite3" = "xyesyesyesyes"; then
+   enable_debuginfod=yes
+elif test "x$enable_debuginfod" = "xyes"; then
+   AC_MSG_ERROR([unable to build debuginfod])
+else
+   enable_debuginfod=no
+fi
+#
+# pronounce judgment on ima signature support
+if test "x$enable_debuginfod_ima_verification" = "xno"; then
+   true
+elif test "x$ac_cv_lib_rpm_headerGet$ac_cv_have_decl_RPMSIGTAG_FILESIGNATURES$ac_cv_lib_crypto_EVP_MD_CTX_new$ac_cv_header_imaevm_h" = "xyesyesyesyes"; then
+   enable_debuginfod_ima_verification=yes
+elif test "x$enable_debuginfod_ima_verification" = "xyes"; then
+   AC_MSG_ERROR([unable to enable debuginfod ima verification])
+else
+   enable_debuginfod_ima_verification=no
+fi
+#
+# communicate judgements to automake / config.h
+AS_IF([test "x$enable_libdebuginfod" != "xno"],[AC_DEFINE([ENABLE_LIBDEBUGINFOD], [1], [Enable libdebuginfod])])
+AM_CONDITIONAL([LIBDEBUGINFOD],[test "x$enable_libdebuginfod" != "xno"])
+AS_IF([test "x$enable_libdebuginfod" = "xdummy"],[AC_DEFINE([DUMMY_LIBDEBUGINFOD], [1], [Build dummy libdebuginfod])])
+AM_CONDITIONAL([DUMMY_LIBDEBUGINFOD],[test "x$enable_libdebuginfod" = "xdummy"])
 AS_IF([test "x$enable_debuginfod" != "xno"],AC_DEFINE([ENABLE_DEBUGINFOD],[1],[Build debuginfod]))
 AM_CONDITIONAL([DEBUGINFOD],[test "x$enable_debuginfod" = "xyes"])
+AS_IF([test "x$enable_debuginfod_ima_verification" = "xyes"],AC_DEFINE([ENABLE_IMA_VERIFICATION],[1],[Build IMA verification]))
+AM_CONDITIONAL([ENABLE_IMA_VERIFICATION],[test "$enable_debuginfod_ima_verification" = "xyes"])
 AM_CONDITIONAL([OLD_LIBMICROHTTPD],[test "x$old_libmicrohttpd" = "xyes"])
 
 dnl for /etc/profile.d/elfutils.{csh,sh}
@@ -964,7 +947,8 @@ AC_MSG_NOTICE([
     libdebuginfod client support       : ${enable_libdebuginfod}
     Debuginfod server support          : ${enable_debuginfod}
     Default DEBUGINFOD_URLS            : ${default_debuginfod_urls}
-    Debuginfod RPM sig checking        : ${debuginfod_ima_verification_enabled} ${default_debuginfod_ima_cert_path}
+    Debuginfod RPM sig checking        : ${enable_debuginfod_ima_verification} 
+    Default DEBUGINFOD_IMA_CERT_PATH   : ${default_debuginfod_ima_cert_path}
 
   EXTRA TEST FEATURES (used with make check)
     have bunzip2 installed (required)  : ${HAVE_BUNZIP2}

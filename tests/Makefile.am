@@ -209,7 +209,6 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-disasm-riscv64.sh \
 	run-pt_gnu_prop-tests.sh \
 	run-getphdrnum.sh run-test-includes.sh \
-	run-debuginfod-client-profile.sh \
 	leb128 read_unaligned \
 	msg_tst system-elf-libelf-test system-elf-gelf-test \
 	$(asm_TESTS) run-disasm-bpf.sh run-low_high_pc-dw-form-indirect.sh \
@@ -272,6 +271,7 @@ TESTS += run-debuginfod-dlopen.sh \
 	 run-debuginfod-webapi-concurrency.sh \
 	 run-debuginfod-section.sh \
 	 run-debuginfod-IXr.sh \
+	 run-debuginfod-client-profile.sh \
 	 run-debuginfod-find-metadata.sh
 endif
 if !OLD_LIBMICROHTTPD

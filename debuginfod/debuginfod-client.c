@@ -1478,16 +1478,18 @@ get_signature_params(debuginfod_client *c, unsigned char *bin_sig)
   switch (bin_sig[1])
     {
     case DIGSIG_VERSION_2:
-      struct signature_v2_hdr hdr_v2;
-      memcpy(& hdr_v2, & bin_sig[1], sizeof(struct signature_v2_hdr));
-      hashalgo = hdr_v2.hash_algo;
-      break;
+      {
+        struct signature_v2_hdr hdr_v2;
+        memcpy(& hdr_v2, & bin_sig[1], sizeof(struct signature_v2_hdr));
+        hashalgo = hdr_v2.hash_algo;
+        break;
+      }
     default:
       if (c->verbose_fd >= 0)
         dprintf (c->verbose_fd, "Unknown ima signature version %d\n", (int)bin_sig[1]);
       return NULL;
     }
-  
+
   switch (hashalgo)
     {
     case PKEY_HASH_SHA1: return "sha1";

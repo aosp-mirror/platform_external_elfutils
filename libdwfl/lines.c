@@ -31,7 +31,7 @@
 #endif
 
 #include "libdwflP.h"
-#include "../libdw/libdwP.h"
+#include "libdwP.h"
 
 Dwfl_Error
 internal_function

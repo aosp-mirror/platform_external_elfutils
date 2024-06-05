@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Configure input file for elfutils.                     -*-autoconf-*-
 dnl
 dnl Copyright (C) 1996-2019 Red Hat, Inc.
-dnl Copyright (C) 2022 Mark J. Wielaard <mark@klomp.org>
+dnl Copyright (C) 2022, 2023 Mark J. Wielaard <mark@klomp.org>
 dnl
 dnl This file is part of elfutils.
 dnl
@@ -18,7 +18,7 @@ dnl  GNU General Public License for more details.
 dnl
 dnl  You should have received a copy of the GNU General Public License
 dnl  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-AC_INIT([elfutils],[0.188],[https://sourceware.org/bugzilla],[elfutils],[http://elfutils.org/])
+AC_INIT([elfutils],[0.190],[https://sourceware.org/bugzilla],[elfutils],[http://elfutils.org/])
 
 dnl Workaround for older autoconf < 2.64
 m4_ifndef([AC_PACKAGE_URL],
@@ -45,7 +45,7 @@ fi
 AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_FILES([config/Makefile])
 
-AC_COPYRIGHT([Copyright (C) 1996-2022 The elfutils developers.])
+AC_COPYRIGHT([Copyright (C) 1996-2023 The elfutils developers.])
 AC_PREREQ(2.63)			dnl Minimum Autoconf version required.
 
 dnl We use GNU make extensions; automake 1.10 defaults to -Wportability.
@@ -154,6 +154,29 @@ fi
 AC_SUBST([fpie_CFLAGS])
 
 dso_LDFLAGS="-shared"
+
+NO_UNDEFINED=-Wl,--no-undefined
+AC_ARG_ENABLE([sanitize-memory],
+              AS_HELP_STRING([--enable-sanitize-memory],
+                             [Use clang memory sanitizer]),
+                             [use_msan=$enableval], [use_msan=no])
+if test "$use_msan" = yes; then
+  old_CFLAGS="$CFLAGS"
+  old_CXXFLAGS="$CXXFLAGS"
+  old_LDFLAGS="$LDFLAGS"
+  # -fsanitize=memory is not compatible with -D_FORTIFY_SOURCE, -Wl,-z,defs and --no-undefined
+  CFLAGS="$CFLAGS -fsanitize=memory -fsanitize-memory-track-origins -D_FORTIFY_SOURCE=0"
+  CXXFLAGS="$CXXFLAGS -fsanitize=memory -fsanitize-memory-track-origins -D_FORTIFY_SOURCE=0"
+  LDFLAGS="-shared"
+  AC_LINK_IFELSE([AC_LANG_SOURCE([int main (int argc, char **argv) { return 0; }])], use_msan=yes, use_msan=no)
+  AS_IF([test "x$use_msan" = xyes],
+        ac_cv_zdefs=no NO_UNDEFINED=,
+        AC_MSG_WARN([clang memory sanitizer not available])
+        CFLAGS="$old_CFLAGS" CXXFLAGS="$old_CXXFLAGS")
+  LDFLAGS="$old_LDFLAGS"
+fi
+AC_SUBST(NO_UNDEFINED)
+AM_CONDITIONAL(USE_MEMORY_SANITIZER, test "$use_msan" = yes)
 
 ZDEFS_LDFLAGS="-Wl,-z,defs"
 AC_CACHE_CHECK([whether gcc supports $ZDEFS_LDFLAGS], ac_cv_zdefs, [dnl
@@ -420,9 +443,21 @@ AC_SUBST([LIBLZMA])
 eu_ZIPLIB(zstd,ZSTD,zstd,ZSTD_decompress,[ZSTD (zst)])
 AS_IF([test "x$with_zstd" = xyes], [LIBZSTD="libzstd"], [LIBLZSTD=""])
 AC_SUBST([LIBZSTD])
+zstd_LIBS="$LIBS"
+AC_SUBST([zstd_LIBS])
 zip_LIBS="$LIBS"
 LIBS="$save_LIBS"
 AC_SUBST([zip_LIBS])
+
+dnl zstd compression support requires libzstd 1.4.0+
+AS_IF([test "x$with_zstd" = xyes], [
+      PKG_PROG_PKG_CONFIG
+      PKG_CHECK_MODULES([ZSTD_COMPRESS],[libzstd >= 1.4.0],
+                        [with_zstd_compress="yes"],[with_zstd_compress="no"])],
+      [with_zstd_compress="no"])
+AM_CONDITIONAL(USE_ZSTD_COMPRESS, test "x$with_zstd_compress" = "xyes")
+AS_IF([test "x$with_zstd_compress" = "xyes"],
+      [AC_DEFINE([USE_ZSTD_COMPRESS], [1], [zstd compression support])])
 
 AC_CHECK_DECLS([memrchr, rawmemchr],[],[],
                [#define _GNU_SOURCE
@@ -443,16 +478,29 @@ AS_IF([test "x$ac_cv_func_mremap" = "xno"],
 AC_CHECK_HEADERS([error.h])
 AC_CHECK_HEADERS([err.h])
 
+dnl for debuginfod concurrency heuristics
+AC_CHECK_HEADERS([sched.h])
+AC_CHECK_FUNCS([sched_getaffinity])
+AC_CHECK_HEADERS([sys/resource.h])
+AC_CHECK_FUNCS([getrlimit])
+
 old_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -D_GNU_SOURCE"
 AC_FUNC_STRERROR_R()
 CFLAGS="$old_CFLAGS"
 
+AC_ARG_ENABLE([demangler],
+AS_HELP_STRING([--disable-demangler],
+	       [Disable libstdc++ demangle support]),
+	       [], [enable_demangler=yes])
+AS_IF([test "x$enable_demangler" = xyes],
 AC_CHECK_LIB([stdc++], [__cxa_demangle], [dnl
 AC_DEFINE([USE_DEMANGLE], [1], [Defined if demangling is enabled])])
 AM_CONDITIONAL(DEMANGLE, test "x$ac_cv_lib_stdcpp___cxa_demangle" = "xyes")
 AS_IF([test "x$ac_cv_lib_stdcpp___cxa_demangle" = "xyes"],
-      [enable_demangler=yes],[enable_demangler=no])
+      [enable_demangler=yes],
+      [AC_MSG_ERROR([[__cxa_demangle not found in libstdc++, use --disable-demangler to disable demangler support.]])]),
+AM_CONDITIONAL(DEMANGLE, false))
 
 AC_ARG_ENABLE([textrelcheck],
 AS_HELP_STRING([--disable-textrelcheck],
@@ -569,6 +617,23 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([])],
 CFLAGS="$old_CFLAGS"])
 AM_CONDITIONAL(HAVE_NO_PACKED_NOT_ALIGNED_WARNING,
 	       [test "x$ac_cv_no_packed_not_aligned" != "xno"])
+
+AC_CACHE_CHECK([whether the compiler accepts -Wuse-after-free=3], ac_cv_use_after_free3, [dnl
+old_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -Wuse-after-free=3 -Werror"
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([])],
+		  ac_cv_use_after_free3=yes, ac_cv_use_after_free3=no)
+CFLAGS="$old_CFLAGS"])
+AM_CONDITIONAL(HAVE_USE_AFTER_FREE3_WARNING,
+	       [test "x$ac_cv_use_after_free3" != "xno"])
+
+AC_CACHE_CHECK([whether the compiler accepts -fno-addrsig], ac_cv_fno_addrsig, [dnl
+old_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -fno-addrsig -Werror"
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([])],
+                  ac_cv_fno_addrsig=yes, ac_cv_fno_addrsig=no)
+CFLAGS="$old_CFLAGS"])
+AS_IF([test "x$ac_cv_fno_addrsig" = "xyes"], CFLAGS="$CFLAGS -fno-addrsig")
 
 saved_LIBS="$LIBS"
 AC_SEARCH_LIBS([argp_parse], [argp])
@@ -744,6 +809,11 @@ fi
 AC_CHECK_PROG(HAVE_ZSTD, zstd, yes, no)
 AM_CONDITIONAL([HAVE_ZSTD],[test "x$HAVE_ZSTD" = "xyes"])
 
+# For tests that need to use C++11
+AX_CXX_COMPILE_STDCXX(11, noext, optional)
+AS_IF([test "x$HAVE_CXX11" = "x1"], [HAVE_CXX11=yes], [HAVE_CXX11=no])
+AM_CONDITIONAL([HAVE_CXX11],[test "x$HAVE_CXX11" = "xyes"])
+
 # Look for libcurl for libdebuginfod minimum version as per rhel7.
 AC_ARG_ENABLE([libdebuginfod],AS_HELP_STRING([--enable-libdebuginfod], [Build debuginfod client library (can be =dummy)]))
 AS_IF([test "x$enable_libdebuginfod" != "xno"], [
@@ -769,13 +839,15 @@ AS_IF([test "x$enable_libdebuginfod" = "xdummy"],
       [AC_DEFINE([DUMMY_LIBDEBUGINFOD], [1], [Build dummy libdebuginfod])])
 AM_CONDITIONAL([LIBDEBUGINFOD],[test "x$enable_libdebuginfod" = "xyes" || test "x$enable_libdebuginfod" = "xdummy"])
 AM_CONDITIONAL([DUMMY_LIBDEBUGINFOD],[test "x$enable_libdebuginfod" = "xdummy"])
+AC_CHECK_HEADERS([execinfo.h])
 
 # Look for libmicrohttpd, libarchive, sqlite for debuginfo server
 # minimum versions as per rhel7.
 AC_ARG_ENABLE([debuginfod],AS_HELP_STRING([--enable-debuginfod], [Build debuginfod server]))
 AS_IF([test "x$enable_debuginfod" != "xno"], [
-    AC_MSG_NOTICE([checking debuginfod C++11 support, --disable-debuginfod to skip])
-    AX_CXX_COMPILE_STDCXX(11, noext, mandatory)
+    if test "x$HAVE_CXX11" = "xno"; then
+      AC_MSG_ERROR([the compiler does not support C++11, use --disable-debuginfod to disable.])
+    fi
     AC_MSG_NOTICE([checking debuginfod dependencies, --disable-debuginfod to skip])
     if test "x$enable_libdebuginfod" = "xno"; then
       AC_MSG_ERROR([need libdebuginfod (or dummy), use --disable-debuginfod to disable.])
@@ -829,6 +901,7 @@ AC_MSG_NOTICE([
     bzip2 support                      : ${with_bzlib}
     lzma/xz support                    : ${with_lzma}
     zstd support                       : ${with_zstd}
+    zstd compression support           : ${with_zstd_compress}
     libstdc++ demangle support         : ${enable_demangler}
     File textrel check                 : ${enable_textrelcheck}
     Symbol versioning                  : ${enable_symbol_versioning}
@@ -848,12 +921,14 @@ AC_MSG_NOTICE([
   EXTRA TEST FEATURES (used with make check)
     have bunzip2 installed (required)  : ${HAVE_BUNZIP2}
     have zstd installed                : ${HAVE_ZSTD}
+    C++11                              : ${HAVE_CXX11}
     debug branch prediction            : ${use_debugpred}
     gprof support                      : ${use_gprof}
     gcov support                       : ${use_gcov}
     run all tests under valgrind       : ${use_valgrind}
     gcc undefined behaviour sanitizer  : ${use_undefined}
     gcc address sanitizer              : ${use_address}
+    clang memory sanitizer             : ${use_msan}
     use rpath in tests                 : ${tests_use_rpath}
     test biarch                        : ${utrace_cv_cc_biarch}
 ])

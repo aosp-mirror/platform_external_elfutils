@@ -39,8 +39,20 @@ license {
     ],
 }
 
+// Properties to apply to all static libraries that use elfutils.
+// Soong doesn't have propagation for static library dependencies,
+// and this have to be included explicitly by elfutils users.
+cc_defaults {
+    name: "elfutils_transitive_defaults",
+    static_libs: [
+        "libz",
+        "libzstd",
+    ],
+}
+
 cc_defaults {
     name: "elfutils_defaults",
+    defaults: ["elfutils_transitive_defaults"],
     cflags: [
         "-DHAVE_CONFIG_H",
         "-D_GNU_SOURCE",
@@ -69,12 +81,11 @@ cc_defaults {
 cc_library {
     name: "libelf",
     host_supported: true,
+    native_bridge_supported: true,
     vendor_available: true,
     defaults: ["elfutils_defaults"],
 
     srcs:  ["libelf/*.c",],
-
-    static_libs: ["libz"],
 
     export_include_dirs: ["libelf"],
 
@@ -99,6 +110,7 @@ cc_library {
     },
 
     visibility: [
+        "//art:__subpackages__", // For use in tests only.
         "//device/google/contexthub/util/nanoapp_postprocess",
         "//external/bcc/libbpf-tools",
         "//external/bpftool",
@@ -110,6 +122,7 @@ cc_library {
 cc_library_headers {
     name: "elfutils_headers",
     host_supported: true,
+    native_bridge_supported: true,
     vendor_available: true,
     export_include_dirs: [
         ".",
@@ -137,7 +150,6 @@ cc_library_host_static {
         musl: {
             static_libs: [
                 "libfts",
-                "libz",
             ],
         },
     },
@@ -159,7 +171,6 @@ cc_library_host_static {
         // Do not enabled compression support
         "libdwfl/bzip2.c",
         "libdwfl/lzma.c",
-        "libdwfl/zstd.c",
         // Those headers are incompatible with clang due to nested function
         // definitions.
         "libdwfl/dwfl_segment_report_module.c",

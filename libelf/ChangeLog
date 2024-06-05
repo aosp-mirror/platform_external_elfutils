@@ -1,3 +1,24 @@
+2023-09-09  Yanglin Xun  <xunyanglins@gmail.com>
+
+ * libelf.h: Fix typo in comment
+
+2023-04-01  Youling Tang  <tangyouling@loongson.cn>
+
+	* elf.h: Update from glibc.
+
+2023-03-03  Mark Wielaard  <mark@klomp.org>
+
+	* libelf.h: Define ELFCOMPRESS_ZSTD if undefined.
+	(elf_compress): Document ELFCOMPRESS_ZSTD compression type.
+
+2023-02-20  Mark Wielaard  <mark@klomp.org>
+
+	* gnuhash_xlate.h (elf_cvt_gnuhash): memmove any left over bytes.
+
+2022-11-30  Mark Wielaard  <mark@klomp.org>
+
+	* elf.h: Update from glibc.
+
 2022-10-28  Mark Wielaard  <mark@klomp.org>
 
 	* elf.h: Update from glibc.

@@ -88,6 +88,8 @@ __libdw_form_val_compute_len (struct Dwarf_CU *cu, unsigned int form,
 
     case DW_FORM_block:
     case DW_FORM_exprloc:
+      if (valp >= endp)
+       goto invalid;
       get_uleb128 (u128, valp, endp);
       result = u128 + (valp - startp);
       break;
@@ -111,6 +113,8 @@ __libdw_form_val_compute_len (struct Dwarf_CU *cu, unsigned int form,
     case DW_FORM_strx:
     case DW_FORM_GNU_addr_index:
     case DW_FORM_GNU_str_index:
+      if (valp >= endp)
+       goto invalid;
       get_uleb128 (u128, valp, endp);
       result = valp - startp;
       break;
@@ -119,6 +123,8 @@ __libdw_form_val_compute_len (struct Dwarf_CU *cu, unsigned int form,
       /* The amount of data to skip in the DIE is the size of the actual
 	 FORM data (which is __libdw_form_val_len) plus the size of the
 	 uleb128 encoding that FORM (which is valp - startp).  */
+      if (valp >= endp)
+	goto invalid;
       get_uleb128 (u128, valp, endp);
       if (*valp == DW_FORM_indirect || *valp == DW_FORM_implicit_const)
 	return (size_t) -1;

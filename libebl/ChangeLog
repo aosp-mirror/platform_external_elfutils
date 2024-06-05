@@ -1,3 +1,12 @@
+2022-12-21  Shahab Vahedi  <shahab@synopsys.email>
+
+	* eblopenbackend.c (arc_init): New function declaration.
+	(machines): Add entry for arc.
+
+2022-12-02  Hengqi Chen  <hengqi.chen@gmail.com>
+
+	* eblopenbackend.c (machines): Add entries for LoongArch.
+
 2022-10-21  Yonggang Luo  <luoyonggang@gmail.com>
 
 	* eblclosebackend.c: Remove dlfcn.h include.

@@ -105,6 +105,13 @@ void debuginfod_end (debuginfod_client *c) { }
   #include <fts.h>
 #endif
 
+/* Older curl.h don't define CURL_AT_LEAST_VERSION.  */
+#ifndef CURL_AT_LEAST_VERSION
+  #define CURL_VERSION_BITS(x,y,z) ((x)<<16|(y)<<8|(z))
+  #define CURL_AT_LEAST_VERSION(x,y,z) \
+    (LIBCURL_VERSION_NUM >= CURL_VERSION_BITS(x, y, z))
+#endif
+
 #include <pthread.h>
 
 static pthread_once_t init_control = PTHREAD_ONCE_INIT;
@@ -241,7 +248,7 @@ debuginfod_write_callback (char *ptr, size_t size, size_t nmemb, void *data)
 
 /* handle config file read and write */
 static int
-debuginfod_config_cache(char *config_path,
+debuginfod_config_cache(debuginfod_client *c, char *config_path,
 			long cache_config_default_s,
 			struct stat *st)
 {
@@ -270,17 +277,27 @@ debuginfod_config_cache(char *config_path,
     }
 
   long cache_config;
+  /* PR29696 - NB: When using fdopen, the file descriptor is NOT
+     dup'ed and will be closed when the stream is closed. Manually
+     closing fd after fclose is called will lead to a race condition
+     where, if reused, the file descriptor will compete for its
+     regular use before being incorrectly closed here.  */
   FILE *config_file = fdopen(fd, "r");
   if (config_file)
     {
       if (fscanf(config_file, "%ld", &cache_config) != 1)
-        cache_config = cache_config_default_s;
-      fclose(config_file);
+	cache_config = cache_config_default_s;
+      if (0 != fclose (config_file) && c->verbose_fd >= 0)
+	dprintf (c->verbose_fd, "fclose failed with %s (err=%d)\n",
+		 strerror (errno), errno);
     }
   else
-    cache_config = cache_config_default_s;
-
-  close (fd);
+    {
+      cache_config = cache_config_default_s;
+      if (0 != close (fd) && c->verbose_fd >= 0)
+	dprintf (c->verbose_fd, "close failed with %s (err=%d)\n",
+		 strerror (errno), errno);
+    }
   return cache_config;
 }
 
@@ -296,7 +313,7 @@ debuginfod_clean_cache(debuginfod_client *c,
   struct stat st;
 
   /* Create new interval file.  */
-  rc = debuginfod_config_cache(interval_path,
+  rc = debuginfod_config_cache(c, interval_path,
 			       cache_clean_default_interval_s, &st);
   if (rc < 0)
     return rc;
@@ -309,11 +326,11 @@ debuginfod_clean_cache(debuginfod_client *c,
 
   /* Update timestamp representing when the cache was last cleaned.
      Do it at the start to reduce the number of threads trying to do a
-     cleanup simultaniously.  */
+     cleanup simultaneously.  */
   utime (interval_path, NULL);
 
   /* Read max unused age value from config file.  */
-  rc = debuginfod_config_cache(max_unused_path,
+  rc = debuginfod_config_cache(c, max_unused_path,
 			       cache_default_max_unused_age_s, &st);
   if (rc < 0)
     return rc;
@@ -551,7 +568,9 @@ header_callback (char * buffer, size_t size, size_t numitems, void * userdata)
   struct handle_data *data = (struct handle_data *) userdata;
   if (size != 1)
     return 0;
-  if (data->client && data->client->verbose_fd >= 0)
+  if (data->client
+      && data->client->verbose_fd >= 0
+      && numitems > 2)
     dprintf (data->client->verbose_fd, "header %.*s", (int)numitems, buffer);
   // Some basic checks to ensure the headers received are of the expected format
   if (strncasecmp(buffer, "X-DEBUGINFOD", 11)
@@ -611,6 +630,19 @@ path_escape (const char *src, char *dest)
   dest[q] = '\0';
 }
 
+/* Attempt to update the atime */
+static void
+update_atime (int fd)
+{
+  struct timespec tvs[2];
+
+  tvs[0].tv_sec = tvs[1].tv_sec = 0;
+  tvs[0].tv_nsec = UTIME_NOW;
+  tvs[1].tv_nsec = UTIME_OMIT;
+
+  (void) futimens (fd, tvs);  /* best effort */
+}
+
 /* Attempt to read an ELF/DWARF section with name SECTION from FD and write
    it to a separate file in the debuginfod cache.  If successful the absolute
    path of the separate file containing SECTION will be stored in USR_PATH.
@@ -621,7 +653,7 @@ path_escape (const char *src, char *dest)
    section name was not found.  -EEXIST indicates that the section was
    found but had type SHT_NOBITS.  */
 
-int
+static int
 extract_section (int fd, const char *section, char *fd_path, char **usr_path)
 {
   elf_version (EV_CURRENT);
@@ -754,6 +786,7 @@ extract_section (int fd, const char *section, char *fd_path, char **usr_path)
 	    *usr_path = sec_path;
 	  else
 	    free (sec_path);
+	  update_atime(fd);
 	  rc = sec_fd;
 	  goto out2;
 	}
@@ -778,23 +811,24 @@ out:
    an ELF/DWARF section with name SCN_NAME.  If found, extract the section
    to a separate file in TARGET_CACHE_DIR and return a file descriptor
    for the section file. The path for this file will be stored in USR_PATH.
-   Return a negative errno if unsuccessful.  */
+   Return a negative errno if unsuccessful.  -ENOENT indicates that SCN_NAME
+   is confirmed to not exist.  */
 
 static int
 cache_find_section (const char *scn_name, const char *target_cache_dir,
 		    char **usr_path)
 {
-  int fd;
+  int debug_fd;
   int rc = -EEXIST;
   char parent_path[PATH_MAX];
 
   /* Check the debuginfo first.  */
   snprintf (parent_path, PATH_MAX, "%s/debuginfo", target_cache_dir);
-  fd = open (parent_path, O_RDONLY);
-  if (fd >= 0)
+  debug_fd = open (parent_path, O_RDONLY);
+  if (debug_fd >= 0)
     {
-      rc = extract_section (fd, scn_name, parent_path, usr_path);
-      close (fd);
+      rc = extract_section (debug_fd, scn_name, parent_path, usr_path);
+      close (debug_fd);
     }
 
   /* If the debuginfo file couldn't be found or the section type was
@@ -802,12 +836,17 @@ cache_find_section (const char *scn_name, const char *target_cache_dir,
   if (rc == -EEXIST)
     {
       snprintf (parent_path, PATH_MAX, "%s/executable", target_cache_dir);
-      fd = open (parent_path, O_RDONLY);
+      int exec_fd = open (parent_path, O_RDONLY);
 
-      if (fd >= 0)
+      if (exec_fd >= 0)
 	{
-	  rc = extract_section (fd, scn_name, parent_path, usr_path);
-	  close (fd);
+	  rc = extract_section (exec_fd, scn_name, parent_path, usr_path);
+	  close (exec_fd);
+
+	  /* Don't return -ENOENT if the debuginfo wasn't opened.  The
+	     section may exist in the debuginfo but not the executable.  */
+	  if (debug_fd < 0 && rc == -ENOENT)
+	    rc = -EREMOTE;
 	}
     }
 
@@ -1085,6 +1124,7 @@ debuginfod_query_server (debuginfod_client *c,
                 }
             }
           /* Success!!!! */
+          update_atime(fd);
           rc = fd;
           goto out;
         }
@@ -1097,7 +1137,7 @@ debuginfod_query_server (debuginfod_client *c,
 
           close(fd); /* no need to hold onto the negative-hit file descriptor */
           
-          rc = debuginfod_config_cache(cache_miss_path,
+          rc = debuginfod_config_cache(c, cache_miss_path,
                                        cache_miss_default_s, &st);
           if (rc < 0)
             goto out;
@@ -1250,6 +1290,8 @@ debuginfod_query_server (debuginfod_client *c,
       data[i].handle = NULL;
       data[i].fd = -1;
       data[i].errbuf[0] = '\0';
+      data[i].response_data = NULL;
+      data[i].response_data_size = 0;
     }
 
   char *escaped_string = NULL;
@@ -1327,8 +1369,13 @@ debuginfod_query_server (debuginfod_client *c,
 
       /* Only allow http:// + https:// + file:// so we aren't being
 	 redirected to some unsupported protocol.  */
+#if CURL_AT_LEAST_VERSION(7, 85, 0)
+      curl_easy_setopt_ck(data[i].handle, CURLOPT_PROTOCOLS_STR,
+			  "http,https,file");
+#else
       curl_easy_setopt_ck(data[i].handle, CURLOPT_PROTOCOLS,
 			  (CURLPROTO_HTTP | CURLPROTO_HTTPS | CURLPROTO_FILE));
+#endif
       curl_easy_setopt_ck(data[i].handle, CURLOPT_URL, data[i].url);
       if (vfd >= 0)
 	curl_easy_setopt_ck(data[i].handle, CURLOPT_ERRORBUFFER,
@@ -1346,8 +1393,6 @@ debuginfod_query_server (debuginfod_client *c,
 	  curl_easy_setopt_ck (data[i].handle, CURLOPT_LOW_SPEED_LIMIT,
 			       100 * 1024L);
 	}
-      data[i].response_data = NULL;
-      data[i].response_data_size = 0;
       curl_easy_setopt_ck(data[i].handle, CURLOPT_FILETIME, (long) 1);
       curl_easy_setopt_ck(data[i].handle, CURLOPT_FOLLOWLOCATION, (long) 1);
       curl_easy_setopt_ck(data[i].handle, CURLOPT_FAILONERROR, (long) 1);
@@ -1449,14 +1494,14 @@ debuginfod_query_server (debuginfod_client *c,
           goto out2;
         }
 
-      long dl_size = 0;
+      long dl_size = -1;
       if (target_handle && (c->progressfn || maxsize > 0))
         {
           /* Get size of file being downloaded. NB: If going through
              deflate-compressing proxies, this number is likely to be
              unavailable, so -1 may show. */
           CURLcode curl_res;
-#ifdef CURLINFO_CONTENT_LENGTH_DOWNLOAD_T
+#if CURL_AT_LEAST_VERSION(7, 55, 0)
           curl_off_t cl;
           curl_res = curl_easy_getinfo(target_handle,
                                        CURLINFO_CONTENT_LENGTH_DOWNLOAD_T,
@@ -1468,7 +1513,7 @@ debuginfod_query_server (debuginfod_client *c,
           curl_res = curl_easy_getinfo(target_handle,
                                        CURLINFO_CONTENT_LENGTH_DOWNLOAD,
                                        &cl);
-          if (curl_res == CURLE_OK)
+          if (curl_res == CURLE_OK && cl >= 0)
             dl_size = (cl >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)cl);
 #endif
           /* If Content-Length is -1, try to get the size from
@@ -1477,9 +1522,9 @@ debuginfod_query_server (debuginfod_client *c,
             {
               long xdl;
               char *hdr = strcasestr(c->winning_headers, "x-debuginfod-size");
+              size_t off = strlen("x-debuginfod-size:");
 
-              if (hdr != NULL
-                  && sscanf(hdr, "x-debuginfod-size: %ld", &xdl) == 1)
+              if (hdr != NULL && sscanf(hdr + off, "%ld", &xdl) == 1)
                 dl_size = xdl;
             }
         }
@@ -1490,26 +1535,40 @@ debuginfod_query_server (debuginfod_client *c,
           long pa = loops; /* default param for progress callback */
           if (target_handle) /* we've committed to a server; report its download progress */
             {
-              CURLcode curl_res;
-#ifdef CURLINFO_SIZE_DOWNLOAD_T
-              curl_off_t dl;
-              curl_res = curl_easy_getinfo(target_handle,
-                                           CURLINFO_SIZE_DOWNLOAD_T,
-                                           &dl);
-              if (curl_res == 0 && dl >= 0)
-                pa = (dl > LONG_MAX ? LONG_MAX : (long)dl);
+              /* PR30809: Check actual size of cached file.  This same
+                 fd is shared by all the multi-curl handles (but only
+                 one will end up writing to it).  Another way could be
+                 to tabulate totals in debuginfod_write_callback(). */
+              struct stat cached;
+              int statrc = fstat(fd, &cached);
+              if (statrc == 0)
+                pa = (long) cached.st_size;
+              else
+                {
+                  /* Otherwise, query libcurl for its tabulated total.
+                     However, that counts http body length, not
+                     decoded/decompressed content length, so does not
+                     measure quite the same thing as dl. */
+                  CURLcode curl_res;
+#if CURL_AT_LEAST_VERSION(7, 55, 0)
+                  curl_off_t dl;
+                  curl_res = curl_easy_getinfo(target_handle,
+                                               CURLINFO_SIZE_DOWNLOAD_T,
+                                               &dl);
+                  if (curl_res == 0 && dl >= 0)
+                    pa = (dl > LONG_MAX ? LONG_MAX : (long)dl);
 #else
-              double dl;
-              curl_res = curl_easy_getinfo(target_handle,
-                                           CURLINFO_SIZE_DOWNLOAD,
-                                           &dl);
-              if (curl_res == 0)
-                pa = (dl >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)dl);
+                  double dl;
+                  curl_res = curl_easy_getinfo(target_handle,
+                                               CURLINFO_SIZE_DOWNLOAD,
+                                               &dl);
+                  if (curl_res == 0)
+                    pa = (dl >= (double)(LONG_MAX+1UL) ? LONG_MAX : (long)dl);
 #endif
-
+                }
             }
 
-          if ((*c->progressfn) (c, pa, dl_size))
+          if ((*c->progressfn) (c, pa, dl_size == -1 ? 0 : dl_size))
 	    {
 	      c->progressfn_cancel = true;
               break;
@@ -1649,9 +1708,9 @@ debuginfod_query_server (debuginfod_client *c,
         }
     } while (num_msg > 0);
 
-  /* Create an empty file named as $HOME/.cache if the query fails
-     with ENOENT.*/
-  if (rc == -ENOENT)
+  /* Create an empty file in the cache if the query fails with ENOENT and
+     it wasn't cancelled early.  */
+  if (rc == -ENOENT && !c->progressfn_cancel)
     {
       int efd = open (target_cache_path, O_CREAT|O_EXCL, DEFFILEMODE);
       if (efd >= 0)
@@ -1700,13 +1759,15 @@ debuginfod_query_server (debuginfod_client *c,
 #else
   CURLcode curl_res = curl_easy_getinfo(verified_handle, CURLINFO_FILETIME, (void*) &mtime);
 #endif
-  if (curl_res != CURLE_OK)
-    mtime = time(NULL); /* fall back to current time */
-
-  struct timeval tvs[2];
-  tvs[0].tv_sec = tvs[1].tv_sec = mtime;
-  tvs[0].tv_usec = tvs[1].tv_usec = 0;
-  (void) futimes (fd, tvs);  /* best effort */
+  if (curl_res == CURLE_OK)
+    {
+      struct timespec tvs[2];
+      tvs[0].tv_sec = 0;
+      tvs[0].tv_nsec = UTIME_OMIT;
+      tvs[1].tv_sec = mtime;
+      tvs[1].tv_nsec = 0;
+      (void) futimens (fd, tvs);  /* best effort */
+    }
 
   /* PR27571: make cache files casually unwriteable; dirs are already 0700 */
   (void) fchmod(fd, 0400);
@@ -1936,7 +1997,7 @@ debuginfod_find_section (debuginfod_client *client,
 	}
       return -ENOENT;
     }
-  if (fd > 0)
+  if (fd >= 0)
     {
       rc = extract_section (fd, section, tmp_path, path);
       close (fd);
@@ -1944,14 +2005,18 @@ debuginfod_find_section (debuginfod_client *client,
 
   if (rc == -EEXIST)
     {
-      /* The section should be found in the executable.  */
+      /* Either the debuginfo couldn't be found or the section should
+	 be in the executable.  */
       fd = debuginfod_find_executable (client, build_id,
 				       build_id_len, &tmp_path);
-      if (fd > 0)
+      if (fd >= 0)
 	{
 	  rc = extract_section (fd, section, tmp_path, path);
 	  close (fd);
 	}
+      else
+	/* Update rc so that we return the most recent error code.  */
+	rc = fd;
     }
 
   free (tmp_path);

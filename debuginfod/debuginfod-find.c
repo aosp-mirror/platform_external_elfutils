@@ -30,7 +30,9 @@
 #include <fcntl.h>
 #include <gelf.h>
 #include <libdwelf.h>
+#ifndef DUMMY_LIBDEBUGINFOD
 #include <json-c/json.h>
+#endif
 
 /* Name and version of program.  */
 ARGP_PROGRAM_VERSION_HOOK_DEF = print_version;
@@ -243,6 +245,7 @@ main(int argc, char** argv)
       
       rc = debuginfod_find_metadata (client, argv[remaining+1], argv[remaining+2],
                                      &cache_name);
+#ifndef DUMMY_LIBDEBUGINFOD
       if (rc >= 0)
         {
           /* We output a pprinted JSON object, not the regular debuginfod-find cached file path */
@@ -264,6 +267,7 @@ main(int argc, char** argv)
               return 1;
             }
         }
+#endif
     }
   else
     {

@@ -846,6 +846,8 @@ AC_CHECK_HEADER(imaevm.h)
 # pronounce judgement on ability to build client, overridden by =yes/=no
 if test "x$enable_libdebuginfod" = "xno"; then
    true
+elif test "x$enable_libdebuginfod" = "xdummy"; then
+   true
 elif test "x$have_jsonc$have_libcurl" = "xyesyes"; then
    enable_libdebuginfod=yes
 elif test "x$enable_libdebuginfod" = "xyes" -o "x$enable_libdebuginfod" = "xdummy"; then

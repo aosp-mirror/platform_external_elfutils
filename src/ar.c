@@ -808,9 +808,9 @@ cannot rename temporary file to %.*s"),
 	      if (fchown (newfd, st.st_uid, st.st_gid) != 0) { ; }
 	      /* Set the mode of the new file to the same values the
 		 original file has.  */
-	      if (fchmod (newfd, st.st_mode & ALLPERMS) != 0
-		  || close (newfd) != 0)
+	      if (fchmod (newfd, st.st_mode & ALLPERMS) != 0)
 		goto nonew_unlink;
+	      close (newfd);
 	      newfd = -1;
 	      if (rename (tmpfname, arfname) != 0)
 		goto nonew_unlink;
@@ -1061,9 +1061,9 @@ do_oper_delete (const char *arfname, char **argv, int argc,
      setting the mode (which might be reset/ignored if the owner is
      wrong.  */
   if (fchown (newfd, st.st_uid, st.st_gid) != 0) { ; }
-  if (fchmod (newfd, st.st_mode & ALLPERMS) != 0
-      || close (newfd) != 0)
+  if (fchmod (newfd, st.st_mode & ALLPERMS) != 0)
     goto nonew_unlink;
+  close (newfd);
   newfd = -1;
   if (rename (tmpfname, arfname) != 0)
     goto nonew_unlink;
@@ -1547,9 +1547,9 @@ do_oper_insert (int oper, const char *arfname, char **argv, int argc,
 	 setting the modes, or they might be reset/ignored if the
 	 owner is wrong.  */
       if (fchown (newfd, st.st_uid, st.st_gid) != 0) { ; }
-      if (fchmod (newfd, st.st_mode & ALLPERMS) != 0
-	  || close (newfd) != 0)
+      if (fchmod (newfd, st.st_mode & ALLPERMS) != 0)
         goto nonew_unlink;
+      close (newfd);
       newfd = -1;
       if (rename (tmpfname, arfname) != 0)
 	goto nonew_unlink;

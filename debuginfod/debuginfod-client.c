@@ -673,9 +673,9 @@ add_default_headers(debuginfod_client *client)
               v++;
               s[len - 1] = '\0';
             }
-          if (strcmp (s, "ID") == 0)
+          if (id == NULL && strcmp (s, "ID") == 0)
             id = strdup (v);
-          if (strcmp (s, "VERSION_ID") == 0)
+          if (version == NULL && strcmp (s, "VERSION_ID") == 0)
             version = strdup (v);
         }
       fclose (f);

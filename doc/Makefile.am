@@ -27,7 +27,15 @@ notrans_dist_man1_MANS= debuginfod-find.1
 
 # Section 3, Library calls
 # libelf man pages (all notrans)
-notrans_dist_man3_MANS=elf_update.3 elf_getdata.3 elf_clone.3 elf_begin.3
+notrans_dist_man3_MANS= elf_update.3 \
+			elf_getdata.3 \
+			elf_clone.3 \
+			elf_begin.3 \
+			elf32_getehdr.3 \
+			elf64_getehdr.3 \
+			elf_errmsg.3 \
+			elf_errno.3 \
+			elf_version.3
 
 # libdebuginfod man pages (also notrans)
 # Note we include them even when not building them because we want

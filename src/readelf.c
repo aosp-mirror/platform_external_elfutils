@@ -3597,6 +3597,7 @@ print_hash_info (Ebl *ebl, Elf_Scn *scn, GElf_Shdr *shdr, size_t shstrndx,
     {
       error (0, 0, _("invalid sh_link value in section %zu"),
 	     elf_ndxscn (scn));
+      free (counts);
       return;
     }
 

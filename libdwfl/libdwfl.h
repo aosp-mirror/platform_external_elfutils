@@ -818,6 +818,12 @@ int dwfl_frame_reg (Dwfl_Frame *state, unsigned regno, Dwarf_Word *val)
  */
 extern debuginfod_client *dwfl_get_debuginfod_client (Dwfl *dwfl);
 
+/* Set the sysroot to use when searching for shared libraries and binaries. If not
+   specified, search the system root. Passing NULL clears previously set sysroot. Note
+   that library creates a copy of the sysroot argument.  */
+int dwfl_set_sysroot (Dwfl *dwfl, const char *sysroot)
+  __nonnull_attribute__ (1);
+
 #ifdef __cplusplus
 }
 #endif

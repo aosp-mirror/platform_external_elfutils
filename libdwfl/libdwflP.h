@@ -134,6 +134,8 @@ struct Dwfl
   int next_segndx;
 
   struct Dwfl_User_Core *user_core;
+  char *sysroot;		/* sysroot, or NULL to search standard system
+				   paths */
 };
 
 #define OFFLINE_REDZONE		0x10000
@@ -698,6 +700,7 @@ struct r_debug_info
 /* ...
  */
 extern int dwfl_segment_report_module (Dwfl *dwfl, int ndx, const char *name,
+				       const char *executable,
 				       Dwfl_Memory_Callback *memory_callback,
 				       void *memory_callback_arg,
 				       Dwfl_Module_Callback *read_eagerly,

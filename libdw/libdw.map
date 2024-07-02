@@ -378,3 +378,8 @@ ELFUTILS_0.191 {
   global:
     dwarf_cu_dwp_section_info;
 } ELFUTILS_0.188;
+
+ELFUTILS_0.192 {
+  global:
+    dwfl_set_sysroot;
+} ELFUTILS_0.191;

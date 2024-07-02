@@ -1,5 +1,5 @@
-/* Finish a session using libdwfl.
-   Copyright (C) 2005, 2008, 2012-2013, 2015 Red Hat, Inc.
+/* Return one of the sources lines of a CU.
+   Copyright (C) 2024 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -30,41 +30,48 @@
 # include <config.h>
 #endif
 
+#include <sys/stat.h>
+
 #include "libdwflP.h"
+#include "libdwP.h"
 
-void
-dwfl_end (Dwfl *dwfl)
+int
+dwfl_set_sysroot (Dwfl *dwfl, const char *sysroot)
 {
-  if (dwfl == NULL)
-    return;
+  if (!sysroot)
+    {
+      free (dwfl->sysroot);
+      dwfl->sysroot = NULL;
+      return 0;
+    }
 
-#ifdef ENABLE_LIBDEBUGINFOD
-  __libdwfl_debuginfod_end (dwfl->debuginfod);
-#endif
+  char *r, *s;
+  r = realpath (sysroot, NULL);
+  if (!r)
+    return -1;
 
-  if (dwfl->process)
-    __libdwfl_process_free (dwfl->process);
+  int rc;
+  struct stat sb;
 
-  free (dwfl->lookup_addr);
-  free (dwfl->lookup_module);
-  free (dwfl->lookup_segndx);
+  rc = stat (r, &sb);
+  if (rc < 0 || !S_ISDIR (sb.st_mode))
+    {
+      errno = EINVAL;
+      return -1;
+    }
+
+  rc = asprintf (&s, "%s/", r);
+  if (rc < 0)
+    {
+      errno = ENOMEM;
+      return -1;
+    }
+
   free (dwfl->sysroot);
+  free (r);
 
-  Dwfl_Module *next = dwfl->modulelist;
-  while (next != NULL)
-    {
-      Dwfl_Module *dead = next;
-      next = dead->next;
-      __libdwfl_module_free (dead);
-    }
-
-  if (dwfl->user_core != NULL)
-    {
-      free (dwfl->user_core->executable_for_core);
-      elf_end (dwfl->user_core->core);
-      if (dwfl->user_core->fd != -1)
-	close (dwfl->user_core->fd);
-      free (dwfl->user_core);
-    }
-  free (dwfl);
+  dwfl->sysroot = s;
+  return 0;
 }
+
+INTDEF (dwfl_set_sysroot)

@@ -73,6 +73,7 @@ static int core_fd = -1;
 static Elf *core = NULL;
 static const char *exec = NULL;
 static char *debuginfo_path = NULL;
+static const char *sysroot = NULL;
 
 static const Dwfl_Callbacks proc_callbacks =
   {
@@ -559,6 +560,10 @@ parse_opt (int key, char *arg __attribute__ ((unused)),
       show_modules = true;
       break;
 
+    case 'S':
+      sysroot = arg;
+      break;
+
     case ARGP_KEY_END:
       if (core == NULL && exec != NULL)
 	argp_error (state,
@@ -592,6 +597,8 @@ parse_opt (int key, char *arg __attribute__ ((unused)),
 	  dwfl = dwfl_begin (&core_callbacks);
 	  if (dwfl == NULL)
 	    error (EXIT_BAD, 0, "dwfl_begin: %s", dwfl_errmsg (-1));
+	  if (sysroot && dwfl_set_sysroot (dwfl, sysroot) < 0)
+	    error (EXIT_BAD, 0, "dwfl_set_sysroot: %m");
 	  if (dwfl_core_file_report (dwfl, core, exec) < 0)
 	    error (EXIT_BAD, 0, "dwfl_core_file_report: %s", dwfl_errmsg (-1));
 	}
@@ -675,6 +682,8 @@ main (int argc, char **argv)
 	N_("Show at most MAXFRAMES per thread (default 256, use 0 for unlimited)"), 0 },
       { "list-modules", 'l', NULL, 0,
 	N_("Show module memory map with build-id, elf and debug files detected"), 0 },
+      { "sysroot", 'S', "sysroot", 0,
+	N_("Set the sysroot to search for libraries referenced from the core file"), 0 },
       { NULL, 0, NULL, 0, NULL, 0 }
     };
 

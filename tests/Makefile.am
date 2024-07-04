@@ -669,7 +669,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile-dwp-4-cu-index-overflow.dwp.bz2 \
 	     testfile-dwp-cu-index-overflow.source \
 	     testfile-define-file.bz2 \
-	     testfile-sysroot.tar.bz2
+	     testfile-sysroot.tar.bz2 run-sysroot.sh
 
 
 if USE_VALGRIND

@@ -1120,7 +1120,7 @@ main (int argc, char *argv[])
 
 	  const char *name = (modname[0] != '\0'
 			      ? modname
-			      :  basename (mainfile));
+			      :  xbasename (mainfile));
 	  printf ("module '%s'\n", name);
 	  print_die (&cudie, "CU", 0);
 

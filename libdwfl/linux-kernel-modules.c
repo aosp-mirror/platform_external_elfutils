@@ -116,7 +116,7 @@ try_kernel_name (Dwfl *dwfl, char **fname, bool try_debug)
 	/* Try the file's unadorned basename as DEBUGLINK_FILE,
 	   to look only for "vmlinux" files.  */
 	fd = INTUSE(dwfl_standard_find_debuginfo) (&fakemod, NULL, NULL, 0,
-						   *fname, basename (*fname),
+						   *fname, xbasename (*fname),
 						   0, &fakemod.debug.name);
 
       if (fakemod.debug.name != NULL)

@@ -595,7 +595,7 @@ dwfl_core_file_report (Dwfl *dwfl, Elf *elf, const char *executable)
       if (! __libdwfl_dynamic_vaddr_get (module->elf, &file_dynamic_vaddr))
 	continue;
       Dwfl_Module *mod;
-      mod = __libdwfl_report_elf (dwfl, basename (module->name), module->name,
+      mod = __libdwfl_report_elf (dwfl, xbasename (module->name), module->name,
 				  module->fd, module->elf,
 				  module->l_ld - file_dynamic_vaddr,
 				  true, true);

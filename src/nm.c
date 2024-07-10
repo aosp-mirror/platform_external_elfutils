@@ -1417,7 +1417,7 @@ show_symbols (int fd, Ebl *ebl, GElf_Ehdr *ehdr,
 			  int lineno;
 			  (void) dwarf_lineno (line, &lineno);
 			  const char *file = dwarf_linesrc (line, NULL, NULL);
-			  file = (file != NULL) ? basename (file) : "???";
+			  file = (file != NULL) ? xbasename (file) : "???";
 			  int n;
 			  n = obstack_printf (&whereob, "%s:%d%c", file,
 					      lineno, '\0');
@@ -1448,7 +1448,7 @@ show_symbols (int fd, Ebl *ebl, GElf_Ehdr *ehdr,
 		{
 		  /* We found the line.  */
 		  int n = obstack_printf (&whereob, "%s:%" PRIu64 "%c",
-					  basename ((*found)->file),
+					  xbasename ((*found)->file),
 					  (*found)->lineno,
 					  '\0');
 		  sym_mem[nentries_used].where = obstack_finish (&whereob);

@@ -17,8 +17,6 @@
 
 . $srcdir/test-subr.sh
 
-set -ex;
-
 tmpdir="$(mktemp -d)"
 trap "rm -rf -- ${tmpdir}" EXIT
 
@@ -28,13 +26,16 @@ tar xjf "${abs_srcdir}/testfile-sysroot.tar.bz2" -C "${tmpdir}"
 testrun "${abs_top_builddir}"/src/stack --core "${tmpdir}/core.bash" \
 	--sysroot "${tmpdir}/sysroot" >"${tmpdir}/stack.out"
 
+# Remove 2 stack frames with symbol names contained in .gnu_debugdata.
+# Whether or not these names appear in the output depends on if elfutils
+# was built with LZMA support.
+sed -i '4,5d' "${tmpdir}/stack.out"
+
 # check that we are able to get fully symbolized backtrace
-testrun diff "${tmpdir}/stack.out" - <<\EOF
+testrun_compare cat "${tmpdir}/stack.out" <<\EOF
 PID 431185 - core
 TID 431185:
 #0  0x0000ffff8ebe5a8c kill
-#1  0x0000aaaae5663f20 kill_shell
-#2  0x0000aaaae5667a98 termsig_handler.part.0
 #3  0x0000aaaae562b2fc execute_command
 #4  0x0000aaaae561cbb4 reader_loop
 #5  0x0000aaaae5611bf0 main

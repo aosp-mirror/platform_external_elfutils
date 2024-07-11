@@ -48,7 +48,7 @@ arm_machine_flag_name (Elf64_Word orig, Elf64_Word *flagref)
 	  "Version5 EABI",
         };
       *flagref &= ~((Elf64_Word) EF_ARM_EABIMASK);
-      return vername[version - 1];
+      return version <= 5 ? vername[version - 1] : NULL;
     }
   switch (EF_ARM_EABI_VERSION (orig))
     {

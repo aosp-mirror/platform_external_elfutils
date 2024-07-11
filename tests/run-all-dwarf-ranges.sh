@@ -126,4 +126,118 @@ die: no_subject (2e)
 
 EOF
 
+# See testfile-dwp.source.
+testfiles testfile-dwp-5 testfile-dwp-5.dwp
+testfiles testfile-dwp-4 testfile-dwp-4.dwp
+
+testrun_compare ${abs_builddir}/all-dwarf-ranges testfile-dwp-5 << EOF
+die: foo.cc (11)
+ 401190..401200
+
+die: foo (2e)
+ 4011c0..401200
+
+die: x_x (1d)
+ 4011cb..4011eb
+ 4011f8..401200
+
+die: <unknown> (b)
+ 4011cb..4011eb
+ 4011f8..401200
+
+die: x_x (2e)
+ 401190..4011bd
+
+die: <unknown> (b)
+ 401190..401190
+ 401192..4011bb
+
+die: bar.cc (11)
+ 401200..40121b
+
+die: bar (2e)
+ 401200..40121b
+
+die: main.cc (11)
+ 401020..4010a0
+
+die: main (2e)
+ 401020..4010a0
+
+die: fibonacci (1d)
+ 401030..401032
+ 401036..401060
+ 401099..4010a0
+
+die: fibonacci (1d)
+ 40103a..401060
+ 401099..4010a0
+
+die: <unknown> (b)
+ 40103a..401060
+ 401099..4010a0
+
+die: <unknown> (b)
+ 40103a..401044
+ 401050..401060
+
+die: <unknown> (b)
+ 401050..401053
+ 401056..401059
+
+EOF
+
+testrun_compare ${abs_builddir}/all-dwarf-ranges testfile-dwp-4 << EOF
+die: foo.cc (11)
+ 401190..401200
+
+die: foo (2e)
+ 4011c0..401200
+
+die: x_x (1d)
+ 4011cb..4011eb
+ 4011f8..401200
+
+die: <unknown> (b)
+ 4011cb..4011eb
+ 4011f8..401200
+
+die: x_x (2e)
+ 401190..4011bd
+
+die: bar.cc (11)
+ 401200..40121b
+
+die: bar (2e)
+ 401200..40121b
+
+die: main.cc (11)
+ 401020..4010a0
+
+die: main (2e)
+ 401020..4010a0
+
+die: fibonacci (1d)
+ 401030..401032
+ 401036..401060
+ 401099..4010a0
+
+die: fibonacci (1d)
+ 40103a..401060
+ 401099..4010a0
+
+die: <unknown> (b)
+ 40103a..401060
+ 401099..4010a0
+
+die: <unknown> (b)
+ 40103a..401044
+ 401050..401060
+
+die: <unknown> (b)
+ 401050..401053
+ 401056..401059
+
+EOF
+
 exit 0

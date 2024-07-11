@@ -164,7 +164,7 @@ find_debuginfo_in_path (Dwfl_Module *mod, const char *file_name,
 {
   bool cancheck = debuglink_crc != (GElf_Word) 0;
 
-  const char *file_basename = file_name == NULL ? NULL : basename (file_name);
+  const char *file_basename = file_name == NULL ? NULL : xbasename (file_name);
   char *localname = NULL;
 
   /* We invent a debuglink .debug name if NULL, but then want to try the
@@ -278,7 +278,7 @@ find_debuginfo_in_path (Dwfl_Module *mod, const char *file_name,
 	  else
 	    {
 	      subdir = NULL;
-	      file = basename (debuglink_file);
+	      file = xbasename (debuglink_file);
 	    }
 	  try_file_basename = debuglink_null;
 	  break;
@@ -306,7 +306,7 @@ find_debuginfo_in_path (Dwfl_Module *mod, const char *file_name,
 	    if (mod->dw != NULL && (p[0] == '\0' || p[0] == '/'))
 	      {
 		fd = try_open (&main_stat, dir, ".dwz",
-			       basename (file), &fname);
+			       xbasename (file), &fname);
 		if (fd < 0)
 		  {
 		    if (errno != ENOENT && errno != ENOTDIR)

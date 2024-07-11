@@ -46,6 +46,11 @@ distcheck-hook:
 rpm: dist
 	rpmbuild -ts elfutils-@PACKAGE_VERSION@.tar.bz2
 
+rpmbuild: dist
+	mkdir -p rpmbuild
+	rpmbuild -ta elfutils-@PACKAGE_VERSION@.tar.bz2 \
+		--define "_topdir $(shell pwd)/rpmbuild"
+
 if GCOV
 
 COVERAGE_OUTPUT_FILE = $(PACKAGE_NAME).lcov

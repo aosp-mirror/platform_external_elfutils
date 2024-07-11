@@ -1,4 +1,5 @@
 /* Copyright (C) 2015 Red Hat, Inc.
+   Copyright (C) 2024 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -18,16 +19,19 @@
 # include <config.h>
 #endif
 
+#include <assert.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <libelf.h>
+#include <errno.h>
 #include <gelf.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/mman.h>
 
 
 int
@@ -38,21 +42,62 @@ main (int argc, char *argv[])
 
   if (argc < 3
       || (strcmp (argv[1], "read") != 0
-          && strcmp (argv[1], "mmap") != 0))
+          && strcmp (argv[1], "mmap") != 0
+          && strcmp (argv[1], "mem") != 0))
     {
-      printf ("Usage: (read|mmap) files...\n");
+      printf ("Usage: (read|mmap|mem) files...\n");
       return -1;
     }
 
-  bool mmap = strcmp (argv[1], "mmap") == 0;
+  bool do_read = strcmp (argv[1], "read") == 0;
+  bool do_mmap = strcmp (argv[1], "mmap") == 0;
+  bool do_mem = strcmp (argv[1], "mem") == 0;
 
   elf_version (EV_CURRENT);
 
   for (cnt = 2; cnt < argc; ++cnt)
     {
       int fd = open (argv[cnt], O_RDONLY);
+      void *map_address = NULL;
+      size_t map_size = 0;
 
-      Elf *elf = elf_begin (fd, mmap ? ELF_C_READ_MMAP : ELF_C_READ, NULL);
+      Elf *elf;
+      if (do_read)
+	elf = elf_begin (fd, ELF_C_READ, NULL);
+      else if (do_mmap)
+	elf = elf_begin (fd, ELF_C_READ_MMAP, NULL);
+      else
+        {
+	  assert (do_mem);
+	  // We mmap the memory ourselves, explicitly PROT_READ only
+	  struct stat st;
+	  if (fstat (fd, &st) != 0)
+	    {
+	      printf ("%s cannot stat %s\n", argv[cnt], strerror (errno));
+	      result = 1;
+	      close (fd);
+	      continue;
+	    }
+	  map_size = st.st_size;
+	  map_address = mmap (NULL, map_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	  if (map_address == MAP_FAILED)
+	    {
+	      printf ("%s cannot mmap %s\n", argv[cnt], strerror (errno));
+	      result = 1;
+	      close (fd);
+	      continue;
+	    }
+	  if (map_size < EI_NIDENT
+	      || memcmp (map_address, ELFMAG, SELFMAG) != 0)
+	    {
+	      printf ("%s isn't an ELF file\n", argv[cnt]);
+	      result = 1;
+	      munmap (map_address, map_size);
+	      close (fd);
+	      continue;
+	    }
+	  elf = elf_memory (map_address, map_size);
+        }
       if (elf == NULL)
 	{
 	  printf ("%s not usable %s\n", argv[cnt], elf_errmsg (-1));
@@ -107,6 +152,21 @@ main (int argc, char *argv[])
 
       elf_end (elf);
       close (fd);
+
+      if (do_mem)
+        {
+          /* Make sure we can still get at the memory.  */
+	  if (memcmp (map_address, ELFMAG, SELFMAG) != 0)
+	    {
+	      printf ("%s isn't an ELF file anymore???\n", argv[cnt]);
+	      result = 1;
+	    }
+	  if (munmap (map_address, map_size) != 0)
+	    {
+	      printf ("%s cannot munmap %s\n", argv[cnt], strerror (errno));
+	      result = 1;
+	    }
+        }
     }
 
   return result;

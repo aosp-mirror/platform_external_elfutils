@@ -27,6 +27,7 @@
 #include <unistd.h>
 
 #include "../libdw/known-dwarf.h"
+#include "../lib/system.h"
 
 static const char *
 dwarf_tag_string (unsigned int tag)
@@ -318,7 +319,7 @@ main (int argc, char *argv[])
       int fd = open (argv[cnt], O_RDONLY);
       Dwarf *dbg;
 
-      printf ("file: %s\n", basename (argv[cnt]));
+      printf ("file: %s\n", xbasename (argv[cnt]));
 
       dbg = dwarf_begin (fd, DWARF_C_READ);
       if (dbg == NULL)

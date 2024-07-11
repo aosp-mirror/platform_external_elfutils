@@ -9,11 +9,11 @@ third_party {
     type: GIT
     value: "git://sourceware.org/git/elfutils.git"
   }
-  version: "elfutils-0.190"
+  version: "elfutils-0.191"
   license_type: RESTRICTED
   last_upgrade_date {
     year: 2024
-    month: 01
-    day: 24
+    month: 7
+    day: 8
   }
 }

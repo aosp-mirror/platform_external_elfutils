@@ -1081,6 +1081,33 @@ extern int dwarf_frame_register (Dwarf_Frame *frame, int regno,
   __nonnull_attribute__ (3, 4, 5);
 
 
+/* Return offset and/or size of CU's contribution to SECTION in a
+   DWARF package file.
+
+   If CU is not from a DWARF package file, the file does not have
+   SECTION, or CU does not contribute to SECTION, then *OFFSETP and
+   *SIZEP are set to 0 (this is not an error and the function will
+   return 0 in that case).
+
+   SECTION is a DW_SECT section identifier.  Note that the original
+   GNU DWARF package file extension for DWARF 4 used slightly
+   different section identifiers.  This function uses the standardized
+   section identifiers and maps the GNU DWARF 4 identifiers to their
+   standard DWARF 5 analogues: DW_SECT_LOCLISTS (5) refers to
+   .debug_locs.dwo for DWARF 4.  DW_SECT_MACRO (7) refers to
+   .debug_macinfo.dwo for DWARF 4 or .debug_macro.dwo for the GNU
+   .debug_macro extension for DWARF 4 (section identifier 8 is
+   DW_SECT_RNGLISTS in DWARF 5, NOT DW_SECT_MACRO like in the GNU
+   extension.)  .debug_types.dwo does not have a DWARF 5 equivalent,
+   so this function accepts the original DW_SECT_TYPES (2).
+
+   Returns 0 for success or -1 for errors reading the DWARF package
+   file data or if an unknown SECTION constant is given.  OFFSETP and
+   SIZEP may be NULL.  */
+extern int dwarf_cu_dwp_section_info (Dwarf_CU *cu, unsigned int section,
+				      Dwarf_Off *offsetp, Dwarf_Off *sizep);
+
+
 /* Return error code of last failing function call.  This value is kept
    separately for each thread.  */
 extern int dwarf_errno (void);

@@ -598,21 +598,30 @@ adjust_relocs (Elf_Scn *outscn, Elf_Scn *inscn, const GElf_Shdr *shdr,
 /* Adjust all the relocation sections in the file.  */
 static void
 adjust_all_relocs (Elf *elf, Elf_Scn *symtab, const GElf_Shdr *symshdr,
-		   size_t map[], size_t map_size)
+		   size_t map[], size_t map_size, bool scn_filter[])
 {
   size_t new_sh_link = elf_ndxscn (symtab);
   Elf_Scn *scn = NULL;
   while ((scn = elf_nextscn (elf, scn)) != NULL)
     if (scn != symtab)
       {
+	if (scn_filter != NULL)
+	  {
+	    size_t ndx = elf_ndxscn (scn);
+
+	    /* Skip relocations that were already mapped during adjust_relocs
+	       for the stripped symtab.  This is to avoid mapping a relocation's
+	       symbol index from X to Y during the first adjust_relocs and then
+	       wrongly remapping it from Y to Z during the second call.  */
+	    if (scn_filter[ndx])
+	      continue;
+	  }
+
 	GElf_Shdr shdr_mem;
 	GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
 	ELF_CHECK (shdr != NULL, _("cannot get section header: %s"));
-	/* Don't redo SHT_GROUP, groups are in both the stripped and debug,
-	   it will already have been done by adjust_relocs for the
-	   stripped_symtab.  */
-	if (shdr->sh_type != SHT_NOBITS && shdr->sh_type != SHT_GROUP
-	    && shdr->sh_link == new_sh_link)
+
+	if (shdr->sh_type != SHT_NOBITS && shdr->sh_link == new_sh_link)
 	  adjust_relocs (scn, scn, shdr, map, map_size, symshdr);
       }
 }
@@ -697,7 +706,7 @@ add_new_section_symbols (Elf_Scn *old_symscn, size_t old_shnum,
     }
 
   /* Adjust any relocations referring to the old symbol table.  */
-  adjust_all_relocs (elf, symscn, shdr, symndx_map, nsym - 1);
+  adjust_all_relocs (elf, symscn, shdr, symndx_map, nsym - 1, NULL);
 
   return symdata;
 }
@@ -874,6 +883,7 @@ collect_symbols (Elf *outelf, bool rel, Elf_Scn *symscn, Elf_Scn *strscn,
       s->shndx = shndx;
       s->info.info = sym->st_info;
       s->info.other = sym->st_other;
+      s->duplicate = NULL;
 
       if (scnmap != NULL && shndx != SHN_UNDEF && shndx < SHN_LORESERVE)
 	s->shndx = scnmap[shndx - 1];
@@ -903,10 +913,41 @@ collect_symbols (Elf *outelf, bool rel, Elf_Scn *symscn, Elf_Scn *strscn,
   if (s1->value > s2->value)						      \
     return 1
 
-/* Compare symbols with a consistent ordering,
-   but one only meaningful for equality.  */
+/* Symbol comparison used to sort symbols in preparation for deduplication.  */
 static int
 compare_symbols (const void *a, const void *b)
+{
+  const struct symbol *s1 = a;
+  const struct symbol *s2 = b;
+
+  CMP (value);
+  CMP (size);
+  CMP (shndx);
+
+  int res = s1->compare - s2->compare;
+  if (res != 0)
+    return res;
+
+  res = strcmp (s1->name, s2->name);
+  if (res != 0)
+    return res;
+
+  /* Duplicates still have distinct positions in the symbol index map.
+     Compare map positions to ensure that duplicate symbols are ordered
+     consistently even if the sort function is unstable.  */
+  CMP (map);
+  error_exit (0, _("found two identical index map positions."));
+}
+
+/* Symbol comparison used to deduplicate symbols found in both the stripped
+   and unstripped input files.
+
+   Similar to compare_symbols, but does not differentiate symbols based
+   on their position in the symbol index map.  Duplicates can't be found
+   by comparing index map postions because they always have distinct
+   positions in the map.  */
+static int
+compare_symbols_duplicate (const void *a, const void *b)
 {
   const struct symbol *s1 = a;
   const struct symbol *s2 = b;
@@ -946,13 +987,13 @@ compare_symbols_output (const void *a, const void *b)
 	  /* binutils always puts section symbols in section index order.  */
 	  CMP (shndx);
 	  else if (s1 != s2)
-	    error_exit (0, "section symbols in unexpected order");
+	    error_exit (0, _("section symbols in unexpected order"));
 	}
 
       /* Nothing really matters, so preserve the original order.  */
       CMP (map);
       else if (s1 != s2)
-	error_exit (0, "found two identical symbols");
+	error_exit (0, _("found two identical symbols"));
     }
 
   return cmp;
@@ -1855,7 +1896,8 @@ more sections in stripped file than debug file -- arguments reversed?"));
 	    }
 
 	  struct symbol *n = s;
-	  while (n + 1 < &symbols[total_syms] && !compare_symbols (s, n + 1))
+	  while (n + 1 < &symbols[total_syms]
+		 && !compare_symbols_duplicate (s, n + 1))
 	    ++n;
 
 	  while (s < n)
@@ -1992,6 +2034,11 @@ more sections in stripped file than debug file -- arguments reversed?"));
       elf_flagdata (symdata, ELF_C_SET, ELF_F_DIRTY);
       update_shdr (unstripped_symtab, shdr);
 
+      /* Track which sections are adjusted during the first round
+	 of calls to adjust_relocs.  */
+      bool scn_adjusted[unstripped_shnum];
+      memset (scn_adjusted, 0, sizeof scn_adjusted);
+
       if (stripped_symtab != NULL)
 	{
 	  /* Adjust any relocations referring to the old symbol table.  */
@@ -2000,14 +2047,18 @@ more sections in stripped file than debug file -- arguments reversed?"));
 	       sec < &sections[stripped_shnum - 1];
 	       ++sec)
 	    if (sec->outscn != NULL && sec->shdr.sh_link == old_sh_link)
-	      adjust_relocs (sec->outscn, sec->scn, &sec->shdr,
-			     symndx_map, total_syms, shdr);
+	      {
+		adjust_relocs (sec->outscn, sec->scn, &sec->shdr,
+			       symndx_map, total_syms, shdr);
+		scn_adjusted[elf_ndxscn (sec->outscn)] = true;
+	      }
 	}
 
       /* Also adjust references to the other old symbol table.  */
       adjust_all_relocs (unstripped, unstripped_symtab, shdr,
 			 &symndx_map[stripped_nsym - 1],
-			 total_syms - (stripped_nsym - 1));
+			 total_syms - (stripped_nsym - 1),
+			 scn_adjusted);
 
       free (symbols);
       free (symndx_map);

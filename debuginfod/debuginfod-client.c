@@ -1771,6 +1771,8 @@ debuginfod_query_server (debuginfod_client *c,
 
   /* PR27571: make cache files casually unwriteable; dirs are already 0700 */
   (void) fchmod(fd, 0400);
+  /* PR31248: lseek back to beginning */
+  (void) lseek(fd, 0, SEEK_SET);
                 
   /* rename tmp->real */
   rc = rename (target_cache_tmppath, target_cache_path);

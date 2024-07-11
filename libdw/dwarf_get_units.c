@@ -129,3 +129,4 @@ dwarf_get_units (Dwarf *dwarf, Dwarf_CU *cu, Dwarf_CU **next_cu,
 
   return 0;
 }
+INTDEF(dwarf_get_units)

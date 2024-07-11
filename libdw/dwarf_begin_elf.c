@@ -567,6 +567,7 @@ dwarf_begin_elf (Elf *elf, Dwarf_Cmd cmd, Elf_Scn *scngrp)
 
   result->elf = elf;
   result->alt_fd = -1;
+  result->dwp_fd = -1;
 
   /* Initialize the memory handling.  Initial blocks are allocated on first
      actual allocation.  */

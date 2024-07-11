@@ -79,12 +79,12 @@ errfiles() {
 # So we gather the LD_LIBRARY_PATH with this cunning trick:
 ldpath=`testrun sh -c 'echo $LD_LIBRARY_PATH'`
 
-wait_ready()
+wait_ready4()
 {
   port=$1;
   what=$2;
   value=$3;
-  timeout=20;
+  timeout=$4;
 
   echo "Wait $timeout seconds on $port for metric $what to change to $value"
   while [ $timeout -gt 0 ]; do
@@ -104,6 +104,16 @@ wait_ready()
     err
   fi
 }
+
+wait_ready()
+{
+  port=$1;
+  what=$2;
+  value=$3;
+  timeout=20;
+  wait_ready4 "$port" "$what" "$value" "$timeout"
+}
+
 
 archive_test() {
     __BUILDID=$1

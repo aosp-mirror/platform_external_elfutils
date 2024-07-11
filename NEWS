@@ -1,3 +1,17 @@
+Version 0.191 "Bug fixes in C major"
+
+libdw: dwarf_addrdie now supports binaries lacking a .debug_aranges
+       section.
+
+       Improved support for DWARF package files.  Add new function
+       dwarf_cu_dwp_section_info.
+
+debuginfod: Caching eviction logic improvements to improve retention
+            of small/frequent/slow files such as Fedora's vdso.debug.
+
+srcfiles: Can now fetch the source files of a DWARF/ELF file and
+          place them into a zip.
+
 Version 0.190 "Woke!"
 
 CONTRIBUTING: Switch from real name policy to known identity policy.

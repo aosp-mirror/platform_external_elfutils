@@ -133,8 +133,9 @@ use with all other calls.  On error \fBNULL\fP will be returned and
 
 If a find family function is successful, the resulting file is saved
 to the client cache and a file descriptor to that file is returned.
-The caller needs to \fBclose\fP() this descriptor.  Otherwise, a
-negative error code is returned.
+The file descriptor points to the beginning of the file.  The caller
+needs to \fBclose\fP() this descriptor.  Otherwise, a negative error
+code is returned.
 
 .SH "OPTIONAL FUNCTIONS"
 

@@ -1,6 +1,6 @@
 /* Linux kernel image support for libdwfl.
    Copyright (C) 2009-2011 Red Hat, Inc.
-   Copyright (C) 2022 Mark J. Wielaard <mark@klomp.org>
+   Copyright (C) 2022, 2024 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -64,17 +64,17 @@ __libdw_image_header (int fd, off_t *start_offset,
   if (likely (mapped_size > H_END))
     {
       const void *header = mapped;
-      char header_buffer[H_READ_SIZE];
+      char header_buffer[H_READ_SIZE + H_START];
       if (header == NULL)
 	{
-	  ssize_t n = pread_retry (fd, header_buffer, H_READ_SIZE,
+	  ssize_t n = pread_retry (fd, header_buffer + H_START, H_READ_SIZE,
 				   *start_offset + H_START);
 	  if (n < 0)
 	    return DWFL_E_ERRNO;
 	  if (n < H_READ_SIZE)
 	    return DWFL_E_BADELF;
 
-	  header = header_buffer - H_START;
+	  header = header_buffer;
 	}
 
       uint16_t magic1;

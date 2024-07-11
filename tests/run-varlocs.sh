@@ -601,4 +601,116 @@ module 'testfile-splitdwarf4-not-split4.debug'
       [4011a0,4011a1) {lit0, stack_value}
 EOF
 
+# See testfile-dwp.source.
+testfiles testfile-dwp-5 testfile-dwp-5.dwp
+testfiles testfile-dwp-4 testfile-dwp-4.dwp
+
+testrun_compare ${abs_builddir}/varlocs -e testfile-dwp-5 << EOF
+module 'testfile-dwp-5'
+[84] CU 'foo.cc'@401190
+  [c6] function 'foo'@4011c0
+    frame_base: {call_frame_cfa {bregx(7,8)}}
+    [e1] parameter 'this'
+      [4011c0,401200) {reg5}
+    [ea] variable 'x'
+      [4011c2,4011d4) {reg0}
+      [4011d4,4011d7) {reg1}
+      [4011d7,4011d9) {breg1(1), stack_value}
+      [4011f1,401200) {reg0}
+  [f9] inlined function 'x_x'@4011cb
+    [104] parameter 'x'
+      [4011cb,4011eb) {reg0}
+      [4011f1,401200) {reg0}
+  [14a] function 'x_x'@401190
+    frame_base: {call_frame_cfa {bregx(7,8)}}
+    [15b] parameter 'x'
+      [401190,4011a1) {reg5}
+      [4011a1,4011bd) {reg0}
+module 'testfile-dwp-5'
+[1fa] CU 'bar.cc'@401200
+  [23c] function 'bar'@401200
+    frame_base: {call_frame_cfa {bregx(7,8)}}
+    [253] parameter 'this'
+      [401200,40121b) {reg5}
+module 'testfile-dwp-5'
+[272] CU 'main.cc'@0
+  [2c7] function 'main'@401020
+    frame_base: {call_frame_cfa {bregx(7,8)}}
+    [2e0] parameter 'argc'
+      [401020,401068) {reg5}
+      [401068,401080) {fbreg(-40)}
+      [401080,401084) {breg5(0)}
+      [401084,401099) {entry_value(1) {reg5}, stack_value}
+      [401099,4010a0) {reg5}
+    [2ec] parameter 'argv'
+      [401020,40104b) {reg4}
+      [40104b,401099) {entry_value(1) {reg4}, stack_value}
+      [401099,4010a0) {reg4}
+    [2f8] variable 'myfoo'
+      [401020,4010a0) {fbreg(-40)}
+    [303] variable 'mybar'
+      [401020,4010a0) {fbreg(-32)}
+  [30d] inlined function 'fibonacci'@401030
+    [31c] parameter 'n'
+      [401030,401060) {reg5}
+      [401099,4010a0) {reg5}
+  [326] inlined function 'fibonacci'
+    [32f] parameter 'n'
+      <no value>
+EOF
+
+testrun_compare ${abs_builddir}/varlocs -e testfile-dwp-4 << EOF
+module 'testfile-dwp-4'
+[b] CU 'foo.cc'@401190
+  [54] function 'foo'@4011c0
+    frame_base: {call_frame_cfa {bregx(7,8)}}
+    [6f] parameter 'this'
+      [4011c0,401200) {reg5}
+    [78] variable 'x'
+      [4011c2,4011d4) {reg0}
+      [4011d4,4011d7) {reg1}
+      [4011d7,4011d9) {breg1(1), stack_value}
+      [4011f1,401200) {reg0}
+  [8a] inlined function 'x_x'@4011cb
+    [98] parameter 'x'
+      [4011cb,4011eb) {reg0}
+      [4011f1,401200) {reg0}
+  [e7] function 'x_x'@401190
+    frame_base: {call_frame_cfa {bregx(7,8)}}
+    [f8] parameter 'x'
+      [401190,4011a1) {reg5}
+      [4011a1,4011bd) {reg0}
+module 'testfile-dwp-4'
+[129] CU 'bar.cc'@401200
+  [172] function 'bar'@401200
+    frame_base: {call_frame_cfa {bregx(7,8)}}
+    [189] parameter 'this'
+      [401200,40121b) {reg5}
+module 'testfile-dwp-4'
+[19f] CU 'main.cc'@0
+  [1fd] function 'main'@401020
+    frame_base: {call_frame_cfa {bregx(7,8)}}
+    [216] parameter 'argc'
+      [401020,401068) {reg5}
+      [401068,401080) {fbreg(-40)}
+      [401080,401084) {breg5(0)}
+      [401084,401097) {GNU_entry_value(1) {reg5}, stack_value}
+      [401099,4010a0) {reg5}
+    [228] parameter 'argv'
+      [401020,40104b) {reg4}
+      [40104b,401099) {GNU_entry_value(1) {reg4}, stack_value}
+      [401099,4010a0) {reg4}
+    [23a] variable 'myfoo'
+      [401020,4010a0) {fbreg(-40)}
+    [247] variable 'mybar'
+      [401020,4010a0) {fbreg(-32)}
+  [253] inlined function 'fibonacci'@401030
+    [265] parameter 'n'
+      [401030,401060) {reg5}
+      [401099,4010a0) {reg5}
+  [272] inlined function 'fibonacci'
+    [27e] parameter 'n'
+      <no value>
+EOF
+
 exit 0

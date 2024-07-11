@@ -170,4 +170,21 @@ testrun_compare ${abs_builddir}/allfcts testfile-lto-gcc9 <<\EOF
 /home/mark/src/tests/testfile-lto-main.c:6:main
 EOF
 
+# = dwarf5-line.c =
+# int
+# main (int argc, char **argv)
+# {
+#   return 0;
+# }
+
+# Using clang version 17.0.4 (Fedora 17.0.4-1.fc39)
+# clang -gdwarf-5 -o testfile-dwarf5-line-clang dwarf5-line.c
+
+testfiles testfile-dwarf5-line-clang
+
+# Check that dwarf_decl_file can handle .debug_line file table index 0
+testrun_compare ${abs_builddir}/allfcts testfile-dwarf5-line-clang <<\EOF
+/home/amerey/test/dwarf5-line.c:2:main
+EOF
+
 exit 0

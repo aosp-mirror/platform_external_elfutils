@@ -93,7 +93,7 @@ libdw_a_SOURCES = dwarf_begin.c dwarf_begin_elf.c dwarf_end.c dwarf_getelf.c \
 		  dwarf_cu_die.c dwarf_peel_type.c dwarf_default_lower_bound.c \
 		  dwarf_die_addr_die.c dwarf_get_units.c \
 		  libdw_find_split_unit.c dwarf_cu_info.c \
-		  dwarf_next_lines.c
+		  dwarf_next_lines.c dwarf_cu_dwp_section_info.c
 
 if MAINTAINER_MODE
 BUILT_SOURCES = $(srcdir)/known-dwarf.h

@@ -152,7 +152,7 @@ module_callback (Dwfl_Module *mod, void **userdata __attribute__((unused)),
 
   int width = get_addr_width (mod);
   printf ("0x%0*" PRIx64 "-0x%0*" PRIx64 " %s\n",
-	  width, start, width, end, basename (name));
+	  width, start, width, end, xbasename (name));
 
   const unsigned char *id;
   GElf_Addr id_vaddr;

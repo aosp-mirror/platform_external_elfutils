@@ -48,16 +48,10 @@ AT_comp_dir (compilation directory) attributes inside it.  Caution:
 source files listed in the DWARF may be a path \fIanywhere\fP in the
 file system, and debuginfod will readily serve their content on
 demand.  (Imagine a doctored DWARF file that lists \fI/etc/passwd\fP
-as a source file.)  If this is a concern, audit your binaries with
-tools such as:
+as a source file.)  If this is a concern, audit your binaries:
 
 .SAMPLE
-% eu-readelf -wline BINARY | sed -n '/^Directory.table/,/^File.name.table/p'
-or
-% eu-readelf -wline BINARY | sed -n '/^Directory.table/,/^Line.number/p'
-or even use debuginfod itself:
-% debuginfod -vvv -d :memory: -F BINARY 2>&1 | grep 'recorded.*source'
-^C
+% eu-srcfiles -e BINARY
 .ESAMPLE
 
 If any of the \fB\-R\fP, \fB-U\fP, or \fB-Z\fP options is given, each
@@ -65,12 +59,17 @@ file is scanned as an archive file that may contain ELF/DWARF/source
 files.  Archive files are recognized by extension.  If \-R is given,
 ".rpm" files are scanned; if \-U is given, ".deb" and ".ddeb" files
 are scanned; if \-Z is given, the listed extensions are scanned.
-Because of complications such as DWZ-compressed debuginfo, may require
-\fItwo\fP traversal passes to identify all source code.  Source files
-for RPMs are only served from other RPMs, so the caution for \-F does
-not apply.  Note that due to Debian/Ubuntu packaging policies &
-mechanisms, debuginfod cannot resolve source files for DEB/DDEB at
-all.
+
+Because of complications such as DWZ-compressed debuginfo, it may
+require \fItwo\fP traversal passes to identify all source code.
+Source files for binaries in archives are only served from archives,
+so the caution for \-F does not apply.  If the same source file may be
+found in multiple different archives, a heuristic chooses the one
+closest to the archive holding the debuginfo.  ("closest" means
+"longest common archive name prefix").  Note that due to Debian/Ubuntu
+packaging policies & mechanisms, debuginfod cannot resolve source
+files for DEB/DDEB at all.  Consider using the
+\-\-disable\-source\-scan option.
 
 If no PATH is listed, or none of the scanning options is given, then
 \fBdebuginfod\fP will simply serve content that it accumulated into
@@ -108,8 +107,8 @@ with \fB\%\-Z\ .rpm='(rpm2cpio|zstdcat)<'\fP instead of \fB\-R\fP.
 .TP
 .B "\-U"
 Activate DEB/DDEB patterns in archive scanning.  The default is off.
-Equivalent to \fB\%\-Z\ .deb='dpkg-deb\ \-\-fsys\-tarfile\fP'
-\fB\%\-Z\ .ddeb='dpkg-deb\ \-\-fsys\-tarfile'\fP.
+Equivalent to \fB\%\-Z\ .deb='(bsdtar\ \-O\ \-x\ \-f\ \-\ data.tar\\*)<\fP'
+and same for \fB.ddeb\fP and \fB.ipk\fP.
 
 .TP
 .B "\-d FILE" "\-\-database=FILE"
@@ -235,29 +234,26 @@ loops in the symbolic directory tree might lead to \fIinfinite
 traversal\fP.
 
 .TP
-.B "\-\-fdcache\-fds=NUM"  "\-\-fdcache\-mbs=MB"
+.B "\-\-fdcache\-mbs=MB"
 Configure limits on a cache that keeps recently extracted files from
-archives.  Up to NUM requested files and up to a total of MB megabytes
-will be kept extracted, in order to avoid having to decompress their
-archives over and over again. The default NUM and MB values depend on
-the concurrency of the system, and on the available disk space on the
-$TMPDIR or \fB/tmp\fP filesystem.  This is because that is where the
-most recently used extracted files are kept.  Grooming cleans out this
-cache.
+archives.  Up to a total of MB megabytes will be kept extracted, in
+order to avoid having to decompress their archives over and over
+again. The default MB values depend on the concurrency of the system,
+and on the available disk space on the $TMPDIR or \fB/tmp\fP
+filesystem.  (This is because that is where the most recently used
+extracted files are kept.)  While previous versions used plain LRU,
+the cache now attempts to preserve more frequently & recently accessed
+files, and especially those that took a long time to extract (e.g.,
+vdso.debug!), and penalizes large / old files.
 
 .TP
-.B "\-\-fdcache\-prefetch\-fds=NUM"  "\-\-fdcache\-prefetch\-mbs=MB"
-.B "\-\-fdcache\-prefetch=NUM2"
-
-In addition to the main fdcache, up to NUM2 other files from an
-archive may be prefetched into another cache before they are even
-requested.  Configure how many file descriptors (fds) and megabytes
-(mbs) are allocated to the prefetch fdcache. If unspecified, these
-values depend on concurrency of the system and on the available disk
-space on the $TMPDIR.  Allocating more to the prefetch cache will
-improve performance in environments where different parts of several
-large archives are being accessed.  This cache is also cleaned out
-during grooming.
+.B "\-\-fdcache\-prefetch=NUM"
+Up to NUM other files from an archive may be prefetched into the
+cache before they are even requested.  If unspecified, these values
+depend on concurrency of the system and on the available disk space on
+the $TMPDIR.  Allocating more will improve performance in environments
+where multiple different parts of several large archives are being
+accessed.
 
 .TP
 .B "\-\-fdcache\-mintmp=NUM"

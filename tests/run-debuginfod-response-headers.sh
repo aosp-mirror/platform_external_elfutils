@@ -32,14 +32,6 @@ export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
 base=9500
 get_ports
 mkdir F R
-env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -R -d $DB -p $PORT1 -t0 -g0 -v R F > vlog$PORT1 2>&1 &
-PID1=$!
-tempfiles vlog$PORT1
-errfiles vlog$PORT1
-# Server must become ready
-wait_ready $PORT1 'ready' 1
-export DEBUGINFOD_URLS=http://127.0.0.1:$PORT1/   # or without trailing /
-########################################################################
 
 # Compile a simple program, strip its debuginfo and save the build-id.
 # Also move the debuginfo into another directory so that elfutils
@@ -57,12 +49,25 @@ if [ "$zstd" = "false" ]; then  # nuke the zstd fedora 31 ones
     rm -vrf R/debuginfod-rpms/fedora31
 fi
 
-kill -USR1 $PID1
+env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS= ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -F -R -d $DB -p $PORT1 -t0 -g0 -v R F > vlog$PORT1 2>&1 &
+PID1=$!
+tempfiles vlog$PORT1
+errfiles vlog$PORT1
+# Server must become ready
+wait_ready $PORT1 'ready' 1
+export DEBUGINFOD_URLS=http://127.0.0.1:$PORT1/   # or without trailing /
+########################################################################
+
 # Wait till both files are in the index and scan/index fully finished
+wait_ready $PORT1 'ready' 1
 wait_ready $PORT1 'thread_work_total{role="traverse"}' 1
+wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
+wait_ready $PORT1 'thread_busy{role="scan"}' 0
+
 # All rpms need to be in the index, except the dummy permission-000 one
 rpms=$(find R -name \*rpm | grep -v nothing | wc -l)
 wait_ready $PORT1 'scanned_files_total{source=".rpm archive"}' $rpms
+
 kill -USR1 $PID1  # two hits of SIGUSR1 may be needed to resolve .debug->dwz->srefs
 # Wait till both files are in the index and scan/index fully finished
 wait_ready $PORT1 'thread_work_total{role="traverse"}' 2

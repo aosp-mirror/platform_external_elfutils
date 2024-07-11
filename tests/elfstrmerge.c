@@ -447,7 +447,7 @@ main (int argc, char **argv)
     }
 
   newshnums = shdrnum - 1;
-  newscnbufs = calloc (sizeof (void *), newshnums);
+  newscnbufs = calloc (newshnums, sizeof (void *));
   if (newscnbufs == NULL)
     fail_errno ("Couldn't allocate memory for new section buffers", NULL);
 

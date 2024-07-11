@@ -102,6 +102,7 @@ static const char *errmsgs[] =
     [DWARF_E_NOT_CUDIE] = N_("not a CU (unit) DIE"),
     [DWARF_E_UNKNOWN_LANGUAGE] = N_("unknown language code"),
     [DWARF_E_NO_DEBUG_ADDR] = N_(".debug_addr section missing"),
+    [DWARF_E_UNKNOWN_SECTION] = N_("unknown section"),
   };
 #define nerrmsgs (sizeof (errmsgs) / sizeof (errmsgs[0]))
 

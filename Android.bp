@@ -54,6 +54,7 @@ cc_defaults {
     name: "elfutils_defaults",
     defaults: ["elfutils_transitive_defaults"],
     cflags: [
+        "-include android/port.h",
         "-DHAVE_CONFIG_H",
         "-D_GNU_SOURCE",
         // upper bound for the number of lines of the resulting mnemonic files

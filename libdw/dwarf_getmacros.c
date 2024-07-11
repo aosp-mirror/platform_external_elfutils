@@ -47,7 +47,15 @@ get_offset_from (Dwarf_Die *die, int name, Dwarf_Word *retp)
     return -1;
 
   /* Offset into the corresponding section.  */
-  return INTUSE(dwarf_formudata) (&attr, retp);
+  if (INTUSE(dwarf_formudata) (&attr, retp) != 0)
+    return -1;
+
+  Dwarf_Off offset;
+  if (INTUSE(dwarf_cu_dwp_section_info) (die->cu, DW_SECT_MACRO, &offset, NULL)
+      != 0)
+    return -1;
+  *retp += offset;
+  return 0;
 }
 
 static int
@@ -131,6 +139,14 @@ get_macinfo_table (Dwarf *dbg, Dwarf_Word macoff, Dwarf_Die *cudie)
   else if (cudie->cu->unit_type == DW_UT_split_compile
 	   && dbg->sectiondata[IDX_debug_line] != NULL)
     line_offset = 0;
+  if (line_offset != (Dwarf_Off) -1)
+    {
+      Dwarf_Off dwp_offset;
+      if (INTUSE(dwarf_cu_dwp_section_info) (cudie->cu, DW_SECT_LINE,
+					     &dwp_offset, NULL) != 0)
+	return NULL;
+      line_offset += dwp_offset;
+    }
 
   Dwarf_Macro_Op_Table *table = libdw_alloc (dbg, Dwarf_Macro_Op_Table,
 					     macinfo_data_size, 1);
@@ -187,6 +203,14 @@ get_table_for_offset (Dwarf *dbg, Dwarf_Word macoff,
       if (attr != NULL)
 	if (unlikely (INTUSE(dwarf_formudata) (attr, &line_offset) != 0))
 	  return NULL;
+    }
+  if (line_offset != (Dwarf_Off) -1 && cudie != NULL)
+    {
+      Dwarf_Off dwp_offset;
+      if (INTUSE(dwarf_cu_dwp_section_info) (cudie->cu, DW_SECT_LINE,
+					     &dwp_offset, NULL) != 0)
+	return NULL;
+      line_offset += dwp_offset;
     }
 
   uint8_t address_size;

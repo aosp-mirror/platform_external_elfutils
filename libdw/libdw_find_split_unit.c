@@ -51,8 +51,8 @@ try_split_file (Dwarf_CU *cu, const char *dwo_path)
       if (split_dwarf != NULL)
 	{
 	  Dwarf_CU *split = NULL;
-	  while (dwarf_get_units (split_dwarf, split, &split,
-				  NULL, NULL, NULL, NULL) == 0)
+	  while (INTUSE(dwarf_get_units) (split_dwarf, split, &split,
+					  NULL, NULL, NULL, NULL) == 0)
 	    {
 	      if (split->unit_type == DW_UT_split_compile
 		  && cu->unit_id8 == split->unit_id8)
@@ -85,6 +85,67 @@ try_split_file (Dwarf_CU *cu, const char *dwo_path)
     }
 }
 
+static void
+try_dwp_file (Dwarf_CU *cu)
+{
+  if (cu->dbg->dwp_dwarf == NULL)
+    {
+      if (cu->dbg->elfpath != NULL)
+	{
+	  /* The DWARF 5 standard says "the package file is typically placed in
+	     the same directory as the application, and is given the same name
+	     with a '.dwp' extension".  */
+	  size_t elfpath_len = strlen (cu->dbg->elfpath);
+	  char *dwp_path = malloc (elfpath_len + 5);
+	  if (dwp_path == NULL)
+	    {
+	      __libdw_seterrno (DWARF_E_NOMEM);
+	      return;
+	    }
+	  memcpy (dwp_path, cu->dbg->elfpath, elfpath_len);
+	  strcpy (dwp_path + elfpath_len, ".dwp");
+	  int dwp_fd = open (dwp_path, O_RDONLY);
+	  free (dwp_path);
+	  if (dwp_fd != -1)
+	    {
+	      Dwarf *dwp_dwarf = dwarf_begin (dwp_fd, DWARF_C_READ);
+	      /* There's no way to know whether we got the correct file until
+		 we look up the unit, but it should at least be a dwp file.  */
+	      if (dwp_dwarf != NULL
+		  && (dwp_dwarf->sectiondata[IDX_debug_cu_index] != NULL
+		      || dwp_dwarf->sectiondata[IDX_debug_tu_index] != NULL))
+		{
+		  cu->dbg->dwp_dwarf = dwp_dwarf;
+		  cu->dbg->dwp_fd = dwp_fd;
+		}
+	      else
+		close (dwp_fd);
+	    }
+	}
+      if (cu->dbg->dwp_dwarf == NULL)
+	cu->dbg->dwp_dwarf = (Dwarf *) -1;
+    }
+
+  if (cu->dbg->dwp_dwarf != (Dwarf *) -1)
+    {
+      Dwarf_CU *split = __libdw_dwp_findcu_id (cu->dbg->dwp_dwarf,
+					       cu->unit_id8);
+      if (split != NULL)
+	{
+	  if (tsearch (split->dbg, &cu->dbg->split_tree,
+		       __libdw_finddbg_cb) == NULL)
+	    {
+	      /* Something went wrong.  Don't link.  */
+	      __libdw_seterrno (DWARF_E_NOMEM);
+	      return;
+	    }
+
+	  /* Link skeleton and split compile units.  */
+	  __libdw_link_skel_split (cu, split);
+	}
+    }
+}
+
 Dwarf_CU *
 internal_function
 __libdw_find_split_unit (Dwarf_CU *cu)
@@ -98,14 +159,18 @@ __libdw_find_split_unit (Dwarf_CU *cu)
      same id as the skeleton.  */
   if (cu->unit_type == DW_UT_skeleton)
     {
+      /* First, try the dwp file.  */
+      try_dwp_file (cu);
+
       Dwarf_Die cudie = CUDIE (cu);
       Dwarf_Attribute dwo_name;
-      /* It is fine if dwo_dir doesn't exists, but then dwo_name needs
-	 to be an absolute path.  */
-      if (dwarf_attr (&cudie, DW_AT_dwo_name, &dwo_name) != NULL
-	  || dwarf_attr (&cudie, DW_AT_GNU_dwo_name, &dwo_name) != NULL)
+      /* Try a dwo file.  It is fine if dwo_dir doesn't exist, but then
+	 dwo_name needs to be an absolute path.  */
+      if (cu->split == (Dwarf_CU *) -1
+	  && (dwarf_attr (&cudie, DW_AT_dwo_name, &dwo_name) != NULL
+	      || dwarf_attr (&cudie, DW_AT_GNU_dwo_name, &dwo_name) != NULL))
 	{
-	  /* First try the dwo file name in the same directory
+	  /* Try the dwo file name in the same directory
 	     as we found the skeleton file.  */
 	  const char *dwo_file = dwarf_formstring (&dwo_name);
 	  const char *debugdir = cu->dbg->debugdir;

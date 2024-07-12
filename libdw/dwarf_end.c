@@ -127,6 +127,7 @@ dwarf_end (Dwarf *dwarf)
       if (dwarf->mem_tails != NULL)
         free (dwarf->mem_tails);
       pthread_rwlock_destroy (&dwarf->mem_rwl);
+      rwlock_fini (dwarf->dwarf_lock);
 
       /* Free the pubnames helper structure.  */
       free (dwarf->pubnames_sets);

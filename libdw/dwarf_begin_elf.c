@@ -579,6 +579,7 @@ dwarf_begin_elf (Elf *elf, Dwarf_Cmd cmd, Elf_Scn *scngrp)
       __libdw_seterrno (DWARF_E_NOMEM); /* no memory.  */
       return NULL;
     }
+  rwlock_init (result->dwarf_lock);
   result->mem_stacks = 0;
   result->mem_tails = NULL;
 

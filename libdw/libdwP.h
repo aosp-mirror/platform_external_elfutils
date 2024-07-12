@@ -264,6 +264,10 @@ struct Dwarf
      allocations for this Dwarf.  */
   pthread_rwlock_t mem_rwl;
 
+  /* The dwarf_lock is a read-write lock designed to ensure thread-safe access
+     and modification of an entire Dwarf object.  */
+  rwlock_define(, dwarf_lock);
+
   /* Internal memory handling.  This is basically a simplified thread-local
      reimplementation of obstacks.  Unfortunately the standard obstack
      implementation is not usable in libraries.  */

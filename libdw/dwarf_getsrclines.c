@@ -33,10 +33,10 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#include <search.h>
 
 #include "dwarf.h"
 #include "libdwP.h"
+#include "eu-search.h"
 
 
 struct filelist
@@ -1320,8 +1320,8 @@ get_lines_or_files (Dwarf *dbg, Dwarf_Off debug_line_offset,
 		    Dwarf_Lines **linesp, Dwarf_Files **filesp)
 {
   struct files_lines_s fake = { .debug_line_offset = debug_line_offset };
-  struct files_lines_s **found = tfind (&fake, &dbg->files_lines,
-					files_lines_compare);
+  struct files_lines_s **found = eu_tfind (&fake, &dbg->files_lines_tree,
+					   files_lines_compare);
   if (found == NULL)
     {
       /* This .debug_line is being read for the first time.  */
@@ -1354,7 +1354,7 @@ get_lines_or_files (Dwarf *dbg, Dwarf_Off debug_line_offset,
 
       node->debug_line_offset = debug_line_offset;
 
-      found = tsearch (node, &dbg->files_lines, files_lines_compare);
+      found = eu_tsearch (node, &dbg->files_lines_tree, files_lines_compare);
       if (found == NULL)
 	{
 	  __libdw_seterrno (DWARF_E_NOMEM);

@@ -33,6 +33,7 @@
 
 #include <ar.h>
 #include <gelf.h>
+#include "eu-search.h"
 
 #include <errno.h>
 #include <stdbool.h>
@@ -323,7 +324,8 @@ struct Elf
       Elf_ScnList *scns_last;	/* Last element in the section list.
 				   If NULL the data has not yet been
 				   read from the file.  */
-      void *rawchunks;		/* Tree of elf_getdata_rawchunk results.  */
+      search_tree rawchunk_tree;  /* Tree and lock for elf_getdata_rawchunk
+				     results.  */
       unsigned int scnincr;	/* Number of sections allocate the last
 				   time.  */
       int ehdr_flags;		/* Flags (dirty) for ELF header.  */
@@ -342,7 +344,8 @@ struct Elf
       Elf_ScnList *scns_last;	/* Last element in the section list.
 				   If NULL the data has not yet been
 				   read from the file.  */
-      void *rawchunks;		/* Tree of elf_getdata_rawchunk results.  */
+      search_tree rawchunk_tree;  /* Tree and lock for
+				     elf_getdata_rawchunk results.  */
       unsigned int scnincr;	/* Number of sections allocate the last
 				   time.  */
       int ehdr_flags;		/* Flags (dirty) for ELF header.  */
@@ -367,7 +370,8 @@ struct Elf
       Elf_ScnList *scns_last;	/* Last element in the section list.
 				   If NULL the data has not yet been
 				   read from the file.  */
-      void *rawchunks;		/* Tree of elf_getdata_rawchunk results.  */
+      search_tree rawchunk_tree;  /* Tree and lock for
+				     elf_getdata_rawchunk results.  */
       unsigned int scnincr;	/* Number of sections allocate the last
 				   time.  */
       int ehdr_flags;		/* Flags (dirty) for ELF header.  */

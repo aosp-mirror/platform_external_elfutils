@@ -32,9 +32,9 @@
 
 #include "libdwP.h"
 #include "libelfP.h"
+#include "eu-search.h"
 
 #include <limits.h>
-#include <search.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -57,8 +57,8 @@ try_split_file (Dwarf_CU *cu, const char *dwo_path)
 	      if (split->unit_type == DW_UT_split_compile
 		  && cu->unit_id8 == split->unit_id8)
 		{
-		  if (tsearch (split->dbg, &cu->dbg->split_tree,
-			       __libdw_finddbg_cb) == NULL)
+		  if (eu_tsearch (split->dbg, &cu->dbg->split_tree,
+				  __libdw_finddbg_cb) == NULL)
 		    {
 		      /* Something went wrong.  Don't link.  */
 		      __libdw_seterrno (DWARF_E_NOMEM);
@@ -132,8 +132,8 @@ try_dwp_file (Dwarf_CU *cu)
 					       cu->unit_id8);
       if (split != NULL)
 	{
-	  if (tsearch (split->dbg, &cu->dbg->split_tree,
-		       __libdw_finddbg_cb) == NULL)
+	  if (eu_tsearch (split->dbg, &cu->dbg->split_tree,
+			  __libdw_finddbg_cb) == NULL)
 	    {
 	      /* Something went wrong.  Don't link.  */
 	      __libdw_seterrno (DWARF_E_NOMEM);

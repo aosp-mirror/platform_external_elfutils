@@ -61,11 +61,10 @@ static void
 cu_free (void *arg)
 {
   struct Dwarf_CU *p = (struct Dwarf_CU *) arg;
-
-  tdestroy (p->locs, noop_free);
+  eu_search_tree_fini (&p->locs_tree, noop_free);
 
   /* Only free the CU internals if its not a fake CU.  */
-  if(p != p->dbg->fake_loc_cu && p != p->dbg->fake_loclists_cu
+  if (p != p->dbg->fake_loc_cu && p != p->dbg->fake_loclists_cu
      && p != p->dbg->fake_addr_cu)
     {
       Dwarf_Abbrev_Hash_free (&p->abbrev_hash);
@@ -102,17 +101,17 @@ dwarf_end (Dwarf *dwarf)
       /* The search tree for the CUs.  NB: the CU data itself is
 	 allocated separately, but the abbreviation hash tables need
 	 to be handled.  */
-      tdestroy (dwarf->cu_tree, cu_free);
-      tdestroy (dwarf->tu_tree, cu_free);
+      eu_search_tree_fini (&dwarf->cu_tree, cu_free);
+      eu_search_tree_fini (&dwarf->tu_tree, cu_free);
 
       /* Search tree for macro opcode tables.  */
-      tdestroy (dwarf->macro_ops, noop_free);
+      eu_search_tree_fini (&dwarf->macro_ops_tree, noop_free);
 
       /* Search tree for decoded .debug_lines units.  */
-      tdestroy (dwarf->files_lines, noop_free);
+      eu_search_tree_fini (&dwarf->files_lines_tree, noop_free);
 
       /* And the split Dwarf.  */
-      tdestroy (dwarf->split_tree, noop_free);
+      eu_search_tree_fini (&dwarf->split_tree, noop_free);
 
       /* Free the internally allocated memory.  */
       for (size_t i = 0; i < dwarf->mem_stacks; i++)

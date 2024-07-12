@@ -40,6 +40,7 @@
 
 #include "libdwP.h"	/* We need its INTDECLs.  */
 #include "libdwelfP.h"
+#include "eu-search.h"
 
 typedef struct Dwfl_Process Dwfl_Process;
 
@@ -201,7 +202,7 @@ struct Dwfl_Module
   /* Known CU's in this module.  */
   struct dwfl_cu *first_cu, **cu;
 
-  void *lazy_cu_root;		/* Table indexed by Dwarf_Off of CU.  */
+  search_tree lazy_cu_tree;	/* Table indexed by Dwarf_Off of CU.  */
 
   struct dwfl_arange *aranges;	/* Mapping of addresses in module to CUs.  */
 

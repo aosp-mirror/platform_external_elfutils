@@ -90,13 +90,13 @@ struct Dwarf_CFI_s
   Dwarf_Off next_offset;
 
   /* Search tree for the CIEs, indexed by CIE_pointer (section offset).  */
-  void *cie_tree;
+  search_tree cie_tree;
 
   /* Search tree for the FDEs, indexed by PC address.  */
-  void *fde_tree;
+  search_tree fde_tree;
 
   /* Search tree for parsed DWARF expressions, indexed by raw pointer.  */
-  void *expr_tree;
+  search_tree expr_tree;
 
   /* Backend hook.  */
   struct ebl *ebl;

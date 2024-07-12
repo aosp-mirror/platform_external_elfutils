@@ -32,11 +32,11 @@
 
 #include <assert.h>
 #include <dwarf.h>
-#include <search.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <libdwP.h>
+#include "eu-search.h"
 
 static int
 get_offset_from (Dwarf_Die *die, int name, Dwarf_Word *retp)
@@ -317,7 +317,7 @@ cache_op_table (Dwarf *dbg, int sec_index, Dwarf_Off macoff,
 		Dwarf_Die *cudie)
 {
   Dwarf_Macro_Op_Table fake = { .offset = macoff, .sec_index = sec_index };
-  Dwarf_Macro_Op_Table **found = tfind (&fake, &dbg->macro_ops,
+  Dwarf_Macro_Op_Table **found = eu_tfind (&fake, &dbg->macro_ops_tree,
 					macro_op_compare);
   if (found != NULL)
     return *found;
@@ -329,7 +329,7 @@ cache_op_table (Dwarf *dbg, int sec_index, Dwarf_Off macoff,
   if (table == NULL)
     return NULL;
 
-  Dwarf_Macro_Op_Table **ret = tsearch (table, &dbg->macro_ops,
+  Dwarf_Macro_Op_Table **ret = eu_tsearch (table, &dbg->macro_ops_tree,
 					macro_op_compare);
   if (unlikely (ret == NULL))
     {

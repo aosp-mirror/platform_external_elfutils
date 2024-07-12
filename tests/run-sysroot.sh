@@ -31,6 +31,8 @@ testrun "${abs_top_builddir}"/src/stack --core "${tmpdir}/core.bash" \
 # was built with LZMA support.
 sed -i '4,5d' "${tmpdir}/stack.out"
 
+tempfiles cat.out
+
 # check that we are able to get fully symbolized backtrace
 testrun_compare cat "${tmpdir}/stack.out" <<\EOF
 PID 431185 - core

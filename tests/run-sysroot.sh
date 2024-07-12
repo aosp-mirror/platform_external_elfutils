@@ -45,3 +45,5 @@ TID 431185:
 #7  0x0000ffff8ebd0ab0 __libc_start_main@@GLIBC_2.34
 #8  0x0000aaaae56127f0 _start
 EOF
+
+exit_cleanup

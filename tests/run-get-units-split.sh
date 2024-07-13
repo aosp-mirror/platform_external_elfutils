@@ -63,4 +63,22 @@ EOF
 testrun_on_self_exe ${abs_builddir}/get-units-split
 testrun_on_self_lib ${abs_builddir}/get-units-split
 
+# See testfile-dwp.source.
+testfiles testfile-dwp-5 testfile-dwp-5.dwp
+testfiles testfile-dwp-4 testfile-dwp-4.dwp
+testfiles testfile-dwp-4-strict testfile-dwp-4-strict.dwp
+
+for file in testfile-dwp-5 testfile-dwp-4 testfile-dwp-4-strict; do
+	testrun_compare ${abs_builddir}/get-units-split "$file" << EOF
+file: $file
+Got cudie unit_type: 4
+Found a skeleton unit, with split die: foo.cc
+Got cudie unit_type: 4
+Found a skeleton unit, with split die: bar.cc
+Got cudie unit_type: 4
+Found a skeleton unit, with split die: main.cc
+
+EOF
+done
+
 exit 0

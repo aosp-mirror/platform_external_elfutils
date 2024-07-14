@@ -88,6 +88,9 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
 
+/* Define to 0 if libarchive is not available */
+/* #undef HAVE_LIBARCHIVE */
+
 /* Define to 1 if you have the `mremap' function. */
 #define HAVE_MREMAP 1
 
@@ -152,7 +155,7 @@
 #define PACKAGE_NAME "elfutils"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "elfutils 0.190"
+#define PACKAGE_STRING "elfutils 0.191"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "elfutils"
@@ -161,7 +164,7 @@
 #define PACKAGE_URL "http://elfutils.org/"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.190"
+#define PACKAGE_VERSION "0.191"
 
 /* The size of `long', as computed by sizeof. */
 #define SIZEOF_LONG 8
@@ -198,7 +201,7 @@
 #define USE_ZSTD_COMPRESS 1
 
 /* Version number of package */
-#define VERSION "0.190"
+#define VERSION "0.191"
 
 /* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
    `char[]'. */

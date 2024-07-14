@@ -130,4 +130,119 @@ cuhl = 20, o = 0, asz = 8, osz = 4, ncu = 296
  file[3] = "/usr/include/stdlib.h"
 EOF
 
+# See testfile-dwp.source.
+testfiles testfile-dwp-5 testfile-dwp-5.dwp
+testfiles testfile-dwp-4 testfile-dwp-4.dwp
+
+testrun_compare ${abs_builddir}/get-files testfile-dwp-5 << EOF
+cuhl = 20, o = 0, asz = 8, osz = 4, ncu = 53
+ dirs[0] = "/home/osandov/src/elfutils/tests"
+ dirs[1] = "/usr/include"
+ file[0] = "/home/osandov/src/elfutils/tests/foo.cc"
+ file[1] = "/home/osandov/src/elfutils/tests/foo.cc"
+ file[2] = "/home/osandov/src/elfutils/tests/foobar.h"
+ file[3] = "/usr/include/stdc-predef.h"
+cuhl = 20, o = 21, asz = 8, osz = 4, ncu = 106
+ dirs[0] = "/home/osandov/src/elfutils/tests"
+ dirs[1] = "/usr/include"
+ file[0] = "/home/osandov/src/elfutils/tests/bar.cc"
+ file[1] = "/home/osandov/src/elfutils/tests/bar.cc"
+ file[2] = "/home/osandov/src/elfutils/tests/foobar.h"
+ file[3] = "/usr/include/stdc-predef.h"
+cuhl = 20, o = 42, asz = 8, osz = 4, ncu = 155
+ dirs[0] = "/home/osandov/src/elfutils/tests"
+ dirs[1] = "/usr/include"
+ file[0] = "/home/osandov/src/elfutils/tests/main.cc"
+ file[1] = "/home/osandov/src/elfutils/tests/main.cc"
+ file[2] = "/home/osandov/src/elfutils/tests/foobar.h"
+ file[3] = "/usr/include/stdc-predef.h"
+EOF
+
+# Note that this one includes the type units in .debug_info.dwo as expected.
+testrun_compare ${abs_builddir}/get-files testfile-dwp-5.dwp << EOF
+cuhl = 24, o = 0, asz = 8, osz = 4, ncu = 112
+ dirs[0] = "/home/osandov/src/elfutils/tests"
+ dirs[1] = "/usr/include"
+ file[0] = "/home/osandov/src/elfutils/tests/foo.cc"
+ file[1] = "/home/osandov/src/elfutils/tests/foo.cc"
+ file[2] = "/home/osandov/src/elfutils/tests/foobar.h"
+ file[3] = "/usr/include/stdc-predef.h"
+cuhl = 20, o = 0, asz = 8, osz = 4, ncu = 376
+ dirs[0] = "/home/osandov/src/elfutils/tests"
+ dirs[1] = "/usr/include"
+ file[0] = "/home/osandov/src/elfutils/tests/foo.cc"
+ file[1] = "/home/osandov/src/elfutils/tests/foo.cc"
+ file[2] = "/home/osandov/src/elfutils/tests/foobar.h"
+ file[3] = "/usr/include/stdc-predef.h"
+cuhl = 24, o = 0, asz = 8, osz = 4, ncu = 486
+ dirs[0] = "/home/osandov/src/elfutils/tests"
+ dirs[1] = "/usr/include"
+ file[0] = "/home/osandov/src/elfutils/tests/bar.cc"
+ file[1] = "/home/osandov/src/elfutils/tests/bar.cc"
+ file[2] = "/home/osandov/src/elfutils/tests/foobar.h"
+ file[3] = "/usr/include/stdc-predef.h"
+cuhl = 20, o = 0, asz = 8, osz = 4, ncu = 606
+ dirs[0] = "/home/osandov/src/elfutils/tests"
+ dirs[1] = "/usr/include"
+ file[0] = "/home/osandov/src/elfutils/tests/bar.cc"
+ file[1] = "/home/osandov/src/elfutils/tests/bar.cc"
+ file[2] = "/home/osandov/src/elfutils/tests/foobar.h"
+ file[3] = "/usr/include/stdc-predef.h"
+cuhl = 20, o = 0, asz = 8, osz = 4, ncu = 1009
+ dirs[0] = "/home/osandov/src/elfutils/tests"
+ dirs[1] = "/usr/include"
+ file[0] = "/home/osandov/src/elfutils/tests/main.cc"
+ file[1] = "/home/osandov/src/elfutils/tests/main.cc"
+ file[2] = "/home/osandov/src/elfutils/tests/foobar.h"
+ file[3] = "/usr/include/stdc-predef.h"
+EOF
+
+testrun_compare ${abs_builddir}/get-files testfile-dwp-4 << EOF
+cuhl = 11, o = 0, asz = 8, osz = 4, ncu = 56
+ dirs[0] = "/home/osandov/src/elfutils/tests"
+ dirs[1] = "/usr/include"
+ file[0] = "???"
+ file[1] = "/home/osandov/src/elfutils/tests/foo.cc"
+ file[2] = "/home/osandov/src/elfutils/tests/foobar.h"
+ file[3] = "/usr/include/stdc-predef.h"
+cuhl = 11, o = 29, asz = 8, osz = 4, ncu = 108
+ dirs[0] = "/home/osandov/src/elfutils/tests"
+ dirs[1] = "/usr/include"
+ file[0] = "???"
+ file[1] = "/home/osandov/src/elfutils/tests/bar.cc"
+ file[2] = "/home/osandov/src/elfutils/tests/foobar.h"
+ file[3] = "/usr/include/stdc-predef.h"
+cuhl = 11, o = 55, asz = 8, osz = 4, ncu = 160
+ dirs[0] = "/home/osandov/src/elfutils/tests"
+ dirs[1] = "/usr/include"
+ file[0] = "???"
+ file[1] = "/home/osandov/src/elfutils/tests/main.cc"
+ file[2] = "/home/osandov/src/elfutils/tests/foobar.h"
+ file[3] = "/usr/include/stdc-predef.h"
+EOF
+
+testrun_compare ${abs_builddir}/get-files testfile-dwp-4.dwp << EOF
+cuhl = 11, o = 0, asz = 8, osz = 4, ncu = 286
+ dirs[0] = "/home/osandov/src/elfutils/tests"
+ dirs[1] = "/usr/include"
+ file[0] = "???"
+ file[1] = "/home/osandov/src/elfutils/tests/foo.cc"
+ file[2] = "/home/osandov/src/elfutils/tests/foobar.h"
+ file[3] = "/usr/include/stdc-predef.h"
+cuhl = 11, o = 0, asz = 8, osz = 4, ncu = 404
+ dirs[0] = "/home/osandov/src/elfutils/tests"
+ dirs[1] = "/usr/include"
+ file[0] = "???"
+ file[1] = "/home/osandov/src/elfutils/tests/bar.cc"
+ file[2] = "/home/osandov/src/elfutils/tests/foobar.h"
+ file[3] = "/usr/include/stdc-predef.h"
+cuhl = 11, o = 0, asz = 8, osz = 4, ncu = 857
+ dirs[0] = "/home/osandov/src/elfutils/tests"
+ dirs[1] = "/usr/include"
+ file[0] = "???"
+ file[1] = "/home/osandov/src/elfutils/tests/main.cc"
+ file[2] = "/home/osandov/src/elfutils/tests/foobar.h"
+ file[3] = "/usr/include/stdc-predef.h"
+EOF
+
 exit 0

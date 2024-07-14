@@ -41,7 +41,7 @@ dwarf_addrdie (Dwarf *dbg, Dwarf_Addr addr, Dwarf_Die *result)
   size_t naranges;
   Dwarf_Off off;
 
-  if (INTUSE(dwarf_getaranges) (dbg, &aranges, &naranges) != 0
+  if (__libdw_getdieranges (dbg, &aranges, &naranges) != 0
       || INTUSE(dwarf_getarangeinfo) (INTUSE(dwarf_getarange_addr) (aranges,
 								    addr),
 				      NULL, NULL, &off) != 0)

@@ -26,8 +26,8 @@ testfiles testarchive64.a
 # bzip2 -zf test-ar-duplicates.a
 testfiles test-ar-duplicates.a
 
-testrun ${abs_builddir}/dwfl-report-offline-memory ./testfile-dwfl-report-elf-align-shlib.so 1
-testrun ${abs_builddir}/dwfl-report-offline-memory ./testarchive64.a 3
-testrun ${abs_builddir}/dwfl-report-offline-memory ./test-ar-duplicates.a 1
+testrun ${abs_builddir}/dwfl-report-offline-memory ./testfile-dwfl-report-elf-align-shlib.so 1 24
+testrun ${abs_builddir}/dwfl-report-offline-memory ./testarchive64.a 3 10
+testrun ${abs_builddir}/dwfl-report-offline-memory ./test-ar-duplicates.a 1 7
 
 exit 0

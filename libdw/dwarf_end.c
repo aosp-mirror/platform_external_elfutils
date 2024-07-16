@@ -68,6 +68,7 @@ cu_free (void *arg)
      && p != p->dbg->fake_addr_cu)
     {
       Dwarf_Abbrev_Hash_free (&p->abbrev_hash);
+      rwlock_fini (p->abbrev_lock);
 
       /* Free split dwarf one way (from skeleton to split).  */
       if (p->unit_type == DW_UT_skeleton

@@ -177,6 +177,7 @@ __libdw_intern_next_unit (Dwarf *dbg, bool debug_types)
   newp->startp = data->d_buf + newp->start;
   newp->endp = data->d_buf + newp->end;
   eu_search_tree_init (&newp->locs_tree);
+  rwlock_init (newp->abbrev_lock);
 
   /* v4 debug type units have version == 4 and unit_type == DW_UT_type.  */
   if (debug_types)

@@ -18,14 +18,19 @@
 #include <config.h>
 
 #include <assert.h>
+#include <errno.h>
+#include <error.h>
 #include <fcntl.h>
 #include <locale.h>
 #include <stdio.h>
 #include <stdio_ext.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
+
 #include ELFUTILS_HEADER(dwfl)
-#include "system.h"
+#include ELFUTILS_HEADER(elf)
+#include <gelf.h>
 
 
 static const Dwfl_Callbacks offline_callbacks =
@@ -45,6 +50,20 @@ count_modules (Dwfl_Module *mod __attribute__ ((unused)),
   return DWARF_CB_OK;
 }
 
+static int
+count_sections (Elf *elf)
+{
+  int result = 0;
+  Elf_Scn *section = NULL;
+  GElf_Shdr header;
+  while ((section = elf_nextscn (elf, section)) != NULL)
+    {
+      assert (gelf_getshdr (section, &header) != NULL);
+      result += 1;
+    }
+  return result;
+}
+
 int
 main (int argc, char **argv)
 {
@@ -54,10 +73,11 @@ main (int argc, char **argv)
   /* Set locale.  */
   (void) setlocale (LC_ALL, "");
 
-  if (argc != 3)
+  if (argc != 4)
     error (-1, 0,
 	   "usage: dwfl_report_offline_memory [filename] "
-	   "[expected number of modules]");
+	   "[expected number of modules] "
+	   "[expected number of sections]");
 
   const char *fname = argv[1];
   int fd = open (fname, O_RDONLY);
@@ -99,6 +119,12 @@ main (int argc, char **argv)
       strtoull (argv[2], &endptr, 0);
   assert (endptr && !*endptr);
   assert (number_of_modules == expected_number_of_modules);
+
+  GElf_Addr loadbase = 0;
+  Elf *elf = dwfl_module_getelf (mod, &loadbase);
+  int number_of_sections = count_sections (elf);
+  int expected_number_of_sections = atoi (argv[3]);
+  assert (number_of_sections == expected_number_of_sections);
 
   dwfl_end (dwfl);
   free (data);

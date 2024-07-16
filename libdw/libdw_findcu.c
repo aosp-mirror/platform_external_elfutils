@@ -245,27 +245,39 @@ __libdw_findcu (Dwarf *dbg, Dwarf_Off start, bool v4_debug_types)
   /* Maybe we already know that CU.  */
   struct Dwarf_CU fake = { .start = start, .end = 0 };
   struct Dwarf_CU **found = eu_tfind (&fake, tree, findcu_cb);
+  struct Dwarf_CU *result = NULL;
   if (found != NULL)
     return *found;
 
+  rwlock_wrlock (dbg->dwarf_lock);
+
   if (start < *next_offset)
+    __libdw_seterrno (DWARF_E_INVALID_DWARF);
+  else
     {
-      __libdw_seterrno (DWARF_E_INVALID_DWARF);
-      return NULL;
+      /* No.  Then read more CUs.  */
+      while (1)
+	{
+	  struct Dwarf_CU *newp
+	    = __libdw_intern_next_unit (dbg, v4_debug_types);
+
+	  if (newp == NULL)
+	    {
+	      result = NULL;
+	      break;
+	    }
+
+	  /* Is this the one we are looking for?  */
+	  if (start < *next_offset || start == newp->start)
+	    {
+	      result = newp;
+	      break;
+	    }
+	}
     }
 
-  /* No.  Then read more CUs.  */
-  while (1)
-    {
-      struct Dwarf_CU *newp = __libdw_intern_next_unit (dbg, v4_debug_types);
-      if (newp == NULL)
-	return NULL;
-
-      /* Is this the one we are looking for?  */
-      if (start < *next_offset || start == newp->start)
-	return newp;
-    }
-  /* NOTREACHED */
+  rwlock_unlock (dbg->dwarf_lock);
+  return result;
 }
 
 struct Dwarf_CU *

@@ -85,7 +85,15 @@ i386_register_info (Ebl *ebl __attribute__ ((unused)),
     {
       static const char baseregs[][2] =
 	{
-	  "ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "ip"
+	  {'a', 'x'},
+	  {'c', 'x'},
+	  {'d', 'x'},
+	  {'b', 'x'},
+	  {'s', 'p'},
+	  {'b', 'p'},
+	  {'s', 'i'},
+	  {'d', 'i'},
+	  {'i', 'p'},
 	};
 
     case 4:

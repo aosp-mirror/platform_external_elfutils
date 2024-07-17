@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: elfutils\n"
 "Report-Msgid-Bugs-To: https://sourceware.org/bugzilla/\n"
-"POT-Creation-Date: 2023-11-03 17:36+0100\n"
+"POT-Creation-Date: 2024-03-01 10:22-0500\n"
 "PO-Revision-Date: 2021-02-22 16:25+0100\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <trans-pl@lists.fedoraproject.org>\n"
@@ -54,7 +54,7 @@ msgstr ""
 "BEZ JAKIEJKOLWIEK GWARANCJI, nawet domyślnej gwarancji PRZYDATNOŚCI\n"
 "HANDLOWEJ albo PRZYDATNOŚCI DO OKREŚLONYCH ZASTOSOWAŃ.\n"
 
-#: lib/xmalloc.c:47 lib/xmalloc.c:60 lib/xmalloc.c:72 src/readelf.c:12202
+#: lib/xmalloc.c:47 lib/xmalloc.c:60 lib/xmalloc.c:72 src/readelf.c:12203
 #: src/unstrip.c:311
 #, c-format
 msgid "memory exhausted"
@@ -302,7 +302,13 @@ msgstr "nieznany kod języka"
 msgid ".debug_addr section missing"
 msgstr "brak sekcji .debug_addr"
 
-#: libdwfl/argp-std.c:45 src/stack.c:643 src/unstrip.c:2547
+#: libdw/dwarf_error.c:105
+#, fuzzy
+#| msgid "unknown version"
+msgid "unknown section"
+msgstr "nieznana wersja"
+
+#: libdwfl/argp-std.c:45 src/stack.c:643 src/unstrip.c:2598
 msgid "Input selection options:"
 msgstr "Opcje wyboru wejścia:"
 
@@ -631,7 +637,7 @@ msgstr "nieprawidłowy rozmiar operandu źródłowego"
 msgid "invalid size of destination operand"
 msgstr "nieprawidłowy rozmiar operandu docelowego"
 
-#: libelf/elf_error.c:86 src/readelf.c:6758
+#: libelf/elf_error.c:86 src/readelf.c:6759
 #, c-format
 msgid "invalid encoding"
 msgstr "nieprawidłowe kodowanie"
@@ -716,8 +722,8 @@ msgstr "dane/scn nie zgadzają się"
 msgid "invalid section header"
 msgstr "nieprawidłowy nagłówek sekcji"
 
-#: libelf/elf_error.c:190 src/readelf.c:10637 src/readelf.c:11242
-#: src/readelf.c:11343 src/readelf.c:11531
+#: libelf/elf_error.c:190 src/readelf.c:10638 src/readelf.c:11243
+#: src/readelf.c:11344 src/readelf.c:11532
 #, c-format
 msgid "invalid data"
 msgstr "nieprawidłowe dane"
@@ -1648,7 +1654,7 @@ msgstr "Nieprawidłowa wartość „%s” dla parametru --gaps."
 
 #: src/elfcmp.c:733 src/findtextrel.c:194 src/nm.c:363 src/ranlib.c:140
 #: src/size.c:271 src/strings.c:184 src/strip.c:1040 src/strip.c:1077
-#: src/unstrip.c:2194 src/unstrip.c:2223
+#: src/unstrip.c:2245 src/unstrip.c:2274
 #, c-format
 msgid "cannot open '%s'"
 msgstr "nie można otworzyć „%s”"
@@ -4001,9 +4007,9 @@ msgstr "nie można utworzyć drzewa wyszukiwania"
 #: src/nm.c:742 src/nm.c:1234 src/objdump.c:778 src/readelf.c:685
 #: src/readelf.c:1506 src/readelf.c:1655 src/readelf.c:1882 src/readelf.c:2123
 #: src/readelf.c:2312 src/readelf.c:2482 src/readelf.c:2604 src/readelf.c:2854
-#: src/readelf.c:3140 src/readelf.c:3215 src/readelf.c:3301 src/readelf.c:3896
-#: src/readelf.c:3944 src/readelf.c:4013 src/readelf.c:12029
-#: src/readelf.c:13212 src/readelf.c:13422 src/readelf.c:13490 src/size.c:396
+#: src/readelf.c:3140 src/readelf.c:3215 src/readelf.c:3301 src/readelf.c:3897
+#: src/readelf.c:3945 src/readelf.c:4014 src/readelf.c:12030
+#: src/readelf.c:13213 src/readelf.c:13423 src/readelf.c:13491 src/size.c:396
 #: src/size.c:467 src/strip.c:1093
 #, c-format
 msgid "cannot get section header string table index"
@@ -4354,11 +4360,11 @@ msgstr "nie można określić liczby sekcji: %s"
 msgid "cannot get section: %s"
 msgstr "nie można uzyskać sekcji: %s"
 
-#: src/readelf.c:703 src/readelf.c:1329 src/readelf.c:1537 src/readelf.c:13442
-#: src/unstrip.c:396 src/unstrip.c:427 src/unstrip.c:490 src/unstrip.c:610
-#: src/unstrip.c:631 src/unstrip.c:671 src/unstrip.c:887 src/unstrip.c:1222
-#: src/unstrip.c:1349 src/unstrip.c:1373 src/unstrip.c:1429 src/unstrip.c:1470
-#: src/unstrip.c:1662 src/unstrip.c:1813 src/unstrip.c:1956 src/unstrip.c:2055
+#: src/readelf.c:703 src/readelf.c:1329 src/readelf.c:1537 src/readelf.c:13443
+#: src/unstrip.c:396 src/unstrip.c:427 src/unstrip.c:490 src/unstrip.c:622
+#: src/unstrip.c:640 src/unstrip.c:680 src/unstrip.c:897 src/unstrip.c:1263
+#: src/unstrip.c:1390 src/unstrip.c:1414 src/unstrip.c:1470 src/unstrip.c:1511
+#: src/unstrip.c:1703 src/unstrip.c:1854 src/unstrip.c:1998 src/unstrip.c:2106
 #, c-format
 msgid "cannot get section header: %s"
 msgstr "nie można uzyskać nagłówka sekcji: %s"
@@ -4368,8 +4374,8 @@ msgstr "nie można uzyskać nagłówka sekcji: %s"
 msgid "cannot get section name"
 msgstr "nie można uzyskać nazwy sekcji"
 
-#: src/readelf.c:720 src/readelf.c:7176 src/readelf.c:11230 src/readelf.c:11332
-#: src/readelf.c:11516
+#: src/readelf.c:720 src/readelf.c:7177 src/readelf.c:11231 src/readelf.c:11333
+#: src/readelf.c:11517
 #, c-format
 msgid "cannot get %s content: %s"
 msgstr "nie można uzyskać zwartości %s: %s"
@@ -4718,7 +4724,7 @@ msgstr ""
 " Mapowanie sekcji do segmentów:\n"
 "  Segment sekcji…"
 
-#: src/readelf.c:1519 src/unstrip.c:2114 src/unstrip.c:2156 src/unstrip.c:2163
+#: src/readelf.c:1519 src/unstrip.c:2165 src/unstrip.c:2207 src/unstrip.c:2214
 #, c-format
 msgid "cannot get program header: %s"
 msgstr "nie można uzyskać nagłówka programu: %s"
@@ -4767,19 +4773,19 @@ msgstr "<NIEPRAWIDŁOWY SYMBOL>"
 msgid "<INVALID SECTION>"
 msgstr "<NIEPRAWIDŁOWY SEKCJA>"
 
-#: src/readelf.c:1713 src/readelf.c:2614 src/readelf.c:3912 src/readelf.c:4212
-#: src/readelf.c:13314 src/readelf.c:13321 src/readelf.c:13365
-#: src/readelf.c:13372
+#: src/readelf.c:1713 src/readelf.c:2614 src/readelf.c:3913 src/readelf.c:4213
+#: src/readelf.c:13315 src/readelf.c:13322 src/readelf.c:13366
+#: src/readelf.c:13373
 msgid "Couldn't uncompress section"
 msgstr "Nie można dekompresować sekcji"
 
-#: src/readelf.c:1717 src/readelf.c:2619 src/readelf.c:3916
+#: src/readelf.c:1717 src/readelf.c:2619 src/readelf.c:3917
 #, c-format
 msgid "cannot get section [%zd] header: %s"
 msgstr "nie można uzyskać nagłówka sekcji [%zd]: %s"
 
 #: src/readelf.c:1886 src/readelf.c:2860 src/readelf.c:3146 src/readelf.c:3221
-#: src/readelf.c:3524 src/readelf.c:3598 src/readelf.c:5962
+#: src/readelf.c:3524 src/readelf.c:3598 src/readelf.c:5963
 #, c-format
 msgid "invalid sh_link value in section %zu"
 msgstr "nieprawidłowa wartość sh_link w sekcji %zu"
@@ -5166,7 +5172,7 @@ msgstr "      0  %6<PRIu32>      %5.1f%%\n"
 msgid "%7d  %6<PRIu32>      %5.1f%%    %5.1f%%\n"
 msgstr "%7d  %6<PRIu32>      %5.1f%%    %5.1f%%\n"
 
-#: src/readelf.c:3647
+#: src/readelf.c:3648
 #, c-format
 msgid ""
 " Average number of tests:   successful lookup: %f\n"
@@ -5175,37 +5181,37 @@ msgstr ""
 " Średnia liczba testów:   udane wyszukania: %f\n"
 "\t\t\t  nieudane wyszukania: %f\n"
 
-#: src/readelf.c:3665 src/readelf.c:3729 src/readelf.c:3795
+#: src/readelf.c:3666 src/readelf.c:3730 src/readelf.c:3796
 #, c-format
 msgid "cannot get data for section %d: %s"
 msgstr "nie można uzyskać danych dla sekcji %d: %s"
 
-#: src/readelf.c:3673
+#: src/readelf.c:3674
 #, c-format
 msgid "invalid data in sysv.hash section %d"
 msgstr "nieprawidłowe dane w sekcji sysv.hash %d"
 
-#: src/readelf.c:3702
+#: src/readelf.c:3703
 #, c-format
 msgid "invalid chain in sysv.hash section %d"
 msgstr "nieprawidłowy łańcuch w sekcji sysv.hash %d"
 
-#: src/readelf.c:3737
+#: src/readelf.c:3738
 #, c-format
 msgid "invalid data in sysv.hash64 section %d"
 msgstr "nieprawidłowe dane w sekcji sysv.hash64 %d"
 
-#: src/readelf.c:3768
+#: src/readelf.c:3769
 #, c-format
 msgid "invalid chain in sysv.hash64 section %d"
 msgstr "nieprawidłowy łańcuch w sekcji sysv.hash64 %d"
 
-#: src/readelf.c:3804
+#: src/readelf.c:3805
 #, c-format
 msgid "invalid data in gnu.hash section %d"
 msgstr "nieprawidłowe dane w sekcji gnu.hash %d"
 
-#: src/readelf.c:3870
+#: src/readelf.c:3871
 #, c-format
 msgid ""
 " Symbol Bias: %u\n"
@@ -5215,7 +5221,7 @@ msgstr ""
 " Rozmiar maski bitowej: %zu B  %<PRIuFAST32>%% b ustawionych  drugie "
 "przesunięcie skrótu: %u\n"
 
-#: src/readelf.c:3955
+#: src/readelf.c:3956
 #, c-format
 msgid ""
 "\n"
@@ -5236,7 +5242,7 @@ msgstr[2] ""
 "Sekcja listy bibliotek [%2zu] „%s” pod offsetem %#0<PRIx64> zawiera %d "
 "wpisów:\n"
 
-#: src/readelf.c:3969
+#: src/readelf.c:3970
 msgid ""
 "       Library                       Time Stamp          Checksum Version "
 "Flags"
@@ -5244,7 +5250,7 @@ msgstr ""
 "       Biblioteka                    Czas                Suma k.  Wersja  "
 "Flagi"
 
-#: src/readelf.c:4029
+#: src/readelf.c:4030
 #, c-format
 msgid ""
 "\n"
@@ -5254,107 +5260,107 @@ msgstr ""
 "\n"
 "Sekcja atrybutów obiektu [%2zu] „%s” %<PRIu64> B pod offsetem %#0<PRIx64>:\n"
 
-#: src/readelf.c:4046
+#: src/readelf.c:4047
 msgid "  Owner          Size\n"
 msgstr "  Właściciel          Rozmiar\n"
 
-#: src/readelf.c:4070
+#: src/readelf.c:4071
 #, c-format
 msgid "  %-13s  %4<PRIu32>\n"
 msgstr "  %-13s  %4<PRIu32>\n"
 
 #. Unknown subsection, print and skip.
-#: src/readelf.c:4109
+#: src/readelf.c:4110
 #, c-format
 msgid "    %-4u %12<PRIu32>\n"
 msgstr "    %-4u %12<PRIu32>\n"
 
 #. Tag_File
-#: src/readelf.c:4114
+#: src/readelf.c:4115
 #, c-format
 msgid "    File: %11<PRIu32>\n"
 msgstr "    Plik: %11<PRIu32>\n"
 
-#: src/readelf.c:4164
+#: src/readelf.c:4165
 #, c-format
 msgid "      %s: %<PRId64>, %s\n"
 msgstr "      %s: %<PRId64>, %s\n"
 
-#: src/readelf.c:4167
+#: src/readelf.c:4168
 #, c-format
 msgid "      %s: %<PRId64>\n"
 msgstr "      %s: %<PRId64>\n"
 
-#: src/readelf.c:4170
+#: src/readelf.c:4171
 #, c-format
 msgid "      %s: %s\n"
 msgstr "      %s: %s\n"
 
-#: src/readelf.c:4180
+#: src/readelf.c:4181
 #, c-format
 msgid "      %u: %<PRId64>\n"
 msgstr "      %u: %<PRId64>\n"
 
-#: src/readelf.c:4183
+#: src/readelf.c:4184
 #, c-format
 msgid "      %u: %s\n"
 msgstr "      %u: %s\n"
 
-#: src/readelf.c:4221
+#: src/readelf.c:4222
 #, fuzzy
 #| msgid "couldn't get shdr for group section: %s"
 msgid "Couldn't get data from section"
 msgstr "nie można uzyskać shdr dla sekcji grupy: %s"
 
-#: src/readelf.c:4286
+#: src/readelf.c:4287
 msgid "sprintf failure"
 msgstr "sprintf się nie powiodło"
 
-#: src/readelf.c:4770
+#: src/readelf.c:4771
 msgid "empty block"
 msgstr "pusty blok"
 
-#: src/readelf.c:4773
+#: src/readelf.c:4774
 #, c-format
 msgid "%zu byte block:"
 msgstr "blok o %zu B:"
 
-#: src/readelf.c:5251
+#: src/readelf.c:5252
 #, c-format
 msgid "%*s[%2<PRIuMAX>] %s  <TRUNCATED>\n"
 msgstr "%*s[%2<PRIuMAX>] %s  <SKRÓCONE>\n"
 
-#: src/readelf.c:5423
+#: src/readelf.c:5424
 #, c-format
 msgid "%s %#<PRIx64> used with different address sizes"
 msgstr "%s %#<PRIx64> zostało użyte z różnymi rozmiarami adresu"
 
-#: src/readelf.c:5430
+#: src/readelf.c:5431
 #, c-format
 msgid "%s %#<PRIx64> used with different offset sizes"
 msgstr "%s %#<PRIx64> zostało użyte z różnymi rozmiarami offsetu"
 
-#: src/readelf.c:5437
+#: src/readelf.c:5438
 #, c-format
 msgid "%s %#<PRIx64> used with different base addresses"
 msgstr "%s %#<PRIx64> zostało użyte z różnymi adresami podstawowymi"
 
-#: src/readelf.c:5444
+#: src/readelf.c:5445
 #, c-format
 msgid "%s %#<PRIx64> used with different attribute %s and %s"
 msgstr "%s %#<PRIx64> zostało użyte z różnymi atrybutami %s i %s"
 
-#: src/readelf.c:5544
+#: src/readelf.c:5545
 #, c-format
 msgid " [%6tx]  <UNUSED GARBAGE IN REST OF SECTION>\n"
 msgstr " [%6tx]  <NIEUŻYWANE ŚMIECIE W RESZCIE SEKCJI>\n"
 
-#: src/readelf.c:5552
+#: src/readelf.c:5553
 #, c-format
 msgid " [%6tx]  <UNUSED GARBAGE> ... %<PRIu64> bytes ...\n"
 msgstr " [%6tx]  <NIEUŻYWANE ŚMIECIE>… %<PRIu64> B…\n"
 
-#: src/readelf.c:5658
+#: src/readelf.c:5659
 #, c-format
 msgid ""
 "\n"
@@ -5365,7 +5371,7 @@ msgstr ""
 "Sekcja DWARF [%2zu] „%s” pod offsetem %#<PRIx64>:\n"
 " [ Kod]\n"
 
-#: src/readelf.c:5666
+#: src/readelf.c:5667
 #, c-format
 msgid ""
 "\n"
@@ -5374,20 +5380,20 @@ msgstr ""
 "\n"
 "Sekcja skrótów pod offsetem %<PRIu64>:\n"
 
-#: src/readelf.c:5679
+#: src/readelf.c:5680
 #, c-format
 msgid " *** error while reading abbreviation: %s\n"
 msgstr " *** błąd podczas odczytywania skrótu: %s\n"
 
-#: src/readelf.c:5695
+#: src/readelf.c:5696
 #, c-format
 msgid " [%5u] offset: %<PRId64>, children: %s, tag: %s\n"
 msgstr " [%5u] offset: %<PRId64>, potomek: %s, znacznik: %s\n"
 
-#: src/readelf.c:5732 src/readelf.c:6025 src/readelf.c:6196 src/readelf.c:6567
-#: src/readelf.c:7193 src/readelf.c:8962 src/readelf.c:9704 src/readelf.c:10172
-#: src/readelf.c:10427 src/readelf.c:10589 src/readelf.c:10970
-#: src/readelf.c:11041
+#: src/readelf.c:5733 src/readelf.c:6026 src/readelf.c:6197 src/readelf.c:6568
+#: src/readelf.c:7194 src/readelf.c:8963 src/readelf.c:9705 src/readelf.c:10173
+#: src/readelf.c:10428 src/readelf.c:10590 src/readelf.c:10971
+#: src/readelf.c:11042
 #, c-format
 msgid ""
 "\n"
@@ -5396,47 +5402,47 @@ msgstr ""
 "\n"
 "Sekcja DWARF [%2zu] „%s” pod offsetem %#<PRIx64>:\n"
 
-#: src/readelf.c:5835 src/readelf.c:5859 src/readelf.c:6232 src/readelf.c:9740
+#: src/readelf.c:5836 src/readelf.c:5860 src/readelf.c:6233 src/readelf.c:9741
 #, c-format
 msgid " Length:         %8<PRIu64>\n"
 msgstr " Długość:          %8<PRIu64>\n"
 
-#: src/readelf.c:5837 src/readelf.c:5874 src/readelf.c:6245 src/readelf.c:9753
+#: src/readelf.c:5838 src/readelf.c:5875 src/readelf.c:6246 src/readelf.c:9754
 #, c-format
 msgid " DWARF version:  %8<PRIu16>\n"
 msgstr " Wersja DWARF:     %8<PRIu16>\n"
 
-#: src/readelf.c:5838 src/readelf.c:5883 src/readelf.c:6254 src/readelf.c:9762
+#: src/readelf.c:5839 src/readelf.c:5884 src/readelf.c:6255 src/readelf.c:9763
 #, c-format
 msgid " Address size:   %8<PRIu64>\n"
 msgstr " Rozmiar adresu:   %8<PRIu64>\n"
 
-#: src/readelf.c:5840 src/readelf.c:5893 src/readelf.c:6264 src/readelf.c:9772
+#: src/readelf.c:5841 src/readelf.c:5894 src/readelf.c:6265 src/readelf.c:9773
 #, c-format
 msgid " Segment size:   %8<PRIu64>\n"
 msgstr " Rozmiar segmentu: %8<PRIu64>\n"
 
-#: src/readelf.c:5878 src/readelf.c:6249 src/readelf.c:9757 src/readelf.c:11163
+#: src/readelf.c:5879 src/readelf.c:6250 src/readelf.c:9758 src/readelf.c:11164
 #, c-format
 msgid "Unknown version"
 msgstr "Nieznana wersja"
 
-#: src/readelf.c:5888 src/readelf.c:6095 src/readelf.c:6259 src/readelf.c:9767
+#: src/readelf.c:5889 src/readelf.c:6096 src/readelf.c:6260 src/readelf.c:9768
 #, c-format
 msgid "unsupported address size"
 msgstr "nieobsługiwany rozmiar adresu"
 
-#: src/readelf.c:5899 src/readelf.c:6106 src/readelf.c:6269 src/readelf.c:9777
+#: src/readelf.c:5900 src/readelf.c:6107 src/readelf.c:6270 src/readelf.c:9778
 #, c-format
 msgid "unsupported segment size"
 msgstr "nieobsługiwany rozmiar segmentu"
 
-#: src/readelf.c:5952
+#: src/readelf.c:5953
 #, c-format
 msgid "cannot get .debug_aranges content: %s"
 msgstr "nie można uzyskać zawartości .debug_aranges: %s"
 
-#: src/readelf.c:5967
+#: src/readelf.c:5968
 #, c-format
 msgid ""
 "\n"
@@ -5454,12 +5460,12 @@ msgstr[2] ""
 "\n"
 "Sekcja DWARF [%2zu] „%s” pod offsetem %#<PRIx64> zawiera %zu wpisów:\n"
 
-#: src/readelf.c:5998
+#: src/readelf.c:5999
 #, c-format
 msgid " [%*zu] ???\n"
 msgstr " [%*zu] ???\n"
 
-#: src/readelf.c:6000
+#: src/readelf.c:6001
 #, c-format
 msgid ""
 " [%*zu] start: %0#*<PRIx64>, length: %5<PRIu64>, CU DIE offset: %6<PRId64>\n"
@@ -5467,7 +5473,7 @@ msgstr ""
 " [%*zu] początek: %0#*<PRIx64>, długość: %5<PRIu64>, offset CU DIE: "
 "%6<PRId64>\n"
 
-#: src/readelf.c:6038 src/readelf.c:8981
+#: src/readelf.c:6039 src/readelf.c:8982
 #, c-format
 msgid ""
 "\n"
@@ -5476,13 +5482,13 @@ msgstr ""
 "\n"
 "Tabela pod offsetem %zu:\n"
 
-#: src/readelf.c:6042 src/readelf.c:6213 src/readelf.c:7217 src/readelf.c:8992
-#: src/readelf.c:9721
+#: src/readelf.c:6043 src/readelf.c:6214 src/readelf.c:7218 src/readelf.c:8993
+#: src/readelf.c:9722
 #, c-format
 msgid "invalid data in section [%zu] '%s'"
 msgstr "nieprawidłowe dane w sekcji [%zu] „%s”"
 
-#: src/readelf.c:6058
+#: src/readelf.c:6059
 #, c-format
 msgid ""
 "\n"
@@ -5491,27 +5497,27 @@ msgstr ""
 "\n"
 " Długość:        %6<PRIu64>\n"
 
-#: src/readelf.c:6070
+#: src/readelf.c:6071
 #, c-format
 msgid " DWARF version: %6<PRIuFAST16>\n"
 msgstr " Wersja DWARF: %6<PRIuFAST16>\n"
 
-#: src/readelf.c:6074
+#: src/readelf.c:6075
 #, c-format
 msgid "unsupported aranges version"
 msgstr "nieobsługiwana wersja aranges"
 
-#: src/readelf.c:6085
+#: src/readelf.c:6086
 #, c-format
 msgid " CU offset:     %6<PRIx64>\n"
 msgstr " Offset CU:     %6<PRIx64>\n"
 
-#: src/readelf.c:6091
+#: src/readelf.c:6092
 #, c-format
 msgid " Address size:  %6<PRIu64>\n"
 msgstr " Offset adresu:  %6<PRIu64>\n"
 
-#: src/readelf.c:6102
+#: src/readelf.c:6103
 #, c-format
 msgid ""
 " Segment size:  %6<PRIu64>\n"
@@ -5520,12 +5526,12 @@ msgstr ""
 " Rozmiar segmentu:  %6<PRIu64>\n"
 "\n"
 
-#: src/readelf.c:6157
+#: src/readelf.c:6158
 #, c-format
 msgid "   %zu padding bytes\n"
 msgstr "   %zu B wypełnienia\n"
 
-#: src/readelf.c:6219 src/readelf.c:9727
+#: src/readelf.c:6220 src/readelf.c:9728
 #, c-format
 msgid ""
 "Table at Offset 0x%<PRIx64>:\n"
@@ -5534,42 +5540,42 @@ msgstr ""
 "Tabela pod offsetem 0x%<PRIx64>:\n"
 "\n"
 
-#: src/readelf.c:6274 src/readelf.c:9782
+#: src/readelf.c:6275 src/readelf.c:9783
 #, c-format
 msgid " Offset entries: %8<PRIu64>\n"
 msgstr " Wpisy offsetu: %8<PRIu64>\n"
 
-#: src/readelf.c:6290 src/readelf.c:9798
+#: src/readelf.c:6291 src/readelf.c:9799
 #, c-format
 msgid " Unknown CU base: "
 msgstr " Nieznana podstawa CU: "
 
-#: src/readelf.c:6292 src/readelf.c:9800
+#: src/readelf.c:6293 src/readelf.c:9801
 #, c-format
 msgid " CU [%6<PRIx64>] base: "
 msgstr " Podstawa CU [%6<PRIx64>]: "
 
-#: src/readelf.c:6298 src/readelf.c:9806
+#: src/readelf.c:6299 src/readelf.c:9807
 #, c-format
 msgid " Not associated with a CU.\n"
 msgstr " Brak powiązania z CU.\n"
 
-#: src/readelf.c:6309 src/readelf.c:9817
+#: src/readelf.c:6310 src/readelf.c:9818
 #, c-format
 msgid "too many offset entries for unit length"
 msgstr "za dużo wpisów offsetu dla długości jednostki"
 
-#: src/readelf.c:6313 src/readelf.c:9821
+#: src/readelf.c:6314 src/readelf.c:9822
 #, c-format
 msgid "  Offsets starting at 0x%<PRIx64>:\n"
 msgstr "  Offsety zaczynające się w 0x%<PRIx64>:\n"
 
-#: src/readelf.c:6365
+#: src/readelf.c:6366
 #, c-format
 msgid "invalid range list data"
 msgstr "nieprawidłowe dane listy zakresów"
 
-#: src/readelf.c:6550 src/readelf.c:10156
+#: src/readelf.c:6551 src/readelf.c:10157
 #, c-format
 msgid ""
 "   %zu padding bytes\n"
@@ -5578,7 +5584,7 @@ msgstr ""
 "   %zu B wypełnienia\n"
 "\n"
 
-#: src/readelf.c:6598 src/readelf.c:10205
+#: src/readelf.c:6599 src/readelf.c:10206
 #, c-format
 msgid ""
 "\n"
@@ -5587,7 +5593,7 @@ msgstr ""
 "\n"
 " Nieznana podstawa CU: "
 
-#: src/readelf.c:6600 src/readelf.c:10207
+#: src/readelf.c:6601 src/readelf.c:10208
 #, c-format
 msgid ""
 "\n"
@@ -5596,30 +5602,30 @@ msgstr ""
 "\n"
 " Podstawa CU [%6<PRIx64>]: "
 
-#: src/readelf.c:6609 src/readelf.c:10233 src/readelf.c:10259
+#: src/readelf.c:6610 src/readelf.c:10234 src/readelf.c:10260
 #, c-format
 msgid " [%6tx]  <INVALID DATA>\n"
 msgstr " [%6tx]  <NIEPRAWIDŁOWE DANE>\n"
 
-#: src/readelf.c:6634 src/readelf.c:10343
+#: src/readelf.c:6635 src/readelf.c:10344
 msgid "base address"
 msgstr "adres podstawowy"
 
-#: src/readelf.c:6644 src/readelf.c:10353
+#: src/readelf.c:6645 src/readelf.c:10354
 #, c-format
 msgid " [%6tx] empty list\n"
 msgstr " [%6tx] pusta lista\n"
 
-#: src/readelf.c:6908
+#: src/readelf.c:6909
 msgid "         <INVALID DATA>\n"
 msgstr "         <NIEPRAWIDŁOWE DANE>\n"
 
-#: src/readelf.c:7165
+#: src/readelf.c:7166
 #, c-format
 msgid "cannot get ELF: %s"
 msgstr "nie można uzyskać ELF: %s"
 
-#: src/readelf.c:7189
+#: src/readelf.c:7190
 #, c-format
 msgid ""
 "\n"
@@ -5628,7 +5634,7 @@ msgstr ""
 "\n"
 "Sekcja informacji o ramce wywołania [%2zu] „%s” pod offsetem %#<PRIx64>:\n"
 
-#: src/readelf.c:7239
+#: src/readelf.c:7240
 #, c-format
 msgid ""
 "\n"
@@ -5637,65 +5643,65 @@ msgstr ""
 "\n"
 " [%6tx] Zerowy koniec\n"
 
-#: src/readelf.c:7343 src/readelf.c:7497
+#: src/readelf.c:7344 src/readelf.c:7498
 #, c-format
 msgid "invalid augmentation length"
 msgstr "nieprawidłowa długość powiększenia"
 
-#: src/readelf.c:7358
+#: src/readelf.c:7359
 msgid "FDE address encoding: "
 msgstr "Kodowanie adresu FDE: "
 
-#: src/readelf.c:7364
+#: src/readelf.c:7365
 msgid "LSDA pointer encoding: "
 msgstr "Kodowanie wskaźnika LSDA: "
 
-#: src/readelf.c:7474
+#: src/readelf.c:7475
 #, c-format
 msgid " (offset: %#<PRIx64>)"
 msgstr " (offset: %#<PRIx64>)"
 
-#: src/readelf.c:7481
+#: src/readelf.c:7482
 #, c-format
 msgid " (end offset: %#<PRIx64>)"
 msgstr " (kończący offset: %#<PRIx64>)"
 
-#: src/readelf.c:7518
+#: src/readelf.c:7519
 #, c-format
 msgid "   %-26sLSDA pointer: %#<PRIx64>\n"
 msgstr "   %-26sWskaźnik LSDA: %#<PRIx64>\n"
 
-#: src/readelf.c:7603
+#: src/readelf.c:7604
 #, c-format
 msgid "DIE [%<PRIx64>] cannot get attribute code: %s"
 msgstr "DIE [%<PRIx64>] nie można uzyskać kodu atrybutu: %s"
 
-#: src/readelf.c:7613
+#: src/readelf.c:7614
 #, c-format
 msgid "DIE [%<PRIx64>] cannot get attribute form: %s"
 msgstr "DIE [%<PRIx64>] nie można uzyskać formy atrybutu: %s"
 
-#: src/readelf.c:7635
+#: src/readelf.c:7636
 #, c-format
 msgid "DIE [%<PRIx64>] cannot get attribute '%s' (%s) value: %s"
 msgstr "DIE [%<PRIx64>] nie można uzyskać wartości atrybutu „%s” (%s): %s"
 
-#: src/readelf.c:7965
+#: src/readelf.c:7966
 #, c-format
 msgid "invalid file (%<PRId64>): %s"
 msgstr "nieprawidłowy plik (%<PRId64>): %s"
 
-#: src/readelf.c:7969
+#: src/readelf.c:7970
 #, c-format
 msgid "no srcfiles for CU [%<PRIx64>]"
 msgstr "brak plików źródłowych dla CU [%<PRIx64>]"
 
-#: src/readelf.c:7973
+#: src/readelf.c:7974
 #, c-format
 msgid "couldn't get DWARF CU: %s"
 msgstr "nie można uzyskać CU DWARF: %s"
 
-#: src/readelf.c:8295
+#: src/readelf.c:8296
 #, c-format
 msgid ""
 "\n"
@@ -5706,12 +5712,12 @@ msgstr ""
 "Sekcja DWARF [%2zu] „%s” pod offsetem %#<PRIx64>:\n"
 " [Offset]\n"
 
-#: src/readelf.c:8345
+#: src/readelf.c:8346
 #, c-format
 msgid "cannot get next unit: %s"
 msgstr "nie można uzyskać następnej jednostki: %s"
 
-#: src/readelf.c:8365
+#: src/readelf.c:8366
 #, c-format
 msgid ""
 " Type unit at offset %<PRIu64>:\n"
@@ -5724,7 +5730,7 @@ msgstr ""
 "%<PRIu8>, rozmiar offsetu: %<PRIu8>\n"
 " Podpis typu: %#<PRIx64>, offset typu: %#<PRIx64> [%<PRIx64>]\n"
 
-#: src/readelf.c:8377
+#: src/readelf.c:8378
 #, c-format
 msgid ""
 " Compilation unit at offset %<PRIu64>:\n"
@@ -5735,38 +5741,38 @@ msgstr ""
 " Wersja: %<PRIu16>, offset sekcji skrótów: %<PRIu64>, rozmiar adresu: "
 "%<PRIu8>, rozmiar offsetu: %<PRIu8>\n"
 
-#: src/readelf.c:8387 src/readelf.c:8548
+#: src/readelf.c:8388 src/readelf.c:8549
 #, c-format
 msgid " Unit type: %s (%<PRIu8>)"
 msgstr " Typ jednostki: %s (%<PRIu8>)"
 
-#: src/readelf.c:8414
+#: src/readelf.c:8415
 #, c-format
 msgid "unknown version (%d) or unit type (%d)"
 msgstr "nieznana wersja (%d) lub typ jednostki (%d)"
 
-#: src/readelf.c:8443
+#: src/readelf.c:8444
 #, c-format
 msgid "cannot get DIE offset: %s"
 msgstr "nie można uzyskać offsetu DIE: %s"
 
-#: src/readelf.c:8452
+#: src/readelf.c:8453
 #, c-format
 msgid "cannot get tag of DIE at offset [%<PRIx64>] in section '%s': %s"
 msgstr ""
 "nie można uzyskać znacznika DIE pod offsetem [%<PRIx64>] w sekcji „%s”: %s"
 
-#: src/readelf.c:8488
+#: src/readelf.c:8489
 #, c-format
 msgid "cannot get next DIE: %s\n"
 msgstr "nie można uzyskać następnego DIE: %s\n"
 
-#: src/readelf.c:8496
+#: src/readelf.c:8497
 #, c-format
 msgid "cannot get next DIE: %s"
 msgstr "nie można uzyskać następnego DIE: %s"
 
-#: src/readelf.c:8540
+#: src/readelf.c:8541
 #, c-format
 msgid ""
 " Split compilation unit at offset %<PRIu64>:\n"
@@ -5777,7 +5783,7 @@ msgstr ""
 " Wersja: %<PRIu16>, offset sekcji skrótów: %<PRIu64>, rozmiar adresu: "
 "%<PRIu8>, rozmiar offsetu: %<PRIu8>\n"
 
-#: src/readelf.c:8592
+#: src/readelf.c:8593
 #, c-format
 msgid ""
 "\n"
@@ -5788,13 +5794,13 @@ msgstr ""
 "Sekcja DWARF [%2zu] „%s” pod offsetem %#<PRIx64>:\n"
 "\n"
 
-#: src/readelf.c:8924
+#: src/readelf.c:8925
 #, c-format
 msgid "unknown form: %s"
 msgstr "nieznana forma: %s"
 
 #. Print what we got so far.
-#: src/readelf.c:9072
+#: src/readelf.c:9073
 #, c-format
 msgid ""
 "\n"
@@ -5827,27 +5833,27 @@ msgstr ""
 "\n"
 "Instrukcje:\n"
 
-#: src/readelf.c:9094
+#: src/readelf.c:9095
 #, c-format
 msgid "cannot handle .debug_line version: %u\n"
 msgstr "nie można obsłużyć wersji .debug_line: %u\n"
 
-#: src/readelf.c:9102
+#: src/readelf.c:9103
 #, c-format
 msgid "cannot handle address size: %u\n"
 msgstr "nie można obsłużyć rozmiaru adresu: %u\n"
 
-#: src/readelf.c:9110
+#: src/readelf.c:9111
 #, c-format
 msgid "cannot handle segment selector size: %u\n"
 msgstr "nie można obsłużyć rozmiaru selektora segmentu: %u\n"
 
-#: src/readelf.c:9120
+#: src/readelf.c:9121
 #, c-format
 msgid "invalid data at offset %tu in section [%zu] '%s'"
 msgstr "nieprawidłowe dane pod offsetem %tu w sekcji [%zu] „%s”"
 
-#: src/readelf.c:9135
+#: src/readelf.c:9136
 #, c-format
 msgid "  [%*<PRIuFAST8>]  %hhu argument\n"
 msgid_plural "  [%*<PRIuFAST8>]  %hhu arguments\n"
@@ -5855,7 +5861,7 @@ msgstr[0] "  [%*<PRIuFAST8>]  %hhu parametr\n"
 msgstr[1] "  [%*<PRIuFAST8>]  %hhu parametry\n"
 msgstr[2] "  [%*<PRIuFAST8>]  %hhu parametrów\n"
 
-#: src/readelf.c:9146
+#: src/readelf.c:9147
 msgid ""
 "\n"
 "Directory table:"
@@ -5863,12 +5869,12 @@ msgstr ""
 "\n"
 "Tabela katalogu:"
 
-#: src/readelf.c:9152 src/readelf.c:9229
+#: src/readelf.c:9153 src/readelf.c:9230
 #, c-format
 msgid "      ["
 msgstr "      ["
 
-#: src/readelf.c:9223
+#: src/readelf.c:9224
 msgid ""
 "\n"
 "File name table:"
@@ -5876,11 +5882,11 @@ msgstr ""
 "\n"
 "Tabela nazw plików:"
 
-#: src/readelf.c:9284
+#: src/readelf.c:9285
 msgid " Entry Dir   Time      Size      Name"
 msgstr " Wpis  Kat   Czas      Rozmiar   Nazwa"
 
-#: src/readelf.c:9330
+#: src/readelf.c:9331
 msgid ""
 "\n"
 "No line number statements."
@@ -5888,7 +5894,7 @@ msgstr ""
 "\n"
 "Brak instrukcji numerów wierszy."
 
-#: src/readelf.c:9334
+#: src/readelf.c:9335
 msgid ""
 "\n"
 "Line number statements:"
@@ -5896,129 +5902,129 @@ msgstr ""
 "\n"
 "Instrukcje numerów wierszy:"
 
-#: src/readelf.c:9349
+#: src/readelf.c:9350
 #, c-format
 msgid "invalid maximum operations per instruction is zero"
 msgstr "nieprawidłowe maksimum operacji na instrukcję wynosi zero"
 
-#: src/readelf.c:9383
+#: src/readelf.c:9384
 #, c-format
 msgid " special opcode %u: address+%u = "
 msgstr " instrukcja specjalna %u: adres+%u = "
 
-#: src/readelf.c:9387
+#: src/readelf.c:9388
 #, c-format
 msgid ", op_index = %u, line%+d = %zu\n"
 msgstr ", op_index = %u, wiersz%+d = %zu\n"
 
-#: src/readelf.c:9390
+#: src/readelf.c:9391
 #, c-format
 msgid ", line%+d = %zu\n"
 msgstr ", wiersz%+d = %zu\n"
 
-#: src/readelf.c:9408
+#: src/readelf.c:9409
 #, c-format
 msgid " extended opcode %u: "
 msgstr " instrukcja rozszerzona %u: "
 
-#: src/readelf.c:9413
+#: src/readelf.c:9414
 msgid " end of sequence"
 msgstr " koniec sekwencji"
 
-#: src/readelf.c:9431
+#: src/readelf.c:9432
 #, c-format
 msgid " set address to "
 msgstr " ustawienie adresu na "
 
-#: src/readelf.c:9459
+#: src/readelf.c:9460
 #, c-format
 msgid " define new file: dir=%u, mtime=%<PRIu64>, length=%<PRIu64>, name=%s\n"
 msgstr ""
 " definicja nowego pliku: dir=%u, mtime=%<PRIu64>, długość=%<PRIu64>, "
 "nazwa=%s\n"
 
-#: src/readelf.c:9473
+#: src/readelf.c:9474
 #, c-format
 msgid " set discriminator to %u\n"
 msgstr " ustawienie dyskryminatora na %u\n"
 
-#: src/readelf.c:9500
+#: src/readelf.c:9501
 #, c-format
 msgid " set inlined context %u, function name %s (0x%x)\n"
 msgstr ""
 
-#: src/readelf.c:9524
+#: src/readelf.c:9525
 #, fuzzy, c-format
 #| msgid "Also show function names"
 msgid " set function name %s (0x%x)\n"
 msgstr "Wyświetla także nazwy funkcji"
 
 #. Unknown, ignore it.
-#: src/readelf.c:9531
+#: src/readelf.c:9532
 msgid " unknown opcode"
 msgstr " nieznana instrukcja"
 
 #. Takes no argument.
-#: src/readelf.c:9543
+#: src/readelf.c:9544
 msgid " copy"
 msgstr " kopiowanie"
 
-#: src/readelf.c:9554
+#: src/readelf.c:9555
 #, c-format
 msgid " advance address by %u to "
 msgstr " zwiększenie adresu o %u do "
 
-#: src/readelf.c:9558 src/readelf.c:9619
+#: src/readelf.c:9559 src/readelf.c:9620
 #, c-format
 msgid ", op_index to %u"
 msgstr ", op_index do %u"
 
-#: src/readelf.c:9570
+#: src/readelf.c:9571
 #, c-format
 msgid " advance line by constant %d to %<PRId64>\n"
 msgstr " zwiększenie wiersza o stałą %d do %<PRId64>\n"
 
-#: src/readelf.c:9580
+#: src/readelf.c:9581
 #, c-format
 msgid " set file to %<PRIu64>\n"
 msgstr " ustawienie pliku na %<PRIu64>\n"
 
-#: src/readelf.c:9591
+#: src/readelf.c:9592
 #, c-format
 msgid " set column to %<PRIu64>\n"
 msgstr " ustawienie kolumny na %<PRIu64>\n"
 
-#: src/readelf.c:9598
+#: src/readelf.c:9599
 #, c-format
 msgid " set '%s' to %<PRIuFAST8>\n"
 msgstr " ustawienie „%s” na %<PRIuFAST8>\n"
 
 #. Takes no argument.
-#: src/readelf.c:9604
+#: src/readelf.c:9605
 msgid " set basic block flag"
 msgstr " ustawienie podstawowej flagi bloku"
 
-#: src/readelf.c:9615
+#: src/readelf.c:9616
 #, c-format
 msgid " advance address by constant %u to "
 msgstr " zwiększenie adresu o stałą %u do "
 
-#: src/readelf.c:9635
+#: src/readelf.c:9636
 #, c-format
 msgid " advance address by fixed value %u to \n"
 msgstr " zwiększenie adresu o stałą wartość %u do \n"
 
 #. Takes no argument.
-#: src/readelf.c:9645
+#: src/readelf.c:9646
 msgid " set prologue end flag"
 msgstr " ustawienie flagi końca prologu"
 
 #. Takes no argument.
-#: src/readelf.c:9650
+#: src/readelf.c:9651
 msgid " set epilogue begin flag"
 msgstr " ustawienie flagi początku epilogu"
 
-#: src/readelf.c:9660
+#: src/readelf.c:9661
 #, c-format
 msgid " set isa to %u\n"
 msgstr " ustawienie isa na %u\n"
@@ -6026,7 +6032,7 @@ msgstr " ustawienie isa na %u\n"
 #. This is a new opcode the generator but not we know about.
 #. Read the parameters associated with it but then discard
 #. everything.  Read all the parameters for this opcode.
-#: src/readelf.c:9669
+#: src/readelf.c:9670
 #, c-format
 msgid " unknown opcode with %<PRIu8> parameter:"
 msgid_plural " unknown opcode with %<PRIu8> parameters:"
@@ -6034,86 +6040,86 @@ msgstr[0] " nieznana instrukcja z %<PRIu8> parametrem:"
 msgstr[1] " nieznana instrukcja z %<PRIu8> parametrami:"
 msgstr[2] " nieznana instrukcja z %<PRIu8> parametrami:"
 
-#: src/readelf.c:9870
+#: src/readelf.c:9871
 #, c-format
 msgid "    <INVALID DATA>\n"
 msgstr "    <NIEPRAWIDŁOWE DANE>\n"
 
-#: src/readelf.c:9910
+#: src/readelf.c:9911
 #, c-format
 msgid "invalid loclists data"
 msgstr "nieprawidłowe dane loclists"
 
-#: src/readelf.c:10380 src/readelf.c:11425
+#: src/readelf.c:10381 src/readelf.c:11426
 msgid "   <INVALID DATA>\n"
 msgstr "   <NIEPRAWIDŁOWE DANE>\n"
 
-#: src/readelf.c:10511
+#: src/readelf.c:10512
 #, c-format
 msgid "%*s*** non-terminated string at end of section"
 msgstr "%*s*** niezakończony ciąg na końcu sekcji"
 
-#: src/readelf.c:10534
+#: src/readelf.c:10535
 #, c-format
 msgid "%*s*** missing DW_MACINFO_start_file argument at end of section"
 msgstr "%*s*** brak parametru DW_MACINFO_start_file na końcu sekcji"
 
-#: src/readelf.c:10629
+#: src/readelf.c:10630
 #, c-format
 msgid " Offset:             0x%<PRIx64>\n"
 msgstr " Offset:             0x%<PRIx64>\n"
 
-#: src/readelf.c:10641
+#: src/readelf.c:10642
 #, c-format
 msgid " Version:            %<PRIu16>\n"
 msgstr " Wersja:             %<PRIu16>\n"
 
-#: src/readelf.c:10647 src/readelf.c:11546
+#: src/readelf.c:10648 src/readelf.c:11547
 #, c-format
 msgid "  unknown version, cannot parse section\n"
 msgstr "  nieznana wersja, nie można przetworzyć sekcji\n"
 
-#: src/readelf.c:10654
+#: src/readelf.c:10655
 #, c-format
 msgid " Flag:               0x%<PRIx8>"
 msgstr " Flaga:              0x%<PRIx8>"
 
-#: src/readelf.c:10683
+#: src/readelf.c:10684
 #, c-format
 msgid " Offset length:      %<PRIu8>\n"
 msgstr " Długość offsetu:    %<PRIu8>\n"
 
-#: src/readelf.c:10691
+#: src/readelf.c:10692
 #, c-format
 msgid " .debug_line offset: 0x%<PRIx64>\n"
 msgstr " Offset .debug_line: 0x%<PRIx64>\n"
 
-#: src/readelf.c:10716
+#: src/readelf.c:10717
 #, c-format
 msgid "  extension opcode table, %<PRIu8> items:\n"
 msgstr "  tabela instrukcji rozszerzenia, %<PRIu8> elementów:\n"
 
-#: src/readelf.c:10723
+#: src/readelf.c:10724
 #, c-format
 msgid "    [%<PRIx8>]"
 msgstr "    [%<PRIx8>]"
 
-#: src/readelf.c:10735
+#: src/readelf.c:10736
 #, c-format
 msgid " %<PRIu8> arguments:"
 msgstr " Parametry %<PRIu8>:"
 
-#: src/readelf.c:10750
+#: src/readelf.c:10751
 #, c-format
 msgid " no arguments."
 msgstr " brak parametrów."
 
-#: src/readelf.c:10951
+#: src/readelf.c:10952
 #, c-format
 msgid " [%5d] DIE offset: %6<PRId64>, CU DIE offset: %6<PRId64>, name: %s\n"
 msgstr " [%5d] offset DIE: %6<PRId64>, offset CU DIE: %6<PRId64>, nazwa: %s\n"
 
-#: src/readelf.c:11006
+#: src/readelf.c:11007
 #, c-format
 msgid ""
 "\n"
@@ -6125,37 +6131,37 @@ msgstr ""
 " %*s  Ciąg\n"
 
 #. TRANS: the debugstr| prefix makes the string unique.
-#: src/readelf.c:11011
+#: src/readelf.c:11012
 msgctxt "debugstr"
 msgid "Offset"
 msgstr ""
 
-#: src/readelf.c:11021
+#: src/readelf.c:11022
 #, c-format
 msgid " *** error, missing string terminator\n"
 msgstr " *** błąd, brak znaku kończącego ciąg\n"
 
-#: src/readelf.c:11143
+#: src/readelf.c:11144
 #, c-format
 msgid " Length:        %8<PRIu64>\n"
 msgstr " Długość:         %8<PRIu64>\n"
 
-#: src/readelf.c:11145
+#: src/readelf.c:11146
 #, c-format
 msgid " Offset size:   %8<PRIu8>\n"
 msgstr " Rozmiar offsetu: %8<PRIu8>\n"
 
-#: src/readelf.c:11159
+#: src/readelf.c:11160
 #, c-format
 msgid " DWARF version: %8<PRIu16>\n"
 msgstr " Wersja DWARF:    %8<PRIu16>\n"
 
-#: src/readelf.c:11168
+#: src/readelf.c:11169
 #, c-format
 msgid " Padding:       %8<PRIx16>\n"
 msgstr " Wypełnienie:     %8<PRIx16>\n"
 
-#: src/readelf.c:11222
+#: src/readelf.c:11223
 #, c-format
 msgid ""
 "\n"
@@ -6164,7 +6170,7 @@ msgstr ""
 "\n"
 "Sekcja tabeli wyszukiwania ramki wywołania [%2zu] „.eh_frame_hdr”:\n"
 
-#: src/readelf.c:11324
+#: src/readelf.c:11325
 #, c-format
 msgid ""
 "\n"
@@ -6173,22 +6179,22 @@ msgstr ""
 "\n"
 "Sekcja tabeli obsługiwania wyjątków [%2zu] „.gcc_except_table”:\n"
 
-#: src/readelf.c:11347
+#: src/readelf.c:11348
 #, c-format
 msgid " LPStart encoding:    %#x "
 msgstr " Kodowanie LPStart:    %#x "
 
-#: src/readelf.c:11359
+#: src/readelf.c:11360
 #, c-format
 msgid " TType encoding:      %#x "
 msgstr " Kodowanie TType:      %#x "
 
-#: src/readelf.c:11376
+#: src/readelf.c:11377
 #, c-format
 msgid " Call site encoding:  %#x "
 msgstr " Kodowanie strony wywołania:  %#x "
 
-#: src/readelf.c:11391
+#: src/readelf.c:11392
 msgid ""
 "\n"
 " Call site table:"
@@ -6196,7 +6202,7 @@ msgstr ""
 "\n"
 " Tabela strony wywołania:"
 
-#: src/readelf.c:11407
+#: src/readelf.c:11408
 #, c-format
 msgid ""
 " [%4u] Call site start:   %#<PRIx64>\n"
@@ -6209,12 +6215,12 @@ msgstr ""
 "        Lądowisko:                 %#<PRIx64>\n"
 "        Działanie:                 %u\n"
 
-#: src/readelf.c:11480
+#: src/readelf.c:11481
 #, c-format
 msgid "invalid TType encoding"
 msgstr "nieprawidłowe kodowanie TType"
 
-#: src/readelf.c:11507
+#: src/readelf.c:11508
 #, c-format
 msgid ""
 "\n"
@@ -6223,43 +6229,43 @@ msgstr ""
 "\n"
 "Sekcja GDB [%2zu] „%s” pod offsetem %#<PRIx64> zawiera %<PRId64> B:\n"
 
-#: src/readelf.c:11536
+#: src/readelf.c:11537
 #, c-format
 msgid " Version:         %<PRId32>\n"
 msgstr " Wersja:         %<PRId32>\n"
 
-#: src/readelf.c:11555
+#: src/readelf.c:11556
 #, c-format
 msgid " CU offset:       %#<PRIx32>\n"
 msgstr " offset CU:       %#<PRIx32>\n"
 
-#: src/readelf.c:11562
+#: src/readelf.c:11563
 #, c-format
 msgid " TU offset:       %#<PRIx32>\n"
 msgstr " offset TU:       %#<PRIx32>\n"
 
-#: src/readelf.c:11569
+#: src/readelf.c:11570
 #, c-format
 msgid " address offset:  %#<PRIx32>\n"
 msgstr " offset adresu:  %#<PRIx32>\n"
 
-#: src/readelf.c:11576
+#: src/readelf.c:11577
 #, c-format
 msgid " symbol offset:   %#<PRIx32>\n"
 msgstr " offset symbolu:   %#<PRIx32>\n"
 
-#: src/readelf.c:11586
+#: src/readelf.c:11587
 #, fuzzy, c-format
 #| msgid " constant offset: %#<PRIx32>\n"
 msgid " shortcut offset: %#<PRIx32>\n"
 msgstr " offset stałej: %#<PRIx32>\n"
 
-#: src/readelf.c:11594
+#: src/readelf.c:11595
 #, c-format
 msgid " constant offset: %#<PRIx32>\n"
 msgstr " offset stałej: %#<PRIx32>\n"
 
-#: src/readelf.c:11608
+#: src/readelf.c:11609
 #, c-format
 msgid ""
 "\n"
@@ -6268,7 +6274,7 @@ msgstr ""
 "\n"
 " Lista CU pod offsetem %#<PRIx32> zawiera %zu wpisów:\n"
 
-#: src/readelf.c:11633
+#: src/readelf.c:11634
 #, c-format
 msgid ""
 "\n"
@@ -6277,7 +6283,7 @@ msgstr ""
 "\n"
 " Lista TU pod offsetem %#<PRIx32> zawiera %zu wpisów:\n"
 
-#: src/readelf.c:11662
+#: src/readelf.c:11663
 #, c-format
 msgid ""
 "\n"
@@ -6286,7 +6292,7 @@ msgstr ""
 "\n"
 " Lista adresów pod offsetem %#<PRIx32> zawiera %zu wpisów:\n"
 
-#: src/readelf.c:11705
+#: src/readelf.c:11706
 #, c-format
 msgid ""
 "\n"
@@ -6295,7 +6301,7 @@ msgstr ""
 "\n"
 " Tabela symboli pod offsetem %#<PRIx32> zawiera %zu gniazd:\n"
 
-#: src/readelf.c:11790
+#: src/readelf.c:11791
 #, fuzzy, c-format
 #| msgid ""
 #| "\n"
@@ -6307,28 +6313,28 @@ msgstr ""
 "\n"
 " Tabela symboli pod offsetem %#<PRIx32> zawiera %zu gniazd:\n"
 
-#: src/readelf.c:11802
+#: src/readelf.c:11803
 #, c-format
 msgid "Language of main: %s\n"
 msgstr ""
 
-#: src/readelf.c:11803
+#: src/readelf.c:11804
 #, c-format
 msgid "Name of main: "
 msgstr ""
 
-#: src/readelf.c:11886
+#: src/readelf.c:11887
 #, c-format
 msgid "cannot get debug context descriptor: %s"
 msgstr "nie można uzyskać deskryptora kontekstu debugowania: %s"
 
-#: src/readelf.c:12252 src/readelf.c:12872 src/readelf.c:12982
-#: src/readelf.c:13039
+#: src/readelf.c:12253 src/readelf.c:12873 src/readelf.c:12983
+#: src/readelf.c:13040
 #, c-format
 msgid "cannot convert core note data: %s"
 msgstr "nie można konwertować danych notatki core: %s"
 
-#: src/readelf.c:12616
+#: src/readelf.c:12617
 #, c-format
 msgid ""
 "\n"
@@ -6337,21 +6343,21 @@ msgstr ""
 "\n"
 "%*s… <powtarza się jeszcze %u razy>…"
 
-#: src/readelf.c:13118
+#: src/readelf.c:13119
 msgid "  Owner          Data size  Type\n"
 msgstr "  Właściciel     Rozmiar danych  Typ\n"
 
-#: src/readelf.c:13146
+#: src/readelf.c:13147
 #, c-format
 msgid "  %-13.*s  %9<PRId32>  %s\n"
 msgstr "  %-13.*s  %9<PRId32>  %s\n"
 
-#: src/readelf.c:13198
+#: src/readelf.c:13199
 #, c-format
 msgid "cannot get content of note: %s"
 msgstr "nie można uzyskać zawartości notatki: %s"
 
-#: src/readelf.c:13231
+#: src/readelf.c:13232
 #, c-format
 msgid ""
 "\n"
@@ -6361,7 +6367,7 @@ msgstr ""
 "Segment notatki [%2zu] „%s” o długości %<PRIu64> B pod offsetem "
 "%#0<PRIx64>:\n"
 
-#: src/readelf.c:13254
+#: src/readelf.c:13255
 #, c-format
 msgid ""
 "\n"
@@ -6370,7 +6376,7 @@ msgstr ""
 "\n"
 "Segment notatki o długości %<PRIu64> B pod offsetem %#0<PRIx64>:\n"
 
-#: src/readelf.c:13301
+#: src/readelf.c:13302
 #, c-format
 msgid ""
 "\n"
@@ -6379,12 +6385,12 @@ msgstr ""
 "\n"
 "Sekcja [%zu] „%s” nie ma danych do zrzucenia.\n"
 
-#: src/readelf.c:13328 src/readelf.c:13379
+#: src/readelf.c:13329 src/readelf.c:13380
 #, c-format
 msgid "cannot get data for section [%zu] '%s': %s"
 msgstr "nie można uzyskać danych dla sekcji [%zu] „%s”: %s"
 
-#: src/readelf.c:13333
+#: src/readelf.c:13334
 #, c-format
 msgid ""
 "\n"
@@ -6394,7 +6400,7 @@ msgstr ""
 "Segment zrzutu szesnastkowego [%zu] „%s”, %<PRIu64> B pod offsetem "
 "%#0<PRIx64>:\n"
 
-#: src/readelf.c:13338
+#: src/readelf.c:13339
 #, c-format
 msgid ""
 "\n"
@@ -6405,7 +6411,7 @@ msgstr ""
 "Zrzut szesnastkowy sekcji [%zu] „%s”, %<PRIu64> B (%zd nieskompresowanych) "
 "pod offsetem %#0<PRIx64>:\n"
 
-#: src/readelf.c:13352
+#: src/readelf.c:13353
 #, c-format
 msgid ""
 "\n"
@@ -6414,7 +6420,7 @@ msgstr ""
 "\n"
 "Sekcja [%zu] „%s” nie ma ciągów do zrzucenia.\n"
 
-#: src/readelf.c:13384
+#: src/readelf.c:13385
 #, c-format
 msgid ""
 "\n"
@@ -6423,7 +6429,7 @@ msgstr ""
 "\n"
 "Sekcja ciągów [%zu] „%s” zawiera %<PRIu64> B pod offsetem %#0<PRIx64>:\n"
 
-#: src/readelf.c:13389
+#: src/readelf.c:13390
 #, c-format
 msgid ""
 "\n"
@@ -6434,7 +6440,7 @@ msgstr ""
 "Sekcja ciągów [%zu] „%s” zawiera %<PRIu64> B (%zd nieskompresowanych) pod "
 "offsetem %#0<PRIx64>:\n"
 
-#: src/readelf.c:13437
+#: src/readelf.c:13438
 #, c-format
 msgid ""
 "\n"
@@ -6443,7 +6449,7 @@ msgstr ""
 "\n"
 "sekcja [%lu] nie istnieje"
 
-#: src/readelf.c:13467
+#: src/readelf.c:13468
 #, c-format
 msgid ""
 "\n"
@@ -6452,12 +6458,12 @@ msgstr ""
 "\n"
 "sekcja „%s” nie istnieje"
 
-#: src/readelf.c:13522
+#: src/readelf.c:13523
 #, c-format
 msgid "cannot get symbol index of archive '%s': %s"
 msgstr "nie można uzyskać indeksu symboli archiwum „%s”: %s"
 
-#: src/readelf.c:13525
+#: src/readelf.c:13526
 #, c-format
 msgid ""
 "\n"
@@ -6466,7 +6472,7 @@ msgstr ""
 "\n"
 "Archiwum „%s” nie ma indeksu symboli\n"
 
-#: src/readelf.c:13529
+#: src/readelf.c:13530
 #, c-format
 msgid ""
 "\n"
@@ -6475,12 +6481,12 @@ msgstr ""
 "\n"
 "Indeks archiwum „%s” ma %zu wpisów:\n"
 
-#: src/readelf.c:13547
+#: src/readelf.c:13548
 #, c-format
 msgid "cannot extract member at offset %zu in '%s': %s"
 msgstr "nie można wydobyć elementów pod offsetem %zu w „%s”: %s"
 
-#: src/readelf.c:13552
+#: src/readelf.c:13553
 #, c-format
 msgid "Archive member '%s' contains:\n"
 msgstr "Element archiwum „%s” zawiera:\n"
@@ -7145,7 +7151,7 @@ msgstr "nie można utworzyć nagłówka ELF: %s"
 msgid "cannot get shdrstrndx:%s"
 msgstr "nie można uzyskać shdrstrndx: %s"
 
-#: src/unstrip.c:243 src/unstrip.c:2085
+#: src/unstrip.c:243 src/unstrip.c:2136
 #, c-format
 msgid "cannot get ELF header: %s"
 msgstr "nie można uzyskać nagłówka ELF: %s"
@@ -7165,12 +7171,12 @@ msgstr "nie można zaktualizować nowej sekcji zerowej: %s"
 msgid "cannot copy ELF header: %s"
 msgstr "nie można skopiować nagłówka ELF: %s"
 
-#: src/unstrip.c:264 src/unstrip.c:2103 src/unstrip.c:2146
+#: src/unstrip.c:264 src/unstrip.c:2154 src/unstrip.c:2197
 #, c-format
 msgid "cannot get number of program headers: %s"
 msgstr "nie można uzyskać liczby nagłówków programu: %s"
 
-#: src/unstrip.c:269 src/unstrip.c:2107
+#: src/unstrip.c:269 src/unstrip.c:2158
 #, c-format
 msgid "cannot create program headers: %s"
 msgstr "nie można utworzyć nagłówków programu: %s"
@@ -7185,12 +7191,12 @@ msgstr "nie można skopiować nagłówka programu: %s"
 msgid "cannot copy section header: %s"
 msgstr "nie można skopiować nagłówka sekcji: %s"
 
-#: src/unstrip.c:288 src/unstrip.c:1707
+#: src/unstrip.c:288 src/unstrip.c:1748
 #, c-format
 msgid "cannot get section data: %s"
 msgstr "nie można uzyskać danych sekcji: %s"
 
-#: src/unstrip.c:290 src/unstrip.c:1709
+#: src/unstrip.c:290 src/unstrip.c:1750
 #, c-format
 msgid "cannot copy section data: %s"
 msgstr "nie można skopiować danych sekcji: %s"
@@ -7200,14 +7206,14 @@ msgstr "nie można skopiować danych sekcji: %s"
 msgid "cannot create directory '%s'"
 msgstr "nie można utworzyć katalogu „%s”"
 
-#: src/unstrip.c:392 src/unstrip.c:657 src/unstrip.c:691 src/unstrip.c:859
-#: src/unstrip.c:1749
+#: src/unstrip.c:392 src/unstrip.c:666 src/unstrip.c:700 src/unstrip.c:868
+#: src/unstrip.c:1790
 #, c-format
 msgid "cannot get symbol table entry: %s"
 msgstr "nie można uzyskać wpisu tabeli symboli: %s"
 
-#: src/unstrip.c:408 src/unstrip.c:660 src/unstrip.c:681 src/unstrip.c:694
-#: src/unstrip.c:1770 src/unstrip.c:1965 src/unstrip.c:1989
+#: src/unstrip.c:408 src/unstrip.c:669 src/unstrip.c:690 src/unstrip.c:703
+#: src/unstrip.c:1811 src/unstrip.c:2007 src/unstrip.c:2031
 #, c-format
 msgid "cannot update symbol table: %s"
 msgstr "nie można zaktualizować tabeli symboli: %s"
@@ -7242,149 +7248,164 @@ msgstr "nie można uzyskać wersji symbolu: %s"
 msgid "unexpected section type in [%zu] with sh_link to symtab"
 msgstr "nieoczekiwany typ sekcji w [%zu] z sh_link do tabeli symboli"
 
-#: src/unstrip.c:848
+#: src/unstrip.c:857
 #, c-format
 msgid "cannot get symbol section data: %s"
 msgstr "nie można uzyskać danych sekcji symboli: %s"
 
-#: src/unstrip.c:850
+#: src/unstrip.c:859
 #, c-format
 msgid "cannot get string section data: %s"
 msgstr "nie można uzyskać danych sekcji ciągów: %s"
 
-#: src/unstrip.c:867
+#: src/unstrip.c:876
 #, c-format
 msgid "invalid string offset in symbol [%zu]"
 msgstr "nieprawidłowy offset ciągu w symbolu [%zu]"
 
-#: src/unstrip.c:1025 src/unstrip.c:1433
+#: src/unstrip.c:939
+msgid "found two identical index map positions."
+msgstr ""
+
+#: src/unstrip.c:990
+msgid "section symbols in unexpected order"
+msgstr ""
+
+#: src/unstrip.c:996
+#, fuzzy
+#| msgid "Show demangled symbols (ARG is always ignored)"
+msgid "found two identical symbols"
+msgstr ""
+"Wyświetla symbole z usuniętym dekorowaniem (PARAMETR jest zawsze ignorowany)"
+
+#: src/unstrip.c:1066 src/unstrip.c:1474
 #, c-format
 msgid "cannot read section [%zu] name: %s"
 msgstr "nie można odczytać nazwy sekcji [%zu]: %s"
 
-#: src/unstrip.c:1040
+#: src/unstrip.c:1081
 #, c-format
 msgid "bad sh_link for group section: %s"
 msgstr "błędne sh_link dla sekcji grupy: %s"
 
-#: src/unstrip.c:1046
+#: src/unstrip.c:1087
 #, c-format
 msgid "couldn't get shdr for group section: %s"
 msgstr "nie można uzyskać shdr dla sekcji grupy: %s"
 
-#: src/unstrip.c:1051
+#: src/unstrip.c:1092
 #, c-format
 msgid "bad data for group symbol section: %s"
 msgstr "błędne dane dla sekcji symboli grupy: %s"
 
-#: src/unstrip.c:1057
+#: src/unstrip.c:1098
 #, c-format
 msgid "couldn't get symbol for group section: %s"
 msgstr "nie można uzyskać symbolu dla sekcji grupy: %s"
 
-#: src/unstrip.c:1062
+#: src/unstrip.c:1103
 #, c-format
 msgid "bad symbol name for group section: %s"
 msgstr "błędna nazwa symbolu dla sekcji grupy: %s"
 
-#: src/unstrip.c:1073 src/unstrip.c:1553
+#: src/unstrip.c:1114 src/unstrip.c:1594
 #, c-format
 msgid "cannot find matching section for [%zu] '%s'"
 msgstr "nie można odnaleźć pasującej sekcji dla [%zu] „%s”"
 
-#: src/unstrip.c:1118 src/unstrip.c:1137 src/unstrip.c:1175
+#: src/unstrip.c:1159 src/unstrip.c:1178 src/unstrip.c:1216
 #, c-format
 msgid "cannot read '.gnu.prelink_undo' section: %s"
 msgstr "nie można odczytać sekcji „.gnu.prelink_undo”: %s"
 
-#: src/unstrip.c:1155
+#: src/unstrip.c:1196
 #, c-format
 msgid "overflow with shnum = %zu in '%s' section"
 msgstr "przepełnienie z shnum = %zu w sekcji „%s”"
 
-#: src/unstrip.c:1166
+#: src/unstrip.c:1207
 #, c-format
 msgid "invalid contents in '%s' section"
 msgstr "nieprawidłowa zawartość w sekcji „%s”"
 
-#: src/unstrip.c:1337 src/unstrip.c:1353 src/unstrip.c:1633 src/unstrip.c:1924
+#: src/unstrip.c:1378 src/unstrip.c:1394 src/unstrip.c:1674 src/unstrip.c:1966
 #, c-format
 msgid "cannot add section name to string table: %s"
 msgstr "nie można nazwy sekcji do tabeli ciągów: %s"
 
-#: src/unstrip.c:1362
+#: src/unstrip.c:1403
 #, c-format
 msgid "cannot update section header string table data: %s"
 msgstr "nie można zaktualizować danych tabeli ciągów nagłówków sekcji: %s"
 
-#: src/unstrip.c:1391 src/unstrip.c:1395
+#: src/unstrip.c:1432 src/unstrip.c:1436
 #, c-format
 msgid "cannot get section header string table section index: %s"
 msgstr "nie można uzyskać indeksu sekcji tabeli ciągów nagłówków sekcji: %s"
 
-#: src/unstrip.c:1399 src/unstrip.c:1403 src/unstrip.c:1648
+#: src/unstrip.c:1440 src/unstrip.c:1444 src/unstrip.c:1689
 #, c-format
 msgid "cannot get section count: %s"
 msgstr "nie można uzyskać licznika sekcji: %s"
 
-#: src/unstrip.c:1406
+#: src/unstrip.c:1447
 msgid "more sections in stripped file than debug file -- arguments reversed?"
 msgstr ""
 "więcej sekcji w okrojonym pliku niż w pliku debugowania — odwrócono "
 "parametry?"
 
-#: src/unstrip.c:1410
+#: src/unstrip.c:1451
 msgid "no sections in stripped file"
 msgstr "brak sekcji w okrojonym pliku"
 
-#: src/unstrip.c:1458 src/unstrip.c:1568
+#: src/unstrip.c:1499 src/unstrip.c:1609
 #, c-format
 msgid "cannot read section header string table: %s"
 msgstr "nie można odczytać tabeli ciągów nagłówków sekcji: %s"
 
-#: src/unstrip.c:1627
+#: src/unstrip.c:1668
 #, c-format
 msgid "cannot add new section: %s"
 msgstr "nie można dodać nowej sekcji: %s"
 
-#: src/unstrip.c:1757
+#: src/unstrip.c:1798
 #, c-format
 msgid "symbol [%zu] has invalid section index"
 msgstr "symbol [%zu] ma nieprawidłowy indeks sekcji"
 
-#: src/unstrip.c:1789
+#: src/unstrip.c:1830
 #, c-format
 msgid "group has invalid section index [%zd]"
 msgstr "grupa ma nieprawidłowy indeks sekcji [%zd]"
 
-#: src/unstrip.c:2064
+#: src/unstrip.c:2115
 #, c-format
 msgid "cannot read section data: %s"
 msgstr "nie można odczytać danych sekcji: %s"
 
-#: src/unstrip.c:2093
+#: src/unstrip.c:2144
 #, c-format
 msgid "cannot update ELF header: %s"
 msgstr "nie można zaktualizować nagłówka ELF: %s"
 
-#: src/unstrip.c:2117
+#: src/unstrip.c:2168
 #, c-format
 msgid "cannot update program header: %s"
 msgstr "nie można zaktualizować nagłówka programu: %s"
 
-#: src/unstrip.c:2122 src/unstrip.c:2205
+#: src/unstrip.c:2173 src/unstrip.c:2256
 #, c-format
 msgid "cannot write output file: %s"
 msgstr "nie można zapisać pliku wyjściowego: %s"
 
-#: src/unstrip.c:2173
+#: src/unstrip.c:2224
 #, c-format
 msgid "DWARF data not adjusted for prelinking bias; consider prelink -u"
 msgstr ""
 "Dane DWARF nie zostały dostosowane do przesunięcia wczesnego konsolidowania; "
 "proszę rozważyć polecenie prelink -u"
 
-#: src/unstrip.c:2176
+#: src/unstrip.c:2227
 #, c-format
 msgid ""
 "DWARF data in '%s' not adjusted for prelinking bias; consider prelink -u"
@@ -7392,75 +7413,75 @@ msgstr ""
 "Dane DWARF w „%s” nie zostały dostosowane do przesunięcia wczesnego "
 "konsolidowania; proszę rozważyć polecenie prelink -u"
 
-#: src/unstrip.c:2196 src/unstrip.c:2248 src/unstrip.c:2260 src/unstrip.c:2350
+#: src/unstrip.c:2247 src/unstrip.c:2299 src/unstrip.c:2311 src/unstrip.c:2401
 #, c-format
 msgid "cannot create ELF descriptor: %s"
 msgstr "nie można utworzyć deskryptora ELF: %s"
 
-#: src/unstrip.c:2234
+#: src/unstrip.c:2285
 msgid "WARNING: "
 msgstr "OSTRZEŻENIE: "
 
-#: src/unstrip.c:2236
+#: src/unstrip.c:2287
 msgid ", use --force"
 msgstr ", należy użyć opcji --force"
 
-#: src/unstrip.c:2264
+#: src/unstrip.c:2315
 msgid "ELF header identification (e_ident) different"
 msgstr "Różna identyfikacja nagłówka ELF (e_ident)"
 
-#: src/unstrip.c:2268
+#: src/unstrip.c:2319
 msgid "ELF header type (e_type) different"
 msgstr "Różne typy nagłówka ELF (e_type)"
 
-#: src/unstrip.c:2272
+#: src/unstrip.c:2323
 msgid "ELF header machine type (e_machine) different"
 msgstr "Różne typy maszyny nagłówka ELF (e_machine)"
 
-#: src/unstrip.c:2276
+#: src/unstrip.c:2327
 msgid "stripped program header (e_phnum) smaller than unstripped"
 msgstr "okrojony nagłówek programu (e_phnum) jest mniejszy niż nieokrojony"
 
-#: src/unstrip.c:2307
+#: src/unstrip.c:2358
 #, c-format
 msgid "cannot find stripped file for module '%s': %s"
 msgstr "nie można odnaleźć okrojonego pliku dla modułu „%s”: %s"
 
-#: src/unstrip.c:2311
+#: src/unstrip.c:2362
 #, c-format
 msgid "cannot open stripped file '%s' for module '%s': %s"
 msgstr "nie można otworzyć okrojonego pliku „%s” dla modułu „%s”: %s"
 
-#: src/unstrip.c:2326
+#: src/unstrip.c:2377
 #, c-format
 msgid "cannot find debug file for module '%s': %s"
 msgstr "nie można odnaleźć pliku debugowania dla modułu „%s”: %s"
 
-#: src/unstrip.c:2330
+#: src/unstrip.c:2381
 #, c-format
 msgid "cannot open debug file '%s' for module '%s': %s"
 msgstr "nie można otworzyć pliku debugowania „%s” dla modułu „%s”: %s"
 
-#: src/unstrip.c:2343
+#: src/unstrip.c:2394
 #, c-format
 msgid "module '%s' file '%s' is not stripped"
 msgstr "moduł „%s” pliku „%s” nie został okrojony"
 
-#: src/unstrip.c:2374
+#: src/unstrip.c:2425
 #, c-format
 msgid "cannot cache section addresses for module '%s': %s"
 msgstr ""
 "nie można utworzyć pamięci podręcznej adresów sekcji dla modułu „%s”: %s"
 
-#: src/unstrip.c:2502
+#: src/unstrip.c:2553
 msgid "no matching modules found"
 msgstr "nie odnaleziono pasujących modułów"
 
-#: src/unstrip.c:2512
+#: src/unstrip.c:2563
 msgid "matched more than one module"
 msgstr "pasuje więcej niż jeden moduł"
 
-#: src/unstrip.c:2557
+#: src/unstrip.c:2608
 msgid ""
 "STRIPPED-FILE DEBUG-FILE\n"
 "[MODULE...]"
@@ -7468,7 +7489,7 @@ msgstr ""
 "OKROJONY-PLIK PLIK-DEBUGOWANIA\n"
 "[MODUŁ…]"
 
-#: src/unstrip.c:2558
+#: src/unstrip.c:2609
 msgid ""
 "Combine stripped files with separate symbols and debug information.\n"
 "\n"

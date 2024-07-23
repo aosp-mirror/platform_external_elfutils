@@ -227,7 +227,7 @@ export ELFUTILS_DISABLE_DEMANGLE = 1
 endif
 
 if LZMA
-TESTS += run-readelf-s.sh run-dwflsyms.sh
+TESTS += run-readelf-s.sh run-dwflsyms.sh run-debuginfod-seekable.sh
 endif
 
 if HAVE_ZSTD
@@ -630,6 +630,10 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     debuginfod-rpms/rhel7/hello2-debuginfo-1.0-2.x86_64.rpm \
 	     debuginfod-rpms/rhel7/hello2-two-1.0-2.x86_64.rpm \
 	     debuginfod-rpms/rhel7/hello2-two-1.0-2.x86_64.rpm \
+	     debuginfod-rpms/seekable-xz/compressme-seekable-xz-1.0-1.src.rpm \
+	     debuginfod-rpms/seekable-xz/compressme-seekable-xz-1.0-1.x86_64.rpm \
+	     debuginfod-rpms/seekable-xz/compressme-seekable-xz-debuginfo-1.0-1.x86_64.rpm \
+	     debuginfod-rpms/seekable-xz/compressme-seekable-xz-debugsource-1.0-1.x86_64.rpm \
              debuginfod-ima/koji/arch/hello-2.10-9.fc38.x86_64.rpm \
              debuginfod-ima/koji/data/sigcache/keyid/arch/hello-2.10-9.fc38.x86_64.rpm.sig \
 	     debuginfod-ima/koji/fedora-38-ima.pem \
@@ -640,6 +644,11 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     debuginfod-debs/hithere_1.0-1.dsc \
 	     debuginfod-debs/hithere_1.0-1_amd64.deb \
 	     debuginfod-debs/hithere_1.0.orig.tar.gz \
+	     debuginfod-debs/seekable-xz/compressme-seekable-xz_1.0-1_amd64.deb \
+	     debuginfod-debs/seekable-xz/compressme-seekable-xz_1.0-1.debian.tar.xz \
+	     debuginfod-debs/seekable-xz/compressme-seekable-xz_1.0-1.dsc \
+	     debuginfod-debs/seekable-xz/compressme-seekable-xz_1.0.orig.tar.xz \
+	     debuginfod-debs/seekable-xz/compressme-seekable-xz-dbgsym_1.0-1_amd64.deb \
 	     debuginfod-tars/hello-1-1-x86_64.pkg.tar.xz \
 	     debuginfod-tars/hello-debug-1-1-x86_64.pkg.tar.bz2 \
 	     debuginfod-tars/pacman-sources/PKGBUILD \
@@ -669,7 +678,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile-dwp-4-cu-index-overflow.dwp.bz2 \
 	     testfile-dwp-cu-index-overflow.source \
 	     testfile-define-file.bz2 \
-	     testfile-sysroot.tar.bz2 run-sysroot.sh
+	     testfile-sysroot.tar.bz2 run-sysroot.sh run-debuginfod-seekable.sh
 
 
 if USE_VALGRIND

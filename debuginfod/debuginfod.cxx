@@ -1998,6 +1998,109 @@ struct lzma_exception: public reportable_exception
 //
 // 1: https://xz.tukaani.org/format/xz-file-format.txt
 
+// Return whether an archive supports seeking.
+static bool
+is_seekable_archive (const string& rps, struct archive* a)
+{
+  // Only xz supports seeking.
+  if (archive_filter_code (a, 0) != ARCHIVE_FILTER_XZ)
+    return false;
+
+  int fd = open (rps.c_str(), O_RDONLY);
+  if (fd < 0)
+    return false;
+  defer_dtor<int,int> fd_closer (fd, close);
+
+  // Seek to the xz Stream Footer.  We assume that it's the last thing in the
+  // file, which is true for RPM and deb files.
+  off_t footer_pos = -LZMA_STREAM_HEADER_SIZE;
+  if (lseek (fd, footer_pos, SEEK_END) == -1)
+    return false;
+
+  // Decode the Stream Footer.
+  uint8_t footer[LZMA_STREAM_HEADER_SIZE];
+  size_t footer_read = 0;
+  while (footer_read < sizeof (footer))
+    {
+      ssize_t bytes_read = read (fd, footer + footer_read,
+                                 sizeof (footer) - footer_read);
+      if (bytes_read < 0)
+        {
+          if (errno == EINTR)
+            continue;
+          return false;
+        }
+      if (bytes_read == 0)
+        return false;
+      footer_read += bytes_read;
+    }
+
+  lzma_stream_flags stream_flags;
+  lzma_ret ret = lzma_stream_footer_decode (&stream_flags, footer);
+  if (ret != LZMA_OK)
+    return false;
+
+  // Seek to the xz Index.
+  if (lseek (fd, footer_pos - stream_flags.backward_size, SEEK_END) == -1)
+    return false;
+
+  // Decode the Number of Records in the Index.  liblzma doesn't have an API for
+  // this if you don't want to decode the whole Index, so we have to do it
+  // ourselves.
+  //
+  // We need 1 byte for the Index Indicator plus 1-9 bytes for the
+  // variable-length integer Number of Records.
+  uint8_t index[10];
+  size_t index_read = 0;
+  while (index_read == 0) {
+      ssize_t bytes_read = read (fd, index, sizeof (index));
+      if (bytes_read < 0)
+        {
+          if (errno == EINTR)
+            continue;
+          return false;
+        }
+      if (bytes_read == 0)
+        return false;
+      index_read += bytes_read;
+  }
+  // The Index Indicator must be 0.
+  if (index[0] != 0)
+    return false;
+
+  lzma_vli num_records;
+  size_t pos = 0;
+  size_t in_pos = 1;
+  while (true)
+    {
+      if (in_pos >= index_read)
+        {
+          ssize_t bytes_read = read (fd, index, sizeof (index));
+          if (bytes_read < 0)
+          {
+            if (errno == EINTR)
+              continue;
+            return false;
+          }
+          if (bytes_read == 0)
+            return false;
+          index_read = bytes_read;
+          in_pos = 0;
+        }
+      ret = lzma_vli_decode (&num_records, &pos, index, &in_pos, index_read);
+      if (ret == LZMA_STREAM_END)
+        break;
+      else if (ret != LZMA_OK)
+        return false;
+    }
+
+  if (verbose > 3)
+    obatched(clog) << rps << " has " << num_records << " xz Blocks" << endl;
+
+  // The file is only seekable if it has more than one Block.
+  return num_records > 1;
+}
+
 // Read the Index at the end of an xz file.
 static lzma_index*
 read_xz_index (int fd)
@@ -2333,6 +2436,11 @@ extract_from_seekable_archive (const string& srcpath,
     }
 }
 #else
+static bool
+is_seekable_archive (const string& rps, struct archive* a)
+{
+  return false;
+}
 static int
 extract_from_seekable_archive (const string& srcpath,
                                char* tmppath,
@@ -4282,6 +4390,7 @@ archive_classify (const string& rps, string& archive_extension, int64_t archivei
                   sqlite_ps& ps_upsert_buildids, sqlite_ps& ps_upsert_fileparts, sqlite_ps& ps_upsert_file,
                   sqlite_ps& ps_lookup_file,
                   sqlite_ps& ps_upsert_de, sqlite_ps& ps_upsert_sref, sqlite_ps& ps_upsert_sdef,
+                  sqlite_ps& ps_upsert_seekable,
                   time_t mtime,
                   unsigned& fts_executable, unsigned& fts_debuginfo, unsigned& fts_sref, unsigned& fts_sdef,
                   bool& fts_sref_complete_p)
@@ -4336,6 +4445,10 @@ archive_classify (const string& rps, string& archive_extension, int64_t archivei
   if (verbose > 3)
     obatched(clog) << "libarchive scanning " << rps << " id " << archiveid << endl;
 
+  bool seekable = is_seekable_archive (rps, a);
+  if (verbose> 2 && seekable)
+    obatched(clog) << rps << " is seekable" << endl;
+
   bool any_exceptions = false;
   while(1) // parse archive entries
     {
@@ -4356,6 +4469,10 @@ archive_classify (const string& rps, string& archive_extension, int64_t archivei
 
           if (verbose > 3)
             obatched(clog) << "libarchive checking " << fn << endl;
+
+          int64_t seekable_size = archive_entry_size (e);
+          int64_t seekable_offset = archive_filter_bytes (a, 0);
+          time_t seekable_mtime = archive_entry_mtime (e);
 
           // extract this file to a temporary file
           char* tmppath = NULL;
@@ -4448,6 +4565,15 @@ archive_classify (const string& rps, string& archive_extension, int64_t archivei
                 .bind(5, mtime)
                 .bind(6, fileid)
                 .step_ok_done();
+              if (seekable)
+                ps_upsert_seekable
+                  .reset()
+                  .bind(1, archiveid)
+                  .bind(2, fileid)
+                  .bind(3, seekable_size)
+                  .bind(4, seekable_offset)
+                  .bind(5, seekable_mtime)
+                  .step_ok_done();
             }
           else // potential source - sdef record
             {
@@ -4461,11 +4587,19 @@ archive_classify (const string& rps, string& archive_extension, int64_t archivei
             }
 
           if ((verbose > 2) && (executable_p || debuginfo_p))
-            obatched(clog) << "recorded buildid=" << buildid << " rpm=" << rps << " file=" << fn
+            {
+              obatched ob(clog);
+              auto& o = ob << "recorded buildid=" << buildid << " rpm=" << rps << " file=" << fn
                            << " mtime=" << mtime << " atype="
                            << (executable_p ? "E" : "")
                            << (debuginfo_p ? "D" : "")
-                           << " sourcefiles=" << sourcefiles.size() << endl;
+                           << " sourcefiles=" << sourcefiles.size();
+              if (seekable)
+                o << " seekable size=" << seekable_size
+                  << " offset=" << seekable_offset
+                  << " mtime=" << seekable_mtime;
+              o << endl;
+            }
 
         }
       catch (const reportable_exception& e)
@@ -4496,6 +4630,7 @@ scan_archive_file (const string& rps, const stat_t& st,
                    sqlite_ps& ps_upsert_de,
                    sqlite_ps& ps_upsert_sref,
                    sqlite_ps& ps_upsert_sdef,
+                   sqlite_ps& ps_upsert_seekable,
                    sqlite_ps& ps_query,
                    sqlite_ps& ps_scan_done,
                    unsigned& fts_cached,
@@ -4533,7 +4668,7 @@ scan_archive_file (const string& rps, const stat_t& st,
       string archive_extension;
       archive_classify (rps, archive_extension, archiveid,
                         ps_upsert_buildids, ps_upsert_fileparts, ps_upsert_file, ps_lookup_file,
-                        ps_upsert_de, ps_upsert_sref, ps_upsert_sdef, // dalt
+                        ps_upsert_de, ps_upsert_sref, ps_upsert_sdef, ps_upsert_seekable, // dalt
                         st.st_mtime,
                         my_fts_executable, my_fts_debuginfo, my_fts_sref, my_fts_sdef,
                         my_fts_sref_complete_p);
@@ -4639,6 +4774,9 @@ scan ()
   sqlite_ps ps_r_upsert_sdef (db, "rpm-sdef-insert",
                             "insert or ignore into " BUILDIDS "_r_sdef (file, mtime, content) values ("
                             "?, ?, ?);");
+  sqlite_ps ps_r_upsert_seekable (db, "rpm-seekable-insert",
+                                  "insert or ignore into " BUILDIDS "_r_seekable (file, content, type, size, offset, mtime) "
+                                  "values (?, ?, 'xz', ?, ?, ?);");
   sqlite_ps ps_r_query (db, "rpm-negativehit-query",
                       "select 1 from " BUILDIDS "_file_mtime_scanned where "
                       "sourcetype = 'R' and file = ? and mtime = ?;");
@@ -4681,6 +4819,7 @@ scan ()
                                ps_r_upsert_de,
                                ps_r_upsert_sref,
                                ps_r_upsert_sdef,
+                               ps_r_upsert_seekable,
                                ps_r_query,
                                ps_r_scan_done,
                                fts_cached,

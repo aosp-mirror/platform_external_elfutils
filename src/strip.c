@@ -2464,6 +2464,8 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
   if (debug_fname != NULL && removing_sections)
     {
       /* Finally write the file.  */
+      if (permissive)
+	elf_flagelf (debugelf, ELF_C_SET, ELF_F_PERMISSIVE);
       if (unlikely (elf_update (debugelf, ELF_C_WRITE) == -1))
 	{
 	  error (0, 0, _("while writing '%s': %s"),

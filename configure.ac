@@ -441,8 +441,13 @@ eu_ZIPLIB(bzlib,BZLIB,bz2,BZ2_bzdopen,bzip2)
 # We need this since bzip2 doesn't have a pkgconfig file.
 BZ2_LIB="$LIBS"
 AC_SUBST([BZ2_LIB])
+save_LIBS="$LIBS"
+LIBS=
 eu_ZIPLIB(lzma,LZMA,lzma,lzma_auto_decoder,[LZMA (xz)])
+lzma_LIBS="$LIBS"
+LIBS="$lzma_LIBS $save_LIBS"
 AS_IF([test "x$with_lzma" = xyes], [LIBLZMA="liblzma"], [LIBLZMA=""])
+AC_SUBST([lzma_LIBS])
 AC_SUBST([LIBLZMA])
 eu_ZIPLIB(zstd,ZSTD,zstd,ZSTD_decompress,[ZSTD (zst)])
 AS_IF([test "x$with_zstd" = xyes], [LIBZSTD="libzstd"], [LIBLZSTD=""])

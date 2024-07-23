@@ -141,4 +141,52 @@ kill $PID1
 wait $PID1
 PID1=0
 
+if type sqlite3 2>/dev/null; then
+	# Emulate the case of upgrading from an old server without the seekable
+	# optimization by dropping the _r_seekable table.
+	sqlite3 "$DB" 'DROP TABLE buildids10_r_seekable'
+
+	env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod $VERBOSE \
+		-d $DB -p $PORT2 -t0 -g0 \
+		--fdcache-mbs=100 --fdcache-mintmp=0 --fdcache-prefetch=0 \
+		-R -U R D > vlog$PORT2 2>&1 &
+	PID2=$!
+	tempfiles vlog$PORT2
+	errfiles vlog$PORT2
+
+	wait_ready $PORT2 'ready' 1
+
+	check_all $PORT2
+
+	# The first request per archive has to do a full extraction.  Check
+	# that the rest used the seekable optimization.
+	curl -s http://localhost:$PORT2/metrics | awk '
+/^http_responses_total\{result="seekable xz archive"\}/ {
+	print
+	seekable = $NF
+}
+
+/^http_responses_total\{result="(rpm|deb) archive"\}/ {
+	print
+	full = $NF
+}
+
+END {
+	if (seekable == 0) {
+		print "error: no seekable extractions" > "/dev/stderr"
+		exit 1
+	}
+	if (full > 4) {
+		print "error: too many (" full ") full extractions" > "/dev/stderr"
+		exit 1
+	}
+}'
+
+	tempfiles $DB*
+
+	kill $PID2
+	wait $PID2
+	PID2=0
+fi
+
 exit 0

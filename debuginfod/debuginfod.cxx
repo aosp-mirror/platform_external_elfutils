@@ -3446,7 +3446,8 @@ dwarf_extract_source_paths (Elf *elf, set<string>& debug_sourcefiles)
           if (hat == NULL)
             continue;
 
-          if (string(hat) == "<built-in>") // gcc intrinsics, don't bother record
+          if (string(hat) == "<built-in>"
+              || string_endswith(hat, "<built-in>")) // gcc intrinsics, don't bother record
             continue;
 
           string waldo;

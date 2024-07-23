@@ -94,7 +94,7 @@ for i in $newrpms; do
     rpm2cpio ../$i | cpio -ivd;
     cd ..;
 done
-sourcefiles=$(find -name \*\\.debug \
+sourcefiles=$(find -name \*\\.debug -type f \
               | env LD_LIBRARY_PATH=$ldpath xargs \
                 ${abs_top_builddir}/src/readelf --debug-dump=decodedline \
               | grep mtime: | wc --lines)

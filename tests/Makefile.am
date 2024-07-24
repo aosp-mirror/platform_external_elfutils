@@ -42,7 +42,7 @@ check_PROGRAMS = arextract arsymtest newfile saridx scnnames sectiondump \
 		  dwfl-bug-addr-overflow arls dwfl-bug-fd-leak \
 		  dwfl-addr-sect dwfl-bug-report early-offscn \
 		  dwfl-bug-getmodules dwarf-getmacros dwarf-ranges addrcfi \
-		  dwarfcfi \
+		  dwfl-core-noncontig dwarfcfi \
 		  test-flag-nobits dwarf-getstring rerequest_tag \
 		  alldts typeiter typeiter2 low_high_pc \
 		  test-elf_cntl_gelf_getshdr dwflsyms dwfllines \
@@ -62,7 +62,8 @@ check_PROGRAMS = arextract arsymtest newfile saridx scnnames sectiondump \
 		  dwelf_elf_e_machine_string \
 		  getphdrnum leb128 read_unaligned \
 		  msg_tst system-elf-libelf-test system-elf-gelf-test \
-		  nvidia_extended_linemap_libdw \
+		  nvidia_extended_linemap_libdw elf-print-reloc-syms \
+		  cu-dwp-section-info declfiles \
 		  $(asm_TESTS)
 
 asm_TESTS = asm-tst1 asm-tst2 asm-tst3 asm-tst4 asm-tst5 \
@@ -212,7 +213,8 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	$(asm_TESTS) run-disasm-bpf.sh run-low_high_pc-dw-form-indirect.sh \
 	run-nvidia-extended-linemap-libdw.sh run-nvidia-extended-linemap-readelf.sh \
 	run-readelf-dw-form-indirect.sh run-strip-largealign.sh \
-	run-readelf-Dd.sh
+	run-readelf-Dd.sh run-dwfl-core-noncontig.sh run-cu-dwp-section-info.sh \
+	run-declfiles.sh
 
 if !BIARCH
 export ELFUTILS_DISABLE_BIARCH = 1
@@ -632,7 +634,19 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-nvidia-extended-linemap-libdw.sh run-nvidia-extended-linemap-readelf.sh \
 	     testfile_nvidia_linemap.bz2 \
 	     testfile-largealign.o.bz2 run-strip-largealign.sh \
-	     run-funcretval++11.sh
+	     run-funcretval++11.sh \
+	     test-ar-duplicates.a.bz2 \
+	     run-dwfl-core-noncontig.sh testcore-noncontig.bz2 \
+	     testfile-dwarf5-line-clang.bz2 \
+	     testfile-dwp-4.bz2 testfile-dwp-4.dwp.bz2 \
+	     testfile-dwp-4-strict.bz2 testfile-dwp-4-strict.dwp.bz2 \
+	     testfile-dwp-5.bz2 testfile-dwp-5.dwp.bz2 testfile-dwp.source \
+	     run-cu-dwp-section-info.sh run-declfiles.sh \
+	     testfile-dwp-5-cu-index-overflow.bz2 \
+	     testfile-dwp-5-cu-index-overflow.dwp.bz2 \
+	     testfile-dwp-4-cu-index-overflow.bz2 \
+	     testfile-dwp-4-cu-index-overflow.dwp.bz2 \
+	     testfile-dwp-cu-index-overflow.source
 
 
 if USE_VALGRIND
@@ -738,6 +752,7 @@ dwfl_bug_fd_leak_LDADD = $(libeu) $(libdw) $(libebl) $(libelf)
 dwfl_bug_report_LDADD = $(libdw) $(libebl) $(libelf)
 dwfl_bug_getmodules_LDADD = $(libeu) $(libdw) $(libebl) $(libelf)
 dwfl_addr_sect_LDADD = $(libeu) $(libdw) $(libebl) $(libelf) $(argp_LDADD)
+dwfl_core_noncontig_LDADD = $(libdw) $(libelf)
 dwarf_getmacros_LDADD = $(libdw)
 dwarf_ranges_LDADD = $(libdw)
 dwarf_getstring_LDADD = $(libdw)
@@ -753,7 +768,7 @@ test_elf_cntl_gelf_getshdr_LDADD = $(libelf)
 dwflsyms_LDADD = $(libdw) $(libelf) $(argp_LDADD)
 dwfllines_LDADD = $(libeu) $(libdw) $(libelf) $(argp_LDADD)
 dwfl_report_elf_align_LDADD = $(libeu) $(libdw)
-dwfl_report_offline_memory_LDADD = $(libeu) $(libdw)
+dwfl_report_offline_memory_LDADD = $(libeu) $(libdw) $(libelf)
 dwfl_report_segment_contiguous_LDADD = $(libdw) $(libebl) $(libelf)
 varlocs_LDADD = $(libeu) $(libdw) $(libelf) $(argp_LDADD)
 backtrace_LDADD = $(libeu) $(libdw) $(libelf) $(argp_LDADD)
@@ -807,6 +822,9 @@ getphdrnum_LDADD = $(libelf) $(libdw)
 leb128_LDADD = $(libelf) $(libdw)
 read_unaligned_LDADD = $(libelf) $(libdw)
 nvidia_extended_linemap_libdw_LDADD = $(libelf) $(libdw)
+elf_print_reloc_syms_LDADD = $(libelf)
+cu_dwp_section_info_LDADD = $(libdw)
+declfiles_LDADD = $(libdw)
 
 # We want to test the libelf headers against the system elf.h header.
 # Don't include any -I CPPFLAGS. Except when we install our own elf.h.

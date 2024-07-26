@@ -1133,7 +1133,7 @@ do_oper_insert (int oper, const char *arfname, char **argv, int argc,
       for (int cnt = 0; cnt < argc; ++cnt)
 	{
 	  ENTRY entry;
-	  entry.key = full_path ? argv[cnt] : basename (argv[cnt]);
+	  entry.key = full_path ? argv[cnt] : (char*)xbasename (argv[cnt]);
 	  entry.data = &argv[cnt];
 	  if (hsearch (entry, ENTER) == NULL)
 	    error_exit (errno, _("cannot insert into hash table"));
@@ -1242,7 +1242,7 @@ do_oper_insert (int oper, const char *arfname, char **argv, int argc,
       /* Open all the new files, get their sizes and add all symbols.  */
       for (int cnt = 0; cnt < argc; ++cnt)
 	{
-	  const char *bname = basename (argv[cnt]);
+	  const char *bname = xbasename (argv[cnt]);
 	  size_t bnamelen = strlen (bname);
 	  if (found[cnt] == NULL)
 	    {

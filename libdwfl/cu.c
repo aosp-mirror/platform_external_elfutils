@@ -39,7 +39,7 @@
 static inline Dwarf_Arange *
 dwar (Dwfl_Module *mod, unsigned int idx)
 {
-  return &mod->dw->aranges->info[mod->aranges[idx].arange];
+  return &mod->dw->dieranges->info[mod->aranges[idx].arange];
 }
 
 
@@ -51,7 +51,7 @@ addrarange (Dwfl_Module *mod, Dwarf_Addr addr, struct dwfl_arange **arange)
       struct dwfl_arange *aranges = NULL;
       Dwarf_Aranges *dwaranges = NULL;
       size_t naranges;
-      if (INTUSE(dwarf_getaranges) (mod->dw, &dwaranges, &naranges) != 0)
+      if (__libdw_getdieranges (mod->dw, &dwaranges, &naranges) != 0)
 	return DWFL_E_LIBDW;
 
       /* If the module has no aranges (when no code is included) we
@@ -119,7 +119,7 @@ addrarange (Dwfl_Module *mod, Dwarf_Addr addr, struct dwfl_arange **arange)
 	    {
 	      /* It might be in the last range.  */
 	      const Dwarf_Arange *last
-		= &mod->dw->aranges->info[mod->dw->aranges->naranges - 1];
+		= &mod->dw->dieranges->info[mod->dw->dieranges->naranges - 1];
 	      if (addr > last->addr + last->length)
 		break;
 	    }
@@ -296,7 +296,7 @@ arangecu (Dwfl_Module *mod, struct dwfl_arange *arange, struct dwfl_cu **cu)
 {
   if (arange->cu == NULL)
     {
-      const Dwarf_Arange *dwarange = &mod->dw->aranges->info[arange->arange];
+      const Dwarf_Arange *dwarange = &mod->dw->dieranges->info[arange->arange];
       Dwfl_Error result = intern_cu (mod, dwarange->offset, &arange->cu);
       if (result != DWFL_E_NOERROR)
 	return result;

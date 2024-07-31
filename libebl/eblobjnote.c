@@ -155,8 +155,8 @@ ebl_object_note (Ebl *ebl, uint32_t namesz, const char *name, uint32_t type,
 	      } addrs;
 
 	      size_t addr_size = gelf_fsize (ebl->elf, ELF_T_ADDR,
-					     2, EV_CURRENT);
-	      if (descsz != addr_size)
+					     1, EV_CURRENT);
+	      if (descsz != addr_size * 2)
 		printf ("<unknown data>\n");
 	      else
 		{

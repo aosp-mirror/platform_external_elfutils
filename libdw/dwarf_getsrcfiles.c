@@ -64,12 +64,17 @@ dwarf_getsrcfiles (Dwarf_Die *cudie, Dwarf_Files **files, size_t *nfiles)
 	     the table is at offset zero.  */
 	  if (cu->dbg->sectiondata[IDX_debug_line] != NULL)
 	    {
-	      /* We are only interested in the files, the lines will
-		 always come from the skeleton.  */
-	      res = __libdw_getsrclines (cu->dbg, 0,
-					 __libdw_getcompdir (cudie),
-					 cu->address_size, NULL,
-					 &cu->files);
+	      Dwarf_Off dwp_off;
+	      if (INTUSE(dwarf_cu_dwp_section_info) (cu, DW_SECT_LINE,
+						     &dwp_off, NULL) == 0)
+		{
+		  /* We are only interested in the files, the lines will
+		     always come from the skeleton.  */
+		  res = __libdw_getsrclines (cu->dbg, dwp_off,
+					     __libdw_getcompdir (cudie),
+					     cu->address_size, NULL,
+					     &cu->files);
+		}
 	    }
 	  else
 	    {

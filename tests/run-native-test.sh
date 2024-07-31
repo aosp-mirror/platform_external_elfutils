@@ -57,10 +57,10 @@ trap native_exit 0
 
 for cc in "$HOSTCC" "$HOST_CC" cc gcc "$CC"; do
   test "x$cc" != x || continue
-  $cc -o native -g native.c > /dev/null 2>&1 &&
+  $cc -o native -g native.c &&
   # Some shell versions don't do this right without the braces.
-  { ./native > /dev/null 2>&1 & native=$! ; } &&
-  sleep 1 && kill -0 $native 2> /dev/null &&
+  { ./native & native=$! ; } &&
+  sleep 1 && kill -0 $native &&
   break ||
   native=0
 done
@@ -68,14 +68,17 @@ done
 native_test()
 {
   # Try the build against itself, i.e. $config_host.
-  testrun "$@" -e $1 > /dev/null
+  echo "Try the build against itself: $@ -e $1"
+  testrun "$@" -e $1
 
   # Try the build against a presumed native process, running this sh.
   # For tests requiring debug information, this may not test anything.
-  testrun "$@" -p $$ > /dev/null
+  echo "Try the build against a presumed native process: $@ -p $$"
+  testrun "$@" -p $$
 
   # Try the build against the trivial native program we just built with -g.
-  test $native -eq 0 || testrun "$@" -p $native > /dev/null
+  echo "Try the build against the trivial native program: $@ -p $native"
+  test $native -eq 0 || testrun "$@" -p $native
 }
 
 native_test ${abs_builddir}/allregs

@@ -942,7 +942,7 @@ enum
 enum
   {
     DW_SECT_INFO = 1,
-    /* Reserved = 2, */
+    DW_SECT_TYPES = 2, /* Only DWARF4 GNU DebugFission. Reserved in DWARF5.  */
     DW_SECT_ABBREV = 3,
     DW_SECT_LINE = 4,
     DW_SECT_LOCLISTS = 5,

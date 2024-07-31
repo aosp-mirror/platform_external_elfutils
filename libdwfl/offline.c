@@ -32,6 +32,7 @@
 # include <config.h>
 #endif
 
+#include "libelfP.h"
 #include "libdwflP.h"
 #include <fcntl.h>
 
@@ -254,7 +255,7 @@ process_archive (Dwfl *dwfl, const char *name, const char *file_name, int fd,
 {
   Dwfl_Module *mod = NULL;
   /* elf_begin supports opening archives even with fd == -1 passed.  */
-  Elf *member = elf_begin (fd, ELF_C_READ_MMAP_PRIVATE, archive);
+  Elf *member = elf_begin (fd, archive->cmd, archive);
   if (unlikely (member == NULL)) /* Empty archive.  */
     {
       __libdwfl_seterrno (DWFL_E_BADELF);
@@ -263,7 +264,7 @@ process_archive (Dwfl *dwfl, const char *name, const char *file_name, int fd,
 
   while (process_archive_member (dwfl, name, file_name, predicate,
 				 fd, member, &mod) != ELF_C_NULL)
-    member = elf_begin (fd, ELF_C_READ_MMAP_PRIVATE, archive);
+    member = elf_begin (fd, archive->cmd, archive);
 
   /* We can drop the archive Elf handle even if we're still using members
      in live modules.  When the last module's elf_end on a member returns

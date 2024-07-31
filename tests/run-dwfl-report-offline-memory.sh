@@ -20,7 +20,14 @@
 testfiles testfile-dwfl-report-elf-align-shlib.so
 testfiles testarchive64.a
 
-testrun ${abs_builddir}/dwfl-report-offline-memory ./testfile-dwfl-report-elf-align-shlib.so 1
-testrun ${abs_builddir}/dwfl-report-offline-memory ./testarchive64.a 3
+# echo "int _start(void) { return 0; }" > test.c
+# gcc test.c -nostdlib -static -o test.o
+# ar -r test-ar-duplicates.a test.o test.o test.o
+# bzip2 -zf test-ar-duplicates.a
+testfiles test-ar-duplicates.a
+
+testrun ${abs_builddir}/dwfl-report-offline-memory ./testfile-dwfl-report-elf-align-shlib.so 1 24
+testrun ${abs_builddir}/dwfl-report-offline-memory ./testarchive64.a 3 10
+testrun ${abs_builddir}/dwfl-report-offline-memory ./test-ar-duplicates.a 1 7
 
 exit 0

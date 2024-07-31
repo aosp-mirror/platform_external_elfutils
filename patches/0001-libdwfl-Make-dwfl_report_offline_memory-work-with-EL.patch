@@ -1,0 +1,200 @@
+From 94cb85c3cbc59811de11869d1c1ce4f9bdb7f67c Mon Sep 17 00:00:00 2001
+From: Aleksei Vetrov <vvvvvv@google.com>
+Date: Thu, 11 Jul 2024 19:29:32 +0000
+Subject: [PATCH] libdwfl: Make dwfl_report_offline_memory work with
+ ELF_C_READ_MMAP
+To: elfutils-devel@sourceware.org
+Cc: kernel-team@android.com,
+    maennich@google.com,
+    vvvvvv@google.com
+
+elf_memory open mode recently changed from ELF_C_READ to
+ELF_C_READ_MMAP. This broken dwfl_report_offline_memory that changes
+mode to ELF_C_READ_MMAP_PRIVATE to be compatible with subsequent
+elf_begin on embedded ELF files.
+
+The proper implementation of dwfl_report_offline_memory doesn't change
+open mode and subsequent elf_begin invocations simply use cmd from the
+reference Elf*.
+
+Add tests to exercise Elf* to trigger the bug caused by incorrect cmd
+set to Elf*.
+
+	  * libdwfl/offline.c (process_archive): Use archive->cmd
+	  instead of hardcoded ELF_C_READ_MMAP_PRIVATE.
+	  * libdwfl/open.c (libdw_open_elf): Use elf->cmd instead of
+	  hardcoded ELF_C_READ_MMAP_PRIVATE.
+	  (__libdw_open_elf_memory): Don't override (*elfp)->cmd.
+	  * tests/Makefile.am (dwfl_report_offline_memory): Add libelf
+	  as dependency.
+	  * tests/dwfl-report-offline-memory.c: Add count_sections to
+	  exercise Elf* from dwfl_report_offline_memory.
+	  * tests/run-dwfl-report-offline-memory.sh: Add expected number
+	  of sections to test invocations.
+
+Signed-off-by: Aleksei Vetrov <vvvvvv@google.com>
+---
+ libdwfl/offline.c                       |  5 ++--
+ libdwfl/open.c                          |  4 +---
+ tests/Makefile.am                       |  2 +-
+ tests/dwfl-report-offline-memory.c      | 32 ++++++++++++++++++++++---
+ tests/run-dwfl-report-offline-memory.sh |  6 ++---
+ 5 files changed, 37 insertions(+), 12 deletions(-)
+
+diff --git a/libdwfl/offline.c b/libdwfl/offline.c
+index e9ab0cc1..24e9e180 100644
+--- a/libdwfl/offline.c
++++ b/libdwfl/offline.c
+@@ -32,6 +32,7 @@
+ # include <config.h>
+ #endif
+ 
++#include "libelfP.h"
+ #include "libdwflP.h"
+ #include <fcntl.h>
+ 
+@@ -254,7 +255,7 @@ process_archive (Dwfl *dwfl, const char *name, const char *file_name, int fd,
+ {
+   Dwfl_Module *mod = NULL;
+   /* elf_begin supports opening archives even with fd == -1 passed.  */
+-  Elf *member = elf_begin (fd, ELF_C_READ_MMAP_PRIVATE, archive);
++  Elf *member = elf_begin (fd, archive->cmd, archive);
+   if (unlikely (member == NULL)) /* Empty archive.  */
+     {
+       __libdwfl_seterrno (DWFL_E_BADELF);
+@@ -263,7 +264,7 @@ process_archive (Dwfl *dwfl, const char *name, const char *file_name, int fd,
+ 
+   while (process_archive_member (dwfl, name, file_name, predicate,
+ 				 fd, member, &mod) != ELF_C_NULL)
+-    member = elf_begin (fd, ELF_C_READ_MMAP_PRIVATE, archive);
++    member = elf_begin (fd, archive->cmd, archive);
+ 
+   /* We can drop the archive Elf handle even if we're still using members
+      in live modules.  When the last module's elf_end on a member returns
+diff --git a/libdwfl/open.c b/libdwfl/open.c
+index d0f357ed..43b29fa9 100644
+--- a/libdwfl/open.c
++++ b/libdwfl/open.c
+@@ -151,7 +151,7 @@ libdw_open_elf (int *fdp, Elf **elfp, bool close_on_fail, bool archive_ok,
+ 	  elf->state.ar.elf_ar_hdr.ar_name = "libdwfl is faking you out";
+ 	  elf->state.ar.elf_ar_hdr.ar_size = elf->maximum_size - offset;
+ 	  elf->state.ar.offset = offset - sizeof (struct ar_hdr);
+-	  Elf *subelf = elf_begin (-1, ELF_C_READ_MMAP_PRIVATE, elf);
++	  Elf *subelf = elf_begin (-1, elf->cmd, elf);
+ 	  elf->kind = ELF_K_NONE;
+ 	  if (unlikely (subelf == NULL))
+ 	    error = DWFL_E_LIBELF;
+@@ -215,8 +215,6 @@ __libdw_open_elf_memory (char *data, size_t size, Elf **elfp, bool archive_ok)
+     {
+       return DWFL_E_LIBELF;
+     }
+-  /* Allow using this ELF as reference for subsequent elf_begin calls.  */
+-  (*elfp)->cmd = ELF_C_READ_MMAP_PRIVATE;
+   return libdw_open_elf (&fd, elfp, false, archive_ok, true, false, true);
+ }
+ 
+diff --git a/tests/Makefile.am b/tests/Makefile.am
+index 77f9b90d..cfed54b7 100644
+--- a/tests/Makefile.am
++++ b/tests/Makefile.am
+@@ -792,7 +792,7 @@ test_elf_cntl_gelf_getshdr_LDADD = $(libelf)
+ dwflsyms_LDADD = $(libdw) $(libelf) $(argp_LDADD)
+ dwfllines_LDADD = $(libeu) $(libdw) $(libelf) $(argp_LDADD)
+ dwfl_report_elf_align_LDADD = $(libeu) $(libdw)
+-dwfl_report_offline_memory_LDADD = $(libeu) $(libdw)
++dwfl_report_offline_memory_LDADD = $(libeu) $(libdw) $(libelf)
+ dwfl_report_segment_contiguous_LDADD = $(libdw) $(libebl) $(libelf)
+ varlocs_LDADD = $(libeu) $(libdw) $(libelf) $(argp_LDADD)
+ backtrace_LDADD = $(libeu) $(libdw) $(libelf) $(argp_LDADD)
+diff --git a/tests/dwfl-report-offline-memory.c b/tests/dwfl-report-offline-memory.c
+index b3b4d9bd..3ecb66b9 100644
+--- a/tests/dwfl-report-offline-memory.c
++++ b/tests/dwfl-report-offline-memory.c
+@@ -18,14 +18,19 @@
+ #include <config.h>
+ 
+ #include <assert.h>
++#include <errno.h>
++#include <error.h>
+ #include <fcntl.h>
+ #include <locale.h>
+ #include <stdio.h>
+ #include <stdio_ext.h>
+ #include <stdlib.h>
++#include <string.h>
+ #include <unistd.h>
++
+ #include ELFUTILS_HEADER(dwfl)
+-#include "system.h"
++#include ELFUTILS_HEADER(elf)
++#include <gelf.h>
+ 
+ 
+ static const Dwfl_Callbacks offline_callbacks =
+@@ -45,6 +50,20 @@ count_modules (Dwfl_Module *mod __attribute__ ((unused)),
+   return DWARF_CB_OK;
+ }
+ 
++static int
++count_sections (Elf *elf)
++{
++  int result = 0;
++  Elf_Scn *section = NULL;
++  GElf_Shdr header;
++  while ((section = elf_nextscn (elf, section)) != NULL)
++    {
++      assert (gelf_getshdr (section, &header) != NULL);
++      result += 1;
++    }
++  return result;
++}
++
+ int
+ main (int argc, char **argv)
+ {
+@@ -54,10 +73,11 @@ main (int argc, char **argv)
+   /* Set locale.  */
+   (void) setlocale (LC_ALL, "");
+ 
+-  if (argc != 3)
++  if (argc != 4)
+     error (-1, 0,
+ 	   "usage: dwfl_report_offline_memory [filename] "
+-	   "[expected number of modules]");
++	   "[expected number of modules] "
++	   "[expected number of sections]");
+ 
+   const char *fname = argv[1];
+   int fd = open (fname, O_RDONLY);
+@@ -100,6 +120,12 @@ main (int argc, char **argv)
+   assert (endptr && !*endptr);
+   assert (number_of_modules == expected_number_of_modules);
+ 
++  GElf_Addr loadbase = 0;
++  Elf *elf = dwfl_module_getelf (mod, &loadbase);
++  int number_of_sections = count_sections (elf);
++  int expected_number_of_sections = atoi (argv[3]);
++  assert (number_of_sections == expected_number_of_sections);
++
+   dwfl_end (dwfl);
+   free (data);
+ 
+diff --git a/tests/run-dwfl-report-offline-memory.sh b/tests/run-dwfl-report-offline-memory.sh
+index 85f43f53..84c7f999 100755
+--- a/tests/run-dwfl-report-offline-memory.sh
++++ b/tests/run-dwfl-report-offline-memory.sh
+@@ -26,8 +26,8 @@ testfiles testarchive64.a
+ # bzip2 -zf test-ar-duplicates.a
+ testfiles test-ar-duplicates.a
+ 
+-testrun ${abs_builddir}/dwfl-report-offline-memory ./testfile-dwfl-report-elf-align-shlib.so 1
+-testrun ${abs_builddir}/dwfl-report-offline-memory ./testarchive64.a 3
+-testrun ${abs_builddir}/dwfl-report-offline-memory ./test-ar-duplicates.a 1
++testrun ${abs_builddir}/dwfl-report-offline-memory ./testfile-dwfl-report-elf-align-shlib.so 1 24
++testrun ${abs_builddir}/dwfl-report-offline-memory ./testarchive64.a 3 10
++testrun ${abs_builddir}/dwfl-report-offline-memory ./test-ar-duplicates.a 1 7
+ 
+ exit 0
+-- 
+2.45.2.993.g49e7a77208-goog
+

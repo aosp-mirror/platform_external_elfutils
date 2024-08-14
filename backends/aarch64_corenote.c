@@ -107,6 +107,14 @@ static const Ebl_Core_Item aarch64_syscall_items [] =
     }
   };
 
+static const Ebl_Core_Item aarch64_mte_items [] =
+  {
+    {
+      .name = "tag_ctrl", .type = ELF_T_XWORD, .format = 'x',
+      .offset = 0, .group = "register"
+    }
+  };
+
 #define AARCH64_HWBP_REG(KIND, N)					\
     {									\
       .name = "DBG" KIND "VR" #N "_EL1", .type = ELF_T_XWORD, .format = 'x', \
@@ -167,6 +175,7 @@ AARCH64_BP_WP_GROUP ("W", aarch64_hw_wp_items);
   EXTRA_ITEMS (NT_ARM_TLS, 8, aarch64_tls_items)			\
   EXTRA_ITEMS (NT_ARM_HW_BREAK, 264, aarch64_hw_bp_items)		\
   EXTRA_ITEMS (NT_ARM_HW_WATCH, 264, aarch64_hw_wp_items)		\
-  EXTRA_ITEMS (NT_ARM_SYSTEM_CALL, 4, aarch64_syscall_items)
+  EXTRA_ITEMS (NT_ARM_SYSTEM_CALL, 4, aarch64_syscall_items) \
+  EXTRA_ITEMS (NT_ARM_TAGGED_ADDR_CTRL, 8, aarch64_mte_items)
 
 #include "linux-core-note.c"

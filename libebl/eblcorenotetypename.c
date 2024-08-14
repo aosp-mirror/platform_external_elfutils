@@ -96,6 +96,8 @@ ebl_core_note_type_name (Ebl *ebl, uint32_t type, char *buf, size_t len)
 	    KNOWNSTYPE (ARM_SVE);
 	    KNOWNSTYPE (ARM_SSVE);
 	    KNOWNSTYPE (ARM_ZA);
+	    KNOWNSTYPE (ARM_PAC_ENABLED_KEYS);
+	    KNOWNSTYPE (ARM_PAC_MASK);
 	    KNOWNSTYPE (SIGINFO);
 	    KNOWNSTYPE (FILE);
 #undef KNOWNSTYPE

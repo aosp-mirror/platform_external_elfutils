@@ -127,6 +127,14 @@ static const Ebl_Core_Item aarch64_pac_items [] =
     }
   };
 
+static const Ebl_Core_Item aarch64_pac_enabled_items [] =
+  {
+    {
+      .name = "enabled_keys", .type = ELF_T_XWORD, .format = 'x',
+      .offset = 0, .group = "register"
+    }
+  };
+
 #define AARCH64_HWBP_REG(KIND, N)					\
     {									\
       .name = "DBG" KIND "VR" #N "_EL1", .type = ELF_T_XWORD, .format = 'x', \
@@ -189,6 +197,7 @@ AARCH64_BP_WP_GROUP ("W", aarch64_hw_wp_items);
   EXTRA_ITEMS (NT_ARM_HW_WATCH, 264, aarch64_hw_wp_items)		\
   EXTRA_ITEMS (NT_ARM_SYSTEM_CALL, 4, aarch64_syscall_items)		\
   EXTRA_ITEMS (NT_ARM_TAGGED_ADDR_CTRL, 8, aarch64_mte_items)		\
+  EXTRA_ITEMS (NT_ARM_PAC_ENABLED_KEYS, 8, aarch64_pac_enabled_items)	\
   EXTRA_ITEMS (NT_ARM_PAC_MASK, 16, aarch64_pac_items)
 
 #include "linux-core-note.c"

@@ -19,6 +19,8 @@
 include $(top_srcdir)/config/eu.am
 DEFS += $(YYDEBUG) -DDEBUGPRED=@DEBUGPRED@ \
 	-DSRCDIR=\"$(shell cd $(srcdir);pwd)\" -DOBJDIR=\"$(shell pwd)\"
+
+DEFAULT_INCLUDES =
 AM_CPPFLAGS += -I$(srcdir)/../libelf -I$(srcdir)/../libebl \
 	    -I$(srcdir)/../libdw -I$(srcdir)/../libdwelf \
 	    -I$(srcdir)/../libdwfl -I$(srcdir)/../libasm -I../debuginfod

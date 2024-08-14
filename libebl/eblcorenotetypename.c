@@ -93,6 +93,9 @@ ebl_core_note_type_name (Ebl *ebl, uint32_t type, char *buf, size_t len)
 	    KNOWNSTYPE (ARM_HW_WATCH);
 	    KNOWNSTYPE (ARM_SYSTEM_CALL);
 	    KNOWNSTYPE (ARM_TAGGED_ADDR_CTRL);
+	    KNOWNSTYPE (ARM_SVE);
+	    KNOWNSTYPE (ARM_SSVE);
+	    KNOWNSTYPE (ARM_ZA);
 	    KNOWNSTYPE (SIGINFO);
 	    KNOWNSTYPE (FILE);
 #undef KNOWNSTYPE

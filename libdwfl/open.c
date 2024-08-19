@@ -151,7 +151,7 @@ libdw_open_elf (int *fdp, Elf **elfp, bool close_on_fail, bool archive_ok,
 	  elf->state.ar.elf_ar_hdr.ar_name = "libdwfl is faking you out";
 	  elf->state.ar.elf_ar_hdr.ar_size = elf->maximum_size - offset;
 	  elf->state.ar.offset = offset - sizeof (struct ar_hdr);
-	  Elf *subelf = elf_begin (-1, ELF_C_READ_MMAP_PRIVATE, elf);
+	  Elf *subelf = elf_begin (-1, elf->cmd, elf);
 	  elf->kind = ELF_K_NONE;
 	  if (unlikely (subelf == NULL))
 	    error = DWFL_E_LIBELF;
@@ -215,8 +215,6 @@ __libdw_open_elf_memory (char *data, size_t size, Elf **elfp, bool archive_ok)
     {
       return DWFL_E_LIBELF;
     }
-  /* Allow using this ELF as reference for subsequent elf_begin calls.  */
-  (*elfp)->cmd = ELF_C_READ_MMAP_PRIVATE;
   return libdw_open_elf (&fd, elfp, false, archive_ok, true, false, true);
 }
 

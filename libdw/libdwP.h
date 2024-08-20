@@ -455,6 +455,9 @@ struct Dwarf_CU
      refers to this Dwarf_CU.  */
   rwlock_define(, abbrev_lock);
 
+  /* Synchronize access to the split member of this Dwarf_CU.  */
+  rwlock_define(, split_lock);
+
   /* Memory boundaries of this CU.  */
   void *startp;
   void *endp;

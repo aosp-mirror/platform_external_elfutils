@@ -92,7 +92,10 @@ dwarf_formref_die (Dwarf_Attribute *attr, Dwarf_Die *result)
 	  bool scan_debug_types = false;
 	  do
 	    {
+	      rwlock_wrlock(attr->cu->dbg->dwarf_lock);
 	      cu = __libdw_intern_next_unit (attr->cu->dbg, scan_debug_types);
+	      rwlock_unlock(attr->cu->dbg->dwarf_lock);
+
 	      if (cu == NULL)
 		{
 		  if (scan_debug_types == false)

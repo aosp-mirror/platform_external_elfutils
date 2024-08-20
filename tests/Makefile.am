@@ -52,7 +52,8 @@ check_PROGRAMS = arextract arsymtest newfile saridx scnnames sectiondump \
 		  backtrace-data backtrace-dwarf debuglink debugaltlink \
 		  buildid deleted deleted-lib.so aggregate_size peel_type \
 		  vdsosyms \
-		  getsrc_die strptr newdata elfstrtab dwfl-proc-attach \
+		  getsrc_die strptr newdata newzdata \
+		  elfstrtab dwfl-proc-attach \
 		  elfshphehdr elfstrmerge dwelfgnucompressed elfgetchdr \
 		  elfgetzdata elfputzdata zstrptr emptyfile vendorelf \
 		  fillfile dwarf_default_lower_bound dwarf-die-addr-die \
@@ -183,7 +184,8 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-readelf-dwz-multi.sh run-allfcts-multi.sh run-deleted.sh \
 	run-linkmap-cut.sh run-aggregate-size.sh run-peel-type.sh \
 	vdsosyms run-readelf-A.sh \
-	run-getsrc-die.sh run-strptr.sh newdata elfstrtab dwfl-proc-attach \
+	run-getsrc-die.sh run-strptr.sh newdata newzdata \
+	elfstrtab dwfl-proc-attach \
 	elfshphehdr run-lfs-symbols.sh run-dwelfgnucompressed.sh \
 	run-elfgetchdr.sh \
 	run-elfgetzdata.sh run-elfputzdata.sh run-zstrptr.sh \
@@ -829,6 +831,7 @@ vdsosyms_LDADD = $(libeu) $(libdw) $(libelf)
 getsrc_die_LDADD = $(libeu) $(libdw) $(libelf)
 strptr_LDADD = $(libelf)
 newdata_LDADD = $(libelf)
+newzdata_LDADD = $(libelf)
 elfstrtab_LDADD = $(libelf)
 dwfl_proc_attach_LDADD = $(libeu) $(libdw)
 dwfl_proc_attach_LDFLAGS = -pthread -rdynamic $(AM_LDFLAGS)

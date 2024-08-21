@@ -723,7 +723,7 @@ installcheck-local:
 
 if BUILD_STATIC
 libdw = ../libdw/libdw.a -lz $(zip_LIBS) $(libelf) $(libebl) -ldl -lpthread
-libelf = ../libelf/libelf.a -lz $(zstd_LIBS)
+libelf = ../libelf/libelf.a -lz $(zstd_LIBS) $(libeu)
 libasm = ../libasm/libasm.a
 else
 libdw = ../libdw/libdw.so

@@ -47,7 +47,7 @@ libelf = ../libelf/libelf.a -lz
 if DUMMY_LIBDEBUGINFOD
 libdebuginfod = ./libdebuginfod.a
 else
-libdebuginfod = ./libdebuginfod.a -lpthread $(libcurl_LIBS)
+libdebuginfod = ./libdebuginfod.a -lpthread $(libcurl_LIBS) $(crypto_LIBS) $(jsonc_LIBS)
 endif
 else
 libasm = ../libasm/libasm.so

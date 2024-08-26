@@ -269,6 +269,8 @@ dwfl_getthreads (Dwfl *dwfl, int (*callback) (Dwfl_Thread *thread, void *arg),
   thread.process = process;
   thread.unwound = NULL;
   thread.callbacks_arg = NULL;
+  thread.aarch64.pauth_insn_mask = 0;
+
   for (;;)
     {
       thread.tid = process->callbacks->next_thread (dwfl,
@@ -339,6 +341,7 @@ getthread (Dwfl *dwfl, pid_t tid,
       thread.process = process;
       thread.unwound = NULL;
       thread.callbacks_arg = NULL;
+      thread.aarch64.pauth_insn_mask = 0;
 
       if (process->callbacks->get_thread (dwfl, tid, process->callbacks_arg,
 					  &thread.callbacks_arg))

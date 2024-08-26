@@ -244,6 +244,12 @@ struct Dwfl_Thread
   /* Bottom (innermost) frame while we're initializing, NULL afterwards.  */
   Dwfl_Frame *unwound;
   void *callbacks_arg;
+
+  /* Data for handling AARCH64 (currently limited to demangling PAC from
+     return addresses). */
+  struct {
+    Dwarf_Addr pauth_insn_mask;
+  } aarch64;
 };
 
 /* See its typedef in libdwfl.h.  */

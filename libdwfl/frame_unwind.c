@@ -599,7 +599,19 @@ handle_cfi (Dwfl_Frame *state, Dwarf_Addr pc, Dwarf_CFI *cfi, Dwarf_Addr bias)
 
       /* Some architectures encode some extra info in the return address.  */
       if (regno == frame->fde->cie->return_address_register)
-	regval &= ebl_func_addr_mask (ebl);
+	{
+	  regval &= ebl_func_addr_mask (ebl);
+
+	  /* In aarch64, pseudo-register RA_SIGN_STATE indicates whether the
+	     return address needs demangling using the PAC mask from the
+	     thread. */
+	  if (cfi->e_machine == EM_AARCH64 &&
+	      frame->nregs > DW_AARCH64_RA_SIGN_STATE &&
+	      frame->regs[DW_AARCH64_RA_SIGN_STATE].value & 0x1)
+	    {
+	      regval &= ~(state->thread->aarch64.pauth_insn_mask);
+	    }
+	}
 
       /* This is another strange PPC[64] case.  There are two
 	 registers numbers that can represent the same DWARF return

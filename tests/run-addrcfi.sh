@@ -3639,6 +3639,7 @@ dwarf_cfi_addrframe (.eh_frame): no matching address range
 	integer reg30 (x30): same_value
 	integer reg31 (sp): location expression: call_frame_cfa stack_value
 	integer reg33 (elr): undefined
+	integer reg34 (ra_sign_state): undefined
 	FP/SIMD reg64 (v0): undefined
 	FP/SIMD reg65 (v1): undefined
 	FP/SIMD reg66 (v2): undefined

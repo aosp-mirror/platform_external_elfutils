@@ -73,6 +73,8 @@ aarch64_set_initial_registers_tid (pid_t tid __attribute__ ((unused)),
 
   /* ELR cannot be found.  */
 
+  /* RA_SIGN_STATE cannot be found */
+
   /* FP registers (only 64bits are used).  */
   struct user_fpsimd_struct fregs;
   iovec.iov_base = &fregs;

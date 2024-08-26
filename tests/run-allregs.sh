@@ -2693,6 +2693,7 @@ integer registers:
 	 30: x30 (x30), signed 64 bits
 	 31: sp (sp), address 64 bits
 	 33: elr (elr), address 64 bits
+	 34: ra_sign_state (ra_sign_state), unsigned 64 bits
 FP/SIMD registers:
 	 64: v0 (v0), unsigned 128 bits
 	 65: v1 (v1), unsigned 128 bits

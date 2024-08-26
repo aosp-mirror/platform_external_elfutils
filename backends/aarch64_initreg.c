@@ -36,6 +36,7 @@
 # include <linux/uio.h>
 # include <sys/user.h>
 # include <sys/ptrace.h>
+# include <asm/ptrace.h>
 /* Deal with old glibc defining user_pt_regs instead of user_regs_struct.  */
 # ifndef HAVE_SYS_USER_REGS
 #  define user_regs_struct user_pt_regs
@@ -57,11 +58,17 @@ aarch64_set_initial_registers_tid (pid_t tid __attribute__ ((unused)),
 
   /* General registers.  */
   struct user_regs_struct gregs;
+  struct user_pac_mask pac_mask;
   struct iovec iovec;
   iovec.iov_base = &gregs;
   iovec.iov_len = sizeof (gregs);
   if (ptrace (PTRACE_GETREGSET, tid, NT_PRSTATUS, &iovec) != 0)
     return false;
+
+  iovec.iov_base = &pac_mask;
+  iovec.iov_len = sizeof (pac_mask);
+  if (ptrace (PTRACE_GETREGSET, tid, NT_ARM_PAC_MASK, &iovec) != 0)
+    pac_mask.insn_mask = 0;
 
   /* X0..X30 plus SP.  */
   if (! setfunc (0, 32, (Dwarf_Word *) &gregs.regs[0], arg))
@@ -69,6 +76,9 @@ aarch64_set_initial_registers_tid (pid_t tid __attribute__ ((unused)),
 
   /* PC.  */
   if (! setfunc (-1, 1, (Dwarf_Word *) &gregs.pc, arg))
+    return false;
+
+  if (! setfunc (-2, 1, (Dwarf_Word *) &pac_mask.insn_mask, arg))
     return false;
 
   /* ELR cannot be found.  */

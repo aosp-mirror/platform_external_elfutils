@@ -289,6 +289,40 @@ core_set_initial_registers (Dwfl_Thread *thread, void *thread_arg_voidp)
 	  reg_desc += regloc->pad;
 	}
     }
+
+  /* look for any Pointer Authentication code masks on AArch64 machines */
+  GElf_Ehdr ehdr_mem;
+  GElf_Ehdr *ehdr = gelf_getehdr(core, &ehdr_mem);
+  if (ehdr && ehdr->e_machine == EM_AARCH64)
+  {
+    while (offset < note_data->d_size
+           && (offset = gelf_getnote (note_data, offset,
+			            &nhdr, &name_offset, &desc_offset)) > 0)
+    {
+      if (nhdr.n_type != NT_ARM_PAC_MASK)
+        continue;
+
+      name = (nhdr.n_namesz == 0 ? "" : note_data->d_buf + name_offset);
+      desc = note_data->d_buf + desc_offset;
+      core_note_err = ebl_core_note (core_arg->ebl, &nhdr, name, desc,
+		                   &regs_offset, &nregloc, &reglocs,
+				   &nitems, &items);
+      if (!core_note_err)
+        break;
+
+      for (item = items; item < items + nitems; item++)
+        if (strcmp(item->name, "insn_mask") == 0)
+          break;
+
+      if (item == items + nitems)
+        continue;
+
+      uint64_t insn_mask = read_8ubyte_unaligned_noncvt(desc + item->offset);
+      INTUSE(dwfl_thread_state_registers)(thread, -2, 1, &insn_mask);
+      break;
+    }
+  }
+
   return true;
 }
 

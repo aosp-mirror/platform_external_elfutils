@@ -125,6 +125,15 @@ execute_cfi (Dwarf_CFI *cache,
     fs->regs[regno].value = (r_value);			\
   } while (0)
 
+  /* The AARCH64 DWARF ABI states that register 34 (ra_sign_state) must
+     be initialized to 0. So do it before executing the CFI. */
+  if (cache->e_machine == EM_AARCH64)
+    {
+      if (unlikely (! enough_registers (DW_AARCH64_RA_SIGN_STATE, &fs, &result)))
+	goto out;
+      fs->regs[DW_AARCH64_RA_SIGN_STATE].value = 0;
+    }
+
   while (program < end)
     {
       uint8_t opcode = *program++;
@@ -357,7 +366,10 @@ execute_cfi (Dwarf_CFI *cache,
 	    {
 	      /* Toggles the return address state, indicating whether
 		 the return address is encrypted or not on
-		 aarch64. XXX not handled yet.  */
+		 aarch64. */
+	      if (unlikely (! enough_registers (DW_AARCH64_RA_SIGN_STATE, &fs, &result)))
+		goto out;
+	      fs->regs[DW_AARCH64_RA_SIGN_STATE].value ^= 0x1;
 	    }
 	  else
 	    {

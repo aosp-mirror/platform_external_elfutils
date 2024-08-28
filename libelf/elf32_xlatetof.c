@@ -51,7 +51,11 @@ elfw2(LIBELFBITS, xlatetof) (Elf_Data *dest, const Elf_Data *src,
      data types are identical.  */
   size_t recsize = __libelf_type_sizes[ELFW(ELFCLASS,LIBELFBITS) - 1][src->d_type];
 
-  if (src->d_size % recsize != 0)
+  /* We shouldn't require integer number of records when processing
+     notes.  Payload bytes follow the header immediately, it's not an
+     array of records as is the case otherwise.  */
+  if (src->d_type != ELF_T_NHDR && src->d_type != ELF_T_NHDR8
+      && src->d_size % recsize != 0)
     {
       __libelf_seterrno (ELF_E_INVALID_DATA);
       return NULL;

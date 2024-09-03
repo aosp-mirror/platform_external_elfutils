@@ -1126,7 +1126,10 @@ private:
   const string nickname;
   const string sql;
   sqlite3_stmt *pp;
-
+  // for step_timeout()/callback
+  struct timespec ts_start;
+  double ts_timeout;
+  
   sqlite_ps(const sqlite_ps&); // make uncopyable
   sqlite_ps& operator=(const sqlite_ps &); // make unassignable
 
@@ -1138,6 +1141,7 @@ public:
     int rc = sqlite3_prepare_v2 (db, sql.c_str(), -1 /* to \0 */, & this->pp, NULL);
     if (rc != SQLITE_OK)
       throw sqlite_exception(rc, "prepare " + sql);
+    this->reset_timeout(0.0);
   }
 
   sqlite_ps& reset()
@@ -1197,6 +1201,46 @@ public:
     return rc;
   }
 
+
+  void reset_timeout(double s) // set starting point for maximum elapsed time in step_timeouts() 
+  {
+    clock_gettime (CLOCK_MONOTONIC, &this->ts_start);
+    this->ts_timeout = s;
+  }
+
+  
+  static int sqlite3_progress_handler_cb (void *param)
+  {
+    sqlite_ps *pp = (sqlite_ps*) param;
+    struct timespec ts_end;
+    clock_gettime (CLOCK_MONOTONIC, &ts_end);
+    double deltas = (ts_end.tv_sec - pp->ts_start.tv_sec) + (ts_end.tv_nsec - pp->ts_start.tv_nsec)/1.e9;
+    return (interrupted || (deltas > pp->ts_timeout)); // non-zero => interrupt sqlite operation in progress
+  }
+  
+
+  int step_timeout() {
+    // Do the same thing as step(), except wrapping it into a timeout
+    // relative to the last reset_timeout() invocation.
+    //
+    // Do this by attaching a progress_handler to the database
+    // connection, for the duration of this operation.  It should be a
+    // private connection to the calling thread, so other operations
+    // cannot begin concurrently.
+    
+    sqlite3_progress_handler(this->db, 10000 /* bytecode insns */,
+                             & sqlite3_progress_handler_cb, (void*) this);
+    int rc = this->step();
+    sqlite3_progress_handler(this->db, 0, 0, 0); // disable
+    struct timespec ts_end;
+    clock_gettime (CLOCK_MONOTONIC, &ts_end);
+    double deltas = (ts_end.tv_sec - this->ts_start.tv_sec) + (ts_end.tv_nsec - this->ts_start.tv_nsec)/1.e9;
+    if (verbose > 3)
+      obatched(clog) << this->nickname << " progress-delta-final " << deltas << endl;
+    return rc;
+  }
+
+  
   ~sqlite_ps () { sqlite3_finalize (this->pp); }
   operator sqlite3_stmt* () { return this->pp; }
 };
@@ -3503,8 +3547,19 @@ handle_metadata (MHD_Connection* conn,
                  string key, string value, off_t* size)
 {
   MHD_Response* r;
-  sqlite3 *thisdb = dbq;
-
+  // Because this query can take on the order of many seconds, we need
+  // to prevent DoS against the other normal quick queries, so we use
+  // a dedicated database connection.
+  sqlite3 *thisdb = 0;
+  int rc = sqlite3_open_v2 (db_path.c_str(), &thisdb, (SQLITE_OPEN_READONLY
+                                                       |SQLITE_OPEN_URI
+                                                       |SQLITE_OPEN_PRIVATECACHE
+                                                       |SQLITE_OPEN_NOMUTEX), /* private to us */
+                            NULL);
+  if (rc)
+    throw sqlite_exception(rc, "cannot open database for metadata query");
+  defer_dtor<sqlite3*,int> sqlite_db_closer (thisdb, sqlite3_close_v2);
+                                           
   // Query locally for matching e, d files
   string op;
   if (key == "glob")
@@ -3579,7 +3634,8 @@ handle_metadata (MHD_Connection* conn,
   pp->bind(3, dirname);
   pp->bind(4, bname);
   unique_ptr<sqlite_ps> ps_closer(pp); // release pp if exception or return
-
+  pp->reset_timeout(metadata_maxtime_s);
+      
   json_object *metadata = json_object_new_object();
   if (!metadata) throw libc_exception(ENOMEM, "json allocation");
   defer_dtor<json_object*,int> metadata_d(metadata, json_object_put);
@@ -3587,24 +3643,20 @@ handle_metadata (MHD_Connection* conn,
   if (!metadata_arr) throw libc_exception(ENOMEM, "json allocation");
   json_object_object_add(metadata, "results", metadata_arr);
   // consume all the rows
-  struct timespec ts_start;
-  clock_gettime (CLOCK_MONOTONIC, &ts_start);
   
-  int rc;
   bool metadata_complete = true;
-  while (SQLITE_DONE != (rc = pp->step()))
+  while (1)
     {
-      // break out of loop if we have searched too long
-      struct timespec ts_end;
-      clock_gettime (CLOCK_MONOTONIC, &ts_end);
-      double deltas = (ts_end.tv_sec - ts_start.tv_sec) + (ts_end.tv_nsec - ts_start.tv_nsec)/1.e9;
-      if (metadata_maxtime_s > 0 && deltas > metadata_maxtime_s)
+      rc = pp->step_timeout();
+      if (rc == SQLITE_DONE) // success
+        break;
+      if (rc == SQLITE_ABORT || rc == SQLITE_INTERRUPT) // interrupted such as by timeout
         {
           metadata_complete = false;
           break;
         }
-      
-      if (rc != SQLITE_ROW) throw sqlite_exception(rc, "step");
+      if (rc != SQLITE_ROW) // error
+        throw sqlite_exception(rc, "step");
 
       int m_executable_p = sqlite3_column_int (*pp, 0);
       int m_debuginfo_p  = sqlite3_column_int (*pp, 1);

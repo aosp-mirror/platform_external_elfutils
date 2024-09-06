@@ -46,7 +46,7 @@ libasm = ../libasm/libasm.a
 libdw = ../libdw/libdw.a -lz $(zip_LIBS) $(libelf) -ldl -lpthread
 libelf = ../libelf/libelf.a -lz $(zstd_LIBS)
 if LIBDEBUGINFOD
-libdebuginfod = ../debuginfod/libdebuginfod.a -lpthread $(libcurl_LIBS)
+libdebuginfod = ../debuginfod/libdebuginfod.a -lpthread $(libcurl_LIBS) $(crypto_LIBS) $(jsonc_LIBS)
 else
 libdebuginfod =
 endif

@@ -11679,7 +11679,7 @@ print_gdb_index_section (Dwfl_Module *dwflmod, Ebl *ebl,
     }
 
   const unsigned char *const_start = data->d_buf + const_off;
-  if (const_off >= data->d_size)
+  if (const_off > data->d_size)
     goto invalid_data;
 
   const unsigned char *shortcut_start = NULL;

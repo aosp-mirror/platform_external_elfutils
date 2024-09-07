@@ -11699,7 +11699,7 @@ print_gdb_index_section (Dwfl_Module *dwflmod, Ebl *ebl,
 
   printf (_("\n Symbol table at offset %#" PRIx32
 		   " contains %zu slots:\n"),
-	  addr_off, sym_nr);
+	  sym_off, sym_nr);
 
   n = 0;
   while (dataend - readp >= 8 && n < sym_nr)

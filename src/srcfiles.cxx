@@ -349,9 +349,9 @@ void zip_files()
         else
             cerr << "Error: Invalid build ID length (" << bits_length << ")." << endl;
     }
-    #endif
 
     if (!no_backup)
+    #endif /* ENABLE_LIBDEBUGINFOD */
       /* Files could not be located using debuginfod, search locally */
       if (fd < 0)
         fd = open(file_path.c_str(), O_RDONLY);

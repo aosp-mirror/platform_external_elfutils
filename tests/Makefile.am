@@ -132,7 +132,6 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-find-prologues.sh run-allregs.sh run-addrcfi.sh \
 	run-dwarfcfi.sh run-nm-syms.sh \
 	run-nm-self.sh run-readelf-self.sh run-readelf-info-plus.sh \
-	run-srcfiles-self.sh \
 	run-readelf-compressed.sh \
 	run-readelf-const-values.sh \
 	run-varlocs-self.sh run-exprlocs-self.sh \
@@ -246,7 +245,8 @@ if DEBUGINFOD
 check_PROGRAMS += debuginfod_build_id_find
 # With the dummy delegation doesn't work
 if !DUMMY_LIBDEBUGINFOD
-TESTS += run-debuginfod-dlopen.sh \
+TESTS += run-srcfiles-self.sh \
+	 run-debuginfod-dlopen.sh \
 	 run-debuginfod-artifact-running.sh \
 	 run-debuginfod-fd-prefetch-caches.sh \
 	 run-debuginfod-regex.sh \

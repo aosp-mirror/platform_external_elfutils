@@ -85,6 +85,7 @@ if [ -x ${abs_builddir}/../debuginfod/debuginfod ] && $zip; then
 
   export DEBUGINFOD_URLS="http://localhost:${PORT1}/"
   export DEBUGINFOD_VERBOSE=1
+  export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache
   testrun $ET_EXEC -z -b -e $ET_EXEC > test.zip
   tempfiles test.zip
 

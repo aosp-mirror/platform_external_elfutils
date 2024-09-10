@@ -28,9 +28,11 @@
 /backtrace-dwarf
 /buildid
 /core-dump-backtrace.lock
+/cu-dwp-section-info
 /debugaltlink
 /debuginfod_build_id_find
 /debuglink
+/declfiles
 /deleted
 /dwarf-die-addr-die
 /dwarf-getmacros
@@ -49,6 +51,7 @@
 /dwfl-report-elf-align
 /dwfl-report-offline-memory
 /dwfl-report-segment-contiguous
+/dwfl-core-noncontig
 /dwfllines
 /dwflmodtest
 /dwflsyms
@@ -62,6 +65,7 @@
 /elfshphehdr
 /elfstrmerge
 /elfstrtab
+/elf-print-reloc-syms
 /emptyfile
 /fillfile
 /find-prologues

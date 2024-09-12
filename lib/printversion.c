@@ -40,5 +40,5 @@ print_version (FILE *stream, struct argp_state *state)
 Copyright (C) %s The elfutils developers <%s>.\n\
 This is free software; see the source for copying conditions.  There is NO\n\
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\
-"), "2023", PACKAGE_URL);
+"), "2024", PACKAGE_URL);
 }

@@ -143,6 +143,13 @@ __libdw_intern_next_unit (Dwarf *dbg, bool debug_types)
   if (unlikely (*offsetp > data->d_size))
     *offsetp = data->d_size;
 
+  uint32_t dwp_row;
+  Dwarf_Off dwp_abbrev_offset;
+  if (__libdw_dwp_find_unit (dbg, debug_types, oldoff, version, unit_type,
+			     unit_id8, &dwp_row, &dwp_abbrev_offset) != 0)
+    return NULL;
+  abbrev_offset += dwp_abbrev_offset;
+
   /* Create an entry for this CU.  */
   struct Dwarf_CU *newp = libdw_typed_alloc (dbg, struct Dwarf_CU);
 
@@ -150,6 +157,7 @@ __libdw_intern_next_unit (Dwarf *dbg, bool debug_types)
   newp->sec_idx = sec_idx;
   newp->start = oldoff;
   newp->end = *offsetp;
+  newp->dwp_row = dwp_row;
   newp->address_size = address_size;
   newp->offset_size = offset_size;
   newp->version = version;

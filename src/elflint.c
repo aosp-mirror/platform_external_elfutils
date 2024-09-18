@@ -2293,6 +2293,7 @@ section [%2d] '%s': hash value for symbol %u in chain for bucket %zu wrong\n"),
 section [%2d] '%s': mask index for symbol %u in chain for bucket %zu wrong\n"),
 			     idx, section_name (ebl, idx), symidx,
 			     cnt - (4 + bitmask_words));
+		      free (collected.p32);
 		      return;
 		    }
 		  if (classbits == 32)

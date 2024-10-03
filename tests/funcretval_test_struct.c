@@ -80,7 +80,7 @@ main (void)
   div_t d = div (3, 2);
   ldiv_t ld = ldiv (3, 2);
   point_t p = mkpt (3.0f, 1.0f);
-  dpoint_t dp = dmkpt (3.0d, 1.0d);
+  dpoint_t dp = dmkpt (3.0e0, 1.0e0);
 
   return d.q - (int) p.y + ld.q - (int) dp.y;
 }

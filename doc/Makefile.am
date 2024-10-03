@@ -39,7 +39,25 @@ notrans_dist_man3_MANS= elf_update.3 \
 			elf32_offscn.3 \
 			elf64_offscn.3 \
 			elf_getscn.3 \
-			elf_ndxscn.3
+			elf_ndxscn.3 \
+			elf32_xlatetom.3 \
+			elf64_xlatetom.3 \
+			elf32_xlatetof.3 \
+			elf64_xlatetof.3 \
+			elf32_newphdr.3 \
+			elf64_newphdr.3 \
+			elf32_newehdr.3 \
+			elf64_newehdr.3 \
+			elf32_getshdr.3 \
+			elf64_getshdr.3 \
+			elf32_getphdr.3 \
+			elf64_getphdr.3 \
+			elf32_getchdr.3 \
+			elf64_getchdr.3 \
+			elf32_fsize.3 \
+			elf64_fsize.3 \
+			elf32_checksum.3 \
+			elf64_checksum.3
 
 # libdebuginfod man pages (also notrans)
 # Note we include them even when not building them because we want

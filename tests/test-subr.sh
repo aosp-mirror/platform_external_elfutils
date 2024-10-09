@@ -23,8 +23,9 @@
 set -e
 
 # Each test runs in its own directory to make sure they can run in parallel.
-test_dir="test-$$"
+test_dir="${TMPDIR-/var/tmp}/elfutils-test-$$"
 mkdir -p "$test_dir"
+orig_dir="${PWD}"
 cd "$test_dir"
 
 #LC_ALL=C
@@ -35,7 +36,7 @@ remove_files=
 # Tests that trap EXIT (0) themselves should call this explicitly.
 exit_cleanup()
 {
-  rm -f $remove_files; cd ..; rmdir $test_dir
+  rm -f $remove_files; cd $orig_dir; rmdir $test_dir
 }
 trap exit_cleanup 0
 

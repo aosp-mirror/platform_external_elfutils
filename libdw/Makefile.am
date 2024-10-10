@@ -97,7 +97,6 @@ libdw_a_SOURCES = dwarf_begin.c dwarf_begin_elf.c dwarf_end.c dwarf_getelf.c \
 
 if MAINTAINER_MODE
 BUILT_SOURCES = $(srcdir)/known-dwarf.h
-MAINTAINERCLEANFILES = $(srcdir)/known-dwarf.h
 $(srcdir)/known-dwarf.h: $(top_srcdir)/config/known-dwarf.awk $(srcdir)/dwarf.h
 	gawk -f $^ > $@.new
 	mv -f $@.new $@
@@ -154,3 +153,4 @@ noinst_HEADERS = libdwP.h memory-access.h dwarf_abbrev_hash.h \
 EXTRA_DIST = libdw.map
 
 MOSTLYCLEANFILES = $(am_libdw_pic_a_OBJECTS) libdw.so libdw.so.$(VERSION)
+MAINTAINERCLEANFILES = $(srcdir)/known-dwarf.h

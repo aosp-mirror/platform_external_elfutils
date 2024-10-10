@@ -1201,29 +1201,69 @@ perform_queries(CURLM *curlm, CURL **target_handle, struct handle_data *data, de
 /* Copy SRC to DEST, s,/,#,g */
 
 static void
-path_escape (const char *src, char *dest)
+path_escape (const char *src, char *dest, size_t dest_len)
 {
-  unsigned q = 0;
+  /* PR32218: Reversibly-escaping src character-by-character, for
+     large enough strings, risks ENAMETOOLONG errors.  For long names,
+     a simple hash based generated name instead, while still
+     attempting to preserve the as much of the content as possible.
+     It's possible that absurd choices of incoming names will collide
+     or still get truncated, but c'est la vie.
+  */
+  
+  /* Compute a three-way min() for the actual output string generated. */
+  assert (dest_len > 10); /* Space enough for degenerate case of
+                             "HASHHASH-\0". NB: dest_len is not
+                             user-controlled. */
+  /* Use only NAME_MAX/2 characters in the output file name.
+     ENAMETOOLONG has been observed even on 300-ish character names on
+     some filesystems. */
+  const size_t max_dest_len = NAME_MAX/2;
+  dest_len = dest_len > max_dest_len ? max_dest_len : dest_len;
+  /* Use only strlen(src)+10 bytes, if that's smaller.  Yes, we could
+     just fit an entire escaped name in there in theory, without the
+     hash+etc.  But then again the hashing protects against #-escape
+     aliasing collisions: "foo[bar" "foo]bar" both escape to
+     "foo#bar", thus aliasing, but have different "HASH-foo#bar".
+  */
+  const size_t hash_prefix_destlen = strlen(src)+10; /* DEADBEEF-src\0 */
+  dest_len = dest_len > hash_prefix_destlen ? hash_prefix_destlen : dest_len;
 
-  for (unsigned fi=0; q < PATH_MAX-2; fi++) /* -2, escape is 2 chars.  */
-    switch (src[fi])
-      {
-      case '\0':
-        dest[q] = '\0';
-	return;
-      case '/': /* escape / to prevent dir escape */
-        dest[q++]='#';
-        dest[q++]='#';
-        break;
-      case '#': /* escape # to prevent /# vs #/ collisions */
-        dest[q++]='#';
-        dest[q++]='_';
-        break;
-      default:
-        dest[q++]=src[fi];
-      }
+  char *dest_write = dest + dest_len - 1;
+  (*dest_write--) = '\0'; /* Ensure a \0 there. */
 
-  dest[q] = '\0';
+  /* Copy from back toward front, preferring to keep the .extension. */
+  for (int fi=strlen(src)-1; fi >= 0 && dest_write >= dest; fi--)
+    {
+      char src_char = src[fi];
+      switch (src_char)
+        {
+          /* Pass through ordinary identifier chars. */
+        case '.': case '-': case '_':
+        case 'a'...'z':
+        case 'A'...'Z':
+        case '0'...'9':
+          *dest_write-- = src_char;
+          break;
+          
+          /* Replace everything else, esp. security-sensitive /. */
+        default:
+          *dest_write-- = '#';
+          break;
+        }
+    }
+
+  /* djb2 hash algorithm: DJBX33A */
+  unsigned long hash = 5381;
+  const char *c = src;
+  while (*c)
+    hash = ((hash << 5) + hash) + *c++;
+  char name_hash_str [9];
+  /* Truncate to 4 bytes; along with the remaining hundredish bytes of text,
+     should be ample against accidental collisions. */
+  snprintf (name_hash_str, sizeof(name_hash_str), "%08x", (unsigned int) hash);
+  memcpy (&dest[0], name_hash_str, 8); /* Overwrite the first few characters */
+  dest[8] = '-'; /* Add a bit of punctuation to make hash stand out */
 }
 
 /* Attempt to update the atime */
@@ -1267,7 +1307,6 @@ extract_section (int fd, const char *section, char *fd_path, char **usr_path)
     }
 
   int sec_fd = -1;
-  char *escaped_name = NULL;
   char *sec_path_tmp = NULL;
   Elf_Scn *scn = NULL;
 
@@ -1332,16 +1371,10 @@ extract_section (int fd, const char *section, char *fd_path, char **usr_path)
 	      --i;
 	    }
 
-	  escaped_name = malloc (strlen (section) * 2 + 1);
-	  if (escaped_name == NULL)
-	    {
-	      rc = -ENOMEM;
-	      goto out;
-	    }
-	  path_escape (section, escaped_name);
-
+          char suffix[NAME_MAX];
+	  path_escape (section, suffix, sizeof(suffix));
 	  rc = asprintf (&sec_path_tmp, "%s/section-%s.XXXXXX",
-			 fd_path, escaped_name);
+			 fd_path, suffix);
 	  if (rc == -1)
 	    {
 	      rc = -ENOMEM;
@@ -1396,8 +1429,6 @@ out2:
   free (sec_path_tmp);
 
 out1:
-  free (escaped_name);
-
 out:
   elf_end (elf);
   return rc;
@@ -1747,7 +1778,7 @@ debuginfod_query_server_by_buildid (debuginfod_client *c,
   char *target_cache_dir = NULL;
   char *target_cache_path = NULL;
   char *target_cache_tmppath = NULL;
-  char suffix[PATH_MAX + 1]; /* +1 for zero terminator.  */
+  char suffix[NAME_MAX];
   char build_id_bytes[MAX_BUILD_ID_BYTES * 2 + 1];
   int vfd = c->verbose_fd;
   int rc, r;
@@ -1861,13 +1892,13 @@ debuginfod_query_server_by_buildid (debuginfod_client *c,
 	  goto out;
 	}
 
-      path_escape (filename, suffix);
+      path_escape (filename, suffix, sizeof(suffix));
       /* If the DWARF filenames are super long, this could exceed
          PATH_MAX and truncate/collide.  Oh well, that'll teach
          them! */
     }
   else if (section != NULL)
-    path_escape (section, suffix);
+    path_escape (section, suffix, sizeof(suffix));
   else
     suffix[0] = '\0';
 
@@ -1879,7 +1910,8 @@ debuginfod_query_server_by_buildid (debuginfod_client *c,
      cache_path:        $HOME/.cache
      target_cache_dir:  $HOME/.cache/0123abcd
      target_cache_path: $HOME/.cache/0123abcd/debuginfo
-     target_cache_path: $HOME/.cache/0123abcd/source#PATH#TO#SOURCE ?
+     target_cache_path: $HOME/.cache/0123abcd/executable-.debug_info
+     target_cache_path: $HOME/.cache/0123abcd/source-HASH-#PATH#TO#SOURCE
   */
 
   cache_path = make_cache_path();
@@ -1891,10 +1923,10 @@ debuginfod_query_server_by_buildid (debuginfod_client *c,
   xalloc_str (target_cache_dir, "%s/%s", cache_path, build_id_bytes);
   (void) mkdir (target_cache_dir, 0700); // failures with this mkdir would be caught later too
 
-  if (section != NULL)
+  if (suffix[0] != '\0') /* section, source queries */
     xalloc_str (target_cache_path, "%s/%s-%s", target_cache_dir, type, suffix);
   else
-    xalloc_str (target_cache_path, "%s/%s%s", target_cache_dir, type, suffix);
+    xalloc_str (target_cache_path, "%s/%s", target_cache_dir, type);
   xalloc_str (target_cache_tmppath, "%s.XXXXXX", target_cache_path);
 
   /* XXX combine these */

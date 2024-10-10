@@ -273,7 +273,8 @@ TESTS += run-srcfiles-self.sh \
 	 run-debuginfod-section.sh \
 	 run-debuginfod-IXr.sh \
 	 run-debuginfod-client-profile.sh \
-	 run-debuginfod-find-metadata.sh
+	 run-debuginfod-find-metadata.sh \
+	 run-debuginfod-longsource.sh
 endif
 if !OLD_LIBMICROHTTPD
 # Will crash on too old libmicrohttpd
@@ -607,6 +608,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     run-debuginfod-IXr.sh \
 	     run-debuginfod-ima-verification.sh \
 	     run-debuginfod-find-metadata.sh \
+	     run-debuginfod-longsource.sh \
 	     debuginfod-rpms/fedora30/hello2-1.0-2.src.rpm \
 	     debuginfod-rpms/fedora30/hello2-1.0-2.x86_64.rpm \
 	     debuginfod-rpms/fedora30/hello2-debuginfo-1.0-2.x86_64.rpm \
@@ -654,6 +656,9 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     debuginfod-tars/pacman-sources/PKGBUILD \
 	     debuginfod-tars/pacman-sources/README.md \
 	     debuginfod-tars/pacman-sources/hello.c \
+	     debuginfod-tars/bighello.tar \
+	     debuginfod-tars/bighello-sources/bighello.c \
+	     debuginfod-tars/bighello-sources/bighello.h \
 	     run-pt_gnu_prop-tests.sh \
 	     testfile_pt_gnu_prop.bz2 testfile_pt_gnu_prop32.bz2 \
 	     run-getphdrnum.sh testfile-phdrs.elf.bz2 \

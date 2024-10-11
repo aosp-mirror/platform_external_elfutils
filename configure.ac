@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 dnl Configure input file for elfutils.                     -*-autoconf-*-
 dnl
-dnl Copyright (C) 1996-2019 Red Hat, Inc.
+dnl Copyright (C) 1996-2019, 2024 Red Hat, Inc.
 dnl Copyright (C) 2022, 2023 Mark J. Wielaard <mark@klomp.org>
 dnl
 dnl This file is part of elfutils.
@@ -918,6 +918,59 @@ AC_ARG_ENABLE(debuginfod-ima-cert-path,
 AC_SUBST(DEBUGINFOD_IMA_CERT_PATH, $default_debuginfod_ima_cert_path)
 AC_CONFIG_FILES([config/profile.sh config/profile.csh config/profile.fish])
 
+# XXX Currently, eu-stacktrace can only work with sysprof/x86, hence:
+AC_ARG_ENABLE([stacktrace],AS_HELP_STRING([--enable-stacktrace], [Enable eu-stacktrace]))
+# check for x86, or more precisely _ASM_X86_PERF_REGS_H
+AS_IF([test "x$enable_stacktrace" = "xyes"], [
+   enable_stacktrace=no
+   AC_LANG([C])
+   AC_CACHE_CHECK([for _ASM_X86_PERF_REGS_H], ac_cv_has_asm_x86_perf_regs_h,
+      [AC_COMPILE_IFELSE([AC_LANG_SOURCE([
+#include <asm/perf_regs.h>
+#ifndef _ASM_X86_PERF_REGS_H
+#error "_ASM_X86_PERF_REGS_H not found"
+#endif
+])], ac_cv_has_asm_x86_perf_regs_h=yes, ac_cv_has_asm_x86_perf_regs_h=no)])
+   AS_IF([test "x$ac_cv_has_asm_x86_perf_regs_h" = xyes], [
+      enable_stacktrace=yes
+   ])
+   if test "x$enable_stacktrace" = "xno"; then
+      AC_MSG_ERROR([${program_prefix}stacktrace currently only supports x86, use --disable-stacktrace to disable.])
+   fi
+])
+# check for sysprof headers:
+AS_IF([test "x$enable_stacktrace" = "xyes"], [
+   enable_stacktrace=no
+   AC_CACHE_CHECK([for sysprof-6/sysprof-capture-types.h], ac_cv_has_sysprof_6_headers,
+      [AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <sysprof-6/sysprof-capture-types.h>]])],
+      ac_cv_has_sysprof_6_headers=yes, ac_cv_has_sysprof_6_headers=no)])
+   AS_IF([test "x$ac_cv_has_sysprof_6_headers" = xyes], [
+      AC_DEFINE(HAVE_SYSPROF_6_HEADERS)
+      enable_stacktrace=yes
+   ])
+   AH_TEMPLATE([HAVE_SYSPROF_6_HEADERS], [Define to 1 if `sysprof-6/sysprof-capture-types.h` is provided by the system, 0 otherwise.])
+   AC_CACHE_CHECK([for sysprof-4/sysprof-capture-types.h], ac_cv_has_sysprof_4_headers,
+      [AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <sysprof-4/sysprof-capture-types.h>]])],
+      ac_cv_has_sysprof_4_headers=yes, ac_cv_has_sysprof_4_headers=no)])
+   AS_IF([test "x$ac_cv_has_sysprof_4_headers" = xyes], [
+      AC_DEFINE(HAVE_SYSPROF_4_HEADERS)
+      enable_stacktrace=yes
+   ])
+   AH_TEMPLATE([HAVE_SYSPROF_4_HEADERS], [Define to 1 if `sysprof-4/sysprof-capture-types.h` is provided by the system, 0 otherwise.])
+   if test "x$enable_stacktrace" = "xno"; then
+      AC_MSG_ERROR([sysprof headers for ${program_prefix}stacktrace not found, use --disable-stacktrace to disable.])
+   fi
+],[
+   # If eu-stacktrace is disabled, also disable the automake conditionals:
+   ac_cv_has_sysprof_6_headers=no
+   ac_cv_has_sysprof_4_headers=no
+   # And make sure the feature listing shows 'no':
+   enable_stacktrace=no
+])
+AM_CONDITIONAL([HAVE_SYSPROF_6_HEADERS],[test "x$ac_cv_has_sysprof_6_headers" = xyes])
+AM_CONDITIONAL([HAVE_SYSPROF_4_HEADERS],[test "x$ac_cv_has_sysprof_4_headers" = xyes])
+AM_CONDITIONAL([ENABLE_STACKTRACE],[test "x$enable_stacktrace" = "xyes"])
+
 AC_OUTPUT
 
 AC_MSG_NOTICE([
@@ -957,6 +1010,7 @@ AC_MSG_NOTICE([
     Default DEBUGINFOD_URLS            : ${default_debuginfod_urls}
     Debuginfod RPM sig checking        : ${enable_debuginfod_ima_verification} 
     Default DEBUGINFOD_IMA_CERT_PATH   : ${default_debuginfod_ima_cert_path}
+    ${program_prefix}stacktrace support              : ${enable_stacktrace}
 
   EXTRA TEST FEATURES (used with make check)
     have bunzip2 installed (required)  : ${HAVE_BUNZIP2}

@@ -1,5 +1,5 @@
 /* Get previous frame state for an existing frame state.
-   Copyright (C) 2013, 2014, 2016 Red Hat, Inc.
+   Copyright (C) 2013, 2014, 2016, 2024 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -515,6 +515,7 @@ new_unwound (Dwfl_Frame *state)
   unwound->signal_frame = false;
   unwound->initial_frame = false;
   unwound->pc_state = DWFL_FRAME_STATE_ERROR;
+  unwound->unwound_source = DWFL_UNWOUND_NONE;
   memset (unwound->regs_set, 0, sizeof (unwound->regs_set));
   return unwound;
 }
@@ -742,14 +743,20 @@ __libdwfl_frame_unwind (Dwfl_Frame *state)
 	{
 	  handle_cfi (state, pc - bias, cfi_eh, bias);
 	  if (state->unwound)
-	    return;
+	    {
+	      state->unwound->unwound_source = DWFL_UNWOUND_EH_CFI;
+	      return;
+	    }
 	}
       Dwarf_CFI *cfi_dwarf = INTUSE(dwfl_module_dwarf_cfi) (mod, &bias);
       if (cfi_dwarf)
 	{
 	  handle_cfi (state, pc - bias, cfi_dwarf, bias);
 	  if (state->unwound)
-	    return;
+	    {
+	      state->unwound->unwound_source = DWFL_UNWOUND_DWARF_CFI;
+	      return;
+	    }
 	}
     }
   assert (state->unwound == NULL);
@@ -774,6 +781,7 @@ __libdwfl_frame_unwind (Dwfl_Frame *state)
       // __libdwfl_seterrno has been called above.
       return;
     }
+  state->unwound->unwound_source = DWFL_UNWOUND_EBL;
   assert (state->unwound->pc_state == DWFL_FRAME_STATE_PC_SET);
   state->unwound->signal_frame = signal_frame;
 }

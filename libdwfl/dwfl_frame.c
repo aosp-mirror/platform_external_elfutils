@@ -1,5 +1,5 @@
 /* Get Dwarf Frame state for target PID or core file.
-   Copyright (C) 2013, 2014 Red Hat, Inc.
+   Copyright (C) 2013, 2014, 2024 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -98,6 +98,7 @@ state_alloc (Dwfl_Thread *thread)
   state->signal_frame = false;
   state->initial_frame = true;
   state->pc_state = DWFL_FRAME_STATE_ERROR;
+  state->unwound_source = DWFL_UNWOUND_INITIAL_FRAME;
   memset (state->regs_set, 0, sizeof (state->regs_set));
   thread->unwound = state;
   state->unwound = NULL;
@@ -247,6 +248,34 @@ dwfl_frame_thread (Dwfl_Frame *state)
   return state->thread;
 }
 INTDEF(dwfl_frame_thread)
+
+Dwfl_Unwound_Source
+dwfl_frame_unwound_source (Dwfl_Frame *state)
+{
+  return state->unwound_source;
+}
+INTDEF(dwfl_frame_unwound_source)
+
+const char *
+dwfl_unwound_source_str (Dwfl_Unwound_Source unwound_source)
+{
+  switch (unwound_source)
+    {
+    case DWFL_UNWOUND_NONE:
+      return "none";
+    case DWFL_UNWOUND_INITIAL_FRAME:
+      return "initial";
+    case DWFL_UNWOUND_EH_CFI:
+      return "eh_frame";
+    case DWFL_UNWOUND_DWARF_CFI:
+      return "dwarf";
+    case DWFL_UNWOUND_EBL:
+      return "ebl";
+    default:
+      return "unknown";
+    }
+}
+INTDEF(dwfl_unwound_source_str)
 
 int
 dwfl_getthreads (Dwfl *dwfl, int (*callback) (Dwfl_Thread *thread, void *arg),

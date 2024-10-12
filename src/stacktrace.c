@@ -642,6 +642,8 @@ typedef struct
   int max_frames; /* for diagnostic purposes */
   int total_samples; /* for diagnostic purposes */
   int lost_samples; /* for diagnostic purposes */
+  Dwfl_Unwound_Source last_unwound; /* track CFI source, for diagnostic purposes */
+  Dwfl_Unwound_Source worst_unwound; /* track CFI source, for diagnostic purposes */
 } dwfltab_ent;
 
 typedef struct
@@ -851,6 +853,7 @@ struct sysprof_unwind_info
 #ifdef DEBUG_MODULES
   Dwfl *last_dwfl; /* for diagnostic purposes */
 #endif
+  pid_t last_pid; /* for diagnostic purposes, to provide access to dwfltab */
   Dwarf_Addr *addrs; /* allocate blocks of UNWIND_ADDR_INCREMENT */
   void *outbuf;
 };
@@ -1139,9 +1142,24 @@ sysprof_unwind_frame_cb (Dwfl_Frame *state, void *arg)
     }
 #endif
 
-  if (show_frames)
-    fprintf(stderr, "* frame %d: pc_adjusted=%lx sp=%lx+(%lx)\n",
-	    sui->n_addrs, pc_adjusted, sui->last_base, sp - sui->last_base);
+  dwfltab_ent *dwfl_ent = dwfltab_find(sui->last_pid);
+  if (dwfl_ent != NULL)
+    {
+      Dwfl_Unwound_Source unwound_source = dwfl_frame_unwound_source(state);
+      if (unwound_source > dwfl_ent->worst_unwound)
+	dwfl_ent->worst_unwound = unwound_source;
+      dwfl_ent->last_unwound = unwound_source;
+      if (show_frames)
+	fprintf(stderr, "* frame %d: pc_adjusted=%lx sp=%lx+(%lx) [%s]\n",
+		sui->n_addrs, pc_adjusted, sui->last_base, sp - sui->last_base,
+		dwfl_unwound_source_str(unwound_source));
+    }
+  else
+    {
+      if (show_frames)
+	fprintf(stderr, N_("* frame %d: pc_adjusted=%lx sp=%lx+(%lx) [dwfl_ent not found]\n"),
+		sui->n_addrs, pc_adjusted, sui->last_base, sp - sui->last_base);
+    }
 
   if (sui->n_addrs > maxframes)
     {
@@ -1233,6 +1251,7 @@ sysprof_unwind_cb (SysprofCaptureFrame *frame, void *arg)
 #ifdef DEBUG_MODULES
   sui->last_dwfl = dwfl;
 #endif
+  sui->last_pid = frame->pid;
   int rc = dwfl_getthread_frames (dwfl, ev->tid, sysprof_unwind_frame_cb, sui);
   if (rc < 0)
     {
@@ -1538,10 +1557,14 @@ https://sourceware.org/cgit/elfutils/tree/README.eu-stacktrace?h=users/serhei/eu
 	      dwfltab_ent *t = default_table.table;
 	      if (!t[idx].used)
 		continue;
-	      fprintf(stderr, N_("%d %s -- max %d frames, received %d samples, lost %d samples (%.1f%%)\n"),
+	      /* XXX worst_unwound gives least preferred unwind method used for this process
+		 (i.e. eh_frame is preferred to dwarf is preferred to ebl) */
+	      fprintf(stderr, N_("%d %s -- max %d frames, received %d samples, lost %d samples (%.1f%%) (last %s, worst %s)\n"),
 		      t[idx].pid, t[idx].comm, t[idx].max_frames,
 		      t[idx].total_samples, t[idx].lost_samples,
-		      PERCENT(t[idx].lost_samples, t[idx].total_samples));
+		      PERCENT(t[idx].lost_samples, t[idx].total_samples),
+		      dwfl_unwound_source_str(t[idx].last_unwound),
+		      dwfl_unwound_source_str(t[idx].worst_unwound));
 	      total_samples += t[idx].total_samples;
 	      total_lost_samples += t[idx].lost_samples;
 	    }

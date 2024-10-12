@@ -1,5 +1,5 @@
 /* Internal definitions for libdwfl.
-   Copyright (C) 2005-2015, 2018 Red Hat, Inc.
+   Copyright (C) 2005-2015, 2018, 2024 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -272,6 +272,7 @@ struct Dwfl_Frame
        outermost frame.  */
     DWFL_FRAME_STATE_PC_UNDEFINED
   } pc_state;
+  Dwfl_Unwound_Source unwound_source;
   /* Either initialized from appropriate REGS element or on some archs
      initialized separately as the return address has no DWARF register.  */
   Dwarf_Addr pc;
@@ -795,6 +796,8 @@ INTDECL (dwfl_pid)
 INTDECL (dwfl_thread_dwfl)
 INTDECL (dwfl_thread_tid)
 INTDECL (dwfl_frame_thread)
+INTDECL (dwfl_frame_unwound_source)
+INTDECL (dwfl_unwound_source_str)
 INTDECL (dwfl_thread_state_registers)
 INTDECL (dwfl_thread_state_register_pc)
 INTDECL (dwfl_getthread_frames)

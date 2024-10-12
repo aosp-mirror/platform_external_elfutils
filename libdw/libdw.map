@@ -382,4 +382,6 @@ ELFUTILS_0.191 {
 ELFUTILS_0.192 {
   global:
     dwfl_set_sysroot;
+    dwfl_frame_unwound_source;
+    dwfl_unwound_source_str;
 } ELFUTILS_0.191;

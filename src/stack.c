@@ -1,5 +1,5 @@
 /* Unwinding of frames like gstack/pstack.
-   Copyright (C) 2013-2014 Red Hat, Inc.
+   Copyright (C) 2013-2014, 2024 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -44,6 +44,7 @@ ARGP_PROGRAM_BUG_ADDRESS_DEF = PACKAGE_BUGREPORT;
 static bool show_activation = false;
 static bool show_module = false;
 static bool show_build_id = false;
+static bool show_unwound_source = false;
 static bool show_source = false;
 static bool show_one_tid = false;
 static bool show_quiet = false;
@@ -58,6 +59,7 @@ struct frame
 {
   Dwarf_Addr pc;
   bool isactivation;
+  Dwfl_Unwound_Source unwound_source;
 };
 
 struct frames
@@ -180,6 +182,7 @@ frame_callback (Dwfl_Frame *state, void *arg)
 {
   struct frames *frames = (struct frames *) arg;
   int nr = frames->frames;
+  frames->frame[nr].unwound_source = dwfl_frame_unwound_source (state);
   if (! dwfl_frame_pc (state, &frames->frame[nr].pc,
 		       &frames->frame[nr].isactivation))
     return -1;
@@ -221,7 +224,7 @@ static void
 print_frame (int nr, Dwarf_Addr pc, bool isactivation,
 	     Dwarf_Addr pc_adjusted, Dwfl_Module *mod,
 	     const char *symname, Dwarf_Die *cudie,
-	     Dwarf_Die *die)
+	     Dwarf_Die *die, const char *unwound_source)
 {
   int width = get_addr_width (mod);
   printf ("#%-2u 0x%0*" PRIx64, nr, width, (uint64_t) pc);
@@ -269,6 +272,11 @@ print_frame (int nr, Dwarf_Addr pc, bool isactivation,
 	  printf ("]@0x%0" PRIx64 "+0x%" PRIx64,
 		  start, pc_adjusted - start);
 	}
+    }
+
+  if (show_unwound_source)
+    {
+      printf (" [%s]", unwound_source);
     }
 
   if (show_source)
@@ -323,7 +331,8 @@ print_frame (int nr, Dwarf_Addr pc, bool isactivation,
 static void
 print_inline_frames (int *nr, Dwarf_Addr pc, bool isactivation,
 		     Dwarf_Addr pc_adjusted, Dwfl_Module *mod,
-		     const char *symname, Dwarf_Die *cudie, Dwarf_Die *die)
+		     const char *symname, Dwarf_Die *cudie, Dwarf_Die *die,
+		     Dwfl_Unwound_Source unwound_source)
 {
   Dwarf_Die *scopes = NULL;
   int nscopes = dwarf_getscopes_die (die, &scopes);
@@ -333,7 +342,7 @@ print_inline_frames (int *nr, Dwarf_Addr pc, bool isactivation,
 	 the name.  This is the actual source location where it
 	 happened.  */
       print_frame ((*nr)++, pc, isactivation, pc_adjusted, mod, symname,
-		   NULL, NULL);
+		   NULL, NULL, dwfl_unwound_source_str(unwound_source));
 
       /* last_scope is the source location where the next frame/function
 	 call was done. */
@@ -349,7 +358,7 @@ print_inline_frames (int *nr, Dwarf_Addr pc, bool isactivation,
 
 	  symname = die_name (scope);
 	  print_frame ((*nr)++, pc, isactivation, pc_adjusted, mod, symname,
-		       cudie, last_scope);
+		       cudie, last_scope, "inline");
 
 	  /* Found the "top-level" in which everything was inlined?  */
 	  if (tag == DW_TAG_subprogram)
@@ -375,6 +384,7 @@ print_frames (struct frames *frames, pid_t tid, int dwflerr, const char *what)
       Dwarf_Addr pc = frames->frame[nr].pc;
       bool isactivation = frames->frame[nr].isactivation;
       Dwarf_Addr pc_adjusted = pc - (isactivation ? 0 : 1);
+      Dwfl_Unwound_Source unwound_source = frames->frame[nr].unwound_source;
 
       /* Get PC->SYMNAME.  */
       Dwfl_Module *mod = dwfl_addrmodule (dwfl, pc_adjusted);
@@ -417,10 +427,10 @@ print_frames (struct frames *frames, pid_t tid, int dwflerr, const char *what)
 
       if (show_inlines && die != NULL)
 	print_inline_frames (&frame_nr, pc, isactivation, pc_adjusted, mod,
-			     symname, cudie, die);
+			     symname, cudie, die, unwound_source);
       else
 	print_frame (frame_nr++, pc, isactivation, pc_adjusted, mod, symname,
-		     NULL, NULL);
+		     NULL, NULL, dwfl_unwound_source_str(unwound_source));
     }
 
   if (frames->frames > 0 && frame_nr == maxframes)
@@ -533,6 +543,10 @@ parse_opt (int key, char *arg __attribute__ ((unused)),
 
     case 'b':
       show_build_id = true;
+      break;
+
+    case 'c':
+      show_unwound_source = true;
       break;
 
     case 'q':
@@ -676,6 +690,8 @@ main (int argc, char **argv)
 	N_("Show raw function symbol names, do not try to demangle names"), 0 },
       { "build-id",  'b', NULL, 0,
 	N_("Show module build-id, load address and pc offset"), 0 },
+      { "cfi-type", 'c', NULL, 0,
+	N_("Show the backtrace method for each frame (eh_frame, dwarf, inline, or ebl)"), 0 },
       { NULL, '1', NULL, 0,
 	N_("Show the backtrace of only one thread"), 0 },
       { NULL, 'n', "MAXFRAMES", 0,

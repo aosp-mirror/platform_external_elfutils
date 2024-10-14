@@ -65,7 +65,7 @@ cc_defaults {
         "-Wno-typedef-redefinition",
     ],
     header_libs: [
-         "elfutils_headers",
+        "elfutils_headers",
     ],
     export_header_lib_headers: ["elfutils_headers"],
 
@@ -85,7 +85,7 @@ cc_library {
     vendor_available: true,
     defaults: ["elfutils_defaults"],
 
-    srcs:  ["libelf/*.c",],
+    srcs: ["libelf/*.c"],
 
     export_include_dirs: ["libelf"],
 
@@ -196,7 +196,7 @@ cc_library_host_static {
         "libdw",
     ],
     static_libs: [
-        "libelf"
+        "libelf",
     ],
     whole_static_libs: [
         "libeu",

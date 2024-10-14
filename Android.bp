@@ -171,12 +171,6 @@ cc_library_host_static {
         // Do not enabled compression support
         "libdwfl/bzip2.c",
         "libdwfl/lzma.c",
-        // Those headers are incompatible with clang due to nested function
-        // definitions.
-        "libdwfl/dwfl_segment_report_module.c",
-        "libdwfl/debuginfod-client.c",
-        "libdwfl/elf-from-memory.c",
-        "libdwfl/link_map.c",
         // These depend on argp which doesn't exist in musl
         "libdwfl/argp-std.c",
         // Those are common source files actually used as headers and not

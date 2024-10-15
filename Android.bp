@@ -140,8 +140,10 @@ cc_library_headers {
     visibility: [":__subpackages__"],
 }
 
-cc_library_host_static {
+cc_library {
     name: "libdw",
+    host_supported: true,
+    device_supported: false,
     defaults: ["elfutils_defaults"],
     target: {
         darwin: {

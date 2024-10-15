@@ -8,6 +8,13 @@ debuginfod: Add per-file signature verification for integrity
 
 debuginfod: New API for metadata queries: file name -> buildid.
 
+stacktrace: Experimental new tool that can process a stream of stack
+            samples from the Sysprof profiler and unwind them into call
+            chains. Enable on x86 with --enable-stacktrace. See
+            README.eu-stacktrace in the development branch for detailed
+            usage instructions:
+            https://sourceware.org/cgit/elfutils/tree/README.eu-stacktrace?h=users/serhei/eu-stacktrace
+
 Version 0.191 "Bug fixes in C major"
 
 libdw: dwarf_addrdie now supports binaries lacking a .debug_aranges

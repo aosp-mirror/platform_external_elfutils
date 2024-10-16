@@ -60,13 +60,13 @@ asm_align (AsmScn_t *asmscn, GElf_Word value)
 	fprintf (asmscn->ctx->out.file, "%02hhx\n", asmscn->pattern->bytes[0]);
       else
 	{
-	  fputc_unlocked ('"', asmscn->ctx->out.file);
+	  fputc ('"', asmscn->ctx->out.file);
 
 	  for (size_t cnt = 0; cnt < asmscn->pattern->len; ++cnt)
 	    fprintf (asmscn->ctx->out.file, "\\x%02hhx",
 		     asmscn->pattern->bytes[cnt]);
 
-	  fputs_unlocked ("\"\n", asmscn->ctx->out.file);
+	  fputs ("\"\n", asmscn->ctx->out.file);
 	}
       return 0;
     }

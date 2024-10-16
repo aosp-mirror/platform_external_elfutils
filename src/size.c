@@ -411,7 +411,7 @@ show_sysv (Elf *elf, const char *prefix, const char *fname,
 	maxlen = MAX (maxlen, (int) strlen (name));
     }
 
-  fputs_unlocked (fname, stdout);
+  fputs (fname, stdout);
   if (prefix != NULL)
     printf (_(" (ex %s)"), prefix);
   printf (":\n%-*s %*s %*s\n",
@@ -483,7 +483,7 @@ show_sysv_one_line (Elf *elf)
 	continue;
 
       if (! first)
-	fputs_unlocked (" + ", stdout);
+	fputs (" + ", stdout);
       first = false;
 
       printf ((radix == radix_hex ? "%" PRIx64 "(%s)"
@@ -555,7 +555,7 @@ show_bsd (Elf *elf, const char *prefix, const char *fname,
 	  fname);
   if (prefix != NULL)
     printf (_(" (ex %s)"), prefix);
-  fputs_unlocked ("\n", stdout);
+  fputs ("\n", stdout);
 
   total_textsize += textsize;
   total_datasize += datasize;
@@ -607,7 +607,7 @@ show_segments (Elf *elf, const char *fullname)
 	continue;
 
       if (! first)
-	fputs_unlocked (" + ", stdout);
+	fputs (" + ", stdout);
       first = false;
 
       printf (radix == radix_hex ? "%" PRIx64 "(%c%c%c)"

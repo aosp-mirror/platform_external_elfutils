@@ -345,8 +345,8 @@ process_chunk_mb (const char *fname, const unsigned char *buf, off_t to,
 	      /* We found a match.  */
 	      if (unlikely (fname != NULL))
 		{
-		  fputs_unlocked (fname, stdout);
-		  fputs_unlocked (": ", stdout);
+		  fputs (fname, stdout);
+		  fputs (": ", stdout);
 		}
 
 	      if (unlikely (radix != radix_none))
@@ -357,7 +357,7 @@ process_chunk_mb (const char *fname, const unsigned char *buf, off_t to,
 
 	      if (unlikely (*unprinted != NULL))
 		{
-		  fputs_unlocked (*unprinted, stdout);
+		  fputs (*unprinted, stdout);
 		  free (*unprinted);
 		  *unprinted = NULL;
 		}
@@ -366,8 +366,8 @@ process_chunk_mb (const char *fname, const unsigned char *buf, off_t to,
 		 assume the file data is encoded in UCS-2/UTF-16 or
 		 UCS-4/UTF-32 respectively we could convert the string.
 		 But there is no such guarantee.  */
-	      fwrite_unlocked (start, 1, buf - start, stdout);
-	      putc_unlocked ('\n', stdout);
+	      fwrite (start, 1, buf - start, stdout);
+	      fputc ('\n', stdout);
 	    }
 
 	  start = ++buf;
@@ -413,8 +413,8 @@ process_chunk (const char *fname, const unsigned char *buf, off_t to,
 	      /* We found a match.  */
 	      if (likely (fname != NULL))
 		{
-		  fputs_unlocked (fname, stdout);
-		  fputs_unlocked (": ", stdout);
+		  fputs (fname, stdout);
+		  fputs (": ", stdout);
 		}
 
 	      if (likely (radix != radix_none))
@@ -425,12 +425,12 @@ process_chunk (const char *fname, const unsigned char *buf, off_t to,
 
 	      if (unlikely (*unprinted != NULL))
 		{
-		  fputs_unlocked (*unprinted, stdout);
+		  fputs (*unprinted, stdout);
 		  free (*unprinted);
 		  *unprinted = NULL;
 		}
-	      fwrite_unlocked (start, 1, buf - start, stdout);
-	      putc_unlocked ('\n', stdout);
+	      fwrite (start, 1, buf - start, stdout);
+	      fputc ('\n', stdout);
 	    }
 
 	  start = ++buf;

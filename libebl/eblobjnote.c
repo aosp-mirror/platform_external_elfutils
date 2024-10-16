@@ -648,10 +648,10 @@ ebl_object_note (Ebl *ebl, uint32_t namesz, const char *name, uint32_t type,
 		  for (size_t cnt = 1; cnt < descsz / 4; ++cnt)
 		    {
 		      if (cnt > 1)
-			putchar_unlocked ('.');
+			putchar ('.');
 		      printf ("%" PRIu32, buf[cnt]);
 		    }
-		  putchar_unlocked ('\n');
+		  putchar ('\n');
 		}
 	      if (descsz / 4 > FIXED_TAG_BYTES)
 		free (buf);

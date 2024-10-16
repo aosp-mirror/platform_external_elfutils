@@ -111,11 +111,11 @@ main (int argc, char *argv[])
 	      (unsigned long long int) phdr->p_memsz,
 	      (unsigned long long int) phdr->p_align);
 
-      putc_unlocked ((phdr->p_flags & PF_X) ? 'X' : ' ', stdout);
-      putc_unlocked ((phdr->p_flags & PF_W) ? 'W' : ' ', stdout);
-      putc_unlocked ((phdr->p_flags & PF_R) ? 'R' : ' ', stdout);
+      fputc ((phdr->p_flags & PF_X) ? 'X' : ' ', stdout);
+      fputc ((phdr->p_flags & PF_W) ? 'W' : ' ', stdout);
+      fputc ((phdr->p_flags & PF_R) ? 'R' : ' ', stdout);
 
-      putc_unlocked ('\n', stdout);
+      fputc ('\n', stdout);
 
       if (phdr->p_type == PT_INTERP)
 	{

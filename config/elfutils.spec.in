@@ -304,7 +304,7 @@ fi
 %{_mandir}/man3/elf_*.3*
 %{_mandir}/man3/elf32_*.3*
 %{_mandir}/man3/elf64_*.3*
-%{_mandir}/man3/libelf.3
+%{_mandir}/man3/libelf.3*
 
 %files libelf-devel-static
 %{_libdir}/libelf.a

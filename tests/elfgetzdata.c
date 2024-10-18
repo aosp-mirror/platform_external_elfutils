@@ -69,7 +69,8 @@ main (int argc, char *argv[])
       else
         {
 	  assert (do_mem);
-	  // We mmap the memory ourselves, explicitly PROT_READ only
+	  // We mmap the memory ourselves, explicitly PROT_READ | PROT_WRITE
+	  // elf_memory needs writable memory when using elf_compress.
 	  struct stat st;
 	  if (fstat (fd, &st) != 0)
 	    {
@@ -79,7 +80,8 @@ main (int argc, char *argv[])
 	      continue;
 	    }
 	  map_size = st.st_size;
-	  map_address = mmap (NULL, map_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	  map_address = mmap (NULL, map_size, PROT_READ | PROT_WRITE,
+			      MAP_PRIVATE, fd, 0);
 	  if (map_address == MAP_FAILED)
 	    {
 	      printf ("%s cannot mmap %s\n", argv[cnt], strerror (errno));

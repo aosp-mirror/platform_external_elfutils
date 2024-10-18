@@ -57,7 +57,8 @@ notrans_dist_man3_MANS= elf_update.3 \
 			elf32_fsize.3 \
 			elf64_fsize.3 \
 			elf32_checksum.3 \
-			elf64_checksum.3
+			elf64_checksum.3 \
+			libelf.3
 
 # libdebuginfod man pages (also notrans)
 # Note we include them even when not building them because we want

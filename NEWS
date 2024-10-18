@@ -1,4 +1,4 @@
-Version 0.192 (one after 0.191)
+Version 0.192 "New rules, faster tools"
 
 CONDUCT: A new code of conduct has been adopted.  See the
 	 CONDUCT file for more information.
@@ -6,7 +6,14 @@ CONDUCT: A new code of conduct has been adopted.  See the
 debuginfod: Add per-file signature verification for integrity
             checking, using RPM IMA scheme from Fedora/RHEL.
 
-debuginfod: New API for metadata queries: file name -> buildid.
+	    New API for metadata queries: file name -> buildid.
+
+	    Server-side extraction of files from kernel debuginfo
+	    packages is significantly faster. Now takes < 0.25 seconds,
+	    down from ~50 seconds.
+
+libdw:	    New functions dwfl_set_sysroot, dwfl_frame_unwound_source
+	    and dwfl_unwound_source_str.
 
 stacktrace: Experimental new tool that can process a stream of stack
             samples from the Sysprof profiler and unwind them into call

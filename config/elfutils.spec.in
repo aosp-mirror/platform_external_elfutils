@@ -356,6 +356,21 @@ exit 0
 %systemd_postun_with_restart debuginfod.service
 
 %changelog
+* Fri Oct 18 2024 Aaron Merey <amerey@redhat.com> 0.192-1
+- CONDUCT: A new code of conduct has been adopted.  See the CONDUCT file
+  for more information.
+- debuginfod: Add per-file signature verification for integrity checking,
+  using RPM IMA scheme from Fedora/RHEL.
+- New API for metadata queries: file name -> buildid.
+- Server-side extraction of files from kernel debuginfo packages is
+  significantly faster. Now takes < 0.25 seconds, down from ~50 seconds.
+- libdw: New function dwfl_set_sysroot.
+- stacktrace: Experimental new tool that can process a stream of stack
+  samples from the Sysprof profiler and unwind them into call chains.
+  Enable on x86 with --enable-stacktrace. See README.eu-stacktrace in the
+  development branch for detailed usage instructions:
+  https://sourceware.org/cgit/elfutils/tree/README.eu-stacktrace?h=users/serhei/eu-stacktrace
+
 * Fri Mar  1 2024 Aaron Merey <amerey@redhat.com> 0.191-1
 - dwarf_addrdie now supports binaries lacking a .debug_aranges
   section.

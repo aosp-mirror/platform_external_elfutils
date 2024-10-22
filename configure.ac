@@ -837,16 +837,7 @@ AC_ARG_ENABLE([debuginfod-ima-verification],[AS_HELP_STRING([--enable-debuginfod
 # Look for various packages, minimum versions as per rhel7.
 PKG_PROG_PKG_CONFIG
 PKG_CHECK_MODULES([libcurl],[libcurl >= 7.29.0],[have_libcurl=yes],[have_libcurl=no])
-AC_CHECK_LIB(pthread, pthread_setname_np, [AC_DEFINE([HAVE_PTHREAD_SETNAME_NP],[1],[Enable pthread_setname_np])])
 PKG_CHECK_MODULES([jsonc],[json-c >= 0.11],[have_jsonc=yes],[have_jsonc=no])
-PKG_CHECK_MODULES([libmicrohttpd],[libmicrohttpd >= 0.9.33],[],[enable_debuginfod=no])
-PKG_CHECK_MODULES([oldlibmicrohttpd],[libmicrohttpd < 0.9.51],[old_libmicrohttpd=yes],[old_libmicrohttpd=no])
-PKG_CHECK_MODULES([sqlite3],[sqlite3 >= 3.7.17],[have_sqlite3=yes],[have_sqlite3=no])
-PKG_CHECK_MODULES([libarchive],[libarchive >= 3.1.2],[have_libarchive=yes],[have_libarchive=no])
-AC_CHECK_LIB(rpm, headerGet, [AC_CHECK_DECL(RPMSIGTAG_FILESIGNATURES,
-                                            [AC_SUBST(rpm_LIBS, '-lrpm -lrpmio')],[], [#include <rpm/rpmlib.h>])])
-AC_CHECK_LIB(crypto, EVP_MD_CTX_new, [AC_SUBST(crypto_LIBS, '-lcrypto')])
-AC_CHECK_HEADER(imaevm.h)
 #
 # pronounce judgement on ability to build client, overridden by =yes/=no
 if test "x$enable_libdebuginfod" = "xno"; then
@@ -855,11 +846,15 @@ elif test "x$enable_libdebuginfod" = "xdummy"; then
    true
 elif test "x$have_jsonc$have_libcurl" = "xyesyes"; then
    enable_libdebuginfod=yes
-elif test "x$enable_libdebuginfod" = "xyes" -o "x$enable_libdebuginfod" = "xdummy"; then
-   AC_MSG_ERROR([unable to build libdebuginfod])
+elif test "x$enable_libdebuginfod" = "xyes"; then
+   AC_MSG_ERROR([unable to build libdebuginfod, missing libjson-c or libcurl])
 else
    enable_libdebuginfod=no
 fi
+PKG_CHECK_MODULES([libmicrohttpd],[libmicrohttpd >= 0.9.33],[],[enable_debuginfod=no])
+PKG_CHECK_MODULES([oldlibmicrohttpd],[libmicrohttpd < 0.9.51],[old_libmicrohttpd=yes],[old_libmicrohttpd=no])
+PKG_CHECK_MODULES([sqlite3],[sqlite3 >= 3.7.17],[have_sqlite3=yes],[have_sqlite3=no])
+PKG_CHECK_MODULES([libarchive],[libarchive >= 3.1.2],[have_libarchive=yes],[have_libarchive=no])
 #
 # pronounce judgement on ability to build server, overridden by =yes/=no
 if test "x$enable_debuginfod" = "xno"; then
@@ -867,18 +862,22 @@ if test "x$enable_debuginfod" = "xno"; then
 elif test "x$have_jsonc$HAVE_CXX11$have_libarchive$have_sqlite3" = "xyesyesyesyes"; then
    enable_debuginfod=yes
 elif test "x$enable_debuginfod" = "xyes"; then
-   AC_MSG_ERROR([unable to build debuginfod])
+   AC_MSG_ERROR([unable to build debuginfod, missing libmicrohttpd, sqlite3 or libarchive])
 else
    enable_debuginfod=no
 fi
 #
+AC_CHECK_LIB(rpm, headerGet, [AC_CHECK_DECL(RPMSIGTAG_FILESIGNATURES,
+                                            [AC_SUBST(rpm_LIBS, '-lrpm -lrpmio')],[], [#include <rpm/rpmlib.h>])])
+AC_CHECK_LIB(crypto, EVP_MD_CTX_new, [AC_SUBST(crypto_LIBS, '-lcrypto')])
+AC_CHECK_HEADER(imaevm.h)
 # pronounce judgment on ima signature support
 if test "x$enable_debuginfod_ima_verification" = "xno"; then
    true
 elif test "x$ac_cv_lib_rpm_headerGet$ac_cv_have_decl_RPMSIGTAG_FILESIGNATURES$ac_cv_lib_crypto_EVP_MD_CTX_new$ac_cv_header_imaevm_h" = "xyesyesyesyes"; then
    enable_debuginfod_ima_verification=yes
 elif test "x$enable_debuginfod_ima_verification" = "xyes"; then
-   AC_MSG_ERROR([unable to enable debuginfod ima verification])
+   AC_MSG_ERROR([unable to enable ima verification, missing librpm, libcrypto or imaevm.h])
 else
    enable_debuginfod_ima_verification=no
 fi
@@ -894,6 +893,8 @@ AS_IF([test "x$enable_debuginfod_ima_verification" = "xyes"],AC_DEFINE([ENABLE_I
 AS_IF([test "x$have_libarchive" = "xyes"],AC_DEFINE([HAVE_LIBARCHIVE],[1],[Define to 1 if libarchive is available]))
 AM_CONDITIONAL([ENABLE_IMA_VERIFICATION],[test "$enable_debuginfod_ima_verification" = "xyes"])
 AM_CONDITIONAL([OLD_LIBMICROHTTPD],[test "x$old_libmicrohttpd" = "xyes"])
+
+AC_CHECK_LIB(pthread, pthread_setname_np, [AC_DEFINE([HAVE_PTHREAD_SETNAME_NP],[1],[Enable pthread_setname_np])])
 
 dnl for /etc/profile.d/elfutils.{csh,sh}
 default_debuginfod_urls=""

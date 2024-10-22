@@ -228,7 +228,7 @@ export ELFUTILS_DISABLE_DEMANGLE = 1
 endif
 
 if LZMA
-TESTS += run-readelf-s.sh run-dwflsyms.sh run-debuginfod-seekable.sh
+TESTS += run-readelf-s.sh run-dwflsyms.sh
 endif
 
 if HAVE_ZSTD
@@ -277,6 +277,9 @@ TESTS += run-srcfiles-self.sh \
 	 run-debuginfod-client-profile.sh \
 	 run-debuginfod-find-metadata.sh \
 	 run-debuginfod-longsource.sh
+if LZMA
+TESTS += run-debuginfod-seekable.sh
+endif
 endif
 if !OLD_LIBMICROHTTPD
 # Will crash on too old libmicrohttpd

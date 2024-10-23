@@ -101,6 +101,6 @@ bpf_disasm_CFLAGS = -Wno-format-nonliteral
 
 EXTRA_DIST = defs/i386
 
-MOSTLYCLEANFILES = $(am_libcpu_pic_a_OBJECTS)
-CLEANFILES += $(foreach P,i386 x86_64,$P_defs $P.mnemonics)
-MAINTAINERCLEANFILES = $(foreach P,i386 x86_64, $P_dis.h)
+MOSTLYCLEANFILES = $(am_libcpu_a_OBJECTS) $(am_libcpu_pic_a_OBJECTS) $(i386_gendis_OBJECTS)
+CLEANFILES = $(foreach P,i386 x86_64,$P_defs $P.mnemonics)
+MAINTAINERCLEANFILES = $(foreach P,i386 x86_64, $P_defs $P_dis.h $P_parse.h)

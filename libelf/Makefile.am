@@ -138,4 +138,5 @@ uninstall: uninstall-am
 
 EXTRA_DIST = libelf.map
 
-CLEANFILES += $(am_libelf_pic_a_OBJECTS) libelf.so libelf.so.$(VERSION)
+MOSTLYCLEANFILES = $(am_libelf_a_OBJECTS) $(am_libelf_pic_a_OBJECTS) libelf.so.$(VERSION)
+CLEANFILES = libelf.so

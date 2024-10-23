@@ -61,4 +61,4 @@ am_libebl_pic_a_OBJECTS = $(libebl_a_SOURCES:.c=.os)
 
 noinst_HEADERS = libebl.h libeblP.h ebl-hooks.h
 
-MOSTLYCLEANFILES = $(am_libebl_pic_a_OBJECTS)
+MOSTLYCLEANFILES = $(am_libebl_a_OBJECTS) $(am_libebl_pic_a_OBJECTS)

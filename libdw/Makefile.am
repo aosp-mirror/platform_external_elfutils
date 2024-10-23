@@ -152,5 +152,6 @@ noinst_HEADERS = libdwP.h memory-access.h dwarf_abbrev_hash.h \
 
 EXTRA_DIST = libdw.map
 
-MOSTLYCLEANFILES = $(am_libdw_pic_a_OBJECTS) libdw.so libdw.so.$(VERSION)
+MOSTLYCLEANFILES = $(am_libdw_a_OBJECTS) $(am_libdw_pic_a_OBJECTS) libdw.so.$(VERSION)
+CLEANFILES = libdw.so
 MAINTAINERCLEANFILES = $(srcdir)/known-dwarf.h

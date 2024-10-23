@@ -54,4 +54,4 @@ libeu = ../lib/libeu.a
 libdwelf_pic_a_SOURCES =
 am_libdwelf_pic_a_OBJECTS = $(libdwelf_a_SOURCES:.c=.os)
 
-CLEANFILES += $(am_libdwelf_pic_a_OBJECTS)
+MOSTLYCLEANFILES = $(am_libdwelf_a_OBJECTS) $(am_libdwelf_pic_a_OBJECTS)

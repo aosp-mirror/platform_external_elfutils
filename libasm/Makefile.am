@@ -84,6 +84,8 @@ uninstall: uninstall-am
 	rmdir --ignore-fail-on-non-empty $(DESTDIR)$(includedir)/elfutils
 
 noinst_HEADERS = libasmP.h symbolhash.h
+
 EXTRA_DIST = libasm.map
 
-CLEANFILES += $(am_libasm_pic_a_OBJECTS) libasm.so libasm.so.$(VERSION)
+MOSTLYCLEANFILES = $(am_libasm_a_OBJECTS) $(am_libasm_pic_a_OBJECTS) libasm.so.$(VERSION)
+CLEANFILES = libasm.so

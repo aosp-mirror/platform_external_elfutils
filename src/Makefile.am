@@ -39,11 +39,12 @@ noinst_LIBRARIES = libar.a
 
 libar_a_SOURCES = arlib.c arlib2.c arlib-argp.c
 
-EXTRA_DIST = arlib.h debugpred.h
-
 bin_SCRIPTS = make-debug-archive
-EXTRA_DIST += make-debug-archive.in
-CLEANFILES += make-debug-archive
+
+EXTRA_DIST = arlib.h debugpred.h make-debug-archive.in
+
+MOSTLYCLEANFILES = *.gconv
+CLEANFILES = $(bin_SCRIPTS)
 
 if BUILD_STATIC
 libasm = ../libasm/libasm.a
@@ -122,7 +123,6 @@ installcheck-binPROGRAMS: $(bin_PROGRAMS)
 	  done; \
 	done; rm -f c$${pid}_.???; exit $$bad
 
-CLEANFILES += *.gconv
 
 make-debug-archive: $(srcdir)/make-debug-archive.in
 	$(AM_V_GEN)UNSTRIP=$(bindir)/`echo unstrip | sed '$(transform)'`; \

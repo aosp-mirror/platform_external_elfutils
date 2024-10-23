@@ -874,7 +874,6 @@ declfiles_LDADD = $(libdw)
 # Don't include any -I CPPFLAGS. Except when we install our own elf.h.
 # For the gelf test we do want our own libelf.h, but nothing else.
 BUILT_SOURCES = libelf.h
-CLEANFILES += libelf.h
 libelf.h: $(top_srcdir)/libelf/libelf.h
 	ln -s $< $@
 if !INSTALL_ELFH
@@ -888,7 +887,8 @@ system_elf_libelf_test_LDADD = $(libelf)
 system_elf_gelf_test_LDADD = $(libelf)
 
 # A lock file used to make sure only one test dumps core at a time
-CLEANFILES += core-dump-backtrace.lock
+MOSTLYCLEANFILES = core-dump-backtrace.lock
+CLEANFILES = $(BUILT_SOURCES)
 
 if GCOV
 check: check-am coverage

@@ -94,4 +94,4 @@ am_libdwfl_pic_a_OBJECTS = $(libdwfl_a_SOURCES:.c=.os)
 
 noinst_HEADERS = libdwflP.h
 
-CLEANFILES += $(am_libdwfl_pic_a_OBJECTS)
+MOSTLYCLEANFILES = $(am_libdwfl_a_OBJECTS) $(am_libdwfl_pic_a_OBJECTS)

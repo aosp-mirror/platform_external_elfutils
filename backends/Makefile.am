@@ -120,6 +120,7 @@ libebl_backends_pic_a_SOURCES =
 am_libebl_backends_pic_a_OBJECTS = $(libebl_backends_a_SOURCES:.c=.os)
 
 noinst_HEADERS = libebl_CPU.h common-reloc.c linux-core-note.c x86_corenote.c
+
 EXTRA_DIST = $(modules:=_reloc.def)
 
-MOSTLYCLEANFILES = $(am_libebl_backends_pic_a_OBJECTS)
+MOSTLYCLEANFILES = $(am_libebl_backends_a_OBJECTS) $(am_libebl_backends_pic_a_OBJECTS)

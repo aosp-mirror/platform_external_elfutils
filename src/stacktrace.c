@@ -1033,7 +1033,7 @@ sysprof_init_dwfl (struct sysprof_unwind_info *sui,
     }
 
   Elf *elf = NULL;
-  int elf_fd;
+  int elf_fd = -1;
   err = find_procfile (dwfl, &pid, &elf, &elf_fd);
   if (err < 0)
     {

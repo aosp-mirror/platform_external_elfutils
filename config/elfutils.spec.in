@@ -7,6 +7,13 @@ License: GPLv3+ and (GPLv2+ or LGPLv3+) and GFDL
 Source: ftp://sourceware.org/pub/elfutils/%{version}/elfutils-%{version}.tar.bz2
 Summary: A collection of utilities and DSOs to handle ELF files and DWARF data
 
+# eu-stacktrace currently only supports x86_64
+%ifarch x86_64
+%global enable_stacktrace 1
+%else
+%global enable_stacktrace 0
+%endif
+
 Requires: elfutils-libelf = %{version}-%{release}
 Requires: elfutils-libs = %{version}-%{release}
 # Can be a Recommends if rpm supports that
@@ -52,6 +59,11 @@ BuildRequires: rpm-devel
 BuildRequires: ima-evm-utils-devel
 BuildRequires: openssl-devel
 BuildRequires: rpm-sign
+
+# For eu-stacktrace
+%if %{enable_stacktrace}
+BuildRequires: sysprof-capture-devel
+%endif
 
 %define _gnu %{nil}
 %define _programprefix eu-
@@ -197,7 +209,13 @@ such servers to download those files on demand.
 %setup -q
 
 %build
-%configure --program-prefix=%{_programprefix} --enable-debuginfod --enable-debuginfod-urls
+%configure --program-prefix=%{_programprefix} \
+           --enable-debuginfod \
+           --enable-debuginfod-urls=https://debuginfod.elfutils.org/ \
+%if %{enable_stacktrace}
+           --enable-stacktrace \
+%endif
+           --enable-debuginfod-ima-verification
 make -s %{?_smp_mflags}
 
 %install
@@ -259,6 +277,9 @@ fi
 %{_bindir}/eu-size
 %{_bindir}/eu-srcfiles
 %{_bindir}/eu-stack
+%if %{enable_stacktrace}
+%{_bindir}/eu-stacktrace
+%endif
 %{_bindir}/eu-strings
 %{_bindir}/eu-strip
 %{_bindir}/eu-unstrip

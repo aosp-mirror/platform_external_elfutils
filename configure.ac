@@ -891,7 +891,7 @@ AS_IF([test "x$enable_debuginfod" != "xno"],AC_DEFINE([ENABLE_DEBUGINFOD],[1],[B
 AM_CONDITIONAL([DEBUGINFOD],[test "x$enable_debuginfod" = "xyes"])
 AS_IF([test "x$enable_debuginfod_ima_verification" = "xyes"],AC_DEFINE([ENABLE_IMA_VERIFICATION],[1],[Build IMA verification]))
 AS_IF([test "x$have_libarchive" = "xyes"],AC_DEFINE([HAVE_LIBARCHIVE],[1],[Define to 1 if libarchive is available]))
-AM_CONDITIONAL([ENABLE_IMA_VERIFICATION],[test "$enable_debuginfod_ima_verification" = "xyes"])
+AM_CONDITIONAL([ENABLE_IMA_VERIFICATION],[test "x$enable_debuginfod_ima_verification" = "xyes"])
 AM_CONDITIONAL([OLD_LIBMICROHTTPD],[test "x$old_libmicrohttpd" = "xyes"])
 
 AC_CHECK_LIB(pthread, pthread_setname_np, [AC_DEFINE([HAVE_PTHREAD_SETNAME_NP],[1],[Enable pthread_setname_np])])

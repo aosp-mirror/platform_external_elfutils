@@ -1139,6 +1139,13 @@ handle_elf (int fd, Elf *elf, const char *prefix, const char *fname,
 
   if (reloc_debug_only)
     {
+      if (ehdr->e_type != ET_REL)
+	{
+	  /* Only ET_REL files can have debug relocations to remove.  */
+	  error (0, 0, _("Ignoring --reloc-debug-sections-only for " \
+			 "non-ET_REL file '%s'"), fname);
+	  goto fail_close;
+	}
       if (handle_debug_relocs (elf, ebl, newelf, ehdr, fname, shstrndx,
 			       &lastsec_offset, &lastsec_size) != 0)
 	{

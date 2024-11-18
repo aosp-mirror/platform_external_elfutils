@@ -45,7 +45,7 @@
 
 #define THREAD_ID_UNSET ((size_t) -1)
 static __thread size_t thread_id = THREAD_ID_UNSET;
-static atomic_size_t next_id = ATOMIC_VAR_INIT(0);
+static atomic_size_t next_id = 0;
 
 struct libdw_memblock *
 __libdw_alloc_tail (Dwarf *dbg)

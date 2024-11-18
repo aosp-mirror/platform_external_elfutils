@@ -94,7 +94,7 @@ else
 USE_AFTER_FREE3_WARNING=
 endif
 
-AM_CFLAGS = -std=gnu99 -Wall -Wshadow -Wformat=2 \
+AM_CFLAGS = -Wall -Wshadow -Wformat=2 \
 	    -Wold-style-definition -Wstrict-prototypes $(TRAMPOLINES_WARNING) \
 	    $(LOGICAL_OP_WARNING) $(DUPLICATED_COND_WARNING) \
 	    $(NULL_DEREFERENCE_WARNING) $(IMPLICIT_FALLTHROUGH_WARNING) \

@@ -35,7 +35,7 @@
 #include <stdlib.h>
 #include "libdwP.h"
 #include "system.h"
-#include "atomics.h"
+#include <stdatomic.h>
 #if USE_VG_ANNOTATIONS == 1
 #include <helgrind.h>
 #else

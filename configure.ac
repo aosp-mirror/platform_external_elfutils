@@ -20,12 +20,6 @@ dnl  You should have received a copy of the GNU General Public License
 dnl  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 AC_INIT([elfutils],[0.192],[https://sourceware.org/bugzilla],[elfutils],[http://elfutils.org/])
 
-dnl Workaround for older autoconf < 2.64
-m4_ifndef([AC_PACKAGE_URL],
-         [AC_DEFINE([PACKAGE_URL], ["http://elfutils.org/"],
-                    [Define to home page for this package])
-          AC_SUBST([PACKAGE_URL], ["http://elfutils.org/"])])
-
 LIBDEBUGINFOD_SONAME=libdebuginfod.so.1
 AC_SUBST([LIBDEBUGINFOD_SONAME])
 
@@ -46,7 +40,7 @@ AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_FILES([config/Makefile])
 
 AC_COPYRIGHT([Copyright (C) 1996-2024 The elfutils developers.])
-AC_PREREQ(2.63)			dnl Minimum Autoconf version required.
+AC_PREREQ(2.69)			dnl Minimum Autoconf version required.
 
 dnl We use GNU make extensions; automake 1.10 defaults to -Wportability.
 AM_INIT_AUTOMAKE([gnits 1.11 -Wno-portability dist-bzip2 no-dist-gzip parallel-tests])
@@ -88,7 +82,10 @@ AS_IF([test "$use_locks" = yes],
 
 AH_TEMPLATE([USE_LOCKS], [Defined if libraries should be thread-safe.])
 
-m4_version_prereq([2.70], [AC_PROG_CC], [AC_PROG_CC_C99])
+# Provided by gnulib's m4/std-gnu11.m4 for autoconf pre 2.70
+AC_PROG_CC
+AS_IF([test "x$ac_cv_prog_cc_c11" = "xno"],
+      [AC_MSG_ERROR([C11 support required])])
 AC_PROG_CXX
 AC_PROG_RANLIB
 AC_PROG_YACC
@@ -229,17 +226,13 @@ LDFLAGS="$save_LDFLAGS"])
 AS_IF([test "x$ac_cv_tls" != xyes],
       AC_MSG_ERROR([__thread support required]))
 
-dnl Before 4.9 gcc doesn't ship stdatomic.h, but the necessary atomics are
-dnl available by (at least) 4.7. So if the system doesn't have a stdatomic.h we
-dnl fall back on one copied from FreeBSD that handles the difference.
+dnl Although we test for C11 above that doesn't mean we have stdatomic.h
+dnl We need at least gcc 4.9+ for that.
 AC_CACHE_CHECK([whether gcc provides stdatomic.h], ac_cv_has_stdatomic,
   [AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdatomic.h>]])],
 		     ac_cv_has_stdatomic=yes, ac_cv_has_stdatomic=no)])
-AM_CONDITIONAL(HAVE_STDATOMIC_H, test "x$ac_cv_has_stdatomic" = xyes)
-AS_IF([test "x$ac_cv_has_stdatomic" = xyes], [AC_DEFINE(HAVE_STDATOMIC_H)])
-
-AH_TEMPLATE([HAVE_STDATOMIC_H], [Define to 1 if `stdatomic.h` is provided by the
-                                 system, 0 otherwise.])
+AS_IF([test "x$ac_cv_has_stdatomic" = "xno"],
+      [AC_MSG_ERROR([stdatomic.h required])])
 
 dnl This test must come as early as possible after the compiler configuration
 dnl tests, because the choice of the file model can (in principle) affect

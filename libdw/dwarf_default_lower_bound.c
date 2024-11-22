@@ -1,5 +1,6 @@
 /* Get the default subrange lower bound for a given language.
    Copyright (C) 2016 Red Hat, Inc.
+   Copyright (C) 2024 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -63,6 +64,30 @@ dwarf_default_lower_bound (int lang, Dwarf_Sword *result)
     case DW_LANG_Dylan:
     case DW_LANG_RenderScript:
     case DW_LANG_BLISS:
+    case DW_LANG_Kotlin:
+    case DW_LANG_Zig:
+    case DW_LANG_Crystal:
+    case DW_LANG_C_plus_plus_17:
+    case DW_LANG_C_plus_plus_20:
+    case DW_LANG_C17:
+    case DW_LANG_HIP:
+    case DW_LANG_Assembly:
+    case DW_LANG_C_sharp:
+    case DW_LANG_Mojo:
+    case DW_LANG_GLSL:
+    case DW_LANG_GLSL_ES:
+    case DW_LANG_HLSL:
+    case DW_LANG_OpenCL_CPP:
+    case DW_LANG_CPP_for_OpenCL:
+    case DW_LANG_SYCL:
+    case DW_LANG_C_plus_plus_23:
+    case DW_LANG_Odin:
+    case DW_LANG_P4:
+    case DW_LANG_Metal:
+    case DW_LANG_C23:
+    case DW_LANG_Ruby:
+    case DW_LANG_Move:
+    case DW_LANG_Hylo:
       *result = 0;
       return 0;
 
@@ -80,7 +105,16 @@ dwarf_default_lower_bound (int lang, Dwarf_Sword *result)
     case DW_LANG_Modula3:
     case DW_LANG_PLI:
     case DW_LANG_Julia:
+    case DW_LANG_Fortran18:
+    case DW_LANG_Ada2005:
+    case DW_LANG_Ada2012:
+    case DW_LANG_Fortran23:
       *result = 1;
+      return 0;
+
+    /* Special case vendor Assembly variant.  */
+    case DW_LANG_Mips_Assembler:
+      *result = 0;
       return 0;
 
     default:

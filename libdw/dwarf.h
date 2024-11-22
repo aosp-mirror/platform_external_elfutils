@@ -1,5 +1,6 @@
 /* This file defines standard DWARF types, structures, and macros.
    Copyright (C) 2000-2011, 2014, 2016, 2017, 2018 Red Hat, Inc.
+   Copyright (C) 2024 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -697,7 +698,11 @@ enum
   };
 
 
-/* DWARF language encodings.  */
+/* DWARF language encodings.
+
+   See https://dwarfstd.org/languages.html for language code published
+   after DWARF5 was published (but before DWARF6 has been released,
+   which will introduce a new DW_AT_language_name/version scheme).  */
 enum
   {
     DW_LANG_C89 = 0x0001,	     /* ISO C:1989 */
@@ -737,6 +742,35 @@ enum
     DW_LANG_Fortran08 = 0x0023,	     /* ISO/IEC 1539-1:2010 */
     DW_LANG_RenderScript = 0x0024,   /* RenderScript Kernal Language */
     DW_LANG_BLISS = 0x0025,	     /* BLISS */
+
+    DW_LANG_Kotlin = 0x0026,	     /* Kotlin */
+    DW_LANG_Zig = 0x0027,	     /* Zig */
+    DW_LANG_Crystal = 0x0028,	     /* Crystal */
+    DW_LANG_C_plus_plus_17 = 0x002a, /* ISO C++:2017 */
+    DW_LANG_C_plus_plus_20 = 0x002b, /* ISO C++:2018 */
+    DW_LANG_C17 = 0x002c,	     /* ISO C:2017 */
+    DW_LANG_Fortran18 = 0x002d,	     /* ISO/IEC 1539-1:2018 */
+    DW_LANG_Ada2005 = 0x002e,	     /* ISO Ada:2005 */
+    DW_LANG_Ada2012 = 0x002f,	     /* ISO Ada:2005 */
+    DW_LANG_HIP = 0x0030,	     /* HIP */
+    DW_LANG_Assembly = 0x0031,	     /* Assembly */
+    DW_LANG_C_sharp = 0x0032,	     /* C# */
+    DW_LANG_Mojo = 0x0033,	     /* Mojo */
+    DW_LANG_GLSL = 0x0034,	     /* OpenGL Shading Language */
+    DW_LANG_GLSL_ES = 0x0035,	     /* OpenGL ES Shading Language */
+    DW_LANG_HLSL = 0x0036,	     /* High-Level Shading Language */
+    DW_LANG_OpenCL_CPP = 0x0037,     /* OpenCL C++ */
+    DW_LANG_CPP_for_OpenCL = 0x0038, /* C++ for OpenCL */
+    DW_LANG_SYCL = 0x0039,	     /* SYCL */
+    DW_LANG_C_plus_plus_23 = 0x003a, /* ISO C++:2023 */
+    DW_LANG_Odin = 0x003b,	     /* Odin */
+    DW_LANG_P4 = 0x003c,	     /* P4 */
+    DW_LANG_Metal = 0x003d,	     /* Metal */
+    DW_LANG_C23 = 0x003e,	     /* ISO C:2023 */
+    DW_LANG_Fortran23 = 0x003f,	     /* ISO/IEC 1539-1:2023 */
+    DW_LANG_Ruby = 0x0040,	     /* Ruby */
+    DW_LANG_Move = 0x0041,	     /* Move */
+    DW_LANG_Hylo = 0x0042,	     /* Hylo */
 
     DW_LANG_lo_user = 0x8000,
     DW_LANG_Mips_Assembler = 0x8001, /* Assembler */

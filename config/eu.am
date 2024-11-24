@@ -135,7 +135,14 @@ else
 	$(AM_V_CC)$(COMPILE.os) -c -o $@ $(fpic_CFLAGS) $(DEFS.os) $<
 endif
 
-CLEANFILES = *.gcno *.gcda
+COVERAGE_OUTPUT_DIRECTORY = coverage
+COVERAGE_OUTPUT_FILE = $(PACKAGE_NAME).lcov
+
+.PHONY: clean-coverage
+clean-local: clean-coverage
+clean-coverage:
+	-rm -rf $(COVERAGE_OUTPUT_DIRECTORY)
+	-rm -f $(COVERAGE_OUTPUT_FILE) *.gcno *.gcda
 
 textrel_msg = echo "WARNING: TEXTREL found in '$@'"
 if FATAL_TEXTREL

@@ -55,8 +55,6 @@ rpmbuild: dist
 
 if GCOV
 
-COVERAGE_OUTPUT_FILE = $(PACKAGE_NAME).lcov
-COVERAGE_OUTPUT_DIRECTORY = coverage
 COVERAGE_OUTPUT_INDEX_HTML = $(COVERAGE_OUTPUT_DIRECTORY)/index.html
 COVERAGE_TITLE = $(PACKAGE_NAME)-$(PACKAGE_VERSION)
 
@@ -66,16 +64,7 @@ build_COVERAGE_DIRS = $(patsubst %,$(builddir)/%,$(COVERAGE_DIRS))
 all_COVERAGE_DIRS = $(sort $(src_COVERAGE_DIRS) $(build_COVERAGE_DIRS))
 LCOV_DIRS_ARGS = $(patsubst %,--directory=%,$(all_COVERAGE_DIRS))
 
-CLEANFILES = $(COVERAGE_OUTPUT_FILE)
-
-.PHONY: coverage coverage-clean
-
-clean-local: coverage-clean
-distclean-local: coverage-clean
-
-coverage-clean:
-	-rm -rf $(COVERAGE_OUTPUT_DIRECTORY)
-
+.PHONY: coverage
 coverage: $(COVERAGE_OUTPUT_INDEX_HTML)
 	@echo 'file://$(abs_builddir)/$(COVERAGE_OUTPUT_INDEX_HTML)'
 

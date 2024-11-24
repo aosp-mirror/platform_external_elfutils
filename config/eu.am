@@ -138,7 +138,8 @@ endif
 COVERAGE_OUTPUT_DIRECTORY = coverage
 COVERAGE_OUTPUT_FILE = $(PACKAGE_NAME).lcov
 
-.PHONY: clean-coverage
+.PHONY: clean-coverage coverage
+
 clean-local: clean-coverage
 clean-coverage:
 	-rm -rf $(COVERAGE_OUTPUT_DIRECTORY)

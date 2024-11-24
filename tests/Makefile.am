@@ -892,7 +892,6 @@ CLEANFILES = $(BUILT_SOURCES)
 
 if GCOV
 check: check-am coverage
-.PHONY: coverage
 coverage:
 	-$(srcdir)/coverage.sh
 endif

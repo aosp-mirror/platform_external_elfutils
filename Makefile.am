@@ -64,7 +64,6 @@ build_COVERAGE_DIRS = $(patsubst %,$(builddir)/%,$(COVERAGE_DIRS))
 all_COVERAGE_DIRS = $(sort $(src_COVERAGE_DIRS) $(build_COVERAGE_DIRS))
 LCOV_DIRS_ARGS = $(patsubst %,--directory=%,$(all_COVERAGE_DIRS))
 
-.PHONY: coverage
 coverage: $(COVERAGE_OUTPUT_INDEX_HTML)
 	@echo 'file://$(abs_builddir)/$(COVERAGE_OUTPUT_INDEX_HTML)'
 

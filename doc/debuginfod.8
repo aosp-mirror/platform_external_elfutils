@@ -155,6 +155,12 @@ opened, if possible.  The webapi is documented below.  The default
 port number is 8002.
 
 .TP
+.B "\-\-cors"
+Add CORS-related response headers and OPTIONS method processing.
+This allows third-party webapps to query debuginfod data, which may
+or may not be desirable.  Default is no.
+
+.TP
 .B "\-I REGEX"  "\-\-include=REGEX"  "\-X REGEX"  "\-\-exclude=REGEX"
 Govern the inclusion and exclusion of file names under the search
 paths.  The regular expressions are interpreted as unanchored POSIX
@@ -563,3 +569,4 @@ Default database file.
 .I "debuginfod-find(1)"
 .I "sqlite3(1)"
 .I \%https://prometheus.io/docs/instrumenting/exporters/
+.I \%https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS

@@ -52,7 +52,7 @@ wait_ready $PORT1 'thread_work_pending{role="scan"}' 0
 wait_ready $PORT1 'thread_busy{role="scan"}' 0
 
 env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS="http://127.0.0.1:$PORT1 https://bad/url.web" ${VALGRIND_CMD} ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -U \
-    -d ${DB}_2 -p $PORT2 -t0 -g0 D > vlog$PORT2 2>&1 &
+    -d ${DB}_2 -p $PORT2 -t0 -g0 --cors D > vlog$PORT2 2>&1 &
 PID2=$!
 tempfiles vlog$PORT2
 errfiles vlog$PORT2
@@ -79,6 +79,9 @@ test $N_FOUND -eq 2
 
 # Query via the webapi as well
 curl http://127.0.0.1:$PORT2'/metadata?key=glob&value=/usr/bin/*hi*'
+# no --cors on $PORT1's debuginfod
+test "`curl -s -i http://127.0.0.1:$PORT1'/metadata?key=glob&value=/usr/bin/*hi*' | grep -i access.control.allow.origin: || true`" == ""
+curl -s -i http://127.0.0.1:$PORT2'/metadata?key=glob&value=/usr/bin/*hi*' | grep -i access.control.allow.origin:
 test `curl -s http://127.0.0.1:$PORT2'/metadata?key=glob&value=/usr/bin/*hi*' | jq '.results[0].buildid == "f17a29b5a25bd4960531d82aa6b07c8abe84fa66"'` = 'true'
 test `curl -s http://127.0.0.1:$PORT2'/metadata?key=glob&value=/usr/bin/*hi*' | jq '.results[0].file == "/usr/bin/hithere"'` = 'true'
 test `curl -s http://127.0.0.1:$PORT2'/metadata?key=glob&value=/usr/bin/*hi*' | jq '.results[0].archive | test(".*hithere.*deb")'` = 'true'

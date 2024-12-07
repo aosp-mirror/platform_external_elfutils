@@ -448,6 +448,8 @@ static const struct argp_option options[] =
    { "include", 'I', "REGEX", 0, "Include files matching REGEX, default=all.", 0 },
    { "exclude", 'X', "REGEX", 0, "Exclude files matching REGEX, default=none.", 0 },
    { "port", 'p', "NUM", 0, "HTTP port to listen on, default 8002.", 0 },
+#define ARGP_KEY_CORS 0x1000
+   { "cors", ARGP_KEY_CORS, NULL, 0, "Add CORS response headers to HTTP queries, default no.", 0 },
    { "database", 'd', "FILE", 0, "Path to sqlite database.", 0 },
    { "ddl", 'D', "SQL", 0, "Apply extra sqlite ddl/pragma to connection.", 0 },
    { "verbose", 'v', NULL, 0, "Increase verbosity.", 0 },
@@ -510,6 +512,7 @@ static volatile sig_atomic_t sigusr1 = 0;
 static volatile sig_atomic_t forced_groom_count = 0;
 static volatile sig_atomic_t sigusr2 = 0;
 static unsigned http_port = 8002;
+static bool webapi_cors = false;
 static unsigned rescan_s = 300;
 static unsigned groom_s = 86400;
 static bool maxigroom = false;
@@ -613,6 +616,9 @@ parse_opt (int key, char *arg,
     case 'p': http_port = (unsigned) atoi(arg);
       if (http_port == 0 || http_port > 65535)
         argp_failure(state, 1, EINVAL, "port number");
+      break;
+    case ARGP_KEY_CORS:
+      webapi_cors = true;
       break;
     case 'F': scan_files = true; break;
     case 'R':
@@ -3785,6 +3791,23 @@ handle_root (off_t* size)
 }
 
 
+static struct MHD_Response*
+handle_options (off_t* size)
+{
+  static char empty_body[] = " ";
+  MHD_Response* r = MHD_create_response_from_buffer (1, empty_body,
+                                                     MHD_RESPMEM_PERSISTENT);
+  if (r != NULL)
+    {
+      *size = 1;
+      add_mhd_response_header (r, "Access-Control-Allow-Origin", "*");
+      add_mhd_response_header (r, "Access-Control-Allow-Methods", "GET, OPTIONS");
+      add_mhd_response_header (r, "Access-Control-Allow-Headers", "cache-control");
+    }
+  return r;
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 
 
@@ -3838,8 +3861,17 @@ handler_cb (void * /*cls*/,
 
   try
     {
-      if (string(method) != "GET")
-        throw reportable_exception(400, "we support GET only");
+      if (webapi_cors && method == string("OPTIONS"))
+        {
+          inc_metric("http_requests_total", "type", method);
+          r = handle_options(& http_size);
+          rc = MHD_queue_response (connection, MHD_HTTP_OK, r);
+          http_code = MHD_HTTP_OK;
+          MHD_destroy_response (r);
+          return rc;
+        }
+      else if (string(method) != "GET")
+        throw reportable_exception(400, "we support OPTIONS+GET only");
 
       /* Start decoding the URL. */
       size_t slash1 = url_copy.find('/', 1);
@@ -3887,7 +3919,7 @@ handler_cb (void * /*cls*/,
 
           // get the resulting fd so we can report its size
           int fd;
-          r = handle_buildid(connection, buildid, artifacttype, suffix, &fd);
+          r = handle_buildid (connection, buildid, artifacttype, suffix, &fd);
           if (r)
             {
               struct stat fs;
@@ -3934,6 +3966,9 @@ handler_cb (void * /*cls*/,
           throw reportable_exception(406, "File too large, max size=" + std::to_string(maxsize));
         }
 
+      if (webapi_cors)
+        // add ACAO header for all successful requests
+        add_mhd_response_header (r, "Access-Control-Allow-Origin", "*");
       rc = MHD_queue_response (connection, MHD_HTTP_OK, r);
       http_code = MHD_HTTP_OK;
       MHD_destroy_response (r);
@@ -4023,6 +4058,7 @@ dwarf_extract_source_paths (Elf *elf, set<string>& debug_sourcefiles)
             {
               string artifacttype = "debuginfo";
               r = handle_buildid (0, buildid, artifacttype, "", &alt_fd);
+              // NB: no need for ACAO etc. headers; this is not getting sent to a client 
             }
           catch (const reportable_exception& e)
             {
@@ -5706,7 +5742,9 @@ main (int argc, char *argv[])
     }
   obatched(clog) << "started http server on"
                  << (d4 != NULL ? " IPv4 " : " IPv4 IPv6 ")
-                 << "port=" << http_port << endl;
+                 << "port=" << http_port
+                 << (webapi_cors ? " with cors" : "")
+                 << endl;
 
   // add maxigroom sql if -G given
   if (maxigroom)

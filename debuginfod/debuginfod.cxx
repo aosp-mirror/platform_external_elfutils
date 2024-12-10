@@ -2487,15 +2487,16 @@ extract_from_seekable_archive (const string& srcpath,
 }
 #else
 static bool
-is_seekable_archive (const string& rps, struct archive* a)
+is_seekable_archive (const string& rps __attribute__ ((unused)),
+		     struct archive* a __attribute__ ((unused)))
 {
   return false;
 }
 static int
-extract_from_seekable_archive (const string& srcpath,
-                               char* tmppath,
-                               uint64_t offset,
-                               uint64_t size)
+extract_from_seekable_archive (const string& srcpath __attribute__ ((unused)),
+                               char* tmppath __attribute__ ((unused)),
+                               uint64_t offset __attribute__ ((unused)),
+                               uint64_t size __attribute__ ((unused)))
 {
   return -1;
 }

@@ -42,9 +42,9 @@ all-local:
 	sed -i 's/{prefix}/prefix/g' profile.fish
 
 install-data-local:
-	$(INSTALL_DATA) profile.sh -D $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.sh
-	$(INSTALL_DATA) profile.csh -D $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.csh
-	$(INSTALL_DATA) profile.fish -D $(DESTDIR)$(datadir)/fish/vendor_conf.d/debuginfod.fish
+	$(INSTALL_DATA) -D profile.sh $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.sh
+	$(INSTALL_DATA) -D profile.csh $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.csh
+	$(INSTALL_DATA) -D profile.fish $(DESTDIR)$(datadir)/fish/vendor_conf.d/debuginfod.fish
 	mkdir -p $(DESTDIR)$(sysconfdir)/debuginfod
 	if [ -n "@DEBUGINFOD_URLS@" ]; then \
 		echo "@DEBUGINFOD_URLS@" > $(DESTDIR)$(sysconfdir)/debuginfod/elfutils.urls; \

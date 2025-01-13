@@ -132,19 +132,19 @@ uninstall: uninstall-am
 	rm -f $(DESTDIR)$(libdir)/libdw.so
 	rmdir --ignore-fail-on-non-empty $(DESTDIR)$(includedir)/elfutils
 
-libdwfl_objects = $(shell $(AR) t ../libdwfl/libdwfl.a)
+libdwfl_objects = $(shell cat ../libdwfl/libdwfl.manifest)
 libdw_a_LIBADD = $(addprefix ../libdwfl/,$(libdwfl_objects))
 
-libdwelf_objects = $(shell $(AR) t ../libdwelf/libdwelf.a)
+libdwelf_objects = $(shell cat ../libdwelf/libdwelf.manifest)
 libdw_a_LIBADD += $(addprefix ../libdwelf/,$(libdwelf_objects))
 
-libebl_objects = $(shell $(AR) t ../libebl/libebl.a)
+libebl_objects = $(shell cat ../libebl/libebl.manifest)
 libdw_a_LIBADD += $(addprefix ../libebl/,$(libebl_objects))
 
-backends_objects = $(shell $(AR) t ../backends/libebl_backends.a)
+backends_objects = $(shell cat ../backends/libebl_backends.manifest)
 libdw_a_LIBADD += $(addprefix ../backends/,$(backends_objects))
 
-libcpu_objects = $(shell $(AR) t ../libcpu/libcpu.a)
+libcpu_objects = $(shell cat ../libcpu/libcpu.manifest)
 libdw_a_LIBADD += $(addprefix ../libcpu/,$(libcpu_objects))
 
 noinst_HEADERS = libdwP.h memory-access.h dwarf_abbrev_hash.h \
@@ -152,6 +152,11 @@ noinst_HEADERS = libdwP.h memory-access.h dwarf_abbrev_hash.h \
 
 EXTRA_DIST = libdw.map
 
+EXTRA_libdw_a_DEPENDENCIES = libdw.manifest
+
+libdw.manifest: $(libdw_a_OBJECTS)
+	$(AM_V_GEN)echo $^ > $@
+
 MOSTLYCLEANFILES = $(am_libdw_a_OBJECTS) $(am_libdw_pic_a_OBJECTS) libdw.so.$(VERSION)
-CLEANFILES = libdw.so
+CLEANFILES = libdw.so $(EXTRA_libdw_a_DEPENDENCIES)
 MAINTAINERCLEANFILES = $(srcdir)/known-dwarf.h

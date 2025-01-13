@@ -43,3 +43,10 @@ noinst_HEADERS = fixedsizehash.h libeu.h system.h dynamicsizehash.h list.h \
 		 eu-search.h locks.h
 
 EXTRA_DIST = dynamicsizehash.c dynamicsizehash_concurrent.c
+
+EXTRA_libeu_a_DEPENDENCIES = libeu.manifest
+
+libeu.manifest: $(libeu_a_OBJECTS)
+	$(AM_V_GEN)echo $^ > $@
+
+CLEANFILES = $(EXTRA_libeu_a_DEPENDENCIES)

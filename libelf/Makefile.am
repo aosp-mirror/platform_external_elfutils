@@ -122,7 +122,7 @@ libelf.so: $(srcdir)/libelf.map $(libelf_so_LIBS) $(libelf_so_DEPS)
 	@$(textrel_check)
 	$(AM_V_at)ln -fs $@ $@.$(VERSION)
 
-libeu_objects = $(shell $(AR) t ../lib/libeu.a)
+libeu_objects = $(shell cat ../lib/libeu.manifest)
 libelf_a_LIBADD = $(addprefix ../lib/,$(libeu_objects))
 
 install: install-am libelf.so
@@ -138,5 +138,10 @@ uninstall: uninstall-am
 
 EXTRA_DIST = libelf.map
 
+EXTRA_libelf_a_DEPENDENCIES = libelf.manifest
+
+libelf.manifest: $(libelf_a_OBJECTS)
+	$(AM_V_GEN)echo $^ > $@
+
 MOSTLYCLEANFILES = $(am_libelf_a_OBJECTS) $(am_libelf_pic_a_OBJECTS) libelf.so.$(VERSION)
-CLEANFILES = libelf.so
+CLEANFILES = libelf.so $(EXTRA_libelf_a_DEPENDENCIES)

@@ -43,8 +43,13 @@ bin_SCRIPTS = make-debug-archive
 
 EXTRA_DIST = arlib.h debugpred.h make-debug-archive.in
 
+EXTRA_libar_a_DEPENDENCIES = libar.manifest
+
+libar.manifest: $(libar_a_OBJECTS)
+	$(AM_V_GEN)echo $^ > $@
+
 MOSTLYCLEANFILES = *.gconv
-CLEANFILES = $(bin_SCRIPTS)
+CLEANFILES = $(bin_SCRIPTS) $(EXTRA_libar_a_DEPENDENCIES)
 
 if BUILD_STATIC
 libasm = ../libasm/libasm.a

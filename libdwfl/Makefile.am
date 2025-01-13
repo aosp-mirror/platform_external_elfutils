@@ -94,4 +94,10 @@ am_libdwfl_pic_a_OBJECTS = $(libdwfl_a_SOURCES:.c=.os)
 
 noinst_HEADERS = libdwflP.h
 
+EXTRA_libdwfl_a_DEPENDENCIES = libdwfl.manifest
+
+libdwfl.manifest: $(libdwfl_a_OBJECTS)
+	$(AM_V_GEN)echo $^ > $@
+
 MOSTLYCLEANFILES = $(am_libdwfl_a_OBJECTS) $(am_libdwfl_pic_a_OBJECTS)
+CLEANFILES = $(EXTRA_libdwfl_a_DEPENDENCIES)

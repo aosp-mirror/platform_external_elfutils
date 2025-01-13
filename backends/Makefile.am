@@ -123,4 +123,10 @@ noinst_HEADERS = libebl_CPU.h common-reloc.c linux-core-note.c x86_corenote.c
 
 EXTRA_DIST = $(modules:=_reloc.def)
 
+EXTRA_libebl_backends_a_DEPENDENCIES = libebl_backends.manifest
+
+libebl_backends.manifest: $(libebl_backends_a_OBJECTS)
+	$(AM_V_GEN)echo $^ > $@
+
 MOSTLYCLEANFILES = $(am_libebl_backends_a_OBJECTS) $(am_libebl_backends_pic_a_OBJECTS)
+CLEANFILES = $(EXTRA_libebl_backends_a_DEPENDENCIES)

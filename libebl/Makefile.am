@@ -61,4 +61,10 @@ am_libebl_pic_a_OBJECTS = $(libebl_a_SOURCES:.c=.os)
 
 noinst_HEADERS = libebl.h libeblP.h ebl-hooks.h
 
+EXTRA_libebl_a_DEPENDENCIES = libebl.manifest
+
+libebl.manifest: $(libebl_a_OBJECTS)
+	$(AM_V_GEN)echo $^ > $@
+
 MOSTLYCLEANFILES = $(am_libebl_a_OBJECTS) $(am_libebl_pic_a_OBJECTS)
+CLEANFILES = $(EXTRA_libebl_a_DEPENDENCIES)

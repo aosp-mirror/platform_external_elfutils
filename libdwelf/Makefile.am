@@ -54,4 +54,10 @@ libeu = ../lib/libeu.a
 libdwelf_pic_a_SOURCES =
 am_libdwelf_pic_a_OBJECTS = $(libdwelf_a_SOURCES:.c=.os)
 
+EXTRA_libdwelf_a_DEPENDENCIES = libdwelf.manifest
+
+libdwelf.manifest: $(libdwelf_a_OBJECTS)
+	$(AM_V_GEN)echo $^ > $@
+
 MOSTLYCLEANFILES = $(am_libdwelf_a_OBJECTS) $(am_libdwelf_pic_a_OBJECTS)
+CLEANFILES = $(EXTRA_libdwelf_a_DEPENDENCIES)

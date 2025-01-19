@@ -580,6 +580,12 @@ dwarf_begin_elf (Elf *elf, Dwarf_Cmd cmd, Elf_Scn *scngrp)
       return NULL;
     }
   rwlock_init (result->dwarf_lock);
+  eu_search_tree_init (&result->cu_tree);
+  eu_search_tree_init (&result->tu_tree);
+  eu_search_tree_init (&result->split_tree);
+  eu_search_tree_init (&result->macro_ops_tree);
+  eu_search_tree_init (&result->files_lines_tree);
+
   result->mem_stacks = 0;
   result->mem_tails = NULL;
 

@@ -1587,6 +1587,7 @@ debuginfod_validate_imasig (debuginfod_client *c, int fd)
 {
   int rc = ENOSYS;
 
+    char* sig_buf = NULL;
     EVP_MD_CTX *ctx = NULL;
     if (!c || !c->winning_headers)
     {
@@ -1594,7 +1595,6 @@ debuginfod_validate_imasig (debuginfod_client *c, int fd)
       goto exit_validate;
     }
     // Extract the HEX IMA-signature from the header
-    char* sig_buf = NULL;
     char* hdr_ima_sig = strcasestr(c->winning_headers, "x-debuginfod-imasignature");
     if (!hdr_ima_sig || 1 != sscanf(hdr_ima_sig + strlen("x-debuginfod-imasignature:"), "%ms", &sig_buf))
     {

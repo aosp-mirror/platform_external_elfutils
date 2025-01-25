@@ -11921,7 +11921,13 @@ print_debug (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr)
 		fprintf (stderr, "Warning: Couldn't open DWARF skeleton file"
 			 " '%s'\n", skel_name);
 	      else
-		skel_dwfl = create_dwfl (skel_fd, skel_name);
+		{
+		  skel_dwfl = create_dwfl (skel_fd, skel_name);
+
+		  /* skel_fd was dup'ed by create_dwfl.  We can close the
+		     original now.  */
+		  close (skel_fd);
+		}
 
 	      if (skel_dwfl != NULL)
 		{

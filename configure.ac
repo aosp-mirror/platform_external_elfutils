@@ -477,7 +477,7 @@ AC_CHECK_FUNCS([process_vm_readv mremap])
 AS_IF([test "x$ac_cv_func_mremap" = "xno"],
       [AC_MSG_WARN([elf_update needs mremap to support ELF_C_RDWR_MMAP])])
 
-AC_CHECK_HEADERS([error.h])
+AC_CHECK_HEADER([error.h], [AC_CHECK_FUNC([error], AC_DEFINE([HAVE_ERROR_H], [1], [Define if error.h is usable]))])
 AC_CHECK_HEADERS([err.h])
 
 dnl for debuginfod concurrency heuristics

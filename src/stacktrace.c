@@ -77,6 +77,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <locale.h>
 
 #include <system.h>
 

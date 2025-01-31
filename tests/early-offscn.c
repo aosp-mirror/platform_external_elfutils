@@ -48,5 +48,6 @@ main (int argc, char *argv[])
     error (3, 0, "gelf_offscn: %s", elf_errmsg (-1));
 
   elf_end (elf);
+  close (fd);
   return 0;
 }

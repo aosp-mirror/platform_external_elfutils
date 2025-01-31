@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <inttypes.h>
+#include <unistd.h>
 
 static void
 ranges_die (Dwarf_Die *die)
@@ -85,6 +86,7 @@ main (int argc, char *argv[])
       walk_tree (&die);
     }
   dwarf_end (dbg);
+  close (fd);
 
   return 0;
 }

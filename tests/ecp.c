@@ -94,6 +94,7 @@ main (int argc, char *argv[])
   close (outfd);
 
   elf_end (inelf);
+  close (infd);
 
   return 0;
 }

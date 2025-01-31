@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <inttypes.h>
+#include <unistd.h>
 
 int
 main (int argc, char *argv[])
@@ -52,6 +53,6 @@ main (int argc, char *argv[])
 	       start, end, base);
 
   dwarf_end (dbg);
-
+  close (fd);
   return 0;
 }

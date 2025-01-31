@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <unistd.h>
 
 int
 main (int argc, char **argv)
@@ -43,5 +44,6 @@ main (int argc, char **argv)
   assert (dwarf_tag (die) == 0);
 
   dwarf_end (dw);
+  close (i);
   return 0;
 }

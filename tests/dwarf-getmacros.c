@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <inttypes.h>
+#include <unistd.h>
 
 static void include (Dwarf *dbg, Dwarf_Off macoff, ptrdiff_t token);
 
@@ -174,6 +175,6 @@ main (int argc, char *argv[])
     }
 
   dwarf_end (dbg);
-
+  close (fd);
   return 0;
 }

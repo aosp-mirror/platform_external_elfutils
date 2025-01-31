@@ -187,7 +187,9 @@ check_native_core()
   fi
 
   if [ "x$SAVED_VALGRIND_CMD" != "x" ]; then
-    VALGRIND_CMD="$SAVED_VALGRIND_CMD"
+    # Restore $VALGRIND_CMD but disable --track-fds for the following testrun.
+    # Valgrind --track-fds might complain about an inherited fd.
+    VALGRIND_CMD=$(sed 's/--track-fds=yes//g' <<< "$SAVED_VALGRIND_CMD")
     export VALGRIND_CMD
   fi
 
@@ -195,6 +197,12 @@ check_native_core()
   # - see function check_err.
   tempfiles $core{,.{bt,err}}
   (set +ex; testrun ${abs_builddir}/backtrace -e ${abs_builddir}/$child --core=$core 1>$core.bt 2>$core.err; true)
+
+  if [ "x$SAVED_VALGRIND_CMD" != "x" ]; then
+    VALGRIND_CMD="$SAVED_VALGRIND_CMD"
+    export VALGRIND_CMD
+  fi
+
   cat $core.{bt,err}
   check_native_unsupported $core.err $child-$core
   check_all $core.{bt,err} $child-$core

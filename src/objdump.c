@@ -313,7 +313,8 @@ handle_ar (int fd, Elf *elf, const char *prefix, const char *fname,
       Elf_Arhdr *arhdr = elf_getarhdr (subelf);
 
       /* Skip over the index entries.  */
-      if (strcmp (arhdr->ar_name, "/") != 0
+      if (arhdr != NULL
+	  && strcmp (arhdr->ar_name, "/") != 0
 	  && strcmp (arhdr->ar_name, "//") != 0)
 	{
 	  if (elf_kind (subelf) == ELF_K_ELF)

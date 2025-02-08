@@ -13327,7 +13327,7 @@ dump_data_section (Elf_Scn *scn, const GElf_Shdr *shdr, const char *name)
 			_("Couldn't uncompress section"),
 			elf_ndxscn (scn));
 	    }
-	  else if (startswith (name, ".zdebug"))
+	  else if (name && startswith (name, ".zdebug"))
 	    {
 	      if (elf_compress_gnu (scn, 0, 0) < 0)
 		printf ("WARNING: %s [%zd]\n",
@@ -13378,7 +13378,7 @@ print_string_section (Elf_Scn *scn, const GElf_Shdr *shdr, const char *name)
 			_("Couldn't uncompress section"),
 			elf_ndxscn (scn));
 	    }
-	  else if (startswith (name, ".zdebug"))
+	  else if (name && startswith (name, ".zdebug"))
 	    {
 	      if (elf_compress_gnu (scn, 0, 0) < 0)
 		printf ("WARNING: %s [%zd]\n",

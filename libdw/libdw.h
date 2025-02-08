@@ -587,7 +587,9 @@ extern int dwarf_srclang (Dwarf_Die *die);
 extern Dwarf_Abbrev *dwarf_getabbrev (Dwarf_Die *die, Dwarf_Off offset,
 				      size_t *lengthp);
 
-/* Get abbreviation at given offset in .debug_abbrev section.  */
+/* Get abbreviation at given offset in .debug_abbrev section.  On
+   success return zero and fills in ABBREVP.  When there is no (more)
+   abbrev at offset returns one.  On error returns a negative value.  */
 extern int dwarf_offabbrev (Dwarf *dbg, Dwarf_Off offset, size_t *lengthp,
 			    Dwarf_Abbrev *abbrevp)
      __nonnull_attribute__ (4);

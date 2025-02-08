@@ -41,11 +41,15 @@ dwarf_offabbrev (Dwarf *dbg, Dwarf_Off offset, size_t *lengthp,
   if (dbg == NULL)
     return -1;
 
-  Dwarf_Abbrev *abbrev = __libdw_getabbrev (dbg, NULL, offset, lengthp,
-					    abbrevp);
+  Dwarf_Abbrev *abbrev = __libdw_getabbrev (dbg, NULL, offset, lengthp);
 
   if (abbrev == NULL)
     return -1;
 
-  return abbrev == DWARF_END_ABBREV ? 1 : 0;
+  if (abbrev == DWARF_END_ABBREV)
+    return 1;
+
+  *abbrevp = *abbrev;
+
+  return 0;
 }

@@ -795,8 +795,7 @@ extern Dwarf_Abbrev *__libdw_findabbrev (struct Dwarf_CU *cu,
 
 /* Get abbreviation at given offset.  */
 extern Dwarf_Abbrev *__libdw_getabbrev (Dwarf *dbg, struct Dwarf_CU *cu,
-					Dwarf_Off offset, size_t *lengthp,
-					Dwarf_Abbrev *result)
+					Dwarf_Off offset, size_t *lengthp)
      __nonnull_attribute__ (1) internal_function;
 
 /* Get abbreviation of given DIE, and optionally set *READP to the DIE memory

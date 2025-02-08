@@ -1,5 +1,6 @@
 /* Get abbreviation at given offset.
    Copyright (C) 2003, 2004, 2005, 2006, 2014, 2017 Red Hat, Inc.
+   Copyright (C) 2025 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
    Written by Ulrich Drepper <drepper@redhat.com>, 2003.
 
@@ -38,7 +39,7 @@
 Dwarf_Abbrev *
 internal_function
 __libdw_getabbrev (Dwarf *dbg, struct Dwarf_CU *cu, Dwarf_Off offset,
-		   size_t *lengthp, Dwarf_Abbrev *result)
+		   size_t *lengthp)
 {
   /* Don't fail if there is not .debug_abbrev section.  */
   if (dbg->sectiondata[IDX_debug_abbrev] == NULL)
@@ -85,12 +86,7 @@ __libdw_getabbrev (Dwarf *dbg, struct Dwarf_CU *cu, Dwarf_Off offset,
   Dwarf_Abbrev *abb = NULL;
   if (cu == NULL
       || (abb = Dwarf_Abbrev_Hash_find (&cu->abbrev_hash, code)) == NULL)
-    {
-      if (result == NULL)
-	abb = libdw_typed_alloc (dbg, Dwarf_Abbrev);
-      else
-	abb = result;
-    }
+    abb = libdw_typed_alloc (dbg, Dwarf_Abbrev);
   else
     {
       foundit = true;
@@ -183,5 +179,5 @@ dwarf_getabbrev (Dwarf_Die *die, Dwarf_Off offset, size_t *lengthp)
       return NULL;
     }
 
-  return __libdw_getabbrev (dbg, cu, abbrev_offset + offset, lengthp, NULL);
+  return __libdw_getabbrev (dbg, cu, abbrev_offset + offset, lengthp);
 }

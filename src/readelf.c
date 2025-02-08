@@ -2912,7 +2912,7 @@ handle_dynamic_symtab (Ebl *ebl)
   for (size_t i = 0; i < phnum; ++i)
     {
       phdr = gelf_getphdr (ebl->elf, i, &phdr_mem);
-      if (phdr->p_type == PT_DYNAMIC)
+      if (phdr == NULL || phdr->p_type == PT_DYNAMIC)
 	break;
     }
   if (phdr == NULL)

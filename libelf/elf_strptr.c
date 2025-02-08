@@ -53,24 +53,6 @@ get_zdata (Elf_Scn *strscn)
   return zdata;
 }
 
-static bool validate_str (const char *str, size_t from, size_t to)
-{
-#if HAVE_DECL_MEMRCHR
-  // Check end first, which is likely a zero terminator, to prevent function call
-  return ((to > 0 && str[to - 1]  == '\0')
-	  || (to - from > 0 && memrchr (&str[from], '\0', to - from - 1) != NULL));
-#else
-  do {
-    if (to <= from)
-      return false;
-
-    to--;
-  } while (str[to]);
-
-  return true;
-#endif
-}
-
 char *
 elf_strptr (Elf *elf, size_t idx, size_t offset)
 {

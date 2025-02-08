@@ -2639,6 +2639,7 @@ process_symtab (Ebl *ebl, unsigned int nsyms, Elf64_Word idx,
       char typebuf[64];
       char bindbuf[64];
       char scnbuf[64];
+      const char *sym_name;
       Elf32_Word xndx;
       GElf_Sym sym_mem;
       GElf_Sym *sym
@@ -2650,6 +2651,19 @@ process_symtab (Ebl *ebl, unsigned int nsyms, Elf64_Word idx,
       /* Determine the real section index.  */
       if (likely (sym->st_shndx != SHN_XINDEX))
         xndx = sym->st_shndx;
+      if (use_dynamic_segment == true)
+	{
+	  if (validate_str (symstr_data->d_buf, sym->st_name,
+			    symstr_data->d_size))
+	    sym_name = (char *)symstr_data->d_buf + sym->st_name;
+	  else
+	    sym_name = NULL;
+	}
+      else
+	sym_name = elf_strptr (ebl->elf, idx, sym->st_name);
+
+      if (sym_name == NULL)
+	sym_name = "???";
 
       printf (_ ("\
 %5u: %0*" PRIx64 " %6" PRId64 " %-7s %-6s %-9s %6s %s"),
@@ -2662,9 +2676,7 @@ process_symtab (Ebl *ebl, unsigned int nsyms, Elf64_Word idx,
               get_visibility_type (GELF_ST_VISIBILITY (sym->st_other)),
               ebl_section_name (ebl, sym->st_shndx, xndx, scnbuf,
                                 sizeof (scnbuf), NULL, shnum),
-              use_dynamic_segment == true
-                  ? (char *)symstr_data->d_buf + sym->st_name
-                  : elf_strptr (ebl->elf, idx, sym->st_name));
+              sym_name);
 
       if (versym_data != NULL)
         {

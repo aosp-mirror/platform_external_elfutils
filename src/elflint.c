@@ -252,6 +252,10 @@ process_file (int fd, Elf *elf, const char *prefix, const char *suffix,
 	char new_suffix[(suffix == NULL ? 0 : strlen (suffix)) + 2];
 	char *cp = new_prefix;
 
+	/* Either both prefix and suffix are NULL or both are non-NULL.  */
+	assert ((prefix == NULL && suffix == NULL)
+		|| (prefix != NULL && suffix != NULL));
+
 	/* Create the full name of the file.  */
 	if (prefix != NULL)
 	  {

@@ -13561,8 +13561,8 @@ dump_archive_index (Elf *elf, const char *fname)
 			  as_off, fname, elf_errmsg (-1));
 
 	  const Elf_Arhdr *h = elf_getarhdr (subelf);
-
-	  printf (_("Archive member '%s' contains:\n"), h->ar_name);
+	  if (h != NULL)
+	    printf (_("Archive member '%s' contains:\n"), h->ar_name);
 
 	  elf_end (subelf);
 	}

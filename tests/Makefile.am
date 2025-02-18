@@ -64,7 +64,7 @@ check_PROGRAMS = arextract arsymtest newfile saridx scnnames sectiondump \
 		  getphdrnum leb128 read_unaligned \
 		  msg_tst system-elf-libelf-test system-elf-gelf-test \
 		  nvidia_extended_linemap_libdw elf-print-reloc-syms \
-		  cu-dwp-section-info declfiles \
+		  cu-dwp-section-info declfiles test-manyfuncs \
 		  $(asm_TESTS)
 
 asm_TESTS = asm-tst1 asm-tst2 asm-tst3 asm-tst4 asm-tst5 \
@@ -81,6 +81,16 @@ backtrace-child-biarch$(EXEEXT): backtrace-child.c
 		     $(AM_CFLAGS) $(CFLAGS) $(backtrace_child_CFLAGS) \
 		     $(AM_LDFLAGS) $(LDFLAGS) $(backtrace_child_LDFLAGS) \
 		     -o $@ $<
+
+# A test object with 64K sections and function symbols
+# Don't try to optimize or add debuginfo
+# Do explicitly add unwind tables, so there are definitely relocations
+# to all function symbols/sections.
+manyfuncs.o: manyfuncs.c
+	$(AM_V_CC)$(CC) -fasynchronous-unwind-tables -g0 -O0 -o $@ -c $<
+
+# We also want the manyfuncs.o (test) file generated
+check-local: manyfuncs.o
 
 if GCOV
 GCOV_FLAGS=-fprofile-arcs -ftest-coverage
@@ -142,6 +152,7 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-readelf-aranges.sh run-readelf-line.sh run-readelf-z.sh \
 	run-readelf-frames.sh \
 	run-readelf-n.sh \
+	run-readelf-r-manyfuncs.sh \
 	run-retain.sh \
 	run-native-test.sh run-bug1-test.sh \
 	run-debuglink.sh run-debugaltlink.sh run-buildid.sh \
@@ -217,7 +228,8 @@ TESTS = run-arextract.sh run-arsymtest.sh run-ar.sh newfile test-nlist \
 	run-readelf-dw-form-indirect.sh run-strip-largealign.sh \
 	run-readelf-Dd.sh run-dwfl-core-noncontig.sh run-cu-dwp-section-info.sh \
 	run-declfiles.sh \
-	run-sysroot.sh
+	run-sysroot.sh \
+	run-test-manyfuncs.sh
 
 if !BIARCH
 export ELFUTILS_DISABLE_BIARCH = 1
@@ -414,6 +426,7 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile_gnu_props.32be.o.bz2 \
 	     testfile_gnu_props.64be.o.bz2 \
 	     testfile-gnu-property-note-aarch64.bz2 \
+	     run-readelf-r-manyfuncs.sh \
 	     run-retain.sh testfile-retain.o.bz2 \
 	     run-allfcts-multi.sh \
 	     test-offset-loop.bz2 test-offset-loop.alt.bz2 \
@@ -688,7 +701,9 @@ EXTRA_DIST = run-arextract.sh run-arsymtest.sh run-ar.sh \
 	     testfile-dwp-4-cu-index-overflow.dwp.bz2 \
 	     testfile-dwp-cu-index-overflow.source \
 	     testfile-define-file.bz2 \
-	     testfile-sysroot.tar.bz2 run-sysroot.sh run-debuginfod-seekable.sh
+	     testfile-sysroot.tar.bz2 run-sysroot.sh \
+	     run-test-manyfuncs.sh manyfuncs.c \
+	     run-debuginfod-seekable.sh
 
 
 if USE_VALGRIND
@@ -869,6 +884,9 @@ nvidia_extended_linemap_libdw_LDADD = $(libelf) $(libdw)
 elf_print_reloc_syms_LDADD = $(libelf)
 cu_dwp_section_info_LDADD = $(libdw)
 declfiles_LDADD = $(libdw)
+test_manyfuncs_LDADD = $(libelf)
+# Make sure the manyfunc.o test object is generated before test-manyfuncs
+EXTRA_test_manyfuncs_DEPENDENCIES = manyfuncs.o
 
 # We want to test the libelf headers against the system elf.h header.
 # Don't include any -I CPPFLAGS. Except when we install our own elf.h.
@@ -888,7 +906,7 @@ system_elf_gelf_test_LDADD = $(libelf)
 
 # A lock file used to make sure only one test dumps core at a time
 MOSTLYCLEANFILES = core-dump-backtrace.lock
-CLEANFILES = $(BUILT_SOURCES)
+CLEANFILES = $(BUILT_SOURCES) manyfuncs.o
 
 if GCOV
 check: check-am coverage

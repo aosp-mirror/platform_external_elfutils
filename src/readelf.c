@@ -1,6 +1,6 @@
 /* Print information from ELF file in human-readable form.
    Copyright (C) 1999-2018 Red Hat, Inc.
-   Copyright (C) 2023 Mark J. Wielaard <mark@klomp.org>
+   Copyright (C) 2023, 2025 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -2111,9 +2111,10 @@ handle_relocs_rel (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
       return;
     }
 
-  /* Search for the optional extended section index table.  */
+  /* Search for the optional extended section index table if there are
+     more than 64k sections.  */
   Elf_Data *xndxdata = NULL;
-  int xndxscnidx = elf_scnshndx (scn);
+  int xndxscnidx = shnum >= SHN_LORESERVE ? elf_scnshndx (symscn) : 0;
   if (unlikely (xndxscnidx > 0))
     xndxdata = elf_getdata (elf_getscn (ebl->elf, xndxscnidx), NULL);
 
@@ -2218,7 +2219,11 @@ handle_relocs_rel (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 			_("INVALID SYMBOL"),
 			(long int) GELF_R_SYM (rel->r_info));
 	    }
-	  else if (GELF_ST_TYPE (sym->st_info) != STT_SECTION)
+	  else if (GELF_ST_TYPE (sym->st_info) != STT_SECTION
+		   && !(GELF_ST_TYPE (sym->st_info) == STT_NOTYPE
+			&& GELF_ST_BIND (sym->st_info) == STB_LOCAL
+			&& sym->st_shndx != SHN_UNDEF
+			&& sym->st_value == 0)) // local start section label
 	    printf ("  %#0*" PRIx64 "  %-20s %#0*" PRIx64 "  %s\n",
 		    class == ELFCLASS32 ? 10 : 18, rel->r_offset,
 		    likely (ebl_reloc_type_check (ebl,
@@ -2232,7 +2237,9 @@ handle_relocs_rel (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 		    elf_strptr (ebl->elf, symshdr->sh_link, sym->st_name));
 	  else
 	    {
-	      /* This is a relocation against a STT_SECTION symbol.  */
+	      /* This is a relocation against a STT_SECTION symbol
+		 or a local start section label for which we print
+		 section name.  */
 	      GElf_Shdr secshdr_mem;
 	      GElf_Shdr *secshdr;
 	      secshdr = gelf_getshdr (elf_getscn (ebl->elf,
@@ -2300,9 +2307,10 @@ handle_relocs_rela (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
       return;
     }
 
-  /* Search for the optional extended section index table.  */
+  /* Search for the optional extended section index table if there are
+     more than 64k sections.  */
   Elf_Data *xndxdata = NULL;
-  int xndxscnidx = elf_scnshndx (scn);
+  int xndxscnidx = shnum >= SHN_LORESERVE ? elf_scnshndx (symscn) : 0;
   if (unlikely (xndxscnidx > 0))
     xndxdata = elf_getdata (elf_getscn (ebl->elf, xndxscnidx), NULL);
 
@@ -2409,7 +2417,11 @@ handle_relocs_rela (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 			_("INVALID SYMBOL"),
 			(long int) GELF_R_SYM (rel->r_info));
 	    }
-	  else if (GELF_ST_TYPE (sym->st_info) != STT_SECTION)
+	  else if (GELF_ST_TYPE (sym->st_info) != STT_SECTION
+		   && !(GELF_ST_TYPE (sym->st_info) == STT_NOTYPE
+			&& GELF_ST_BIND (sym->st_info) == STB_LOCAL
+			&& sym->st_shndx != SHN_UNDEF
+			&& sym->st_value == 0)) // local start section label
 	    printf ("\
   %#0*" PRIx64 "  %-15s %#0*" PRIx64 "  %+6" PRId64 " %s\n",
 		    class == ELFCLASS32 ? 10 : 18, rel->r_offset,
@@ -2425,7 +2437,9 @@ handle_relocs_rela (Ebl *ebl, GElf_Ehdr *ehdr, Elf_Scn *scn, GElf_Shdr *shdr)
 		    elf_strptr (ebl->elf, symshdr->sh_link, sym->st_name));
 	  else
 	    {
-	      /* This is a relocation against a STT_SECTION symbol.  */
+	      /* This is a relocation against a STT_SECTION symbol
+		 or a local start section label for which we print
+		 section name.  */
 	      GElf_Shdr secshdr_mem;
 	      GElf_Shdr *secshdr;
 	      secshdr = gelf_getshdr (elf_getscn (ebl->elf,

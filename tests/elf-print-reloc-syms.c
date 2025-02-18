@@ -43,8 +43,8 @@ print_reloc_symnames (Elf *elf, Elf_Scn *scn, GElf_Shdr *shdr, size_t sh_entsize
 
   /* Search for the optional extended section index table.  */
   Elf_Data *xndxdata = NULL;
-  int xndxscnidx = elf_scnshndx (scn);
-  if (xndxscnidx)
+  int xndxscnidx = elf_scnshndx (symscn);
+  if (xndxscnidx > 0)
     xndxdata = elf_getdata (elf_getscn (elf, xndxscnidx), NULL);
 
   /* Get the section header string table index.  */

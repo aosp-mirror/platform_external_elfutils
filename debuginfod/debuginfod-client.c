@@ -1599,6 +1599,7 @@ debuginfod_validate_imasig (debuginfod_client *c, int fd)
     if (!hdr_ima_sig || 1 != sscanf(hdr_ima_sig + strlen("x-debuginfod-imasignature:"), "%ms", &sig_buf))
     {
       rc = -ENODATA;
+      sig_buf = NULL; // f41 glibc may litter here in case of sscanf error
       goto exit_validate;
     }
     if (strlen(sig_buf) > MAX_SIGNATURE_SIZE) // reject if too long

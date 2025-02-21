@@ -47,6 +47,27 @@
 #define BACKEND aarch64_
 #include "libebl_CPU.h"
 
+/*
+ * pointer authentication masks (NT_ARM_PAC_MASK)
+ *
+ * Defined by Linux kernel headers since Linux 5.0. Define it here if kernel
+ * headers are older than that, to ensure this file builds regardless.
+ */
+#if defined(__aarch64__) && defined(__linux__)
+
+#ifndef NT_ARM_PAC_MASK
+#define NT_ARM_PAC_MASK 0x406
+#endif
+
+#ifndef HAVE_USER_PACK_MASK
+struct user_pac_mask {
+  __u64 data_mask;
+  __u64 insn_mask;
+};
+#endif
+
+#endif /* __aarch64__ && __linux__ */
+
 bool
 aarch64_set_initial_registers_tid (pid_t tid __attribute__ ((unused)),
 			  ebl_tid_registers_t *setfunc __attribute__ ((unused)),

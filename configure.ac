@@ -777,6 +777,14 @@ if test "$sys_user_has_user_regs" = "yes"; then
             [Define to 1 if <sys/user.h> defines struct user_regs_struct])
 fi
 
+AC_CHECK_TYPE([struct user_pac_mask],
+              [has_user_pac_mask=yes], [has_user_pac_mask=no],
+              [[#include <asm/ptrace.h>]])
+if test "$has_user_pac_mask" = "yes"; then
+  AC_DEFINE(HAVE_USER_PACK_MASK, 1,
+            [Defined if struct user_pac_mask exists.])
+fi
+
 # On a 64-bit host where can can use $CC -m32, we'll run two sets of tests.
 utrace_BIARCH
 CC_BIARCH="$CC $utrace_biarch"

@@ -7170,7 +7170,7 @@ print_debug_frame_section (Dwfl_Module *dwflmod, Ebl *ebl, GElf_Ehdr *ehdr,
   size_t shstrndx;
   /* We know this call will succeed since it did in the caller.  */
   (void) elf_getshdrstrndx (ebl->elf, &shstrndx);
-  const char *scnname = elf_strptr (ebl->elf, shstrndx, shdr->sh_name);
+  const char *scnname = section_name (ebl, shdr);
 
   /* Needed if we find PC-relative addresses.  */
   GElf_Addr bias;

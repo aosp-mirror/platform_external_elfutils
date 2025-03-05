@@ -116,4 +116,11 @@ cmp $filename ${PWD}/prog2.c
 kill $PID1
 wait $PID1
 PID1=0
+
+# PR31862: after killing debuginfod, check that the cached version still exists and holds headers!
+(DEBUGINFOD_VERBOSE=1; export DEBUGINFOD_VERBOSE
+ testrun ${abs_top_builddir}/debuginfod/debuginfod-find -v debuginfo $BUILDID2 2>&1) | tee vlog3
+tempfiles vlog3
+grep -i x-debuginfod vlog3
+
 exit 0

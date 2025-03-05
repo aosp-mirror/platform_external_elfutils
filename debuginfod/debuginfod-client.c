@@ -569,7 +569,7 @@ debuginfod_clean_cache(debuginfod_client *c,
     return -errno;
 
   regex_t re;
-  const char * pattern = ".*/(metadata.*|[a-f0-9]+(/debuginfo|/executable|/source.*|))$"; /* include dirs */
+  const char * pattern = ".*/(metadata.*|[a-f0-9]+(/hdr.*|/debuginfo|/executable|/source.*|))$"; /* include dirs */
   /* NB: also matches .../section/ subdirs, so extracted section files also get cleaned. */
   if (regcomp (&re, pattern, REG_EXTENDED | REG_NOSUB) != 0)
     return -ENOMEM;
@@ -1777,7 +1777,9 @@ debuginfod_query_server_by_buildid (debuginfod_client *c,
   char *cache_miss_path = NULL;
   char *target_cache_dir = NULL;
   char *target_cache_path = NULL;
+  char *target_cachehdr_path = NULL;
   char *target_cache_tmppath = NULL;
+  char *target_cachehdr_tmppath = NULL;
   char suffix[NAME_MAX];
   char build_id_bytes[MAX_BUILD_ID_BYTES * 2 + 1];
   int vfd = c->verbose_fd;
@@ -1912,6 +1914,8 @@ debuginfod_query_server_by_buildid (debuginfod_client *c,
      target_cache_path: $HOME/.cache/0123abcd/debuginfo
      target_cache_path: $HOME/.cache/0123abcd/executable-.debug_info
      target_cache_path: $HOME/.cache/0123abcd/source-HASH-#PATH#TO#SOURCE
+     target_cachehdr_path: $HOME/.cache/0123abcd/hdr-debuginfo
+     target_cachehdr_path: $HOME/.cache/0123abcd/hdr-executable...
   */
 
   cache_path = make_cache_path();
@@ -1923,11 +1927,15 @@ debuginfod_query_server_by_buildid (debuginfod_client *c,
   xalloc_str (target_cache_dir, "%s/%s", cache_path, build_id_bytes);
   (void) mkdir (target_cache_dir, 0700); // failures with this mkdir would be caught later too
 
-  if (suffix[0] != '\0') /* section, source queries */
+  if (suffix[0] != '\0') { /* section, source queries */ 
     xalloc_str (target_cache_path, "%s/%s-%s", target_cache_dir, type, suffix);
-  else
+    xalloc_str (target_cachehdr_path, "%s/hdr-%s-%s", target_cache_dir, type, suffix);
+  } else {
     xalloc_str (target_cache_path, "%s/%s", target_cache_dir, type);
+    xalloc_str (target_cachehdr_path, "%s/hdr-%s", target_cache_dir, type);
+  }
   xalloc_str (target_cache_tmppath, "%s.XXXXXX", target_cache_path);
+  xalloc_str (target_cachehdr_tmppath, "%s.XXXXXX", target_cachehdr_path);  
 
   /* XXX combine these */
   xalloc_str (interval_path, "%s/%s", cache_path, cache_clean_interval_filename);
@@ -1978,6 +1986,32 @@ debuginfod_query_server_by_buildid (debuginfod_client *c,
           /* Success!!!! */
           update_atime(fd);
           rc = fd;
+
+          /* Attempt to transcribe saved headers. */
+          int fdh = open (target_cachehdr_path, O_RDONLY);
+          if (fdh >= 0)
+            {
+              if (fstat (fdh, &st) == 0 && st.st_size > 0)
+                {
+                  c->winning_headers = malloc(st.st_size);
+                  if (NULL != c->winning_headers)
+                    {
+                      ssize_t bytes_read = pread_retry(fdh, c->winning_headers, st.st_size, 0);
+                      if (bytes_read <= 0)
+                        {
+                          free (c->winning_headers);
+                          c->winning_headers = NULL;
+                          (void) unlink (target_cachehdr_path);
+                        }
+                      if (vfd >= 0)
+                        dprintf (vfd, "found %s (bytes=%ld)\n", target_cachehdr_path, (long)bytes_read);
+                    }
+                }
+
+              update_atime (fdh);
+              close (fdh);
+            }
+ 
           goto out;
         }
       else
@@ -2004,12 +2038,12 @@ debuginfod_query_server_by_buildid (debuginfod_client *c,
             /* TOCTOU non-problem: if another task races, puts a working
                download or an empty file in its place, unlinking here just
                means WE will try to download again as uncached. */
-            unlink(target_cache_path);
+            (void) unlink(target_cache_path);
         }
     }
   else if (errno == EACCES)
     /* Ensure old 000-permission files are not lingering in the cache. */
-    unlink(target_cache_path);
+    (void) unlink(target_cache_path);
 
   if (section != NULL)
     {
@@ -2409,6 +2443,22 @@ debuginfod_query_server_by_buildid (debuginfod_client *c,
       /* Perhaps we need not give up right away; could retry or something ... */
     }
 
+  /* write out the headers, best effort basis */
+  if (c->winning_headers) {
+    int fdh = mkstemp (target_cachehdr_tmppath);
+    if (fdh >= 0) {
+      size_t bytes_to_write = strlen(c->winning_headers)+1; // include \0
+      size_t bytes = pwrite_retry (fdh, c->winning_headers, bytes_to_write, 0);
+      (void) close (fdh);
+      if (bytes == bytes_to_write)
+        (void) rename (target_cachehdr_tmppath, target_cachehdr_path);
+      else
+        (void) unlink (target_cachehdr_tmppath);
+      if (vfd >= 0)
+        dprintf (vfd, "saved %ld bytes of headers to %s\n", (long)bytes, target_cachehdr_path);
+    }
+  }
+  
   /* remove all handles from multi */
   for (int i = 0; i < num_urls; i++)
     {
@@ -2490,8 +2540,11 @@ debuginfod_query_server_by_buildid (debuginfod_client *c,
   if (rc < 0 && target_cache_tmppath != NULL)
     (void)unlink (target_cache_tmppath);
   free (target_cache_tmppath);
-
-  
+  if (rc < 0 && target_cachehdr_tmppath != NULL)
+    (void)unlink (target_cachehdr_tmppath);
+  free (target_cachehdr_tmppath);
+  free (target_cachehdr_path);
+    
   return rc;
 }
 

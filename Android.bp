@@ -44,10 +44,22 @@ license {
 // and this have to be included explicitly by elfutils users.
 cc_defaults {
     name: "elfutils_transitive_defaults",
-    static_libs: [
-        "libz",
-        "libzstd",
-    ],
+    target: {
+        android: {
+            static_libs: [
+                "libzstd",
+            ],
+            shared_libs: [
+                "libz",
+            ],
+        },
+        host: {
+            static_libs: [
+                "libz",
+                "libzstd",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -117,6 +129,11 @@ cc_library {
         "//external/igt-gpu-tools",
         "//external/mesa3d",
     ],
+    apex_available: [
+        "//apex_available:platform",
+        "com.android.tethering", // For standalone bpf loader binary that depends on libbpf.
+    ],
+    min_sdk_version: "apex_inherit",
 }
 
 cc_library_headers {
@@ -138,6 +155,11 @@ cc_library_headers {
         },
     },
     visibility: [":__subpackages__"],
+    apex_available: [
+        "//apex_available:platform",
+        "com.android.tethering", // For standalone bpf loader binary that depends on libbpf.
+    ],
+    min_sdk_version: "apex_inherit",
 }
 
 cc_library {

@@ -13,6 +13,9 @@
 /* Build debuginfod */
 /* #undef ENABLE_DEBUGINFOD */
 
+/* Build IMA verification */
+/* #undef ENABLE_IMA_VERIFICATION */
+
 /* Enable libdebuginfod */
 /* #undef ENABLE_LIBDEBUGINFOD */
 
@@ -35,31 +38,31 @@
    */
 #define HAVE_DCGETTEXT 1
 
-/* Define to 1 if you have the declaration of `mempcpy', and to 0 if you
+/* Define to 1 if you have the declaration of 'mempcpy', and to 0 if you
    don't. */
 #define HAVE_DECL_MEMPCPY 1
 
-/* Define to 1 if you have the declaration of `memrchr', and to 0 if you
+/* Define to 1 if you have the declaration of 'memrchr', and to 0 if you
    don't. */
 #define HAVE_DECL_MEMRCHR 1
 
-/* Define to 1 if you have the declaration of `powerof2', and to 0 if you
+/* Define to 1 if you have the declaration of 'powerof2', and to 0 if you
    don't. */
 #define HAVE_DECL_POWEROF2 1
 
-/* Define to 1 if you have the declaration of `rawmemchr', and to 0 if you
+/* Define to 1 if you have the declaration of 'rawmemchr', and to 0 if you
    don't. */
 #define HAVE_DECL_RAWMEMCHR 1
 
-/* Define to 1 if you have the declaration of `reallocarray', and to 0 if you
+/* Define to 1 if you have the declaration of 'reallocarray', and to 0 if you
    don't. */
 #define HAVE_DECL_REALLOCARRAY 1
 
-/* Define to 1 if you have the declaration of `strerror_r', and to 0 if you
+/* Define to 1 if you have the declaration of 'strerror_r', and to 0 if you
    don't. */
 #define HAVE_DECL_STRERROR_R 1
 
-/* Define to 1 if you have the <error.h> header file. */
+/* Define if error.h is usable */
 #if defined(__BIONIC__) || defined(__GLIBC__)
 #define HAVE_ERROR_H 1
 #endif
@@ -76,7 +79,7 @@
 /* Defined if __attribute__((gcc_struct)) is supported */
 /* #undef HAVE_GCC_STRUCT */
 
-/* Define to 1 if you have the `getrlimit' function. */
+/* Define to 1 if you have the 'getrlimit' function. */
 #define HAVE_GETRLIMIT 1
 
 /* Define if the GNU gettext() function is already present or preinstalled. */
@@ -88,25 +91,31 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
 
-/* Define to 0 if libarchive is not available */
+/* Define to 1 if libarchive is available */
 /* #undef HAVE_LIBARCHIVE */
 
-/* Define to 1 if you have the `mremap' function. */
+/* Define to 1 if you have the <malloc.h> header file. */
+#define HAVE_MALLOC_H 1
+
+/* Define to 1 if you have the 'malloc_trim' function. */
+#define HAVE_MALLOC_TRIM 1
+
+/* Define to 1 if you have the 'mremap' function. */
 #define HAVE_MREMAP 1
 
-/* Define to 1 if you have the `process_vm_readv' function. */
+/* Define to 1 if you have the 'process_vm_readv' function. */
 #define HAVE_PROCESS_VM_READV 1
 
 /* Enable pthread_setname_np */
 #define HAVE_PTHREAD_SETNAME_NP 1
 
-/* Define to 1 if you have the `sched_getaffinity' function. */
+/* Define to 1 if you have the 'sched_getaffinity' function. */
 #define HAVE_SCHED_GETAFFINITY 1
 
 /* Define to 1 if you have the <sched.h> header file. */
 #define HAVE_SCHED_H 1
 
-/* Define to 1 if `stdatomic.h` is provided by the system, 0 otherwise. */
+/* Define to 1 if you have the <stdatomic.h> header file. */
 #define HAVE_STDATOMIC_H 1
 
 /* Define to 1 if you have the <stdint.h> header file. */
@@ -118,7 +127,7 @@
 /* Define to 1 if you have the <stdlib.h> header file. */
 #define HAVE_STDLIB_H 1
 
-/* Define if you have `strerror_r'. */
+/* Define if you have 'strerror_r'. */
 #define HAVE_STRERROR_R 1
 
 /* Define to 1 if you have the <strings.h> header file. */
@@ -126,6 +135,14 @@
 
 /* Define to 1 if you have the <string.h> header file. */
 #define HAVE_STRING_H 1
+
+/* Define to 1 if `sysprof-4/sysprof-capture-types.h` is provided by the
+   system, 0 otherwise. */
+/* #undef HAVE_SYSPROF_4_HEADERS */
+
+/* Define to 1 if `sysprof-6/sysprof-capture-types.h` is provided by the
+   system, 0 otherwise. */
+/* #undef HAVE_SYSPROF_6_HEADERS */
 
 /* Define to 1 if you have the <sys/resource.h> header file. */
 #define HAVE_SYS_RESOURCE_H 1
@@ -142,6 +159,9 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
 
+/* Defined if struct user_pac_mask exists. */
+/* #undef HAVE_USER_PACK_MASK */
+
 /* Defined if __attribute__((visibility())) is supported */
 #define HAVE_VISIBILITY 1
 
@@ -155,7 +175,7 @@
 #define PACKAGE_NAME "elfutils"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "elfutils 0.191"
+#define PACKAGE_STRING "elfutils 0.193"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "elfutils"
@@ -164,12 +184,12 @@
 #define PACKAGE_URL "http://elfutils.org/"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.191"
+#define PACKAGE_VERSION "0.193"
 
-/* The size of `long', as computed by sizeof. */
+/* The size of 'long', as computed by sizeof. */
 #define SIZEOF_LONG 8
 
-/* Define to 1 if all of the C90 standard headers exist (not just the ones
+/* Define to 1 if all of the C89 standard headers exist (not just the ones
    required in a freestanding environment). This macro is provided for
    backward compatibility; new code need not use it. */
 #define STDC_HEADERS 1
@@ -201,16 +221,22 @@
 #define USE_ZSTD_COMPRESS 1
 
 /* Version number of package */
-#define VERSION "0.191"
+#define VERSION "0.193"
 
-/* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
-   `char[]'. */
+/* Define to 1 if 'lex' declares 'yytext' as a 'char *' by default, not a
+   'char[]'. */
 #define YYTEXT_POINTER 1
 
 /* Number of bits in a file offset, on hosts where this is settable. */
 /* #undef _FILE_OFFSET_BITS */
 
-/* Define for large files, on AIX-style hosts. */
+/* Define to 1 on platforms where this makes off_t a 64-bit type. */
 /* #undef _LARGE_FILES */
+
+/* Number of bits in time_t, on hosts where this is settable. */
+/* #undef _TIME_BITS */
+
+/* Define to 1 on platforms where this makes time_t a 64-bit type. */
+/* #undef __MINGW_USE_VC2005_COMPAT */
 
 #include <eu-config.h>

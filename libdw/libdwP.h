@@ -34,6 +34,7 @@
 
 #include <libdw.h>
 #include <dwarf.h>
+#include "eu-search.h"
 
 
 /* Known location expressions already decoded.  */
@@ -215,22 +216,22 @@ struct Dwarf
   size_t pubnames_nsets;
 
   /* Search tree for the CUs.  */
-  void *cu_tree;
+  search_tree cu_tree;
   Dwarf_Off next_cu_offset;
 
   /* Search tree and sig8 hash table for .debug_types type units.  */
-  void *tu_tree;
+  search_tree tu_tree;
   Dwarf_Off next_tu_offset;
   Dwarf_Sig8_Hash sig8_hash;
 
   /* Search tree for split Dwarf associated with CUs in this debug.  */
-  void *split_tree;
+  search_tree split_tree;
 
   /* Search tree for .debug_macro operator tables.  */
-  void *macro_ops;
+  search_tree macro_ops_tree;
 
   /* Search tree for decoded .debug_line units.  */
-  void *files_lines;
+  search_tree files_lines_tree;
 
   /* Address ranges read from .debug_aranges.  */
   Dwarf_Aranges *aranges;
@@ -262,6 +263,14 @@ struct Dwarf
      an entry in the mem_tails array are not disturbed by new threads doing
      allocations for this Dwarf.  */
   pthread_rwlock_t mem_rwl;
+
+  /* Recursive mutex intended for setting/getting alt_dwarf, next_tu_offset,
+     and next_cu_offset.  Should be held when calling
+     __libdw_intern_next_unit.  */
+  mutex_define(, dwarf_lock);
+
+  /* Synchronize access to dwarf_macro_getsrcfiles.  */
+  mutex_define(, macro_lock);
 
   /* Internal memory handling.  This is basically a simplified thread-local
      reimplementation of obstacks.  Unfortunately the standard obstack
@@ -423,7 +432,7 @@ struct Dwarf_CU
   Dwarf_Files *files;
 
   /* Known location lists.  */
-  void *locs;
+  search_tree locs_tree;
 
   /* Base address for use with ranges and locs.
      Don't access directly, call __libdw_cu_base_address.  */
@@ -445,6 +454,22 @@ struct Dwarf_CU
   /* The start of the offset table in .debug_loclists.
      Don't access directly, call __libdw_cu_locs_base.  */
   Dwarf_Off locs_base;
+
+  /* Synchronize access to the abbrev member of a Dwarf_Die that
+     refers to this Dwarf_CU.  Covers __libdw_die_abbrev. */
+  rwlock_define(, abbrev_lock);
+
+  /* Synchronize access to the split member of this Dwarf_CU.
+     Covers __libdw_find_split_unit.  */
+  rwlock_define(, split_lock);
+
+  /* Synchronize access to the lines and files members.
+     Covers dwarf_getsrclines and dwarf_getsrcfiles.  */
+  mutex_define(, src_lock);
+
+  /* Synchronize access to the str_off_base of this Dwarf_CU.
+     Covers __libdw_str_offsets_base_off.  */
+  mutex_define(, str_off_base_lock);
 
   /* Memory boundaries of this CU.  */
   void *startp;
@@ -484,6 +509,8 @@ INTDECL (dwarf_hasattr)
 INTDECL (dwarf_haschildren)
 INTDECL (dwarf_haspc)
 INTDECL (dwarf_highpc)
+INTDECL (dwarf_language)
+INTDECL (dwarf_language_lower_bound)
 INTDECL (dwarf_lowpc)
 INTDECL (dwarf_nextcu)
 INTDECL (dwarf_next_unit)
@@ -783,8 +810,7 @@ extern Dwarf_Abbrev *__libdw_findabbrev (struct Dwarf_CU *cu,
 
 /* Get abbreviation at given offset.  */
 extern Dwarf_Abbrev *__libdw_getabbrev (Dwarf *dbg, struct Dwarf_CU *cu,
-					Dwarf_Off offset, size_t *lengthp,
-					Dwarf_Abbrev *result)
+					Dwarf_Off offset, size_t *lengthp)
      __nonnull_attribute__ (1) internal_function;
 
 /* Get abbreviation of given DIE, and optionally set *READP to the DIE memory
@@ -793,15 +819,28 @@ static inline Dwarf_Abbrev *
 __nonnull_attribute__ (1)
 __libdw_dieabbrev (Dwarf_Die *die, const unsigned char **readp)
 {
+  if (unlikely (die->cu == NULL))
+    {
+      die->abbrev = DWARF_END_ABBREV;
+      return DWARF_END_ABBREV;
+    }
+
+  rwlock_wrlock (die->cu->abbrev_lock);
+
   /* Do we need to get the abbreviation, or need to read after the code?  */
   if (die->abbrev == NULL || readp != NULL)
     {
       /* Get the abbreviation code.  */
       unsigned int code;
       const unsigned char *addr = die->addr;
-      if (unlikely (die->cu == NULL
-		    || addr >= (const unsigned char *) die->cu->endp))
-	return die->abbrev = DWARF_END_ABBREV;
+
+      if (addr >= (const unsigned char *) die->cu->endp)
+	{
+	  die->abbrev = DWARF_END_ABBREV;
+	  rwlock_unlock (die->cu->abbrev_lock);
+	  return DWARF_END_ABBREV;
+	}
+
       get_uleb128 (code, addr, die->cu->endp);
       if (readp != NULL)
 	*readp = addr;
@@ -810,7 +849,11 @@ __libdw_dieabbrev (Dwarf_Die *die, const unsigned char **readp)
       if (die->abbrev == NULL)
 	die->abbrev = __libdw_findabbrev (die->cu, code);
     }
-  return die->abbrev;
+
+  Dwarf_Abbrev *result = die->abbrev;
+  rwlock_unlock (die->cu->abbrev_lock);
+
+  return result;
 }
 
 /* Helper functions for form handling.  */
@@ -912,7 +955,8 @@ extern int __libdw_intern_expression (Dwarf *dbg,
 				      bool other_byte_order,
 				      unsigned int address_size,
 				      unsigned int ref_size,
-				      void **cache, const Dwarf_Block *block,
+				      search_tree *cache,
+				      const Dwarf_Block *block,
 				      bool cfap, bool valuep,
 				      Dwarf_Op **llbuf, size_t *listlen,
 				      int sec_index)
@@ -1108,6 +1152,16 @@ int __libdw_getsrclines (Dwarf *dbg, Dwarf_Off debug_line_offset,
   internal_function
   __nonnull_attribute__ (1);
 
+/* Load .debug_line unit at DEBUG_LINE_OFFSET.  COMP_DIR is a value of
+   DW_AT_comp_dir or NULL if that attribute is not available.  Caches
+   the loaded unit and set *FILESP with loaded information.  Returns 0
+   for success or a negative value for failure.  */
+int __libdw_getsrcfiles (Dwarf *dbg, Dwarf_Off debug_line_offset,
+			 const char *comp_dir, unsigned address_size,
+			 Dwarf_Files **filesp)
+  internal_function
+  __nonnull_attribute__ (1);
+
 /* Load and return value of DW_AT_comp_dir from CUDIE.  */
 const char *__libdw_getcompdir (Dwarf_Die *cudie);
 
@@ -1153,14 +1207,14 @@ str_offsets_base_off (Dwarf *dbg, Dwarf_CU *cu)
   if (cu == NULL && dbg != NULL)
     {
       Dwarf_CU *first_cu;
-      if (INTUSE(dwarf_get_units) (dbg, NULL, &first_cu,
-				   NULL, NULL, NULL, NULL) == 0)
+      if (dwarf_get_units (dbg, NULL, &first_cu, NULL, NULL, NULL, NULL) == 0)
 	cu = first_cu;
     }
 
   Dwarf_Off off = 0;
   if (cu != NULL)
     {
+      mutex_lock (cu->str_off_base_lock);
       if (cu->str_off_base == (Dwarf_Off) -1)
 	{
 	  Dwarf_Off dwp_offset;
@@ -1175,6 +1229,7 @@ str_offsets_base_off (Dwarf *dbg, Dwarf_CU *cu)
 	      if (dwarf_formudata (&attr, &base) == 0)
 		{
 		  cu->str_off_base = off + base;
+		  mutex_unlock (cu->str_off_base_lock);
 		  return cu->str_off_base;
 		}
 	    }
@@ -1182,6 +1237,7 @@ str_offsets_base_off (Dwarf *dbg, Dwarf_CU *cu)
 	  if (cu->version < 5)
 	    {
 	      cu->str_off_base = off;
+	      mutex_unlock (cu->str_off_base_lock);
 	      return cu->str_off_base;
 	    }
 
@@ -1189,7 +1245,10 @@ str_offsets_base_off (Dwarf *dbg, Dwarf_CU *cu)
 	    dbg = cu->dbg;
 	}
       else
-	return cu->str_off_base;
+	{
+	  mutex_unlock (cu->str_off_base_lock);
+	  return cu->str_off_base;
+	}
     }
 
   /* No str_offsets_base attribute, we have to assume "zero".
@@ -1239,7 +1298,10 @@ str_offsets_base_off (Dwarf *dbg, Dwarf_CU *cu)
 
  no_header:
   if (cu != NULL)
-    cu->str_off_base = off;
+    {
+      cu->str_off_base = off;
+      mutex_unlock (cu->str_off_base_lock);
+    }
 
   return off;
 }

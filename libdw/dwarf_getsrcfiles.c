@@ -47,9 +47,10 @@ dwarf_getsrcfiles (Dwarf_Die *cudie, Dwarf_Files **files, size_t *nfiles)
     }
 
   int res = -1;
+  struct Dwarf_CU *const cu = cudie->cu;
+  mutex_lock (cudie->cu->src_lock);
 
   /* Get the information if it is not already known.  */
-  struct Dwarf_CU *const cu = cudie->cu;
   if (cu->files == NULL)
     {
       /* For split units there might be a simple file table (without lines).
@@ -70,10 +71,9 @@ dwarf_getsrcfiles (Dwarf_Die *cudie, Dwarf_Files **files, size_t *nfiles)
 		{
 		  /* We are only interested in the files, the lines will
 		     always come from the skeleton.  */
-		  res = __libdw_getsrclines (cu->dbg, dwp_off,
+		  res = __libdw_getsrcfiles (cu->dbg, dwp_off,
 					     __libdw_getcompdir (cudie),
-					     cu->address_size, NULL,
-					     &cu->files);
+					     cu->address_size, &cu->files);
 		}
 	    }
 	  else
@@ -89,12 +89,22 @@ dwarf_getsrcfiles (Dwarf_Die *cudie, Dwarf_Files **files, size_t *nfiles)
 	}
       else
 	{
-	  Dwarf_Lines *lines;
-	  size_t nlines;
+	  /* The die must have a statement list associated.  */
+	  Dwarf_Attribute stmt_list_mem;
+	  Dwarf_Attribute *stmt_list = INTUSE(dwarf_attr) (cudie, DW_AT_stmt_list,
+							   &stmt_list_mem);
 
-	  /* Let the more generic function do the work.  It'll create more
-	     data but that will be needed in an real program anyway.  */
-	  res = INTUSE(dwarf_getsrclines) (cudie, &lines, &nlines);
+	  Dwarf_Off debug_line_offset;
+	  if (__libdw_formptr (stmt_list, IDX_debug_line, DWARF_E_NO_DEBUG_LINE,
+			       NULL, &debug_line_offset) == NULL)
+	    {
+	      mutex_unlock (cudie->cu->src_lock);
+	      return -1;
+	    }
+
+	  res = __libdw_getsrcfiles (cu->dbg, debug_line_offset,
+				     __libdw_getcompdir (cudie),
+				     cu->address_size, &cu->files);
 	}
     }
   else if (cu->files != (void *) -1l)
@@ -109,8 +119,7 @@ dwarf_getsrcfiles (Dwarf_Die *cudie, Dwarf_Files **files, size_t *nfiles)
 	*nfiles = cu->files->nfiles;
     }
 
-  // XXX Eventually: unlocking here.
-
+  mutex_unlock (cudie->cu->src_lock);
   return res;
 }
 INTDEF (dwarf_getsrcfiles)

@@ -103,5 +103,9 @@ main (int argc, char *argv[])
     }
 
   elf_end (elf);
+
+  if (!close_fd)
+    close (fd);
+
   exit (0);
 }

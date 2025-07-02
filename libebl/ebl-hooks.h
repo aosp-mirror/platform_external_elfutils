@@ -1,5 +1,5 @@
 /* Backend hook signatures internal interface for libebl.
-   Copyright (C) 2000-2011, 2013, 2014, 2016, 2017 Red Hat, Inc.
+   Copyright (C) 2000-2011, 2013, 2014, 2016, 2017, 2025 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -157,6 +157,22 @@ int EBLHOOK(abi_cfi) (Ebl *ebl, Dwarf_CIE *abi_info);
 bool EBLHOOK(set_initial_registers_tid) (pid_t tid,
 					 ebl_tid_registers_t *setfunc,
 					 void *arg);
+
+/* Set process data from a perf_events sample and call SETFUNC one or more times.
+   Method should be present only when EBL_PERF_FRAME_REGS_MASK > 0, otherwise the
+   backend doesn't support unwinding from perf_events data.  */
+bool EBLHOOK(set_initial_registers_sample) (const Dwarf_Word *regs, uint32_t n_regs,
+					    uint64_t regs_mask, uint32_t abi,
+					    ebl_tid_registers_t *setfunc,
+					    void *arg);
+
+/* Extract the stack address from a perf_events register sample.  */
+Dwarf_Word EBLHOOK(sample_base_addr) (const Dwarf_Word *regs, uint32_t n_regs,
+				      uint64_t regs_mask, uint32_t abi);
+
+/* Extract the instruction pointer from a perf_events register sample.  */
+Dwarf_Word EBLHOOK(sample_pc) (const Dwarf_Word *regs, uint32_t n_regs,
+			       uint64_t regs_mask, uint32_t abi);
 
 /* Convert *REGNO as is in DWARF to a lower range suitable for
    Dwarf_Frame->REGS indexing.  */

@@ -1,19 +1,20 @@
+# This project was upgraded with external_updater.
+# Usage: tools/external_updater/updater.sh update external/elfutils
+# For more info, check https://cs.android.com/android/platform/superproject/main/+/main:tools/external_updater/README.md
+
 name: "elfutils"
 description: "elfutils is a collection of utilities and libraries to read, create and modify ELF binary files, find and handle DWARF debug data, symbols, thread state and stacktraces for processes and core files on GNU/Linux."
 third_party {
-  url {
-    type: HOMEPAGE
-    value: "https://sourceware.org/elfutils/"
-  }
-  url {
-    type: GIT
-    value: "git://sourceware.org/git/elfutils.git"
-  }
-  version: "elfutils-0.191"
   license_type: RESTRICTED
   last_upgrade_date {
-    year: 2024
+    year: 2025
     month: 7
-    day: 8
+    day: 2
+  }
+  homepage: "https://sourceware.org/elfutils/"
+  identifier {
+    type: "Git"
+    value: "git://sourceware.org/git/elfutils.git"
+    version: "elfutils-0.193"
   }
 }

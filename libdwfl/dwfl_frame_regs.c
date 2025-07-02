@@ -39,6 +39,12 @@ dwfl_thread_state_registers (Dwfl_Thread *thread, int firstreg,
   Dwfl_Frame *state = thread->unwound;
   assert (state && state->unwound == NULL);
   assert (state->initial_frame);
+
+  if (firstreg == -2 && nregs == 1) {
+    thread->aarch64.pauth_insn_mask = regs[0];
+    return true;
+  }
+
   for (unsigned regno = firstreg; regno < firstreg + nregs; regno++)
     if (! __libdwfl_frame_reg_set (state, regno, regs[regno - firstreg]))
       {

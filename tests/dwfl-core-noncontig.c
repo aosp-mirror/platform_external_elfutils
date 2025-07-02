@@ -21,6 +21,7 @@
 #include <assert.h>
 #include ELFUTILS_HEADER(dwfl)
 #include ELFUTILS_HEADER(elf)
+#include <unistd.h>
 
 static const Dwfl_Callbacks cb =
 {
@@ -77,6 +78,7 @@ main (int argc, char **argv)
 
   dwfl_end (dwfl);
   elf_end (elf);
+  close (fd);
 
   return 0;
 }

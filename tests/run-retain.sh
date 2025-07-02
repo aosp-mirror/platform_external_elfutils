@@ -38,6 +38,10 @@ Section Headers:
 [ 6] .symtab              SYMTAB       0000000000000000 00000078 00000090 24        7   6  8
 [ 7] .strtab              STRTAB       0000000000000000 00000108 00000001  0        0   0  1
 [ 8] .shstrtab            STRTAB       0000000000000000 00000109 0000004c  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 

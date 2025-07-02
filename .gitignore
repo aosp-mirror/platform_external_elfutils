@@ -2,6 +2,7 @@
 *.a
 *.gcda
 *.gcno
+*.manifest
 *.o
 *.orig
 *.os

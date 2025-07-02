@@ -48,6 +48,10 @@ LOOKUP FUNCTIONS
 .BI "                           int " build_id_len ","
 .BI "                           const char * " section ","
 .BI "                           char ** " path ");"
+.BI "int debuginfod_find_metadata(debuginfod_client *" client ","
+.BI "                            const char *" key ","
+.BI "                            const char *" value ","
+.BI "                            char ** " path ");"
 
 
 OPTIONAL FUNCTIONS
@@ -113,6 +117,14 @@ be the name of the desired ELF/DWARF section.  If a server does not support
 section queries, debuginfod_find_section may query the server for the
 debuginfo and/or executable with \fIbuild_id\fP in order to retrieve
 and extract the section.
+
+.BR debuginfod_find_metadata ()
+queries all debuginfod server URLs contained in
+.BR $DEBUGINFOD_URLS
+for metadata for all matches of a given key/value query against files
+in their indexes.  The resulting file is a JSON document.  See the
+\fIdebuginfod-find(1)\fP man page for examples of the supported types
+of key/value queries and their JSON results.
 
 If \fIpath\fP is not NULL and the query is successful, \fIpath\fP is set
 to the path of the file in the cache. The caller must \fBfree\fP() this value.
@@ -251,13 +263,21 @@ void *debuginfod_so = dlopen(DEBUGINFOD_SONAME, RTLD_LAZY);
 .in
 
 .SH "SECURITY"
+
+If IMA signature(s) are available from the RPMs that contain
+requested files, then
+.BR debuginfod
+will extract those signatures into response headers, and
 .BR debuginfod_find_* ()
-functions \fBdo not\fP include any particular security
-features.  They trust that the binaries returned by the debuginfod(s)
-are accurate.  Therefore, the list of servers should include only
-trustworthy ones.  If accessed across HTTP rather than HTTPS, the
-network should be trustworthy.  Passing user authentication information
-through the internal \fIlibcurl\fP library is not currently enabled, except
+will perform verification upon the files.
+Validation policy is controlled via tags inserted into
+$DEBUGINFOD_URLS.  By default, 
+.BR debuginfod_find_* ()
+acts in ignore mode.
+
+If accessed across HTTP rather than HTTPS, the
+network should be trustworthy.  Authentication information through
+the internal \fIlibcurl\fP library is not currently enabled, except
 for the basic plaintext \%\fIhttp[s]://userid:password@hostname/\fP style.
 (The debuginfod server does not perform authentication, but a front-end
 proxy server could.)
@@ -324,6 +344,18 @@ Query failed due to timeout. \fB$DEBUGINFOD_TIMEOUT\fP and
 .BR EF2BIG
 Query aborted due to the file requested being too big.  The
 \fB$DEBUGINFOD_MAXSIZE\fP controls this.
+
+.TP
+.BR EBADMSG
+File content failed IMA verification against a known signer certificate.
+
+.TP
+.BR ENOKEY
+File content failed IMA verification due to missing signer certificate.
+
+.TP
+.BR ENODATA
+File content failed IMA verification because of a missing signature.
 
 .nr zZ 1
 .so man7/debuginfod-client-config.7

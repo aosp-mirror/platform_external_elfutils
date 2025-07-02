@@ -559,7 +559,7 @@ dwfl_core_file_report (Dwfl *dwfl, Elf *elf, const char *executable)
   ndx = 0;
   do
     {
-      int seg = dwfl_segment_report_module (dwfl, ndx, NULL,
+      int seg = dwfl_segment_report_module (dwfl, ndx, NULL, executable,
 					    &dwfl_elf_phdr_memory_callback, elf,
 					    core_file_read_eagerly, elf,
 					    elf->maximum_size,

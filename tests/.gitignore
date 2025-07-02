@@ -41,6 +41,7 @@
 /dwarf_default_lower_bound
 /dwarfcfi
 /dwelf_elf_e_machine_string
+/dwarf_language_lower_bound
 /dwelfgnucompressed
 /dwfl-addr-sect
 /dwfl-bug-addr-overflow
@@ -67,13 +68,19 @@
 /elfstrtab
 /elf-print-reloc-syms
 /emptyfile
+/eu_search_cfi
+/eu_search_macros
+/eu_search_lines
+/eu_search_die
 /fillfile
 /find-prologues
 /funcretval
 /funcretval_test++11
+/funcretval_test_struct
 /funcscopes
 /get-aranges
 /get-files
+/get-files-define-file
 /get-lines
 /get-pubnames
 /get-units-invalid
@@ -81,6 +88,7 @@
 /getphdrnum
 /getsrc_die
 /hash
+/libelf.h
 /leb128
 /line2addr
 /low_high_pc
@@ -88,6 +96,7 @@
 /newdata
 /newfile
 /newscn
+/newzdata
 /next-files
 /next-lines
 /next_cfi
@@ -104,8 +113,10 @@
 /showptable
 /strptr
 /system-elf-libelf-test
+/system-elf-gelf-test
 /test-elf_cntl_gelf_getshdr
 /test-flag-nobits
+/test-manyfuncs
 /test-nlist
 /typeiter
 /typeiter2

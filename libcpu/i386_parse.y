@@ -1158,7 +1158,7 @@ instrtable_out (void)
   EMIT_SUFFIX (w1);
   EMIT_SUFFIX (W1);
 
-  fputc_unlocked ('\n', outfile);
+  fputc ('\n', outfile);
 
   for (int i = 0; i < 3; ++i)
     {
@@ -1333,7 +1333,7 @@ instrtable_out (void)
 	  b = b->next;
 	}
 
-      fputc_unlocked ('\n', outfile);
+      fputc ('\n', outfile);
     }
   fputs ("};\n", outfile);
 }

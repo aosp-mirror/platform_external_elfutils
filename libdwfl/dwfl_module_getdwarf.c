@@ -1,5 +1,5 @@
 /* Find debugging and symbol information for a module in libdwfl.
-   Copyright (C) 2005-2012, 2014, 2015 Red Hat, Inc.
+   Copyright (C) 2005-2012, 2014, 2015, 2025 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -35,6 +35,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include "libdwP.h"	/* DWARF_E_* values are here.  */
+#include "libdwfl_stacktraceP.h" /* want the INTDECLS */
 #include "libelfP.h"
 #include "system.h"
 
@@ -78,6 +79,13 @@ open_elf (Dwfl_Module *mod, struct dwfl_file *file)
   Dwfl_Error error = open_elf_file (&file->elf, &file->fd, &file->name);
   if (error != DWFL_E_NOERROR)
     return error;
+
+  /* Cache file->elf in Dwflst_Process_Tracker if available: */
+  if (mod->dwfl->tracker != NULL && file->name != NULL)
+    {
+      INTUSE(dwflst_tracker_cache_elf) (mod->dwfl->tracker, file->name,
+					file->name, file->elf, file->fd);
+    }
 
   GElf_Ehdr ehdr_mem, *ehdr = gelf_getehdr (file->elf, &ehdr_mem);
   if (ehdr == NULL)

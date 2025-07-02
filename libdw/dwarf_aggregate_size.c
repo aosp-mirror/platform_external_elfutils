@@ -1,5 +1,6 @@
 /* Compute size of an aggregate type from DWARF.
    Copyright (C) 2010, 2014, 2016 Red Hat, Inc.
+   Copyright (C) 2025, Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -131,10 +132,11 @@ array_size (Dwarf_Die *die, Dwarf_Word *size,
 		}
 	      else
 		{
+		  Dwarf_Word lang;
 		  Dwarf_Die cu = CUDIE (die->cu);
-		  int lang = INTUSE(dwarf_srclang) (&cu);
-		  if (lang == -1
-		      || INTUSE(dwarf_default_lower_bound) (lang, &lower) != 0)
+		  int res = INTUSE(dwarf_language) (&cu, &lang, NULL);
+		  if (res < 0
+		      || INTUSE(dwarf_language_lower_bound) (lang, &lower) != 0)
 		    return -1;
 		}
 	      if (unlikely (lower > upper))

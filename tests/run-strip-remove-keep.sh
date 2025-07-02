@@ -63,6 +63,10 @@ Section Headers:
 [24] .strtab              STRTAB       00000000 0007d8 000235  0        0   0  1
 [25] .gnu_debuglink       PROGBITS     00000000 000a10 000014  0        0   0  4
 [26] .shstrtab            STRTAB       00000000 000a24 0000d1  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 echo readelf testfile.debug
@@ -106,6 +110,10 @@ Section Headers:
 [32] .shstrtab            STRTAB       00000000 003d36 00012e  0        0   0  1
 [33] .symtab              SYMTAB       00000000 003e64 0005a0 16       34  68  4
 [34] .strtab              STRTAB       00000000 004404 000235  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 
@@ -150,6 +158,10 @@ Section Headers:
 [25] .strtab              STRTAB       00000000 000ce8 000235  0        0   0  1
 [26] .gnu_debuglink       PROGBITS     00000000 000f20 000014  0        0   0  4
 [27] .shstrtab            STRTAB       00000000 000f34 0000d9  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 echo readelf testfile.debug
@@ -193,6 +205,10 @@ Section Headers:
 [32] .shstrtab            STRTAB       00000000 003d36 00012e  0        0   0  1
 [33] .symtab              NOBITS       00000000 003e64 0005a0 16       34  68  4
 [34] .strtab              NOBITS       00000000 003e64 000235  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 
@@ -238,6 +254,10 @@ Section Headers:
 [24] .strtab              STRTAB       0000000000000000 0000085c 00000175  0        0   0  1
 [25] .gnu_debuglink       PROGBITS     0000000000000000 000009d4 00000014  0        0   0  4
 [26] .shstrtab            STRTAB       0000000000000000 000009e8 000000ee  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 echo readelf testfile.debug
@@ -273,6 +293,10 @@ Section Headers:
 [24] .shstrtab            STRTAB       0000000000000000 000001c0 000000e7  0        0   0  1
 [25] .symtab              SYMTAB       0000000000000000 000002a8 000004f8 24       26  44  8
 [26] .strtab              STRTAB       0000000000000000 000007a0 00000175  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 
@@ -317,6 +341,10 @@ Section Headers:
 [24] .strtab              STRTAB       0000000000000000 00000d10 00000175  0        0   0  1
 [25] .gnu_debuglink       PROGBITS     0000000000000000 00000e88 00000014  0        0   0  4
 [26] .shstrtab            STRTAB       0000000000000000 00000e9c 000000ed  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 echo readelf testfile.debug
@@ -352,6 +380,10 @@ Section Headers:
 [24] .shstrtab            STRTAB       0000000000000000 000001ec 000000e7  0        0   0  1
 [25] .symtab              NOBITS       0000000000000000 000002d8 000004f8 24       26  44  8
 [26] .strtab              NOBITS       0000000000000000 000002d8 00000175  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 
@@ -396,6 +428,10 @@ Section Headers:
 [25] .strtab              STRTAB       00000000 0007d8 000235  0        0   0  1
 [26] .gnu_debuglink       PROGBITS     00000000 000a10 000014  0        0   0  4
 [27] .shstrtab            STRTAB       00000000 000a24 0000d7  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 echo readelf testfile.debug
@@ -439,6 +475,10 @@ Section Headers:
 [32] .shstrtab            STRTAB       00000000 003d36 00012e  0        0   0  1
 [33] .symtab              SYMTAB       00000000 003e64 0005a0 16       34  68  4
 [34] .strtab              STRTAB       00000000 004404 000235  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 
@@ -484,6 +524,10 @@ Section Headers:
 [26] .note                NOTE         00000000 00278c 0000a0  0        0   0  1
 [27] .gnu_debuglink       PROGBITS     00000000 00282c 000014  0        0   0  4
 [28] .shstrtab            STRTAB       00000000 002840 0000de  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 echo readelf testfile.debug
@@ -527,6 +571,10 @@ Section Headers:
 [32] .shstrtab            STRTAB       00000000 001ce2 00012e  0        0   0  1
 [33] .symtab              SYMTAB       00000000 001e10 0005a0 16       34  68  4
 [34] .strtab              STRTAB       00000000 0023b0 000235  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 
@@ -570,6 +618,10 @@ Section Headers:
 [24] .strtab              STRTAB       0000000000000000 0000085c 00000175  0        0   0  1
 [25] .gnu_debuglink       PROGBITS     0000000000000000 000009d4 00000014  0        0   0  4
 [26] .shstrtab            STRTAB       0000000000000000 000009e8 000000ee  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 echo readelf testfile.debug
@@ -605,6 +657,10 @@ Section Headers:
 [24] .shstrtab            STRTAB       0000000000000000 000001c0 000000e7  0        0   0  1
 [25] .symtab              SYMTAB       0000000000000000 000002a8 000004f8 24       26  44  8
 [26] .strtab              STRTAB       0000000000000000 000007a0 00000175  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 
@@ -647,6 +703,10 @@ Section Headers:
 [23] .comment             PROGBITS     0000000000000000 00000830 0000002c  1 MS     0   0  1
 [24] .gnu_debuglink       PROGBITS     0000000000000000 0000085c 00000014  0        0   0  4
 [25] .shstrtab            STRTAB       0000000000000000 00000870 000000e6  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 echo readelf testfile.debug
@@ -682,6 +742,10 @@ Section Headers:
 [24] .shstrtab            STRTAB       0000000000000000 000001c0 000000e7  0        0   0  1
 [25] .symtab              SYMTAB       0000000000000000 000002a8 000004f8 24       26  44  8
 [26] .strtab              STRTAB       0000000000000000 000007a0 00000175  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 

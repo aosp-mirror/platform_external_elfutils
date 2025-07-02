@@ -7,6 +7,13 @@ License: GPLv3+ and (GPLv2+ or LGPLv3+) and GFDL
 Source: ftp://sourceware.org/pub/elfutils/%{version}/elfutils-%{version}.tar.bz2
 Summary: A collection of utilities and DSOs to handle ELF files and DWARF data
 
+# eu-stacktrace currently only supports x86_64
+%ifarch x86_64
+%global enable_stacktrace 1
+%else
+%global enable_stacktrace 0
+%endif
+
 Requires: elfutils-libelf = %{version}-%{release}
 Requires: elfutils-libs = %{version}-%{release}
 # Can be a Recommends if rpm supports that
@@ -31,6 +38,8 @@ BuildRequires: pkgconfig(libmicrohttpd) >= 0.9.33
 BuildRequires: pkgconfig(libcurl) >= 7.29.0
 BuildRequires: pkgconfig(sqlite3) >= 3.7.17
 BuildRequires: pkgconfig(libarchive) >= 3.1.2
+# For debugindod metadata query
+BuildRequires: pkgconfig(json-c) >= 0.11
 
 # For tests need to bunzip2 test files.
 BuildRequires: bzip2
@@ -42,6 +51,19 @@ BuildRequires: bsdtar
 BuildRequires: curl
 # For run-debuginfod-response-headers.sh test case
 BuildRequires: socat
+# For run-debuginfod-find-metadata.sh
+BuildRequires: jq
+
+# For debuginfod rpm IMA verification
+BuildRequires: rpm-devel
+BuildRequires: ima-evm-utils-devel
+BuildRequires: openssl-devel
+BuildRequires: rpm-sign
+
+# For eu-stacktrace
+%if %{enable_stacktrace}
+BuildRequires: sysprof-capture-devel
+%endif
 
 %define _gnu %{nil}
 %define _programprefix eu-
@@ -187,7 +209,13 @@ such servers to download those files on demand.
 %setup -q
 
 %build
-%configure --program-prefix=%{_programprefix} --enable-debuginfod --enable-debuginfod-urls
+%configure --program-prefix=%{_programprefix} \
+           --enable-debuginfod \
+           --enable-debuginfod-urls=https://debuginfod.elfutils.org/ \
+%if %{enable_stacktrace}
+           --enable-stacktrace \
+%endif
+           --enable-debuginfod-ima-verification
 make -s %{?_smp_mflags}
 
 %install
@@ -233,7 +261,7 @@ fi
 
 %files
 %license COPYING COPYING-GPLV2 COPYING-LGPLV3 doc/COPYING-GFDL
-%doc README TODO CONTRIBUTING SECURITY
+%doc README TODO CONTRIBUTING SECURITY CONDUCT
 %{_bindir}/eu-addr2line
 %{_bindir}/eu-ar
 %{_bindir}/eu-elfclassify
@@ -249,6 +277,9 @@ fi
 %{_bindir}/eu-size
 %{_bindir}/eu-srcfiles
 %{_bindir}/eu-stack
+%if %{enable_stacktrace}
+%{_bindir}/eu-stacktrace
+%endif
 %{_bindir}/eu-strings
 %{_bindir}/eu-strip
 %{_bindir}/eu-unstrip
@@ -269,6 +300,7 @@ fi
 #%%{_includedir}/elfutils/libasm.h
 %{_includedir}/elfutils/libdw.h
 %{_includedir}/elfutils/libdwfl.h
+%{_includedir}/elfutils/libdwfl_stacktrace.h
 %{_includedir}/elfutils/libdwelf.h
 %{_includedir}/elfutils/version.h
 #%%{_libdir}/libasm.so
@@ -292,6 +324,9 @@ fi
 %{_libdir}/libelf.so
 %{_libdir}/pkgconfig/libelf.pc
 %{_mandir}/man3/elf_*.3*
+%{_mandir}/man3/elf32_*.3*
+%{_mandir}/man3/elf64_*.3*
+%{_mandir}/man3/libelf.3*
 
 %files libelf-devel-static
 %{_libdir}/libelf.a
@@ -307,6 +342,7 @@ fi
 %{_mandir}/man1/debuginfod-find.1*
 %{_mandir}/man7/debuginfod*.7*
 %config(noreplace) %{_sysconfdir}/profile.d/*
+%config(noreplace) %{_datadir}/fish/vendor_conf.d/debuginfod.fish
 %config(noreplace) %{_sysconfdir}/debuginfod/*
   
 %files debuginfod-client-devel
@@ -342,6 +378,42 @@ exit 0
 %systemd_postun_with_restart debuginfod.service
 
 %changelog
+* Fri Apr 25 2025 Aaron Merey <amerey@redhat.com> 0.193-1
+- debuginfod: Add CORS (webapp access) support to webapi and --cors 
+  option.
+- Add --listen-address option for binding the HTTP listen socket to a
+  specific IPv4 or IPv6 address.
+- debuginfod client now caches x-debuginfod-* HTTP headers alongside
+  downloaded files.
+- libdw: Add dwarf_language and dwarf_language_lower_bound functions.
+- Improved support for DWARF6 language metadata as well as DWARF language
+  constants for Nim, Dylan, Algol68, V and Mojo.
+- dwarf_srclang is now forward-compatible with DWARF6 language constants.
+- libdwfl_stacktrace: Experimental new library interface for unwinding
+  stack samples into call chains, and tracking and caching Elf data for
+  multiple processes, building on libdwfl.  Initially supports perf_events
+  stack sample data.
+- libelf: elf_scnshndx has been rewritten to be more robust, particularily
+  for ELF files with more than 64K sections.
+- readelf: Improved handling of corrupt ELF data.
+- --section-headers output now includes a "Key to Flags" explaining section
+  flag meanings.
+
+* Fri Oct 18 2024 Aaron Merey <amerey@redhat.com> 0.192-1
+- CONDUCT: A new code of conduct has been adopted.  See the CONDUCT file
+  for more information.
+- debuginfod: Add per-file signature verification for integrity checking,
+  using RPM IMA scheme from Fedora/RHEL.
+- New API for metadata queries: file name -> buildid.
+- Server-side extraction of files from kernel debuginfo packages is
+  significantly faster. Now takes < 0.25 seconds, down from ~50 seconds.
+- libdw: New function dwfl_set_sysroot.
+- stacktrace: Experimental new tool that can process a stream of stack
+  samples from the Sysprof profiler and unwind them into call chains.
+  Enable on x86 with --enable-stacktrace. See README.eu-stacktrace in the
+  development branch for detailed usage instructions:
+  https://sourceware.org/cgit/elfutils/tree/README.eu-stacktrace?h=users/serhei/eu-stacktrace
+
 * Fri Mar  1 2024 Aaron Merey <amerey@redhat.com> 0.191-1
 - dwarf_addrdie now supports binaries lacking a .debug_aranges
   section.

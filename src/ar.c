@@ -41,6 +41,7 @@
 #include <system.h>
 #include <printversion.h>
 
+#include "libeu.h"
 #include "arlib.h"
 
 
@@ -154,10 +155,11 @@ main (int argc, char *argv[])
 
   /* For historical reasons the options in the first parameter need
      not be preceded by a dash.  Add it now if necessary.  */
+  char *newp = NULL;
   if (argc > 1 && argv[1][0] != '-')
     {
       size_t len = strlen (argv[1]) + 1;
-      char *newp = alloca (len + 1);
+      newp = (char *) xmalloc (len + 1);
       newp[0] = '-';
       memcpy (&newp[1], argv[1], len);
       argv[1] = newp;
@@ -270,6 +272,8 @@ MEMBER parameter required for 'a', 'b', and 'i' modifiers"));
       status = 1;
       break;
     }
+
+  free (newp);
 
   return status;
 }
@@ -804,9 +808,9 @@ cannot rename temporary file to %.*s"),
 	      if (fchown (newfd, st.st_uid, st.st_gid) != 0) { ; }
 	      /* Set the mode of the new file to the same values the
 		 original file has.  */
-	      if (fchmod (newfd, st.st_mode & ALLPERMS) != 0
-		  || close (newfd) != 0)
+	      if (fchmod (newfd, st.st_mode & ALLPERMS) != 0)
 		goto nonew_unlink;
+	      close (newfd);
 	      newfd = -1;
 	      if (rename (tmpfname, arfname) != 0)
 		goto nonew_unlink;
@@ -1057,9 +1061,9 @@ do_oper_delete (const char *arfname, char **argv, int argc,
      setting the mode (which might be reset/ignored if the owner is
      wrong.  */
   if (fchown (newfd, st.st_uid, st.st_gid) != 0) { ; }
-  if (fchmod (newfd, st.st_mode & ALLPERMS) != 0
-      || close (newfd) != 0)
+  if (fchmod (newfd, st.st_mode & ALLPERMS) != 0)
     goto nonew_unlink;
+  close (newfd);
   newfd = -1;
   if (rename (tmpfname, arfname) != 0)
     goto nonew_unlink;
@@ -1543,9 +1547,9 @@ do_oper_insert (int oper, const char *arfname, char **argv, int argc,
 	 setting the modes, or they might be reset/ignored if the
 	 owner is wrong.  */
       if (fchown (newfd, st.st_uid, st.st_gid) != 0) { ; }
-      if (fchmod (newfd, st.st_mode & ALLPERMS) != 0
-	  || close (newfd) != 0)
+      if (fchmod (newfd, st.st_mode & ALLPERMS) != 0)
         goto nonew_unlink;
+      close (newfd);
       newfd = -1;
       if (rename (tmpfname, arfname) != 0)
 	goto nonew_unlink;

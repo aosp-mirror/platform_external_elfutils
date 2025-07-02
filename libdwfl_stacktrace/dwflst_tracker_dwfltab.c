@@ -1,5 +1,5 @@
-/* Conditional wrapper header for C11-style atomics.
-   Copyright (C) 2019-2019 Red Hat, Inc.
+/* Dwflst_Process_Tracker Dwfl table implementation.
+   Copyright (C) 2025 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -26,12 +26,19 @@
    the GNU Lesser General Public License along with this program.  If
    not, see <http://www.gnu.org/licenses/>.  */
 
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
-#if HAVE_STDATOMIC_H
-/* If possible, use the compiler's preferred atomics.  */
-# include <stdatomic.h>
-#else
-/* Otherwise, try to use the builtins provided by this compiler.  */
-# include "stdatomic-fbsd.h"
-#endif /* HAVE_STDATOMIC_H */
+#include <libdwfl_stacktraceP.h>
+
+/* Definitions for the Dwfl table. */
+#define TYPE dwflst_tracker_dwfl_info *
+#define NAME dwflst_tracker_dwfltab
+#define ITERATE 1
+#define COMPARE(a, b) \
+  ((a->invalid && b->invalid) || \
+   (!a->invalid && !b->invalid && \
+    (a)->dwfl->process->pid == (b)->dwfl->process->pid))
+
+#include "../lib/dynamicsizehash_concurrent.c"

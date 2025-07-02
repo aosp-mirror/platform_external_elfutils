@@ -416,7 +416,20 @@ report_r_debug (uint_fast8_t elfclass, uint_fast8_t elfdata,
       if (name != NULL)
 	{
 	  /* This code is mostly inlined dwfl_report_elf.  */
-	  // XXX hook for sysroot
+	  char *sysroot_name = NULL;
+	  const char *sysroot = dwfl->sysroot;
+
+	  /* Don't use the sysroot if the path is already inside it.  */
+	  bool name_in_sysroot = sysroot && startswith (name, sysroot);
+
+	  if (sysroot && !name_in_sysroot)
+	    {
+	      if (asprintf (&sysroot_name, "%s%s", sysroot, name) < 0)
+		return release_buffer (&memory_closure, &buffer, &buffer_available, -1);
+
+	      name = sysroot_name;
+	    }
+
 	  int fd = open (name, O_RDONLY);
 	  if (fd >= 0)
 	    {
@@ -502,6 +515,7 @@ report_r_debug (uint_fast8_t elfclass, uint_fast8_t elfdata,
 		    close (fd);
 		}
 	    }
+	  free(sysroot_name);
 	}
 
       if (mod != NULL)

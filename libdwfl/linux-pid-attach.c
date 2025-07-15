@@ -1,5 +1,5 @@
 /* Get Dwarf Frame state for target live PID process.
-   Copyright (C) 2013, 2014, 2015, 2018 Red Hat, Inc.
+   Copyright (C) 2013, 2014, 2015, 2018, 2025 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -304,18 +304,25 @@ pid_getthread (Dwfl *dwfl __attribute__ ((unused)), pid_t tid,
 
 /* Implement the ebl_set_initial_registers_tid setfunc callback.  */
 
-static bool
-pid_thread_state_registers_cb (int firstreg, unsigned nregs,
-			       const Dwarf_Word *regs, void *arg)
+bool
+/* XXX No internal_function annotation,
+   as this function gets passed as ebl_tid_registers_t *.  */
+__libdwfl_set_initial_registers_thread (int firstreg, unsigned nregs,
+				   const Dwarf_Word *regs, void *arg)
 {
   Dwfl_Thread *thread = (Dwfl_Thread *) arg;
-  if (firstreg < 0)
+  if (firstreg == -1)
     {
-      assert (firstreg == -1);
       assert (nregs == 1);
       INTUSE(dwfl_thread_state_register_pc) (thread, *regs);
       return true;
     }
+  else if (firstreg == -2)
+    {
+      assert (nregs == 1);
+      INTUSE(dwfl_thread_state_registers) (thread, firstreg, nregs, regs);
+      return true;
+     }
   assert (nregs > 0);
   return INTUSE(dwfl_thread_state_registers) (thread, firstreg, nregs, regs);
 }
@@ -333,7 +340,7 @@ pid_set_initial_registers (Dwfl_Thread *thread, void *thread_arg)
   Dwfl_Process *process = thread->process;
   Ebl *ebl = process->ebl;
   return ebl_set_initial_registers_tid (ebl, tid,
-					pid_thread_state_registers_cb, thread);
+					__libdwfl_set_initial_registers_thread, thread);
 }
 
 static void

@@ -166,5 +166,6 @@ main (int argc, char *argv[] __attribute__ ((unused)))
       (void) elf_end (elf);
     }
 
+  close (fd);
   return result;
 }

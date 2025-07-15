@@ -87,7 +87,10 @@ aarch64_register_info (Ebl *ebl __attribute__ ((unused)),
     case 33:
       return regtype ("integer", DW_ATE_address, "elr");
 
-    case 34 ... 63:
+    case 34:
+      return regtype ("integer", DW_ATE_unsigned, "ra_sign_state");
+
+    case 35 ... 63:
       return 0;
 
     case 64 ... 95:

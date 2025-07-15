@@ -21,6 +21,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <gelf.h>
+#include <unistd.h>
 
 int
 main (int argc, char **argv)
@@ -38,5 +39,6 @@ main (int argc, char **argv)
     elf_flagdata (elf_getdata (scn, NULL), ELF_C_SET, ELF_F_DIRTY);
 
   elf_end (stripped);
+  close (fd);
   return 0;
 }

@@ -53,8 +53,7 @@ __libdw_findabbrev (struct Dwarf_CU *cu, unsigned int code)
 
 	/* Find the next entry.  It gets automatically added to the
 	   hash table.  */
-	abb = __libdw_getabbrev (cu->dbg, cu, cu->last_abbrev_offset, &length,
-				 NULL);
+	abb = __libdw_getabbrev (cu->dbg, cu, cu->last_abbrev_offset, &length);
 	if (abb == NULL || abb == DWARF_END_ABBREV)
 	  {
 	    /* Make sure we do not try to search for it again.  */

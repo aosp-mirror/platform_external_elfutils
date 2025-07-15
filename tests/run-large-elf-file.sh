@@ -84,7 +84,7 @@ test_file ()
   echo "addsections 2 ${in_file} 2147483648"
   testrun ${abs_builddir}/addsections 2 ${in_file} 2147483648
   testrun ${abs_top_builddir}/src/readelf -S ${in_file} > ${readelf_out}
-  nr=$(grep '.extra' ${readelf_out} | wc -l)
+  nr=$(grep '\.extra' ${readelf_out} | wc -l)
   if test ${nr} != 2; then
     # Show what went wrong
     cat ${readelf_out}

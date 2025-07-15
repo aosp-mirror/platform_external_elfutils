@@ -354,11 +354,11 @@ valid_p (Dwarf *result)
 	  result->fake_loc_cu->endp
 	    = (result->sectiondata[IDX_debug_loc]->d_buf
 	       + result->sectiondata[IDX_debug_loc]->d_size);
-	  result->fake_loc_cu->locs = NULL;
 	  result->fake_loc_cu->address_size = elf_addr_size;
 	  result->fake_loc_cu->offset_size = 4;
 	  result->fake_loc_cu->version = 4;
 	  result->fake_loc_cu->split = NULL;
+	  eu_search_tree_init (&result->fake_loc_cu->locs_tree);
 	}
     }
 
@@ -382,11 +382,11 @@ valid_p (Dwarf *result)
 	  result->fake_loclists_cu->endp
 	    = (result->sectiondata[IDX_debug_loclists]->d_buf
 	       + result->sectiondata[IDX_debug_loclists]->d_size);
-	  result->fake_loclists_cu->locs = NULL;
 	  result->fake_loclists_cu->address_size = elf_addr_size;
 	  result->fake_loclists_cu->offset_size = 4;
 	  result->fake_loclists_cu->version = 5;
 	  result->fake_loclists_cu->split = NULL;
+	  eu_search_tree_init (&result->fake_loclists_cu->locs_tree);
 	}
     }
 
@@ -415,11 +415,11 @@ valid_p (Dwarf *result)
 	  result->fake_addr_cu->endp
 	    = (result->sectiondata[IDX_debug_addr]->d_buf
 	       + result->sectiondata[IDX_debug_addr]->d_size);
-	  result->fake_addr_cu->locs = NULL;
 	  result->fake_addr_cu->address_size = elf_addr_size;
 	  result->fake_addr_cu->offset_size = 4;
 	  result->fake_addr_cu->version = 5;
 	  result->fake_addr_cu->split = NULL;
+	  eu_search_tree_init (&result->fake_addr_cu->locs_tree);
 	}
     }
 
@@ -579,6 +579,14 @@ dwarf_begin_elf (Elf *elf, Dwarf_Cmd cmd, Elf_Scn *scngrp)
       __libdw_seterrno (DWARF_E_NOMEM); /* no memory.  */
       return NULL;
     }
+  mutex_init (result->dwarf_lock);
+  mutex_init (result->macro_lock);
+  eu_search_tree_init (&result->cu_tree);
+  eu_search_tree_init (&result->tu_tree);
+  eu_search_tree_init (&result->split_tree);
+  eu_search_tree_init (&result->macro_ops_tree);
+  eu_search_tree_init (&result->files_lines_tree);
+
   result->mem_stacks = 0;
   result->mem_tails = NULL;
 

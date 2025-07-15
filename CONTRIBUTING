@@ -139,4 +139,5 @@ https://builder.sourceware.org/buildbot/#/builders?tags=elfutils-try
 committers/maintainers who repeatedly ignore the above guidelines,
 are hostile or offensive towards other committers or contributors,
 and don't correct their behavior after being asked by other committers
-will be removed as maintainer/committer.
+will be removed as maintainer/committer.  See the CONDUCT file for more
+information regarding the elfutils code of conduct.

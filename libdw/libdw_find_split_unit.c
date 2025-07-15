@@ -32,9 +32,9 @@
 
 #include "libdwP.h"
 #include "libelfP.h"
+#include "eu-search.h"
 
 #include <limits.h>
-#include <search.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -57,8 +57,8 @@ try_split_file (Dwarf_CU *cu, const char *dwo_path)
 	      if (split->unit_type == DW_UT_split_compile
 		  && cu->unit_id8 == split->unit_id8)
 		{
-		  if (tsearch (split->dbg, &cu->dbg->split_tree,
-			       __libdw_finddbg_cb) == NULL)
+		  if (eu_tsearch (split->dbg, &cu->dbg->split_tree,
+				  __libdw_finddbg_cb) == NULL)
 		    {
 		      /* Something went wrong.  Don't link.  */
 		      __libdw_seterrno (DWARF_E_NOMEM);
@@ -132,8 +132,8 @@ try_dwp_file (Dwarf_CU *cu)
 					       cu->unit_id8);
       if (split != NULL)
 	{
-	  if (tsearch (split->dbg, &cu->dbg->split_tree,
-		       __libdw_finddbg_cb) == NULL)
+	  if (eu_tsearch (split->dbg, &cu->dbg->split_tree,
+			  __libdw_finddbg_cb) == NULL)
 	    {
 	      /* Something went wrong.  Don't link.  */
 	      __libdw_seterrno (DWARF_E_NOMEM);
@@ -150,9 +150,18 @@ Dwarf_CU *
 internal_function
 __libdw_find_split_unit (Dwarf_CU *cu)
 {
+  /* Set result before releasing the lock.  */
+  Dwarf_CU *result;
+
+  rwlock_wrlock(cu->split_lock);
+
   /* Only try once.  */
   if (cu->split != (Dwarf_CU *) -1)
-    return cu->split;
+    {
+      result = cu->split;
+      rwlock_unlock(cu->split_lock);
+      return result;
+    }
 
   /* We need a skeleton unit with a comp_dir and [GNU_]dwo_name attributes.
      The split unit will be the first in the dwo file and should have the
@@ -207,5 +216,7 @@ __libdw_find_split_unit (Dwarf_CU *cu)
   if (cu->split == (Dwarf_CU *) -1)
     cu->split = NULL;
 
-  return cu->split;
+  result = cu->split;
+  rwlock_unlock(cu->split_lock);
+  return result;
 }

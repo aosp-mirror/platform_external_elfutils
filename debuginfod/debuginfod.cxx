@@ -49,6 +49,11 @@ extern "C" {
 #include <execinfo.h>
 }
 #endif
+#ifdef HAVE_MALLOC_H
+extern "C" {
+#include <malloc.h>
+}
+#endif
 
 #include "debuginfod.h"
 #include <dwarf.h>
@@ -56,6 +61,10 @@ extern "C" {
 #include <argp.h>
 #ifdef __GNUC__
 #undef __attribute__ /* glibc bug - rhbz 1763325 */
+#endif
+
+#ifdef USE_LZMA
+#include <lzma.h>
 #endif
 
 #include <unistd.h>
@@ -71,6 +80,8 @@ extern "C" {
 #include <netdb.h>
 #include <math.h>
 #include <float.h>
+#include <fnmatch.h>
+#include <arpa/inet.h>
 
 
 /* If fts.h is included before config.h, its indirect inclusions may not
@@ -117,6 +128,13 @@ using namespace std;
 #define MHD_RESULT int
 #endif
 
+#ifdef ENABLE_IMA_VERIFICATION
+  #include <rpm/rpmlib.h>
+  #include <rpm/rpmfi.h>
+  #include <rpm/header.h>
+  #include <glob.h>
+#endif
+
 #include <curl/curl.h>
 #include <archive.h>
 #include <archive_entry.h>
@@ -136,6 +154,7 @@ extern "C" {
 #include "printversion.h"
 #include "system.h"
 }
+#include <json-c/json.h>
 
 
 inline bool
@@ -208,7 +227,7 @@ static const char DEBUGINFOD_SQLITE_DDL[] =
   "        foreign key (buildid) references " BUILDIDS "_buildids(id) on update cascade on delete cascade,\n"
   "        primary key (buildid, file, mtime)\n"
   "        ) " WITHOUT_ROWID ";\n"
-  // Index for faster delete by file identifier
+  // Index for faster delete by file identifier and metadata searches
   "create index if not exists " BUILDIDS "_f_de_idx on " BUILDIDS "_f_de (file, mtime);\n"
   "create table if not exists " BUILDIDS "_f_s (\n"
   "        buildid integer not null,\n"
@@ -234,6 +253,8 @@ static const char DEBUGINFOD_SQLITE_DDL[] =
   "        ) " WITHOUT_ROWID ";\n"
   // Index for faster delete by archive file identifier
   "create index if not exists " BUILDIDS "_r_de_idx on " BUILDIDS "_r_de (file, mtime);\n"
+  // Index for metadata searches
+  "create index if not exists " BUILDIDS "_r_de_idx2 on " BUILDIDS "_r_de (content);\n"  
   "create table if not exists " BUILDIDS "_r_sref (\n" // outgoing dwarf sourcefile references from rpm
   "        buildid integer not null,\n"
   "        artifactsrc integer not null,\n"
@@ -249,25 +270,39 @@ static const char DEBUGINFOD_SQLITE_DDL[] =
   "        foreign key (content) references " BUILDIDS "_files(id) on update cascade on delete cascade,\n"
   "        primary key (content, file, mtime)\n"
   "        ) " WITHOUT_ROWID ";\n"
+  "create table if not exists " BUILDIDS "_r_seekable (\n" // seekable rpm contents
+  "        file integer not null,\n"
+  "        content integer not null,\n"
+  "        type text not null,\n"
+  "        size integer not null,\n"
+  "        offset integer not null,\n"
+  "        mtime integer not null,\n"
+  "        foreign key (file) references " BUILDIDS "_files(id) on update cascade on delete cascade,\n"
+  "        foreign key (content) references " BUILDIDS "_files(id) on update cascade on delete cascade,\n"
+  "        primary key (file, content)\n"
+  "        ) " WITHOUT_ROWID ";\n"
   // create views to glue together some of the above tables, for webapi D queries
-  "create view if not exists " BUILDIDS "_query_d as \n"
+  // NB: _query_d2 and _query_e2 were added to replace _query_d and _query_e
+  // without updating BUILDIDS.  They can be renamed back the next time BUILDIDS
+  // is updated.
+  "create view if not exists " BUILDIDS "_query_d2 as \n"
   "select\n"
-  "        b.hex as buildid, n.mtime, 'F' as sourcetype, f0.name as source0, n.mtime as mtime, null as source1\n"
+  "        b.hex as buildid, 'F' as sourcetype, n.file as id0, f0.name as source0, n.mtime as mtime, null as id1, null as source1\n"
   "        from " BUILDIDS "_buildids b, " BUILDIDS "_files_v f0, " BUILDIDS "_f_de n\n"
   "        where b.id = n.buildid and f0.id = n.file and n.debuginfo_p = 1\n"
   "union all select\n"
-  "        b.hex as buildid, n.mtime, 'R' as sourcetype, f0.name as source0, n.mtime as mtime, f1.name as source1\n"
+  "        b.hex as buildid, 'R' as sourcetype, n.file as id0, f0.name as source0, n.mtime as mtime, n.content as id1, f1.name as source1\n"
   "        from " BUILDIDS "_buildids b, " BUILDIDS "_files_v f0, " BUILDIDS "_files_v f1, " BUILDIDS "_r_de n\n"
   "        where b.id = n.buildid and f0.id = n.file and f1.id = n.content and n.debuginfo_p = 1\n"
   ";"
   // ... and for E queries
-  "create view if not exists " BUILDIDS "_query_e as \n"
+  "create view if not exists " BUILDIDS "_query_e2 as \n"
   "select\n"
-  "        b.hex as buildid, n.mtime, 'F' as sourcetype, f0.name as source0, n.mtime as mtime, null as source1\n"
+  "        b.hex as buildid, 'F' as sourcetype, n.file as id0, f0.name as source0, n.mtime as mtime, null as id1, null as source1\n"
   "        from " BUILDIDS "_buildids b, " BUILDIDS "_files_v f0, " BUILDIDS "_f_de n\n"
   "        where b.id = n.buildid and f0.id = n.file and n.executable_p = 1\n"
   "union all select\n"
-  "        b.hex as buildid, n.mtime, 'R' as sourcetype, f0.name as source0, n.mtime as mtime, f1.name as source1\n"
+  "        b.hex as buildid, 'R' as sourcetype, n.file as id0, f0.name as source0, n.mtime as mtime, n.content as id1, f1.name as source1\n"
   "        from " BUILDIDS "_buildids b, " BUILDIDS "_files_v f0, " BUILDIDS "_files_v f1, " BUILDIDS "_r_de n\n"
   "        where b.id = n.buildid and f0.id = n.file and f1.id = n.content and n.executable_p = 1\n"
   ";"
@@ -414,6 +449,8 @@ static const struct argp_option options[] =
    { "include", 'I', "REGEX", 0, "Include files matching REGEX, default=all.", 0 },
    { "exclude", 'X', "REGEX", 0, "Exclude files matching REGEX, default=none.", 0 },
    { "port", 'p', "NUM", 0, "HTTP port to listen on, default 8002.", 0 },
+#define ARGP_KEY_CORS 0x1000
+   { "cors", ARGP_KEY_CORS, NULL, 0, "Add CORS response headers to HTTP queries, default no.", 0 },
    { "database", 'd', "FILE", 0, "Path to sqlite database.", 0 },
    { "ddl", 'D', "SQL", 0, "Apply extra sqlite ddl/pragma to connection.", 0 },
    { "verbose", 'v', NULL, 0, "Increase verbosity.", 0 },
@@ -438,6 +475,15 @@ static const struct argp_option options[] =
    { "disable-source-scan", ARGP_KEY_DISABLE_SOURCE_SCAN, NULL, 0, "Do not scan dwarf source info.", 0 },
 #define ARGP_SCAN_CHECKPOINT 0x100A
    { "scan-checkpoint", ARGP_SCAN_CHECKPOINT, "NUM", 0, "Number of files scanned before a WAL checkpoint.", 0 },
+#ifdef ENABLE_IMA_VERIFICATION
+#define ARGP_KEY_KOJI_SIGCACHE 0x100B
+   { "koji-sigcache", ARGP_KEY_KOJI_SIGCACHE, NULL, 0, "Do a koji specific mapping of rpm paths to get IMA signatures.", 0 },
+#endif
+#define ARGP_KEY_METADATA_MAXTIME 0x100C
+   { "metadata-maxtime", ARGP_KEY_METADATA_MAXTIME, "SECONDS", 0,
+     "Number of seconds to limit metadata query run time, 0=unlimited.", 0 },
+#define ARGP_KEY_HTTP_ADDR 0x100D
+   { "listen-address", ARGP_KEY_HTTP_ADDR, "ADDR", 0, "HTTP address to listen on.", 0 },
    { NULL, 0, NULL, 0, NULL, 0 },
   };
 
@@ -469,6 +515,9 @@ static volatile sig_atomic_t sigusr1 = 0;
 static volatile sig_atomic_t forced_groom_count = 0;
 static volatile sig_atomic_t sigusr2 = 0;
 static unsigned http_port = 8002;
+static struct sockaddr_in6 http_sockaddr;
+static string addr_info = "";
+static bool webapi_cors = false;
 static unsigned rescan_s = 300;
 static unsigned groom_s = 86400;
 static bool maxigroom = false;
@@ -490,6 +539,10 @@ static bool scan_source_info = true;
 static string tmpdir;
 static bool passive_p = false;
 static long scan_checkpoint = 256;
+#ifdef ENABLE_IMA_VERIFICATION
+static bool requires_koji_sigcache_mapping = false;
+#endif
+static unsigned metadata_maxtime_s = 5;
 
 static void set_metric(const string& key, double value);
 static void inc_metric(const string& key);
@@ -568,6 +621,9 @@ parse_opt (int key, char *arg,
     case 'p': http_port = (unsigned) atoi(arg);
       if (http_port == 0 || http_port > 65535)
         argp_failure(state, 1, EINVAL, "port number");
+      break;
+    case ARGP_KEY_CORS:
+      webapi_cors = true;
       break;
     case 'F': scan_files = true; break;
     case 'R':
@@ -692,7 +748,25 @@ parse_opt (int key, char *arg,
     case ARGP_SCAN_CHECKPOINT:
       scan_checkpoint = atol (arg);
       if (scan_checkpoint < 0)
-        argp_failure(state, 1, EINVAL, "scan checkpoint");        
+        argp_failure(state, 1, EINVAL, "scan checkpoint");
+      break;
+    case ARGP_KEY_METADATA_MAXTIME:
+      metadata_maxtime_s = (unsigned) atoi(arg);
+      break;
+#ifdef ENABLE_IMA_VERIFICATION
+    case ARGP_KEY_KOJI_SIGCACHE:
+      requires_koji_sigcache_mapping = true;
+      break;
+#endif
+    case ARGP_KEY_HTTP_ADDR:
+      if (inet_pton(AF_INET, arg, &(((sockaddr_in*)&http_sockaddr)->sin_addr)) == 1)
+          http_sockaddr.sin6_family = AF_INET;
+      else
+          if (inet_pton(AF_INET6, arg, &http_sockaddr.sin6_addr) == 1)
+              http_sockaddr.sin6_family = AF_INET6;
+          else
+              argp_failure(state, 1, EINVAL, "listen-address");
+      addr_info = arg;
       break;
       // case 'h': argp_state_help (state, stderr, ARGP_HELP_LONG|ARGP_HELP_EXIT_OK);
     default: return ARGP_ERR_UNKNOWN;
@@ -1073,7 +1147,10 @@ private:
   const string nickname;
   const string sql;
   sqlite3_stmt *pp;
-
+  // for step_timeout()/callback
+  struct timespec ts_start;
+  double ts_timeout;
+  
   sqlite_ps(const sqlite_ps&); // make uncopyable
   sqlite_ps& operator=(const sqlite_ps &); // make unassignable
 
@@ -1085,6 +1162,7 @@ public:
     int rc = sqlite3_prepare_v2 (db, sql.c_str(), -1 /* to \0 */, & this->pp, NULL);
     if (rc != SQLITE_OK)
       throw sqlite_exception(rc, "prepare " + sql);
+    this->reset_timeout(0.0);
   }
 
   sqlite_ps& reset()
@@ -1144,6 +1222,46 @@ public:
     return rc;
   }
 
+
+  void reset_timeout(double s) // set starting point for maximum elapsed time in step_timeouts() 
+  {
+    clock_gettime (CLOCK_MONOTONIC, &this->ts_start);
+    this->ts_timeout = s;
+  }
+
+  
+  static int sqlite3_progress_handler_cb (void *param)
+  {
+    sqlite_ps *pp = (sqlite_ps*) param;
+    struct timespec ts_end;
+    clock_gettime (CLOCK_MONOTONIC, &ts_end);
+    double deltas = (ts_end.tv_sec - pp->ts_start.tv_sec) + (ts_end.tv_nsec - pp->ts_start.tv_nsec)/1.e9;
+    return (interrupted || (deltas > pp->ts_timeout)); // non-zero => interrupt sqlite operation in progress
+  }
+  
+
+  int step_timeout() {
+    // Do the same thing as step(), except wrapping it into a timeout
+    // relative to the last reset_timeout() invocation.
+    //
+    // Do this by attaching a progress_handler to the database
+    // connection, for the duration of this operation.  It should be a
+    // private connection to the calling thread, so other operations
+    // cannot begin concurrently.
+    
+    sqlite3_progress_handler(this->db, 10000 /* bytecode insns */,
+                             & sqlite3_progress_handler_cb, (void*) this);
+    int rc = this->step();
+    sqlite3_progress_handler(this->db, 0, 0, 0); // disable
+    struct timespec ts_end;
+    clock_gettime (CLOCK_MONOTONIC, &ts_end);
+    double deltas = (ts_end.tv_sec - this->ts_start.tv_sec) + (ts_end.tv_nsec - this->ts_start.tv_nsec)/1.e9;
+    if (verbose > 3)
+      obatched(clog) << this->nickname << " progress-delta-final " << deltas << endl;
+    return rc;
+  }
+
+  
   ~sqlite_ps () { sqlite3_finalize (this->pp); }
   operator sqlite3_stmt* () { return this->pp; }
 };
@@ -1445,7 +1563,6 @@ private:
 
   map<key,fdcache_entry> entries; // optimized for lookup
   time_t last_cleaning;
-  long max_fds;
   long max_mbs;
 
 public:
@@ -1913,6 +2030,494 @@ handle_buildid_f_match (bool internal_req_t,
   return r;
 }
 
+
+#ifdef USE_LZMA
+struct lzma_exception: public reportable_exception
+{
+  lzma_exception(int rc, const string& msg):
+    // liblzma doesn't have a lzma_ret -> string conversion function, so just
+    // report the value.
+    reportable_exception(string ("lzma error: ") + msg + ": error " + to_string(rc)) {
+      inc_metric("error_count","lzma",to_string(rc));
+    }
+};
+
+// Neither RPM nor deb files support seeking to a specific file in the package.
+// Instead, to extract a specific file, we normally need to read the archive
+// sequentially until we find the file.  This is very slow for files at the end
+// of a large package with lots of files, like kernel debuginfo.
+//
+// However, if the compression format used in the archive supports seeking, we
+// can accelerate this.  As of July 2024, xz is the only widely-used format that
+// supports seeking, and usually only in multi-threaded mode.  Luckily, the
+// kernel-debuginfo package in Fedora and its downstreams, and the
+// linux-image-*-dbg package in Debian and its downstreams, all happen to use
+// this.
+//
+// The xz format [1] ends with an index of independently compressed blocks in
+// the stream.  In RPM and deb files, the xz stream is the last thing in the
+// file, so we assume that the xz Stream Footer is at the end of the package
+// file and do everything relative to that.  For each file in the archive, we
+// remember the size and offset of the file data in the uncompressed xz stream,
+// then we use the index to seek to that offset when we need that file.
+//
+// 1: https://xz.tukaani.org/format/xz-file-format.txt
+
+// Return whether an archive supports seeking.
+static bool
+is_seekable_archive (const string& rps, struct archive* a)
+{
+  // Only xz supports seeking.
+  if (archive_filter_code (a, 0) != ARCHIVE_FILTER_XZ)
+    return false;
+
+  int fd = open (rps.c_str(), O_RDONLY);
+  if (fd < 0)
+    return false;
+  defer_dtor<int,int> fd_closer (fd, close);
+
+  // Seek to the xz Stream Footer.  We assume that it's the last thing in the
+  // file, which is true for RPM and deb files.
+  off_t footer_pos = -LZMA_STREAM_HEADER_SIZE;
+  if (lseek (fd, footer_pos, SEEK_END) == -1)
+    return false;
+
+  // Decode the Stream Footer.
+  uint8_t footer[LZMA_STREAM_HEADER_SIZE];
+  size_t footer_read = 0;
+  while (footer_read < sizeof (footer))
+    {
+      ssize_t bytes_read = read (fd, footer + footer_read,
+                                 sizeof (footer) - footer_read);
+      if (bytes_read < 0)
+        {
+          if (errno == EINTR)
+            continue;
+          return false;
+        }
+      if (bytes_read == 0)
+        return false;
+      footer_read += bytes_read;
+    }
+
+  lzma_stream_flags stream_flags;
+  lzma_ret ret = lzma_stream_footer_decode (&stream_flags, footer);
+  if (ret != LZMA_OK)
+    return false;
+
+  // Seek to the xz Index.
+  if (lseek (fd, footer_pos - stream_flags.backward_size, SEEK_END) == -1)
+    return false;
+
+  // Decode the Number of Records in the Index.  liblzma doesn't have an API for
+  // this if you don't want to decode the whole Index, so we have to do it
+  // ourselves.
+  //
+  // We need 1 byte for the Index Indicator plus 1-9 bytes for the
+  // variable-length integer Number of Records.
+  uint8_t index[10];
+  size_t index_read = 0;
+  while (index_read == 0) {
+      ssize_t bytes_read = read (fd, index, sizeof (index));
+      if (bytes_read < 0)
+        {
+          if (errno == EINTR)
+            continue;
+          return false;
+        }
+      if (bytes_read == 0)
+        return false;
+      index_read += bytes_read;
+  }
+  // The Index Indicator must be 0.
+  if (index[0] != 0)
+    return false;
+
+  lzma_vli num_records;
+  size_t pos = 0;
+  size_t in_pos = 1;
+  while (true)
+    {
+      if (in_pos >= index_read)
+        {
+          ssize_t bytes_read = read (fd, index, sizeof (index));
+          if (bytes_read < 0)
+          {
+            if (errno == EINTR)
+              continue;
+            return false;
+          }
+          if (bytes_read == 0)
+            return false;
+          index_read = bytes_read;
+          in_pos = 0;
+        }
+      ret = lzma_vli_decode (&num_records, &pos, index, &in_pos, index_read);
+      if (ret == LZMA_STREAM_END)
+        break;
+      else if (ret != LZMA_OK)
+        return false;
+    }
+
+  if (verbose > 3)
+    obatched(clog) << rps << " has " << num_records << " xz Blocks" << endl;
+
+  // The file is only seekable if it has more than one Block.
+  return num_records > 1;
+}
+
+// Read the Index at the end of an xz file.
+static lzma_index*
+read_xz_index (int fd)
+{
+  off_t footer_pos = -LZMA_STREAM_HEADER_SIZE;
+  if (lseek (fd, footer_pos, SEEK_END) == -1)
+    throw libc_exception (errno, "lseek");
+
+  uint8_t footer[LZMA_STREAM_HEADER_SIZE];
+  size_t footer_read = 0;
+  while (footer_read < sizeof (footer))
+    {
+      ssize_t bytes_read = read (fd, footer + footer_read,
+                                 sizeof (footer) - footer_read);
+      if (bytes_read < 0)
+        {
+          if (errno == EINTR)
+            continue;
+          throw libc_exception (errno, "read");
+        }
+      if (bytes_read == 0)
+        throw reportable_exception ("truncated file");
+      footer_read += bytes_read;
+    }
+
+  lzma_stream_flags stream_flags;
+  lzma_ret ret = lzma_stream_footer_decode (&stream_flags, footer);
+  if (ret != LZMA_OK)
+    throw lzma_exception (ret, "lzma_stream_footer_decode");
+
+  if (lseek (fd, footer_pos - stream_flags.backward_size, SEEK_END) == -1)
+    throw libc_exception (errno, "lseek");
+
+  lzma_stream strm = LZMA_STREAM_INIT;
+  lzma_index* index = NULL;
+  ret = lzma_index_decoder (&strm, &index, UINT64_MAX);
+  if (ret != LZMA_OK)
+    throw lzma_exception (ret, "lzma_index_decoder");
+  defer_dtor<lzma_stream*,void> strm_ender (&strm, lzma_end);
+
+  uint8_t in_buf[4096];
+  while (true)
+    {
+      if (strm.avail_in == 0)
+        {
+          ssize_t bytes_read = read (fd, in_buf, sizeof (in_buf));
+          if (bytes_read < 0)
+            {
+              if (errno == EINTR)
+                continue;
+              throw libc_exception (errno, "read");
+            }
+          if (bytes_read == 0)
+            throw reportable_exception ("truncated file");
+          strm.avail_in = bytes_read;
+          strm.next_in = in_buf;
+        }
+
+        ret = lzma_code (&strm, LZMA_RUN);
+        if (ret == LZMA_STREAM_END)
+          break;
+        else if (ret != LZMA_OK)
+          throw lzma_exception (ret, "lzma_code index");
+    }
+
+  ret = lzma_index_stream_flags (index, &stream_flags);
+  if (ret != LZMA_OK)
+    {
+      lzma_index_end (index, NULL);
+      throw lzma_exception (ret, "lzma_index_stream_flags");
+    }
+  return index;
+}
+
+static void
+my_lzma_index_end (lzma_index* index)
+{
+  lzma_index_end (index, NULL);
+}
+
+static void
+free_lzma_block_filter_options (lzma_block* block)
+{
+  for (int i = 0; i < LZMA_FILTERS_MAX; i++)
+    {
+      free (block->filters[i].options);
+      block->filters[i].options = NULL;
+    }
+}
+
+static void
+free_lzma_block_filters (lzma_block* block)
+{
+  if (block->filters != NULL)
+    {
+      free_lzma_block_filter_options (block);
+      free (block->filters);
+    }
+}
+
+static void
+extract_xz_blocks_into_fd (const string& srcpath,
+                           int src,
+                           int dst,
+                           lzma_index_iter* iter,
+                           uint64_t offset,
+                           uint64_t size)
+{
+  // Seek to the Block.  Seeking from the end using the compressed size from the
+  // footer means we don't need to know where the xz stream starts in the
+  // archive.
+  if (lseek (src,
+             (off_t) iter->block.compressed_stream_offset
+             - (off_t) iter->stream.compressed_size,
+             SEEK_END) == -1)
+    throw libc_exception (errno, "lseek");
+
+  offset -= iter->block.uncompressed_file_offset;
+
+  lzma_block block{};
+  block.filters = (lzma_filter*) calloc (LZMA_FILTERS_MAX + 1,
+                                         sizeof (lzma_filter));
+  if (block.filters == NULL)
+    throw libc_exception (ENOMEM, "cannot allocate lzma_block filters");
+  defer_dtor<lzma_block*,void> filters_freer (&block, free_lzma_block_filters);
+
+  uint8_t in_buf[4096];
+  uint8_t out_buf[4096];
+  size_t header_read = 0;
+  bool need_log_extracting = verbose > 3;
+  while (true)
+    {
+      // The first byte of the Block is the encoded Block Header Size.  Read the
+      // first byte and whatever extra fits in the buffer.
+      while (header_read == 0)
+        {
+          ssize_t bytes_read = read (src, in_buf, sizeof (in_buf));
+          if (bytes_read < 0)
+            {
+              if (errno == EINTR)
+                continue;
+              throw libc_exception (errno, "read");
+            }
+          if (bytes_read == 0)
+            throw reportable_exception ("truncated file");
+          header_read += bytes_read;
+        }
+
+      block.header_size = lzma_block_header_size_decode (in_buf[0]);
+
+      // If we didn't buffer the whole Block Header earlier, get the rest.
+      eu_static_assert (sizeof (in_buf)
+                        >= lzma_block_header_size_decode (UINT8_MAX));
+      while (header_read < block.header_size)
+        {
+          ssize_t bytes_read = read (src, in_buf + header_read,
+                                     sizeof (in_buf) - header_read);
+          if (bytes_read < 0)
+            {
+              if (errno == EINTR)
+                continue;
+              throw libc_exception (errno, "read");
+            }
+          if (bytes_read == 0)
+            throw reportable_exception ("truncated file");
+          header_read += bytes_read;
+        }
+
+      // Decode the Block Header.
+      block.check = iter->stream.flags->check;
+      lzma_ret ret = lzma_block_header_decode (&block, NULL, in_buf);
+      if (ret != LZMA_OK)
+        throw lzma_exception (ret, "lzma_block_header_decode");
+      ret = lzma_block_compressed_size (&block, iter->block.unpadded_size);
+      if (ret != LZMA_OK)
+        throw lzma_exception (ret, "lzma_block_compressed_size");
+
+      // Start decoding the Block data.
+      lzma_stream strm = LZMA_STREAM_INIT;
+      ret = lzma_block_decoder (&strm, &block);
+      if (ret != LZMA_OK)
+        throw lzma_exception (ret, "lzma_block_decoder");
+      defer_dtor<lzma_stream*,void> strm_ender (&strm, lzma_end);
+
+      // We might still have some input buffered from when we read the header.
+      strm.avail_in = header_read - block.header_size;
+      strm.next_in = in_buf + block.header_size;
+      strm.avail_out = sizeof (out_buf);
+      strm.next_out = out_buf;
+      while (true)
+        {
+          if (strm.avail_in == 0)
+            {
+              ssize_t bytes_read = read (src, in_buf, sizeof (in_buf));
+              if (bytes_read < 0)
+                {
+                  if (errno == EINTR)
+                    continue;
+                  throw libc_exception (errno, "read");
+                }
+              if (bytes_read == 0)
+                throw reportable_exception ("truncated file");
+              strm.avail_in = bytes_read;
+              strm.next_in = in_buf;
+            }
+
+          ret = lzma_code (&strm, LZMA_RUN);
+          if (ret != LZMA_OK && ret != LZMA_STREAM_END)
+            throw lzma_exception (ret, "lzma_code block");
+
+          // Throw away anything we decode until we reach the offset, then
+          // start writing to the destination.
+          if (strm.total_out > offset)
+            {
+              size_t bytes_to_write = strm.next_out - out_buf;
+              uint8_t* buf_to_write = out_buf;
+
+              // Ignore anything in the buffer before the offset.
+              if (bytes_to_write > strm.total_out - offset)
+                {
+                  buf_to_write += bytes_to_write - (strm.total_out - offset);
+                  bytes_to_write = strm.total_out - offset;
+                }
+
+              // Ignore anything after the size.
+              if (strm.total_out - offset >= size)
+                bytes_to_write -= strm.total_out - offset - size;
+
+              if (need_log_extracting)
+                {
+                  obatched(clog) << "extracting from xz archive " << srcpath
+                                 << " size=" << size << endl;
+                  need_log_extracting = false;
+                }
+
+              while (bytes_to_write > 0)
+                {
+                  ssize_t written = write (dst, buf_to_write, bytes_to_write);
+                  if (written < 0)
+                    {
+                      if (errno == EAGAIN)
+                        continue;
+                      throw libc_exception (errno, "write");
+                    }
+                  bytes_to_write -= written;
+                  buf_to_write += written;
+                }
+
+              // If we reached the size, we're done.
+              if (strm.total_out - offset >= size)
+                return;
+            }
+
+          strm.avail_out = sizeof (out_buf);
+          strm.next_out = out_buf;
+
+          if (ret == LZMA_STREAM_END)
+            break;
+        }
+
+      // This Block didn't have enough data.  Go to the next one.
+      if (lzma_index_iter_next (iter, LZMA_INDEX_ITER_BLOCK))
+        throw reportable_exception ("no more blocks");
+      if (strm.total_out > offset)
+        size -= strm.total_out - offset;
+      offset = 0;
+      // If we had any buffered input left, move it to the beginning of the
+      // buffer to decode the next Block Header.
+      if (strm.avail_in > 0)
+        {
+          memmove (in_buf, strm.next_in, strm.avail_in);
+          header_read = strm.avail_in;
+        }
+      else
+        header_read = 0;
+      free_lzma_block_filter_options (&block);
+    }
+}
+
+static int
+extract_from_seekable_archive (const string& srcpath,
+                               char* tmppath,
+                               uint64_t offset,
+                               uint64_t size)
+{
+  inc_metric ("seekable_archive_extraction_attempts","type","xz");
+  try
+    {
+      int src = open (srcpath.c_str(), O_RDONLY);
+      if (src < 0)
+        throw libc_exception (errno, string("open ") + srcpath);
+      defer_dtor<int,int> src_closer (src, close);
+
+      lzma_index* index = read_xz_index (src);
+      defer_dtor<lzma_index*,void> index_ender (index, my_lzma_index_end);
+
+      // Find the Block containing the offset.
+      lzma_index_iter iter;
+      lzma_index_iter_init (&iter, index);
+      if (lzma_index_iter_locate (&iter, offset))
+        throw reportable_exception ("offset not found");
+
+      if (verbose > 3)
+        obatched(clog) << "seeking in xz archive " << srcpath
+                       << " offset=" << offset << " block_offset="
+                       << iter.block.uncompressed_file_offset << endl;
+
+      int dst = mkstemp (tmppath);
+      if (dst < 0)
+        throw libc_exception (errno, "cannot create temporary file");
+
+      try
+        {
+          extract_xz_blocks_into_fd (srcpath, src, dst, &iter, offset, size);
+        }
+      catch (...)
+        {
+          unlink (tmppath);
+          close (dst);
+          throw;
+        }
+
+      inc_metric ("seekable_archive_extraction_successes","type","xz");
+      return dst;
+    }
+  catch (const reportable_exception &e)
+    {
+      inc_metric ("seekable_archive_extraction_failures","type","xz");
+      if (verbose)
+        obatched(clog) << "failed to extract from seekable xz archive "
+                       << srcpath << ": " << e.message << endl;
+      return -1;
+    }
+}
+#else
+static bool
+is_seekable_archive (const string& rps __attribute__ ((unused)),
+		     struct archive* a __attribute__ ((unused)))
+{
+  return false;
+}
+static int
+extract_from_seekable_archive (const string& srcpath __attribute__ ((unused)),
+                               char* tmppath __attribute__ ((unused)),
+                               uint64_t offset __attribute__ ((unused)),
+                               uint64_t size __attribute__ ((unused)))
+{
+  return -1;
+}
+#endif
+
+
 // For security/portability reasons, many distro-package archives have
 // a "./" in front of path names; others have nothing, others have
 // "/".  Canonicalize them all to a single leading "/", with the
@@ -1931,12 +2536,89 @@ string canonicalized_archive_entry_pathname(struct archive_entry *e)
 }
 
 
+// NB: takes ownership of, and may reassign, fd.
+static struct MHD_Response*
+create_buildid_r_response (int64_t b_mtime0,
+                           const string& b_source0,
+                           const string& b_source1,
+                           const string& section,
+                           const string& ima_sig,
+                           const char* tmppath,
+                           int& fd,
+                           off_t size,
+                           time_t mtime,
+                           const string& metric,
+                           const struct timespec& extract_begin)
+{
+  if (tmppath != NULL)
+    {
+      struct timespec extract_end;
+      clock_gettime (CLOCK_MONOTONIC, &extract_end);
+      double extract_time = (extract_end.tv_sec - extract_begin.tv_sec)
+        + (extract_end.tv_nsec - extract_begin.tv_nsec)/1.e9;
+      fdcache.intern(b_source0, b_source1, tmppath, size, true, extract_time);
+    }
+
+  if (!section.empty ())
+    {
+      int scn_fd = extract_section (fd, b_mtime0,
+                                    b_source0 + ":" + b_source1,
+                                    section, extract_begin);
+      close (fd);
+      if (scn_fd >= 0)
+        fd = scn_fd;
+      else
+        {
+          if (verbose)
+            obatched (clog) << "cannot find section " << section
+                            << " for archive " << b_source0
+                            << " file " << b_source1 << endl;
+          return 0;
+        }
+
+      struct stat fs;
+      if (fstat (fd, &fs) < 0)
+        {
+          close (fd);
+          throw libc_exception (errno,
+            string ("fstat ") + b_source0 + string (" ") + section);
+        }
+      size = fs.st_size;
+    }
+
+  struct MHD_Response* r = MHD_create_response_from_fd (size, fd);
+  if (r == 0)
+    {
+      if (verbose)
+        obatched(clog) << "cannot create fd-response for " << b_source0 << endl;
+      close(fd);
+    }
+  else
+    {
+      inc_metric ("http_responses_total","result",metric);
+      add_mhd_response_header (r, "Content-Type", "application/octet-stream");
+      add_mhd_response_header (r, "X-DEBUGINFOD-SIZE", to_string(size).c_str());
+      add_mhd_response_header (r, "X-DEBUGINFOD-ARCHIVE", b_source0.c_str());
+      add_mhd_response_header (r, "X-DEBUGINFOD-FILE", b_source1.c_str());
+      if(!ima_sig.empty()) add_mhd_response_header(r, "X-DEBUGINFOD-IMASIGNATURE", ima_sig.c_str());
+      add_mhd_last_modified (r, mtime);
+      if (verbose > 1)
+        obatched(clog) << "serving " << metric << " " << b_source0
+                       << " file " << b_source1
+                       << " section=" << section
+                       << " IMA signature=" << ima_sig << endl;
+      /* libmicrohttpd will close fd. */
+    }
+  return r;
+}
 
 static struct MHD_Response*
 handle_buildid_r_match (bool internal_req_p,
                         int64_t b_mtime,
                         const string& b_source0,
                         const string& b_source1,
+                        int64_t b_id0,
+                        int64_t b_id1,
                         const string& section,
                         int *result_fd)
 {
@@ -1955,6 +2637,145 @@ handle_buildid_r_match (bool internal_req_p,
       return 0;
     }
 
+  // Extract the IMA per-file signature (if it exists)
+  string ima_sig = "";
+  #ifdef ENABLE_IMA_VERIFICATION
+  do
+    {
+      FD_t rpm_fd;
+      if(!(rpm_fd = Fopen(b_source0.c_str(), "r.ufdio"))) // read, uncompressed, rpm/rpmio.h
+        {
+          if (verbose) obatched(clog) << "There was an error while opening " << b_source0 << endl;
+          break; // Exit IMA extraction
+        }
+
+      Header rpm_hdr;
+      if(RPMRC_FAIL == rpmReadPackageFile(NULL, rpm_fd, b_source0.c_str(), &rpm_hdr))
+        {
+          if (verbose) obatched(clog) << "There was an error while reading the header of " << b_source0 << endl;
+          Fclose(rpm_fd);
+          break; // Exit IMA extraction
+        }
+
+      // Fill sig_tag_data with an alloc'd copy of the array of IMA signatures (if they exist)
+      struct rpmtd_s sig_tag_data;
+      rpmtdReset(&sig_tag_data);
+      do{ /* A do-while so we can break out of the koji sigcache checking on failure */
+        if(requires_koji_sigcache_mapping)
+          {
+            /* NB: Koji builds result in a directory structure like the following
+               - PACKAGE/VERSION/RELEASE
+               - ARCH1
+               - foo.rpm           // The rpm known by debuginfod
+               - ...
+               - ARCHN
+               - data
+               - signed            // Periodically purged (and not scanned by debuginfod)
+               - sigcache
+               - ARCH1
+               - foo.rpm.sig   // An empty rpm header
+               - ...
+               - ARCHN
+               - PACKAGE_KEYID1
+               - ARCH1
+               - foo.rpm.sig   // The header of the signed rpm. This is the file we need to extract the IMA signatures
+               - ...
+               - ARCHN
+               - ...
+               - PACKAGE_KEYIDn
+            
+               We therefore need to do a mapping:
+      
+               P/V/R/A/N-V-R.A.rpm ->
+               P/V/R/data/sigcache/KEYID/A/N-V-R.A.rpm.sig
+
+               There are 2 key insights here         
+      
+               1. We need to go 2 directories down from sigcache to get to the
+               rpm header. So to distinguish ARCH1/foo.rpm.sig and
+               PACKAGE_KEYID1/ARCH1/foo.rpm.sig we can look 2 directories down
+      
+               2. It's safe to assume that the user will have all of the
+               required verification certs. So we can pick from any of the
+               PACKAGE_KEYID* directories.  For simplicity we choose first we
+               match against
+      
+               See: https://pagure.io/koji/issue/3670
+            */
+
+            // Do the mapping from b_source0 to the koji path for the signed rpm header
+            string signed_rpm_path = b_source0;
+            size_t insert_pos = string::npos;
+            for(int i = 0; i < 2; i++) insert_pos = signed_rpm_path.rfind("/", insert_pos) - 1;
+            string globbed_path  = signed_rpm_path.insert(insert_pos + 1, "/data/sigcache/*").append(".sig"); // The globbed path we're seeking
+            glob_t pglob;
+            int grc;
+            if(0 != (grc = glob(globbed_path.c_str(), GLOB_NOSORT, NULL, &pglob)))
+              {
+                // Break out, but only report real errors
+                if (verbose && grc != GLOB_NOMATCH) obatched(clog) << "There was an error (" << strerror(errno) << ") globbing " << globbed_path << endl;
+                break; // Exit koji sigcache check
+              }
+            signed_rpm_path = pglob.gl_pathv[0]; // See insight 2 above
+            globfree(&pglob);
+
+            if (verbose > 2) obatched(clog) << "attempting IMA signature extraction from koji header " << signed_rpm_path << endl;
+
+            FD_t sig_rpm_fd;
+            if(NULL == (sig_rpm_fd = Fopen(signed_rpm_path.c_str(), "r")))
+              {
+                if (verbose) obatched(clog) << "There was an error while opening " << signed_rpm_path << endl;
+                break; // Exit koji sigcache check
+              }
+
+            Header sig_hdr = headerRead(sig_rpm_fd, HEADER_MAGIC_YES /* Validate magic too */ );
+            if (!sig_hdr || 1 != headerGet(sig_hdr, RPMSIGTAG_FILESIGNATURES, &sig_tag_data, HEADERGET_ALLOC))
+              {
+                if (verbose) obatched(clog) << "Unable to extract RPMSIGTAG_FILESIGNATURES from " << signed_rpm_path << endl;
+              }
+            headerFree(sig_hdr); // We can free here since sig_tag_data has an alloc'd copy of the data
+            Fclose(sig_rpm_fd);
+          }
+      }while(false);
+
+      if(0 == sig_tag_data.count)
+        {
+          // In the general case (or a fallback from the koji sigcache mapping not finding signatures)
+          // we can just (try) extract the signatures from the rpm header
+          if (1 != headerGet(rpm_hdr, RPMTAG_FILESIGNATURES, &sig_tag_data, HEADERGET_ALLOC))
+            {
+              if (verbose) obatched(clog) << "Unable to extract RPMTAG_FILESIGNATURES from " << b_source0 << endl;
+            }
+        }
+      // Search the array for the signature coresponding to b_source1
+      int idx = -1;
+      char *sig = NULL;
+      rpmfi hdr_fi = rpmfiNew(NULL, rpm_hdr, RPMTAG_BASENAMES, RPMFI_FLAGS_QUERY);
+      do
+        {
+          sig = (char*)rpmtdNextString(&sig_tag_data);
+          idx = rpmfiNext(hdr_fi);
+        }
+      while (idx != -1 && 0 != strcmp(b_source1.c_str(), rpmfiFN(hdr_fi)));
+      rpmfiFree(hdr_fi);
+
+      if(sig && 0 != strlen(sig) && idx != -1)
+        {
+          if (verbose > 2) obatched(clog) << "Found IMA signature for " << b_source1 << ":\n" << sig << endl;
+          ima_sig = sig;
+          inc_metric("http_responses_total","extra","ima-sigs-extracted");
+        }
+      else
+        {
+          if (verbose > 2) obatched(clog) << "Could not find IMA signature for " << b_source1 << endl;
+        }
+
+      rpmtdFreeData (&sig_tag_data);
+      headerFree(rpm_hdr);
+      Fclose(rpm_fd);
+    } while(false);
+  #endif
+
   // check for a match in the fdcache first
   int fd = fdcache.lookup(b_source0, b_source1);
   while (fd >= 0) // got one!; NB: this is really an if() with a possible branch out to the end
@@ -1969,62 +2790,78 @@ handle_buildid_r_match (bool internal_req_p,
           break; // branch out of if "loop", to try new libarchive fetch attempt
         }
 
-      if (!section.empty ())
-	{
-	  int scn_fd = extract_section (fd, fs.st_mtime,
-					b_source0 + ":" + b_source1,
-					section, extract_begin);
-	  close (fd);
-	  if (scn_fd >= 0)
-	    fd = scn_fd;
-	  else
-	    {
-	      if (verbose)
-	        obatched (clog) << "cannot find section " << section
-				<< " for archive " << b_source0
-				<< " file " << b_source1 << endl;
-	      return 0;
-	    }
-
-	  rc = fstat(fd, &fs);
-	  if (rc < 0)
-	    {
-	      close (fd);
-	      throw libc_exception (errno,
-		string ("fstat archive ") + b_source0 + string (" file ") + b_source1
-		+ string (" section ") + section);
-	    }
-	}
-
-      struct MHD_Response* r = MHD_create_response_from_fd (fs.st_size, fd);
+      struct MHD_Response* r = create_buildid_r_response (b_mtime, b_source0,
+                                                          b_source1, section,
+                                                          ima_sig, NULL, fd,
+                                                          fs.st_size,
+                                                          fs.st_mtime,
+                                                          "archive fdcache",
+                                                          extract_begin);
       if (r == 0)
-        {
-          if (verbose)
-            obatched(clog) << "cannot create fd-response for " << b_source0 << endl;
-          close(fd);
-          break; // branch out of if "loop", to try new libarchive fetch attempt
-        }
-
-      inc_metric ("http_responses_total","result","archive fdcache");
-
-      add_mhd_response_header (r, "Content-Type", "application/octet-stream");
-      add_mhd_response_header (r, "X-DEBUGINFOD-SIZE",
-			       to_string(fs.st_size).c_str());
-      add_mhd_response_header (r, "X-DEBUGINFOD-ARCHIVE", b_source0.c_str());
-      add_mhd_response_header (r, "X-DEBUGINFOD-FILE", b_source1.c_str());
-      add_mhd_last_modified (r, fs.st_mtime);
-      if (verbose > 1)
-	obatched(clog) << "serving fdcache archive " << b_source0
-		       << " file " << b_source1
-		       << " section=" << section << endl;
-      /* libmicrohttpd will close it. */
+        break; // branch out of if "loop", to try new libarchive fetch attempt
       if (result_fd)
         *result_fd = fd;
       return r;
       // NB: see, we never go around the 'loop' more than once
     }
 
-  // no match ... grumble, must process the archive
+  // no match ... look for a seekable entry
+  bool populate_seekable = ! passive_p;
+  unique_ptr<sqlite_ps> pp (new sqlite_ps (internal_req_p ? db : dbq,
+                                           "rpm-seekable-query",
+                                           "select type, size, offset, mtime from " BUILDIDS "_r_seekable "
+                                           "where file = ? and content = ?"));
+  rc = pp->reset().bind(1, b_id0).bind(2, b_id1).step();
+  if (rc != SQLITE_DONE)
+    {
+      if (rc != SQLITE_ROW)
+        throw sqlite_exception(rc, "step");
+      // if we found a match in _r_seekable but we fail to extract it, don't
+      // bother populating it again
+      populate_seekable = false;
+      const char* seekable_type = (const char*) sqlite3_column_text (*pp, 0);
+      if (seekable_type != NULL && strcmp (seekable_type, "xz") == 0)
+        {
+          int64_t seekable_size = sqlite3_column_int64 (*pp, 1);
+          int64_t seekable_offset = sqlite3_column_int64 (*pp, 2);
+          int64_t seekable_mtime = sqlite3_column_int64 (*pp, 3);
+
+          char* tmppath = NULL;
+          if (asprintf (&tmppath, "%s/debuginfod-fdcache.XXXXXX", tmpdir.c_str()) < 0)
+            throw libc_exception (ENOMEM, "cannot allocate tmppath");
+          defer_dtor<void*,void> tmmpath_freer (tmppath, free);
+
+          fd = extract_from_seekable_archive (b_source0, tmppath,
+                                              seekable_offset, seekable_size);
+          if (fd >= 0)
+            {
+              // Set the mtime so the fdcache file mtimes propagate to future webapi
+              // clients.
+              struct timespec tvs[2];
+              tvs[0].tv_sec = 0;
+              tvs[0].tv_nsec = UTIME_OMIT;
+              tvs[1].tv_sec = seekable_mtime;
+              tvs[1].tv_nsec = 0;
+              (void) futimens (fd, tvs);  /* best effort */
+              struct MHD_Response* r = create_buildid_r_response (b_mtime,
+                                                                  b_source0,
+                                                                  b_source1,
+                                                                  section,
+                                                                  ima_sig,
+                                                                  tmppath, fd,
+                                                                  seekable_size,
+                                                                  seekable_mtime,
+                                                                  "seekable xz archive",
+                                                                  extract_begin);
+              if (r != 0 && result_fd)
+                *result_fd = fd;
+              return r;
+            }
+        }
+    }
+  pp.reset();
+
+  // still no match ... grumble, must process the archive
   string archive_decoder = "/dev/null";
   string archive_extension = "";
   for (auto&& arch : scan_archives)
@@ -2073,16 +2910,39 @@ handle_buildid_r_match (bool internal_req_p,
       throw archive_exception(a, "cannot open archive from pipe");
     }
 
-  // archive traversal is in three stages, no, four stages:
-  // 1) skip entries whose names do not match the requested one
-  // 2) extract the matching entry name (set r = result)
-  // 3) extract some number of prefetched entries (just into fdcache)
-  // 4) abort any further processing
+  // If the archive was scanned in a version without _r_seekable, then we may
+  // need to populate _r_seekable now.  This can be removed the next time
+  // BUILDIDS is updated.
+  if (populate_seekable)
+    {
+      populate_seekable = is_seekable_archive (b_source0, a);
+      if (populate_seekable)
+        {
+          // NB: the names are already interned
+          pp.reset(new sqlite_ps (db, "rpm-seekable-insert2",
+                                  "insert or ignore into " BUILDIDS "_r_seekable (file, content, type, size, offset, mtime) "
+                                  "values (?, "
+                                  "(select id from " BUILDIDS "_files "
+                                  "where dirname = (select id from " BUILDIDS "_fileparts where name = ?) "
+                                  "and basename = (select id from " BUILDIDS "_fileparts where name = ?) "
+                                  "), 'xz', ?, ?, ?)"));
+        }
+    }
+
+  // archive traversal is in five stages:
+  // 1) before we find a matching entry, insert it into _r_seekable if needed or
+  //    skip it otherwise
+  // 2) extract the matching entry (set r = result).  Also insert it into
+  //    _r_seekable if needed
+  // 3) extract some number of prefetched entries (just into fdcache).  Also
+  //    insert them into _r_seekable if needed
+  // 4) if needed, insert all of the remaining entries into _r_seekable
+  // 5) abort any further processing
   struct MHD_Response* r = 0;                 // will set in stage 2
   unsigned prefetch_count =
     internal_req_p ? 0 : fdcache_prefetch;    // will decrement in stage 3
 
-  while(r == 0 || prefetch_count > 0) // stage 1, 2, or 3
+  while(r == 0 || prefetch_count > 0 || populate_seekable) // stage 1-4
     {
       if (interrupted)
         break;
@@ -2096,6 +2956,43 @@ handle_buildid_r_match (bool internal_req_p,
         continue;
 
       string fn = canonicalized_archive_entry_pathname (e);
+
+      if (populate_seekable)
+        {
+          string dn, bn;
+          size_t slash = fn.rfind('/');
+          if (slash == std::string::npos) {
+            dn = "";
+            bn = fn;
+          } else {
+            dn = fn.substr(0, slash);
+            bn = fn.substr(slash + 1);
+          }
+
+          int64_t seekable_size = archive_entry_size (e);
+          int64_t seekable_offset = archive_filter_bytes (a, 0);
+          time_t seekable_mtime = archive_entry_mtime (e);
+
+          pp->reset();
+          pp->bind(1, b_id0);
+          pp->bind(2, dn);
+          pp->bind(3, bn);
+          pp->bind(4, seekable_size);
+          pp->bind(5, seekable_offset);
+          pp->bind(6, seekable_mtime);
+          rc = pp->step();
+          if (rc != SQLITE_DONE)
+            obatched(clog) << "recording seekable file=" << fn
+                           << " sqlite3 error: " << (sqlite3_errstr(rc) ?: "?") << endl;
+          else if (verbose > 2)
+            obatched(clog) << "recorded seekable file=" << fn
+                           << " size=" << seekable_size
+                           << " offset=" << seekable_offset
+                           << " mtime=" << seekable_mtime << endl;
+          if (r != 0 && prefetch_count == 0) // stage 4
+            continue;
+        }
+
       if ((r == 0) && (fn != b_source1)) // stage 1
         continue;
 
@@ -2132,13 +3029,12 @@ handle_buildid_r_match (bool internal_req_p,
       tvs[1].tv_nsec = archive_entry_mtime_nsec(e);
       (void) futimens (fd, tvs);  /* best effort */
 
-      struct timespec extract_end;
-      clock_gettime (CLOCK_MONOTONIC, &extract_end);
-      double extract_time = (extract_end.tv_sec - extract_begin.tv_sec)
-        + (extract_end.tv_nsec - extract_begin.tv_nsec)/1.e9;
-      
       if (r != 0) // stage 3
         {
+          struct timespec extract_end;
+          clock_gettime (CLOCK_MONOTONIC, &extract_end);
+          double extract_time = (extract_end.tv_sec - extract_begin.tv_sec)
+            + (extract_end.tv_nsec - extract_begin.tv_nsec)/1.e9;
           // NB: now we know we have a complete reusable file; make fdcache
           // responsible for unlinking it later.
           fdcache.intern(b_source0, fn,
@@ -2149,73 +3045,74 @@ handle_buildid_r_match (bool internal_req_p,
           continue;
         }
 
-      // NB: now we know we have a complete reusable file; make fdcache
-      // responsible for unlinking it later.
-      fdcache.intern(b_source0, b_source1,
-                     tmppath, archive_entry_size(e),
-                     true, extract_time); // requested ones go to the front of the line
-
-      if (!section.empty ())
-	{
-	  int scn_fd = extract_section (fd, b_mtime,
-					b_source0 + ":" + b_source1,
-					section, extract_begin);
-	  close (fd);
-	  if (scn_fd >= 0)
-	    fd = scn_fd;
-	  else
-	    {
-	      if (verbose)
-	        obatched (clog) << "cannot find section " << section
-				<< " for archive " << b_source0
-				<< " file " << b_source1 << endl;
-	      return 0;
-	    }
-
-	  rc = fstat(fd, &fs);
-	  if (rc < 0)
-	    {
-	      close (fd);
-	      throw libc_exception (errno,
-		string ("fstat ") + b_source0 + string (" ") + section);
-	    }
-	  r = MHD_create_response_from_fd (fs.st_size, fd);
-	}
-      else
-	r = MHD_create_response_from_fd (archive_entry_size(e), fd);
-
-      inc_metric ("http_responses_total","result",archive_extension + " archive");
+      r = create_buildid_r_response (b_mtime, b_source0, b_source1, section,
+                                     ima_sig, tmppath, fd,
+                                     archive_entry_size(e),
+                                     archive_entry_mtime(e),
+                                     archive_extension + " archive",
+                                     extract_begin);
       if (r == 0)
-        {
-          if (verbose)
-            obatched(clog) << "cannot create fd-response for " << b_source0 << endl;
-          close(fd);
-          break; // assume no chance of better luck around another iteration; no other copies of same file
-        }
-      else
-        {
-          add_mhd_response_header (r, "Content-Type",
-                                   "application/octet-stream");
-          add_mhd_response_header (r, "X-DEBUGINFOD-SIZE",
-                                   to_string(archive_entry_size(e)).c_str());
-          add_mhd_response_header (r, "X-DEBUGINFOD-ARCHIVE", b_source0.c_str());
-          add_mhd_response_header (r, "X-DEBUGINFOD-FILE", b_source1.c_str());
-          add_mhd_last_modified (r, archive_entry_mtime(e));
-          if (verbose > 1)
-	    obatched(clog) << "serving archive " << b_source0
-			   << " file " << b_source1
-			   << " section=" << section << endl;
-          /* libmicrohttpd will close it. */
-          if (result_fd)
-            *result_fd = fd;
-          continue;
-        }
+        break; // assume no chance of better luck around another iteration; no other copies of same file
+      if (result_fd)
+        *result_fd = fd;
     }
 
   // XXX: rpm/file not found: delete this R entry?
   return r;
 }
 
+void
+add_client_federation_headers(debuginfod_client *client, MHD_Connection* conn){
+  // Transcribe incoming User-Agent:
+  string ua = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "User-Agent") ?: "";
+  string ua_complete = string("User-Agent: ") + ua;
+  debuginfod_add_http_header (client, ua_complete.c_str());
+
+  // Compute larger XFF:, for avoiding info loss during
+  // federation, and for future cyclicity detection.
+  string xff = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "X-Forwarded-For") ?: "";
+  if (xff != "")
+    xff += string(", "); // comma separated list
+
+  unsigned int xff_count = 0;
+  for (auto&& i : xff){
+    if (i == ',') xff_count++;
+  }
+
+  // if X-Forwarded-For: exceeds N hops,
+  // do not delegate a local lookup miss to upstream debuginfods.
+  if (xff_count >= forwarded_ttl_limit)
+    throw reportable_exception(MHD_HTTP_NOT_FOUND, "not found, --forwared-ttl-limit reached \
+and will not query the upstream servers");
+
+  // Compute the client's numeric IP address only - so can't merge with conninfo()
+  const union MHD_ConnectionInfo *u = MHD_get_connection_info (conn,
+                                                                MHD_CONNECTION_INFO_CLIENT_ADDRESS);
+  struct sockaddr *so = u ? u->client_addr : 0;
+  char hostname[256] = ""; // RFC1035
+  if (so && so->sa_family == AF_INET) {
+    (void) getnameinfo (so, sizeof (struct sockaddr_in), hostname, sizeof (hostname), NULL, 0,
+                        NI_NUMERICHOST);
+  } else if (so && so->sa_family == AF_INET6) {
+    struct sockaddr_in6* addr6 = (struct sockaddr_in6*) so;
+    if (IN6_IS_ADDR_V4MAPPED(&addr6->sin6_addr)) {
+      struct sockaddr_in addr4;
+      memset (&addr4, 0, sizeof(addr4));
+      addr4.sin_family = AF_INET;
+      addr4.sin_port = addr6->sin6_port;
+      memcpy (&addr4.sin_addr.s_addr, addr6->sin6_addr.s6_addr+12, sizeof(addr4.sin_addr.s_addr));
+      (void) getnameinfo ((struct sockaddr*) &addr4, sizeof (addr4),
+                          hostname, sizeof (hostname), NULL, 0,
+                          NI_NUMERICHOST);
+    } else {
+      (void) getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname), NULL, 0,
+                          NI_NUMERICHOST);
+    }
+  }
+
+  string xff_complete = string("X-Forwarded-For: ")+xff+string(hostname);
+  debuginfod_add_http_header (client, xff_complete.c_str());
+}
 
 static struct MHD_Response*
 handle_buildid_match (bool internal_req_p,
@@ -2223,6 +3120,8 @@ handle_buildid_match (bool internal_req_p,
                       const string& b_stype,
                       const string& b_source0,
                       const string& b_source1,
+                      int64_t b_id0,
+                      int64_t b_id1,
                       const string& section,
                       int *result_fd)
 {
@@ -2233,7 +3132,8 @@ handle_buildid_match (bool internal_req_p,
 				      section, result_fd);
       else if (b_stype == "R")
         return handle_buildid_r_match(internal_req_p, b_mtime, b_source0,
-				      b_source1, section, result_fd);
+				      b_source1, b_id0, b_id1, section,
+				      result_fd);
     }
   catch (const reportable_exception &e)
     {
@@ -2349,7 +3249,7 @@ handle_buildid (MHD_Connection* conn,
   if (atype_code == "D")
     {
       pp = new sqlite_ps (thisdb, "mhd-query-d",
-                          "select mtime, sourcetype, source0, source1 from " BUILDIDS "_query_d where buildid = ? "
+                          "select mtime, sourcetype, source0, source1, id0, id1 from " BUILDIDS "_query_d2 where buildid = ? "
                           "order by mtime desc");
       pp->reset();
       pp->bind(1, buildid);
@@ -2357,7 +3257,7 @@ handle_buildid (MHD_Connection* conn,
   else if (atype_code == "E")
     {
       pp = new sqlite_ps (thisdb, "mhd-query-e",
-                          "select mtime, sourcetype, source0, source1 from " BUILDIDS "_query_e where buildid = ? "
+                          "select mtime, sourcetype, source0, source1, id0, id1 from " BUILDIDS "_query_e2 where buildid = ? "
                           "order by mtime desc");
       pp->reset();
       pp->bind(1, buildid);
@@ -2381,9 +3281,9 @@ handle_buildid (MHD_Connection* conn,
   else if (atype_code == "I")
     {
       pp = new sqlite_ps (thisdb, "mhd-query-i",
-	"select mtime, sourcetype, source0, source1, 1 as debug_p from " BUILDIDS "_query_d where buildid = ? "
+	"select mtime, sourcetype, source0, source1, 1 as debug_p from " BUILDIDS "_query_d2 where buildid = ? "
 	"union all "
-	"select mtime, sourcetype, source0, source1, 0 as debug_p from " BUILDIDS "_query_e where buildid = ? "
+	"select mtime, sourcetype, source0, source1, 0 as debug_p from " BUILDIDS "_query_e2 where buildid = ? "
 	"order by debug_p desc, mtime desc");
       pp->reset();
       pp->bind(1, buildid);
@@ -2405,6 +3305,12 @@ handle_buildid (MHD_Connection* conn,
       string b_stype = string((const char*) sqlite3_column_text (*pp, 1) ?: ""); /* by DDL may not be NULL */
       string b_source0 = string((const char*) sqlite3_column_text (*pp, 2) ?: ""); /* may be NULL */
       string b_source1 = string((const char*) sqlite3_column_text (*pp, 3) ?: ""); /* may be NULL */
+      int64_t b_id0 = 0, b_id1 = 0;
+      if (atype_code == "D" || atype_code == "E")
+        {
+          b_id0 = sqlite3_column_int64 (*pp, 4);
+          b_id1 = sqlite3_column_int64 (*pp, 5);
+        }
 
       if (verbose > 1)
         obatched(clog) << "found mtime=" << b_mtime << " stype=" << b_stype
@@ -2414,7 +3320,7 @@ handle_buildid (MHD_Connection* conn,
       // XXX: in case of multiple matches, attempt them in parallel?
       auto r = handle_buildid_match (conn ? false : true,
                                      b_mtime, b_stype, b_source0, b_source1,
-				     section, result_fd);
+				     b_id0, b_id1, section, result_fd);
       if (r)
         return r;
 
@@ -2449,58 +3355,8 @@ handle_buildid (MHD_Connection* conn,
   debuginfod_set_progressfn (client, & debuginfod_find_progress);
 
   if (conn)
-    {
-      // Transcribe incoming User-Agent:
-      string ua = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "User-Agent") ?: "";
-      string ua_complete = string("User-Agent: ") + ua;
-      debuginfod_add_http_header (client, ua_complete.c_str());
-      
-      // Compute larger XFF:, for avoiding info loss during
-      // federation, and for future cyclicity detection.
-      string xff = MHD_lookup_connection_value (conn, MHD_HEADER_KIND, "X-Forwarded-For") ?: "";
-      if (xff != "")
-        xff += string(", "); // comma separated list
-      
-      unsigned int xff_count = 0;
-      for (auto&& i : xff){
-        if (i == ',') xff_count++;
-      }
+    add_client_federation_headers(client, conn);
 
-      // if X-Forwarded-For: exceeds N hops,
-      // do not delegate a local lookup miss to upstream debuginfods.
-      if (xff_count >= forwarded_ttl_limit)
-        throw reportable_exception(MHD_HTTP_NOT_FOUND, "not found, --forwared-ttl-limit reached \
-and will not query the upstream servers");
-
-      // Compute the client's numeric IP address only - so can't merge with conninfo()
-      const union MHD_ConnectionInfo *u = MHD_get_connection_info (conn,
-                                                                   MHD_CONNECTION_INFO_CLIENT_ADDRESS);
-      struct sockaddr *so = u ? u->client_addr : 0;
-      char hostname[256] = ""; // RFC1035
-      if (so && so->sa_family == AF_INET) {
-        (void) getnameinfo (so, sizeof (struct sockaddr_in), hostname, sizeof (hostname), NULL, 0,
-                            NI_NUMERICHOST);
-      } else if (so && so->sa_family == AF_INET6) {
-        struct sockaddr_in6* addr6 = (struct sockaddr_in6*) so;
-        if (IN6_IS_ADDR_V4MAPPED(&addr6->sin6_addr)) {
-          struct sockaddr_in addr4;
-          memset (&addr4, 0, sizeof(addr4));
-          addr4.sin_family = AF_INET;
-          addr4.sin_port = addr6->sin6_port;
-          memcpy (&addr4.sin_addr.s_addr, addr6->sin6_addr.s6_addr+12, sizeof(addr4.sin_addr.s_addr));
-          (void) getnameinfo ((struct sockaddr*) &addr4, sizeof (addr4),
-                              hostname, sizeof (hostname), NULL, 0,
-                              NI_NUMERICHOST);
-        } else {
-          (void) getnameinfo (so, sizeof (struct sockaddr_in6), hostname, sizeof (hostname), NULL, 0,
-                              NI_NUMERICHOST);
-        }
-      }
-          
-      string xff_complete = string("X-Forwarded-For: ")+xff+string(hostname);
-      debuginfod_add_http_header (client, xff_complete.c_str());
-    }
-  
   if (artifacttype == "debuginfo")
     fd = debuginfod_find_debuginfo (client,
                                     (const unsigned char*) buildid.c_str(),
@@ -2707,6 +3563,233 @@ handle_metrics (off_t* size)
   return r;
 }
 
+
+static struct MHD_Response*
+handle_metadata (MHD_Connection* conn,
+                 string key, string value, off_t* size)
+{
+  MHD_Response* r;
+  // Because this query can take on the order of many seconds, we need
+  // to prevent DoS against the other normal quick queries, so we use
+  // a dedicated database connection.
+  sqlite3 *thisdb = 0;
+  int rc = sqlite3_open_v2 (db_path.c_str(), &thisdb, (SQLITE_OPEN_READONLY
+                                                       |SQLITE_OPEN_URI
+                                                       |SQLITE_OPEN_PRIVATECACHE
+                                                       |SQLITE_OPEN_NOMUTEX), /* private to us */
+                            NULL);
+  if (rc)
+    throw sqlite_exception(rc, "cannot open database for metadata query");
+  defer_dtor<sqlite3*,int> sqlite_db_closer (thisdb, sqlite3_close_v2);
+                                           
+  // Query locally for matching e, d files
+  string op;
+  if (key == "glob")
+    op = "glob";
+  else if (key == "file")
+    op = "=";
+  else
+    throw reportable_exception("/metadata webapi error, unsupported key");
+
+  // Since PR30378, the file names are segmented into two tables.  We
+  // could do a glob/= search over the _files_v view that combines
+  // them, but that means that the entire _files_v thing has to be
+  // materialized & scanned to do the query.  Slow!  Instead, we can
+  // segment the incoming file/glob pattern into dirname / basename
+  // parts, and apply them to the corresponding table.  This is done
+  // by splitting the value at the last "/".  If absent, the same
+  // convention as is used in register_file_name().
+
+  string dirname, bname; // basename is a "poisoned" identifier on some distros
+  size_t slash = value.rfind('/');
+  if (slash == std::string::npos) {
+    dirname = "";
+    bname = value;
+  } else {
+    dirname = value.substr(0, slash);
+    bname = value.substr(slash+1);
+  }
+
+  // NB: further optimization is possible: replacing the 'glob' op
+  // with simple equality, if the corresponding value segment lacks
+  // metacharacters.  sqlite may or may not be smart enough to do so,
+  // so we help out.
+  string metacharacters = "[]*?";
+  string dop = (op == "glob" && dirname.find_first_of(metacharacters) == string::npos) ? "=" : op;
+  string bop = (op == "glob" && bname.find_first_of(metacharacters) == string::npos) ? "=" : op;
+  
+  string sql = string(
+                      // explicit query r_de and f_de once here, rather than the query_d and query_e
+                      // separately, because they scan the same tables, so we'd double the work
+                      "select d1.executable_p, d1.debuginfo_p, 0 as source_p, "
+                      "       b1.hex, f1d.name || '/' || f1b.name as file, a1.name as archive "
+                      "from " BUILDIDS "_r_de d1, " BUILDIDS "_files f1, " BUILDIDS "_fileparts f1b, " BUILDIDS "_fileparts f1d, "
+                      BUILDIDS "_buildids b1, " BUILDIDS "_files_v a1 "
+                      "where f1.id = d1.content and a1.id = d1.file and d1.buildid = b1.id "
+                      "      and f1d.name " + dop + " ? and f1b.name " + bop + " ? and f1.dirname = f1d.id and f1.basename = f1b.id "
+                      "union all \n"
+                      "select d2.executable_p, d2.debuginfo_p, 0, "
+                      "       b2.hex, f2d.name || '/' || f2b.name, NULL "
+                      "from " BUILDIDS "_f_de d2, " BUILDIDS "_files f2, " BUILDIDS "_fileparts f2b, " BUILDIDS "_fileparts f2d, "
+                      BUILDIDS "_buildids b2 "
+                      "where f2.id = d2.file and d2.buildid = b2.id "
+                      "      and f2d.name " + dop + " ? and f2b.name " + bop + " ? "
+                      "      and f2.dirname = f2d.id and f2.basename = f2b.id");
+  
+  // NB: we could query source file names too, thusly:
+  //
+  //    select * from " BUILDIDS "_buildids b, " BUILDIDS "_files_v f1, " BUILDIDS "_r_sref sr
+  //    where b.id = sr.buildid and f1.id = sr.artifactsrc and f1.name " + op + "?"
+  //    UNION ALL something with BUILDIDS "_f_s"
+  //
+  // But the first part of this query cannot run fast without the same index temp-created
+  // during "maxigroom":
+  //    create index " BUILDIDS "_r_sref_arc on " BUILDIDS "_r_sref(artifactsrc);
+  // and unfortunately this index is HUGE.  It's similar to the size of the _r_sref
+  // table, which is already the largest part of a debuginfod index.  Adding that index
+  // would nearly double the .sqlite db size.
+                      
+  sqlite_ps *pp = new sqlite_ps (thisdb, "mhd-query-meta-glob", sql);
+  pp->reset();
+  pp->bind(1, dirname);
+  pp->bind(2, bname);
+  pp->bind(3, dirname);
+  pp->bind(4, bname);
+  unique_ptr<sqlite_ps> ps_closer(pp); // release pp if exception or return
+  pp->reset_timeout(metadata_maxtime_s);
+      
+  json_object *metadata = json_object_new_object();
+  if (!metadata) throw libc_exception(ENOMEM, "json allocation");
+  defer_dtor<json_object*,int> metadata_d(metadata, json_object_put);
+  json_object *metadata_arr = json_object_new_array();
+  if (!metadata_arr) throw libc_exception(ENOMEM, "json allocation");
+  json_object_object_add(metadata, "results", metadata_arr);
+  // consume all the rows
+  
+  bool metadata_complete = true;
+  while (1)
+    {
+      rc = pp->step_timeout();
+      if (rc == SQLITE_DONE) // success
+        break;
+      if (rc == SQLITE_ABORT || rc == SQLITE_INTERRUPT) // interrupted such as by timeout
+        {
+          metadata_complete = false;
+          break;
+        }
+      if (rc != SQLITE_ROW) // error
+        throw sqlite_exception(rc, "step");
+
+      int m_executable_p = sqlite3_column_int (*pp, 0);
+      int m_debuginfo_p  = sqlite3_column_int (*pp, 1);
+      int m_source_p     = sqlite3_column_int (*pp, 2);
+      string m_buildid   = (const char*) sqlite3_column_text (*pp, 3) ?: ""; // should always be non-null
+      string m_file      = (const char*) sqlite3_column_text (*pp, 4) ?: "";
+      string m_archive   = (const char*) sqlite3_column_text (*pp, 5) ?: "";      
+
+      // Confirm that m_file matches in the fnmatch(FNM_PATHNAME)
+      // sense, since sqlite's GLOB operator is a looser filter.
+      if (key == "glob" && fnmatch(value.c_str(), m_file.c_str(), FNM_PATHNAME) != 0)
+        continue;
+      
+      auto add_metadata = [metadata_arr, m_buildid, m_file, m_archive](const string& type) {
+        json_object* entry = json_object_new_object();
+        if (NULL == entry) throw libc_exception (ENOMEM, "cannot allocate json");
+        defer_dtor<json_object*,int> entry_d(entry, json_object_put);
+        
+        auto add_entry_metadata = [entry](const char* k, string v) {
+          json_object* s;
+          if(v != "") {
+            s = json_object_new_string(v.c_str());
+            if (NULL == s) throw libc_exception (ENOMEM, "cannot allocate json");
+            json_object_object_add(entry, k, s);
+          }
+        };
+        
+        add_entry_metadata("type", type.c_str());
+        add_entry_metadata("buildid", m_buildid);
+        add_entry_metadata("file", m_file);
+        if (m_archive != "") add_entry_metadata("archive", m_archive);        
+        if (verbose > 3)
+          obatched(clog) << "metadata found local "
+                         << json_object_to_json_string_ext(entry,
+                                                           JSON_C_TO_STRING_PRETTY)
+                         << endl;
+        
+        // Increase ref count to switch its ownership
+        json_object_array_add(metadata_arr, json_object_get(entry));
+      };
+
+      if (m_executable_p) add_metadata("executable");
+      if (m_debuginfo_p) add_metadata("debuginfo");      
+      if (m_source_p) add_metadata("source");              
+    }
+  pp->reset();
+
+  unsigned num_local_results = json_object_array_length(metadata_arr);
+  
+  // Query upstream as well
+  debuginfod_client *client = debuginfod_pool_begin();
+  if (client != NULL)
+  {
+    add_client_federation_headers(client, conn);
+
+    int upstream_metadata_fd;
+    char *upstream_metadata_file = NULL;
+    upstream_metadata_fd = debuginfod_find_metadata(client, key.c_str(), (char*)value.c_str(),
+                                                    &upstream_metadata_file);
+    if (upstream_metadata_fd >= 0) {
+       /* json-c >= 0.13 has json_object_from_fd(). */
+      json_object *upstream_metadata_json = json_object_from_file(upstream_metadata_file);
+      free (upstream_metadata_file);
+      json_object *upstream_metadata_json_arr;
+      json_object *upstream_complete;
+      if (NULL != upstream_metadata_json &&
+          json_object_object_get_ex(upstream_metadata_json, "results", &upstream_metadata_json_arr) &&
+          json_object_object_get_ex(upstream_metadata_json, "complete", &upstream_complete))
+        {
+          metadata_complete &= json_object_get_boolean(upstream_complete);
+          for (int i = 0, n = json_object_array_length(upstream_metadata_json_arr); i < n; i++)
+            {
+              json_object *entry = json_object_array_get_idx(upstream_metadata_json_arr, i);
+              if (verbose > 3)
+                obatched(clog) << "metadata found remote "
+                               << json_object_to_json_string_ext(entry,
+                                                                 JSON_C_TO_STRING_PRETTY)
+                               << endl;
+              
+              json_object_get(entry); // increment reference count
+              json_object_array_add(metadata_arr, entry);
+            }
+          json_object_put(upstream_metadata_json);
+        }
+      close(upstream_metadata_fd);
+    }
+    debuginfod_pool_end (client);
+  }
+
+  unsigned num_total_results = json_object_array_length(metadata_arr);
+
+  if (verbose > 2)
+    obatched(clog) << "metadata found local=" << num_local_results
+                   << " remote=" << (num_total_results-num_local_results)
+                   << " total=" << num_total_results
+                   << endl;
+  
+  json_object_object_add(metadata, "complete", json_object_new_boolean(metadata_complete));
+  const char* metadata_str = json_object_to_json_string(metadata);
+  if (!metadata_str)
+    throw libc_exception (ENOMEM, "cannot allocate json");
+  r = MHD_create_response_from_buffer (strlen(metadata_str),
+                                       (void*) metadata_str,
+                                       MHD_RESPMEM_MUST_COPY);
+  *size = strlen(metadata_str);
+  if (r)
+    add_mhd_response_header(r, "Content-Type", "application/json");
+  return r;
+}
+
+
 static struct MHD_Response*
 handle_root (off_t* size)
 {
@@ -2719,6 +3802,23 @@ handle_root (off_t* size)
     {
       *size = version.size ();
       add_mhd_response_header (r, "Content-Type", "text/plain");
+    }
+  return r;
+}
+
+
+static struct MHD_Response*
+handle_options (off_t* size)
+{
+  static char empty_body[] = " ";
+  MHD_Response* r = MHD_create_response_from_buffer (1, empty_body,
+                                                     MHD_RESPMEM_PERSISTENT);
+  if (r != NULL)
+    {
+      *size = 1;
+      add_mhd_response_header (r, "Access-Control-Allow-Origin", "*");
+      add_mhd_response_header (r, "Access-Control-Allow-Methods", "GET, OPTIONS");
+      add_mhd_response_header (r, "Access-Control-Allow-Headers", "cache-control");
     }
   return r;
 }
@@ -2773,11 +3873,21 @@ handler_cb (void * /*cls*/,
   clock_gettime (CLOCK_MONOTONIC, &ts_start);
   double afteryou = 0.0;
   string artifacttype, suffix;
+  string urlargs; // for logging
 
   try
     {
-      if (string(method) != "GET")
-        throw reportable_exception(400, "we support GET only");
+      if (webapi_cors && method == string("OPTIONS"))
+        {
+          inc_metric("http_requests_total", "type", method);
+          r = handle_options(& http_size);
+          rc = MHD_queue_response (connection, MHD_HTTP_OK, r);
+          http_code = MHD_HTTP_OK;
+          MHD_destroy_response (r);
+          return rc;
+        }
+      else if (string(method) != "GET")
+        throw reportable_exception(400, "we support OPTIONS+GET only");
 
       /* Start decoding the URL. */
       size_t slash1 = url_copy.find('/', 1);
@@ -2825,7 +3935,7 @@ handler_cb (void * /*cls*/,
 
           // get the resulting fd so we can report its size
           int fd;
-          r = handle_buildid(connection, buildid, artifacttype, suffix, &fd);
+          r = handle_buildid (connection, buildid, artifacttype, suffix, &fd);
           if (r)
             {
               struct stat fs;
@@ -2840,6 +3950,19 @@ handler_cb (void * /*cls*/,
           artifacttype = "metrics";
           inc_metric("http_requests_total", "type", artifacttype);
           r = handle_metrics(& http_size);
+        }
+      else if (url1 == "/metadata")
+        {
+          tmp_inc_metric m ("thread_busy", "role", "http-metadata");
+          const char* key = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "key");
+          const char* value = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "value");
+          if (NULL == value || NULL == key)
+            throw reportable_exception("/metadata webapi error, need key and value");
+
+          urlargs = string("?key=") + string(key) + string("&value=") + string(value); // apprx., for logging
+          artifacttype = "metadata";
+          inc_metric("http_requests_total", "type", artifacttype);
+          r = handle_metadata(connection, key, value, &http_size);
         }
       else if (url1 == "/")
         {
@@ -2859,6 +3982,9 @@ handler_cb (void * /*cls*/,
           throw reportable_exception(406, "File too large, max size=" + std::to_string(maxsize));
         }
 
+      if (webapi_cors)
+        // add ACAO header for all successful requests
+        add_mhd_response_header (r, "Access-Control-Allow-Origin", "*");
       rc = MHD_queue_response (connection, MHD_HTTP_OK, r);
       http_code = MHD_HTTP_OK;
       MHD_destroy_response (r);
@@ -2877,7 +4003,7 @@ handler_cb (void * /*cls*/,
   // afteryou: delay waiting for other client's identical query to complete
   // deltas: total latency, including afteryou waiting
   obatched(clog) << conninfo(connection)
-                 << ' ' << method << ' ' << url
+                 << ' ' << method << ' ' << url << urlargs
                  << ' ' << http_code << ' ' << http_size
                  << ' ' << (int)(afteryou*1000) << '+' << (int)((deltas-afteryou)*1000) << "ms"
                  << endl;
@@ -2948,6 +4074,7 @@ dwarf_extract_source_paths (Elf *elf, set<string>& debug_sourcefiles)
             {
               string artifacttype = "debuginfo";
               r = handle_buildid (0, buildid, artifacttype, "", &alt_fd);
+              // NB: no need for ACAO etc. headers; this is not getting sent to a client 
             }
           catch (const reportable_exception& e)
             {
@@ -3034,7 +4161,8 @@ dwarf_extract_source_paths (Elf *elf, set<string>& debug_sourcefiles)
           if (hat == NULL)
             continue;
 
-          if (string(hat) == "<built-in>") // gcc intrinsics, don't bother record
+          if (string(hat) == "<built-in>"
+              || string_endswith(hat, "<built-in>")) // gcc intrinsics, don't bother record
             continue;
 
           string waldo;
@@ -3230,6 +4358,7 @@ register_file_name(sqlite_ps& ps_upsert_fileparts,
       dirname = name.substr(0, slash);
       filename = name.substr(slash+1);
     }
+  // NB: see also handle_metadata()
 
   // intern the two substrings
   ps_upsert_fileparts
@@ -3429,6 +4558,7 @@ archive_classify (const string& rps, string& archive_extension, int64_t archivei
                   sqlite_ps& ps_upsert_buildids, sqlite_ps& ps_upsert_fileparts, sqlite_ps& ps_upsert_file,
                   sqlite_ps& ps_lookup_file,
                   sqlite_ps& ps_upsert_de, sqlite_ps& ps_upsert_sref, sqlite_ps& ps_upsert_sdef,
+                  sqlite_ps& ps_upsert_seekable,
                   time_t mtime,
                   unsigned& fts_executable, unsigned& fts_debuginfo, unsigned& fts_sref, unsigned& fts_sdef,
                   bool& fts_sref_complete_p)
@@ -3483,6 +4613,10 @@ archive_classify (const string& rps, string& archive_extension, int64_t archivei
   if (verbose > 3)
     obatched(clog) << "libarchive scanning " << rps << " id " << archiveid << endl;
 
+  bool seekable = is_seekable_archive (rps, a);
+  if (verbose> 2 && seekable)
+    obatched(clog) << rps << " is seekable" << endl;
+
   bool any_exceptions = false;
   while(1) // parse archive entries
     {
@@ -3503,6 +4637,10 @@ archive_classify (const string& rps, string& archive_extension, int64_t archivei
 
           if (verbose > 3)
             obatched(clog) << "libarchive checking " << fn << endl;
+
+          int64_t seekable_size = archive_entry_size (e);
+          int64_t seekable_offset = archive_filter_bytes (a, 0);
+          time_t seekable_mtime = archive_entry_mtime (e);
 
           // extract this file to a temporary file
           char* tmppath = NULL;
@@ -3595,6 +4733,15 @@ archive_classify (const string& rps, string& archive_extension, int64_t archivei
                 .bind(5, mtime)
                 .bind(6, fileid)
                 .step_ok_done();
+              if (seekable)
+                ps_upsert_seekable
+                  .reset()
+                  .bind(1, archiveid)
+                  .bind(2, fileid)
+                  .bind(3, seekable_size)
+                  .bind(4, seekable_offset)
+                  .bind(5, seekable_mtime)
+                  .step_ok_done();
             }
           else // potential source - sdef record
             {
@@ -3608,11 +4755,19 @@ archive_classify (const string& rps, string& archive_extension, int64_t archivei
             }
 
           if ((verbose > 2) && (executable_p || debuginfo_p))
-            obatched(clog) << "recorded buildid=" << buildid << " rpm=" << rps << " file=" << fn
+            {
+              obatched ob(clog);
+              auto& o = ob << "recorded buildid=" << buildid << " rpm=" << rps << " file=" << fn
                            << " mtime=" << mtime << " atype="
                            << (executable_p ? "E" : "")
                            << (debuginfo_p ? "D" : "")
-                           << " sourcefiles=" << sourcefiles.size() << endl;
+                           << " sourcefiles=" << sourcefiles.size();
+              if (seekable)
+                o << " seekable size=" << seekable_size
+                  << " offset=" << seekable_offset
+                  << " mtime=" << seekable_mtime;
+              o << endl;
+            }
 
         }
       catch (const reportable_exception& e)
@@ -3643,6 +4798,7 @@ scan_archive_file (const string& rps, const stat_t& st,
                    sqlite_ps& ps_upsert_de,
                    sqlite_ps& ps_upsert_sref,
                    sqlite_ps& ps_upsert_sdef,
+                   sqlite_ps& ps_upsert_seekable,
                    sqlite_ps& ps_query,
                    sqlite_ps& ps_scan_done,
                    unsigned& fts_cached,
@@ -3680,7 +4836,7 @@ scan_archive_file (const string& rps, const stat_t& st,
       string archive_extension;
       archive_classify (rps, archive_extension, archiveid,
                         ps_upsert_buildids, ps_upsert_fileparts, ps_upsert_file, ps_lookup_file,
-                        ps_upsert_de, ps_upsert_sref, ps_upsert_sdef, // dalt
+                        ps_upsert_de, ps_upsert_sref, ps_upsert_sdef, ps_upsert_seekable, // dalt
                         st.st_mtime,
                         my_fts_executable, my_fts_debuginfo, my_fts_sref, my_fts_sdef,
                         my_fts_sref_complete_p);
@@ -3786,6 +4942,9 @@ scan ()
   sqlite_ps ps_r_upsert_sdef (db, "rpm-sdef-insert",
                             "insert or ignore into " BUILDIDS "_r_sdef (file, mtime, content) values ("
                             "?, ?, ?);");
+  sqlite_ps ps_r_upsert_seekable (db, "rpm-seekable-insert",
+                                  "insert or ignore into " BUILDIDS "_r_seekable (file, content, type, size, offset, mtime) "
+                                  "values (?, ?, 'xz', ?, ?, ?);");
   sqlite_ps ps_r_query (db, "rpm-negativehit-query",
                       "select 1 from " BUILDIDS "_file_mtime_scanned where "
                       "sourcetype = 'R' and file = ? and mtime = ?;");
@@ -3828,6 +4987,7 @@ scan ()
                                ps_r_upsert_de,
                                ps_r_upsert_sref,
                                ps_r_upsert_sdef,
+                               ps_r_upsert_seekable,
                                ps_r_query,
                                ps_r_scan_done,
                                fts_cached,
@@ -4213,12 +5373,13 @@ void groom()
   if (interrupted) return;
 
   // NB: "vacuum" is too heavy for even daily runs: it rewrites the entire db, so is done as maxigroom -G
-  sqlite_ps g1 (db, "incremental vacuum", "pragma incremental_vacuum");
-  g1.reset().step_ok_done();
-  sqlite_ps g2 (db, "optimize", "pragma optimize");
-  g2.reset().step_ok_done();
-  sqlite_ps g3 (db, "wal checkpoint", "pragma wal_checkpoint=truncate");
-  g3.reset().step_ok_done();
+  { sqlite_ps g (db, "incremental vacuum", "pragma incremental_vacuum"); g.reset().step_ok_done(); }
+  // https://www.sqlite.org/lang_analyze.html#approx
+  { sqlite_ps g (db, "analyze setup", "pragma analysis_limit = 1000;\n"); g.reset().step_ok_done(); }
+  { sqlite_ps g (db, "analyze", "analyze"); g.reset().step_ok_done(); }
+  { sqlite_ps g (db, "analyze reload", "analyze sqlite_schema"); g.reset().step_ok_done(); } 
+  { sqlite_ps g (db, "optimize", "pragma optimize"); g.reset().step_ok_done(); }
+  { sqlite_ps g (db, "wal checkpoint", "pragma wal_checkpoint=truncate"); g.reset().step_ok_done(); }
 
   database_stats_report();
 
@@ -4227,9 +5388,11 @@ void groom()
   sqlite3_db_release_memory(db); // shrink the process if possible
   sqlite3_db_release_memory(dbq); // ... for both connections
   debuginfod_pool_groom(); // and release any debuginfod_client objects we've been holding onto
-
-#if 0 /* PR31265: don't jettison cache unnecessarily */
+#if HAVE_MALLOC_TRIM
+  malloc_trim(0); // PR31103: release memory allocated for temporary purposes
+#endif
   
+#if 0 /* PR31265: don't jettison cache unnecessarily */
   fdcache.limit(0); // release the fdcache contents
   fdcache.limit(fdcache_mbs); // restore status quo parameters
 #endif
@@ -4448,6 +5611,8 @@ main (int argc, char *argv[])
   fdcache_prefetch = 64; // guesstimate storage is this much less costly than re-decompression
 
   /* Parse and process arguments.  */
+  memset(&http_sockaddr, 0, sizeof(http_sockaddr));
+  http_sockaddr.sin6_family = AF_UNSPEC;
   int remaining;
   (void) argp_parse (&argp, argc, argv, ARGP_IN_ORDER, &remaining, NULL);
   if (remaining != argc)
@@ -4554,53 +5719,82 @@ main (int argc, char *argv[])
 #endif
 			    | MHD_USE_DEBUG); /* report errors to stderr */
 
-  // Start httpd server threads.  Use a single dual-homed pool.
-  MHD_Daemon *d46 = MHD_start_daemon (mhd_flags, http_port,
-				      NULL, NULL, /* default accept policy */
-				      handler_cb, NULL, /* handler callback */
-				      MHD_OPTION_EXTERNAL_LOGGER,
-				      error_cb, NULL,
-				      MHD_OPTION_THREAD_POOL_SIZE,
-				      (int)connection_pool,
-				      MHD_OPTION_END);
+  MHD_Daemon *dsa = NULL,
+	     *d4 = NULL,
+	     *d46 = NULL;
 
-  MHD_Daemon *d4 = NULL;
-  if (d46 == NULL)
+  if (http_sockaddr.sin6_family != AF_UNSPEC)
     {
-      // Cannot use dual_stack, use ipv4 only
-      mhd_flags &= ~(MHD_USE_DUAL_STACK);
-      d4 = MHD_start_daemon (mhd_flags, http_port,
-			     NULL, NULL, /* default accept policy */
+      if (http_sockaddr.sin6_family == AF_INET)
+	((sockaddr_in*)&http_sockaddr)->sin_port = htons(http_port);
+      if (http_sockaddr.sin6_family == AF_INET6)
+	http_sockaddr.sin6_port = htons(http_port);
+      // Start httpd server threads on socket addr:port.
+      dsa = MHD_start_daemon (mhd_flags & ~MHD_USE_DUAL_STACK, http_port,
+			      NULL, NULL, /* default accept policy */
 			     handler_cb, NULL, /* handler callback */
 			     MHD_OPTION_EXTERNAL_LOGGER,
 			     error_cb, NULL,
-			     (connection_pool
-			      ? MHD_OPTION_THREAD_POOL_SIZE
-			      : MHD_OPTION_END),
-			     (connection_pool
-			      ? (int)connection_pool
-			      : MHD_OPTION_END),
+			     MHD_OPTION_SOCK_ADDR,
+			     (struct sockaddr *) &http_sockaddr,
+			     MHD_OPTION_THREAD_POOL_SIZE,
+			     (int)connection_pool,
 			     MHD_OPTION_END);
-      if (d4 == NULL)
-	{
-	  sqlite3 *database = db;
-	  sqlite3 *databaseq = dbq;
-	  db = dbq = 0; // for signal_handler not to freak
-	  sqlite3_close (databaseq);
-	  sqlite3_close (database);
-	  error (EXIT_FAILURE, 0, "cannot start http server at port %d",
-		 http_port);
-	}
-
     }
-  obatched(clog) << "started http server on"
-                 << (d4 != NULL ? " IPv4 " : " IPv4 IPv6 ")
-                 << "port=" << http_port << endl;
+  else
+    {
+      // Start httpd server threads.  Use a single dual-homed pool.
+      d46 = MHD_start_daemon (mhd_flags, http_port,
+			      NULL, NULL, /* default accept policy */
+			      handler_cb, NULL, /* handler callback */
+			      MHD_OPTION_EXTERNAL_LOGGER,
+			      error_cb, NULL,
+			      MHD_OPTION_THREAD_POOL_SIZE,
+			      (int)connection_pool,
+			      MHD_OPTION_END);
+      addr_info = "IPv4 IPv6";
+      if (d46 == NULL)
+	{
+	  // Cannot use dual_stack, use ipv4 only
+	  mhd_flags &= ~(MHD_USE_DUAL_STACK);
+	  d4 = MHD_start_daemon (mhd_flags, http_port,
+				 NULL, NULL, /* default accept policy */
+				 handler_cb, NULL, /* handler callback */
+				 MHD_OPTION_EXTERNAL_LOGGER,
+				 error_cb, NULL,
+				 (connection_pool
+				  ? MHD_OPTION_THREAD_POOL_SIZE
+				  : MHD_OPTION_END),
+				 (connection_pool
+				  ? (int)connection_pool
+				  : MHD_OPTION_END),
+				 MHD_OPTION_END);
+	  addr_info = "IPv4";
+	}
+    }
+  if (d4 == NULL && d46 == NULL && dsa == NULL)
+    {
+      sqlite3 *database = db;
+      sqlite3 *databaseq = dbq;
+      db = dbq = 0; // for signal_handler not to freak
+      sqlite3_close (databaseq);
+      sqlite3_close (database);
+      error (EXIT_FAILURE, 0, "cannot start http server on %s port %d",
+	     addr_info.c_str(), http_port);
+    }
+
+  obatched(clog) << "started http server on "
+		 << addr_info
+		 << " port=" << http_port
+		 << (webapi_cors ? " with cors" : "")
+		 << endl;
 
   // add maxigroom sql if -G given
   if (maxigroom)
     {
       obatched(clog) << "maxigrooming database, please wait." << endl;
+      // NB: this index alone can nearly double the database size!
+      // NB: this index would be necessary to run source-file metadata searches fast
       extra_ddl.push_back("create index if not exists " BUILDIDS "_r_sref_arc on " BUILDIDS "_r_sref(artifactsrc);");
       extra_ddl.push_back("delete from " BUILDIDS "_r_sdef where not exists (select 1 from " BUILDIDS "_r_sref b where " BUILDIDS "_r_sdef.content = b.artifactsrc);");
       extra_ddl.push_back("drop index if exists " BUILDIDS "_r_sref_arc;");
@@ -4717,6 +5911,7 @@ main (int argc, char *argv[])
     pthread_join (it, NULL);
 
   /* Stop all the web service threads. */
+  if (dsa) MHD_stop_daemon (dsa);
   if (d46) MHD_stop_daemon (d46);
   if (d4) MHD_stop_daemon (d4);
 

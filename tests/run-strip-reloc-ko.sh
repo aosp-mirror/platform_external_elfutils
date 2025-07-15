@@ -4,7 +4,7 @@
 
 testfiles hello_i386.ko hello_x86_64.ko hello_ppc64.ko hello_s390.ko \
 	hello_aarch64.ko hello_m68k.ko hello_riscv64.ko hello_csky.ko \
-	hello_arc_hs4.ko
+	hello_arc_hs4.ko hello_hexagon.ko
 
 # Most simple hello world kernel module for various architectures.
 # Make sure that it contains debuginfo with CONFIG_DEBUG_INFO=y.
@@ -47,5 +47,6 @@ runtest hello_m68k.ko 1
 runtest hello_riscv64.ko 1
 runtest hello_csky.ko 1
 runtest hello_arc_hs4.ko 1
+runtest hello_hexagon.ko 1
 
 exit $runtest_status

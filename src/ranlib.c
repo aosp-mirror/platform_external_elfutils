@@ -264,9 +264,9 @@ handle_file (const char *fname)
 	  if (fchown (newfd, st.st_uid, st.st_gid) != 0) { ; }
 	  /* Set the mode of the new file to the same values the
 	     original file has.  */
-	  if (fchmod (newfd, st.st_mode & ALLPERMS) != 0
-	      || close (newfd) != 0)
+	  if (fchmod (newfd, st.st_mode & ALLPERMS) != 0)
 	    goto nonew_unlink;
+	  close (newfd);
 	  newfd = -1;
 	  if (rename (tmpfname, fname) != 0)
 	    goto nonew_unlink;

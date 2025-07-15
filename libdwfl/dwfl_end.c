@@ -1,5 +1,5 @@
 /* Finish a session using libdwfl.
-   Copyright (C) 2005, 2008, 2012-2013, 2015 Red Hat, Inc.
+   Copyright (C) 2005, 2008, 2012-2013, 2015, 2025 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -31,6 +31,7 @@
 #endif
 
 #include "libdwflP.h"
+#include "libdwfl_stacktraceP.h"
 
 void
 dwfl_end (Dwfl *dwfl)
@@ -42,12 +43,16 @@ dwfl_end (Dwfl *dwfl)
   __libdwfl_debuginfod_end (dwfl->debuginfod);
 #endif
 
+  if (dwfl->tracker != NULL)
+    __libdwfl_stacktrace_remove_dwfl_from_tracker (dwfl);
+
   if (dwfl->process)
     __libdwfl_process_free (dwfl->process);
 
   free (dwfl->lookup_addr);
   free (dwfl->lookup_module);
   free (dwfl->lookup_segndx);
+  free (dwfl->sysroot);
 
   Dwfl_Module *next = dwfl->modulelist;
   while (next != NULL)
@@ -67,3 +72,5 @@ dwfl_end (Dwfl *dwfl)
     }
   free (dwfl);
 }
+INTDEF(dwfl_end)
+

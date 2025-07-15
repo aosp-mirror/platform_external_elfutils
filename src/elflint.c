@@ -252,6 +252,10 @@ process_file (int fd, Elf *elf, const char *prefix, const char *suffix,
 	char new_suffix[(suffix == NULL ? 0 : strlen (suffix)) + 2];
 	char *cp = new_prefix;
 
+	/* Either both prefix and suffix are NULL or both are non-NULL.  */
+	assert ((prefix == NULL && suffix == NULL)
+		|| (prefix != NULL && suffix != NULL));
+
 	/* Create the full name of the file.  */
 	if (prefix != NULL)
 	  {
@@ -331,7 +335,7 @@ static const int valid_e_machine[] =
     EM_AVR, EM_FR30, EM_D10V, EM_D30V, EM_V850, EM_M32R, EM_MN10300,
     EM_MN10200, EM_PJ, EM_OPENRISC, EM_ARC_A5, EM_XTENSA, EM_ALPHA,
     EM_TILEGX, EM_TILEPRO, EM_AARCH64, EM_BPF, EM_RISCV, EM_CSKY, EM_LOONGARCH,
-    EM_ARCV2
+    EM_ARCV2, EM_QDSP6
   };
 #define nvalid_e_machine \
   (sizeof (valid_e_machine) / sizeof (valid_e_machine[0]))
@@ -2293,6 +2297,7 @@ section [%2d] '%s': hash value for symbol %u in chain for bucket %zu wrong\n"),
 section [%2d] '%s': mask index for symbol %u in chain for bucket %zu wrong\n"),
 			     idx, section_name (ebl, idx), symidx,
 			     cnt - (4 + bitmask_words));
+		      free (collected.p32);
 		      return;
 		    }
 		  if (classbits == 32)

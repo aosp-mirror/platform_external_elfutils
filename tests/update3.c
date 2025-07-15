@@ -201,6 +201,7 @@ main (int argc, char *argv[] __attribute__ ((unused)))
     }
 
   unlink (fname);
+  close (fd);
 
   return 0;
 }

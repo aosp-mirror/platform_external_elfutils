@@ -81,6 +81,9 @@ wait_ready $PORT1 'thread_busy{role="scan"}' 0
 # Build-id for a file in the one of the testsuite's F31 rpms
 RPM_BUILDID=d44d42cbd7d915bc938c81333a21e355a6022fb7
 
+# PR31637 argc range checking
+(testrun ${abs_top_builddir}/debuginfod/debuginfod-find -v 2>&1 || true) | grep Usage:
+
 # Download sections from files indexed with -F
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find -vvv section $BUILDID .debug_info
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find -vvv section $BUILDID .text
@@ -92,11 +95,11 @@ testrun ${abs_top_builddir}/debuginfod/debuginfod-find -vvv section $RPM_BUILDID
 # Verify that the downloaded files match the contents of the original sections
 tempfiles ${BUILDID}.debug_info
 objcopy F/prog.debug -O binary --only-section=.debug_info --set-section-flags .debug_info=alloc $BUILDID.debug_info
-cmp ${BUILDID}.debug_info ${DEBUGINFOD_CACHE_PATH}/${BUILDID}/section-.debug_info
+cmp ${BUILDID}.debug_info ${DEBUGINFOD_CACHE_PATH}/${BUILDID}/section-*.debug_info
 
 tempfiles ${BUILDID}.text
 objcopy F/prog -O binary --only-section=.text ${BUILDID}.text
-cmp ${BUILDID}.text ${DEBUGINFOD_CACHE_PATH}/${BUILDID}/section-.text
+cmp ${BUILDID}.text ${DEBUGINFOD_CACHE_PATH}/${BUILDID}/section-*.text
 
 # Download the original debuginfo/executable files.
 DEBUGFILE=`env LD_LIBRARY_PATH=$ldpath ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $RPM_BUILDID`
@@ -107,11 +110,11 @@ testrun ${abs_top_builddir}/debuginfod/debuginfod-find -vvv executable $BUILDID
 if test "$(arch)" == "x86_64"; then
   tempfiles DEBUGFILE.debug_info
   objcopy $DEBUGFILE -O binary --only-section=.debug_info --set-section-flags .debug_info=alloc DEBUGFILE.debug_info
-  testrun diff -u DEBUGFILE.debug_info ${DEBUGINFOD_CACHE_PATH}/${RPM_BUILDID}/section-.debug_info
+  testrun diff -u DEBUGFILE.debug_info ${DEBUGINFOD_CACHE_PATH}/${RPM_BUILDID}/section-*.debug_info
 
   tempfiles EXECFILE.text
   objcopy $EXECFILE -O binary --only-section=.text EXECFILE.text
-  testrun diff -u EXECFILE.text ${DEBUGINFOD_CACHE_PATH}/${RPM_BUILDID}/section-.text
+  testrun diff -u EXECFILE.text ${DEBUGINFOD_CACHE_PATH}/${RPM_BUILDID}/section-*.text
 fi
 
 # Kill the server.
@@ -120,10 +123,10 @@ wait $PID1
 PID1=0
 
 # Delete the section files from the cache.
-rm -f ${DEBUGINFOD_CACHE_PATH}/${RPM_BUILDID}/section-.text
-rm -f ${DEBUGINFOD_CACHE_PATH}/${RPM_BUILDID}/section-.debug_info
-rm -f ${DEBUGINFOD_CACHE_PATH}/${BUILDID}/section-.text
-rm -f ${DEBUGINFOD_CACHE_PATH}/${BUILDID}/section-.debug_info
+rm -f ${DEBUGINFOD_CACHE_PATH}/${RPM_BUILDID}/section-*.text
+rm -f ${DEBUGINFOD_CACHE_PATH}/${RPM_BUILDID}/section-*.debug_info
+rm -f ${DEBUGINFOD_CACHE_PATH}/${BUILDID}/section-*.text
+rm -f ${DEBUGINFOD_CACHE_PATH}/${BUILDID}/section-*.debug_info
 
 # Verify that the client can extract sections from the debuginfo or executable
 # if they're already in the cache.

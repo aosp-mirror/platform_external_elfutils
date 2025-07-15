@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include "../libdw/libdwP.h"
 
 
 int
@@ -69,6 +70,24 @@ main (int argc, char *argv[])
 	    }
 	  old_cuoff = cuoff;
 
+	  Dwarf_Files *files;
+	  size_t nfiles;
+
+	  /* Get files first to test that lines are read separately.  */
+	  if (dwarf_getsrcfiles (&die, &files, &nfiles) != 0)
+	    {
+	      printf ("%s: cannot get files\n", argv[cnt]);
+	      result = 1;
+	      break;
+	    }
+
+	  if (die.cu->lines != NULL)
+	    {
+	      printf ("%s: dwarf_getsrcfiles should not get lines\n", argv[cnt]);
+	      result = 1;
+	      break;
+	    }
+
 	  Dwarf_Lines *lb;
 	  size_t nlb;
 	  if (dwarf_getsrclines (&die, &lb, &nlb) != 0)
@@ -103,7 +122,6 @@ main (int argc, char *argv[])
 
 	      /* Getting the file path through the Dwarf_Files should
 		 result in the same path.  */
-	      Dwarf_Files *files;
 	      size_t idx;
 	      if (dwarf_line_file (l, &files, &idx) != 0)
 		{

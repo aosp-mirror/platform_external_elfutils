@@ -101,6 +101,10 @@ cc_library {
 
     export_include_dirs: ["libelf"],
 
+    whole_static_libs: [
+        "libeu",
+    ],
+
     target: {
         darwin: {
             enabled: false,
@@ -183,6 +187,7 @@ cc_library {
         "libdw/*.c",
         "libdwelf/*.c",
         "libdwfl/*.c",
+        "libdwfl_stacktrace/*.c",
         "libebl/*.c",
     ],
     generated_headers: [
@@ -201,13 +206,16 @@ cc_library {
         // compiled standalone.
         "backends/common-reloc.c",
         "backends/linux-core-note.c",
+        "backends/linux-perf-regs.c",
         "backends/x86_corenote.c",
+        "backends/x86_initreg_sample.c",
     ],
     local_include_dirs: [
         "libcpu",
         "libasm",
         "libdwelf",
         "libdwfl",
+        "libdwfl_stacktrace",
         "libebl",
     ],
     export_include_dirs: [

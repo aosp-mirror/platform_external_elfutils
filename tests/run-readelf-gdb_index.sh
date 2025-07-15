@@ -86,7 +86,7 @@ GDB section [33] '.gdb_index' at offset 0xe76 contains 8383 bytes :
  [   0] 0x000000000040049c <main>..0x00000000004004d1 <main+0x35>, CU index:     0
  [   1] 0x00000000004004d4 <hello>..0x000000000040050b <say+0x1c>, CU index:     1
 
- Symbol table at offset 0x50 contains 1024 slots:
+ Symbol table at offset 0x78 contains 1024 slots:
  [ 123] symbol: global, CUs: 1
  [ 489] symbol: main, CUs: 0
  [ 518] symbol: char, CUs: 0
@@ -117,7 +117,7 @@ GDB section [33] '.gdb_index' at offset 0xe76 contains 8399 bytes :
  [   0] 0x000000000040049c <main>..0x00000000004004d1 <main+0x35>, CU index:     0
  [   1] 0x00000000004004d4 <hello>..0x000000000040050b <say+0x1c>, CU index:     1
 
- Symbol table at offset 0x50 contains 1024 slots:
+ Symbol table at offset 0x78 contains 1024 slots:
  [ 123] symbol: global, CUs: 1 (var:G)
  [ 489] symbol: main, CUs: 0 (func:G)
  [ 518] symbol: char, CUs: 0 (type:S)
@@ -150,7 +150,7 @@ GDB section [33] '.gdb_index' at offset 0x38e1 contains 8415 bytes :
  [   0] 0x0000000000401106 <main>..0x000000000040113b <main+0x35>, CU index:     1
  [   1] 0x000000000040113c <hello>..0x0000000000401173 <say+0x1c>, CU index:     2
 
- Symbol table at offset 0x54 contains 1024 slots:
+ Symbol table at offset 0x7c contains 1024 slots:
  [ 123] symbol: global, CUs: 1 (var:G), 0T (var:G)
  [ 489] symbol: main, CUs: 1 (func:G)
  [ 518] symbol: char, CUs: 0 (type:S)
@@ -204,7 +204,7 @@ GDB section [35] '.gdb_index' at offset 0x37d9 contains 8395 bytes :
  Address list at offset 0x2c contains 1 entries:
  [   0] 0x0000000000401166 <MAIN__>..0x00000000004013f0 <main+0x3a>, CU index:     0
 
- Symbol table at offset 0x2c contains 1024 slots:
+ Symbol table at offset 0x40 contains 1024 slots:
  [  61] symbol: small_stride, CUs: 0 (type:S)
  [  71] symbol: integer(kind=8), CUs: 0 (type:S)
  [ 161] symbol: character(kind=1), CUs: 0 (type:S)

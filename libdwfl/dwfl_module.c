@@ -61,8 +61,7 @@ void
 internal_function
 __libdwfl_module_free (Dwfl_Module *mod)
 {
-  if (mod->lazy_cu_root != NULL)
-    tdestroy (mod->lazy_cu_root, nofree);
+  eu_search_tree_fini (&mod->lazy_cu_tree, nofree);
 
   if (mod->aranges != NULL)
     free (mod->aranges);
@@ -200,6 +199,7 @@ dwfl_report_module (Dwfl *dwfl, const char *name,
   mod->low_addr = start;
   mod->high_addr = end;
   mod->dwfl = dwfl;
+  eu_search_tree_init (&mod->lazy_cu_tree);
 
   return use (mod, tailp, dwfl);
 }

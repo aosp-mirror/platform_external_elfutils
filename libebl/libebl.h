@@ -1,5 +1,5 @@
 /* Interface for libebl.
-   Copyright (C) 2000-2010, 2013, 2014, 2015, 2016, 2017 Red Hat, Inc.
+   Copyright (C) 2000-2010, 2013, 2014, 2015, 2016, 2017, 2025 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -338,6 +338,35 @@ extern bool ebl_set_initial_registers_tid (Ebl *ebl,
 /* Number of registers to allocate for ebl_set_initial_registers_tid.
    EBL architecture can unwind iff EBL_FRAME_NREGS > 0.  */
 extern size_t ebl_frame_nregs (Ebl *ebl)
+  __nonnull_attribute__ (1);
+
+/* Callback to set process data from a linux perf_events sample.
+   EBL architecture has to have EBL_PERF_FRAME_REGS_MASK > 0, otherwise the
+   backend doesn't support unwinding from perf_events sample data.  */
+extern bool ebl_set_initial_registers_sample (Ebl *ebl,
+					      const Dwarf_Word *regs, uint32_t n_regs,
+					      uint64_t regs_mask, uint32_t abi,
+					      ebl_tid_registers_t *setfunc,
+					      void *arg)
+  __nonnull_attribute__ (1, 2, 6);
+
+/* Extract the stack address from a perf_events register sample.  */
+Dwarf_Word ebl_sample_base_addr (Ebl *ebl,
+				 const Dwarf_Word *regs, uint32_t n_regs,
+				 uint64_t regs_mask, uint32_t abi)
+  __nonnull_attribute__ (1, 2);
+
+/* Extract the instruction pointer from a perf_events register sample.  */
+Dwarf_Word ebl_sample_pc (Ebl *ebl,
+			  const Dwarf_Word *regs, uint32_t n_regs,
+			  uint64_t regs_mask, uint32_t abi)
+  __nonnull_attribute__ (1, 2);
+
+
+/* Preferred sample_regs_user mask to request from linux perf_events
+   to allow unwinding on EBL architecture.  Omitting some of these
+   registers may result in failed or inaccurate unwinding. */
+extern uint64_t ebl_perf_frame_regs_mask (Ebl *ebl)
   __nonnull_attribute__ (1);
 
 /* Offset to apply to the value of the return_address_register, as

@@ -1,6 +1,7 @@
 /* Test all DW_LANG constants are handled by dwarf_default_lower_bound.
 
    Copyright (C) 2016 Red Hat, Inc.
+   Copyright (C) 2024 Mark J. Wielaard <mark@klomp.org>
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -33,18 +34,6 @@ test_lang (const char *name, int lang)
 {
   Dwarf_Sword low;
   int res = dwarf_default_lower_bound (lang, &low);
-
-  /* Assembler is special, it doesn't really have arrays.  */
-  if (lang == DW_LANG_Mips_Assembler)
-    {
-      if (res == 0)
-	{
-	  printf ("%s shouldn't have a known lower bound\n", name);
-	  exit (-1);
-	}
-      printf ("%s: <unknown>\n", name);
-      return;
-    }
 
   if (res != 0)
     {

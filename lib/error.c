@@ -26,7 +26,9 @@
    the GNU Lesser General Public License along with this program.  If
    not, see <http://www.gnu.org/licenses/>.  */
 
-#include <config.h>
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
 
 #if !defined(HAVE_ERROR_H) && defined(HAVE_ERR_H)
 #include <errno.h>

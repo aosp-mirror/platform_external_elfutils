@@ -378,3 +378,32 @@ ELFUTILS_0.191 {
   global:
     dwarf_cu_dwp_section_info;
 } ELFUTILS_0.188;
+
+ELFUTILS_0.192 {
+  global:
+    dwfl_set_sysroot;
+    dwfl_frame_unwound_source;
+    dwfl_unwound_source_str;
+} ELFUTILS_0.191;
+
+ELFUTILS_0.193 {
+  global:
+    dwarf_language;
+    dwarf_language_lower_bound;
+} ELFUTILS_0.192;
+
+/* XXX Experimental libdwfl_stacktrace API. */
+ELFUTILS_0.193_EXPERIMENTAL {
+  global:
+    dwflst_perf_sample_preferred_regs_mask;
+    dwflst_perf_sample_preferred_regs_mask;
+    dwflst_tracker_begin;
+    dwflst_tracker_dwfl_begin;
+    dwflst_tracker_end;
+    dwflst_tracker_find_cached_elf;
+    dwflst_tracker_cache_elf;
+    dwflst_module_gettracker;
+    dwflst_tracker_linux_proc_find_elf;
+    dwflst_tracker_find_pid;
+    dwflst_perf_sample_getframes;
+};

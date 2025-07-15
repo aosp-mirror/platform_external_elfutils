@@ -579,15 +579,24 @@ extern int dwarf_bitoffset (Dwarf_Die *die);
 /* Return array order attribute of DIE.  */
 extern int dwarf_arrayorder (Dwarf_Die *die);
 
-/* Return source language attribute of DIE.  */
-extern int dwarf_srclang (Dwarf_Die *die);
+/* Return DW_LANG source language of CU DIE.
+   Returns the DW_LANG constant on success, -1 otherwise.  */
+extern int dwarf_srclang (Dwarf_Die *cudie);
+
+/* Provides the DW_LNAME source language and version of the given CU
+   DIE.  LVERSION may be NULL. Returns zero on success.  */
+extern int dwarf_language (Dwarf_Die *cudie,
+			   Dwarf_Word *lname,
+			   Dwarf_Word *lversion) __nonnull_attribute__ (2);
 
 
 /* Get abbreviation at given offset for given DIE.  */
 extern Dwarf_Abbrev *dwarf_getabbrev (Dwarf_Die *die, Dwarf_Off offset,
 				      size_t *lengthp);
 
-/* Get abbreviation at given offset in .debug_abbrev section.  */
+/* Get abbreviation at given offset in .debug_abbrev section.  On
+   success return zero and fills in ABBREVP.  When there is no (more)
+   abbrev at offset returns one.  On error returns a negative value.  */
 extern int dwarf_offabbrev (Dwarf *dbg, Dwarf_Off offset, size_t *lengthp,
 			    Dwarf_Abbrev *abbrevp)
      __nonnull_attribute__ (4);
@@ -827,11 +836,18 @@ extern int dwarf_getlocation_attr (Dwarf_Attribute *attr,
    For DW_TAG_array_type it can apply much more complex rules.  */
 extern int dwarf_aggregate_size (Dwarf_Die *die, Dwarf_Word *size);
 
-/* Given a language code, as returned by dwarf_srclan, get the default
-   lower bound for a subrange type without a lower bound attribute.
-   Returns zero on success or -1 on failure when the given language
-   wasn't recognized.  */
+/* Given a DW_LANG language code, as returned by dwarf_srclang, get
+   the default lower bound for a subrange type without a lower bound
+   attribute.  Returns zero on success or -1 on failure when the given
+   language wasn't recognized.  */
 extern int dwarf_default_lower_bound (int lang, Dwarf_Sword *result)
+  __nonnull_attribute__ (2);
+
+/* Given a DW_LNAME language code, as returned by dwarf_language, get
+   the default lower bound for a subrange type without a lower bound
+   attribute.  Returns zero on success or -1 on failure when the given
+   language wasn't recognized.  */
+extern int dwarf_language_lower_bound (Dwarf_Word lname, Dwarf_Sword *result)
   __nonnull_attribute__ (2);
 
 /* Return scope DIEs containing PC address.

@@ -30,25 +30,35 @@
 ##
 EXTRA_DIST = elfutils.spec.in known-dwarf.awk 10-default-yama-scope.conf \
 	     libelf.pc.in libdw.pc.in libdebuginfod.pc.in \
-	     debuginfod.service debuginfod.sysconfig profile.sh.in profile.csh.in
+	     debuginfod.service debuginfod.sysconfig \
+	     profile.sh.in profile.csh.in profile.fish.in
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libelf.pc libdw.pc
 if LIBDEBUGINFOD
 pkgconfig_DATA += libdebuginfod.pc
 
+all-local:
+	sed -i 's/{prefix}/prefix/g' profile.fish
+
 install-data-local:
-	$(INSTALL_DATA) profile.sh -D $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.sh
-	$(INSTALL_DATA) profile.csh -D $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.csh
+	$(INSTALL_DATA) -D profile.sh $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.sh
+	$(INSTALL_DATA) -D profile.csh $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.csh
+	$(INSTALL_DATA) -D profile.fish $(DESTDIR)$(datadir)/fish/vendor_conf.d/debuginfod.fish
 	mkdir -p $(DESTDIR)$(sysconfdir)/debuginfod
 	if [ -n "@DEBUGINFOD_URLS@" ]; then \
 		echo "@DEBUGINFOD_URLS@" > $(DESTDIR)$(sysconfdir)/debuginfod/elfutils.urls; \
+	fi
+	if [ -n "@DEBUGINFOD_IMA_CERT_PATH@" ]; then \
+		echo "@DEBUGINFOD_IMA_CERT_PATH@" > $(DESTDIR)$(sysconfdir)/debuginfod/elfutils.certpath; \
 	fi
 
 uninstall-local:
 	rm -f $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.sh
 	rm -f $(DESTDIR)$(sysconfdir)/profile.d/debuginfod.csh
+	rm -f $(DESTDIR)$(datadir)/fish/vendor_conf.d/debuginfod.fish
 	rm -f $(DESTDIR)$(sysconfdir)/debuginfod/elfutils.urls
+	rm -f $(DESTDIR)$(sysconfdir)/debuginfod/elfutils.certpath
 	-rmdir $(DESTDIR)$(sysconfdir)/debuginfod
 endif
 

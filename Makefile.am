@@ -1,7 +1,7 @@
 ## Process this file with automake to create Makefile.in
 ## Configure input file for elfutils.
 ##
-## Copyright (C) 1996-2006, 2008, 2009, 2015 Red Hat, Inc.
+## Copyright (C) 1996-2006, 2008, 2009, 2015, 2025 Red Hat, Inc.
 ##
 ## This file is part of elfutils.
 ##
@@ -18,6 +18,8 @@
 ## You should have received a copy of the GNU General Public License
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
+include $(top_srcdir)/config/eu.am
+
 ACLOCAL_AMFLAGS = -I m4
 
 # automake already tells which subdir is being entered.
@@ -26,11 +28,11 @@ AM_MAKEFLAGS = --no-print-directory
 
 pkginclude_HEADERS = version.h
 
-SUBDIRS = config lib libelf libcpu backends libebl libdwelf libdwfl libdw \
-	  libasm debuginfod src po doc tests
+SUBDIRS = config lib libelf libcpu backends libebl libdwelf libdwfl \
+	  libdwfl_stacktrace libdw libasm debuginfod src po doc tests
 
 EXTRA_DIST = elfutils.spec GPG-KEY NOTES CONTRIBUTING SECURITY \
-	     COPYING COPYING-GPLV2 COPYING-LGPLV3
+	     COPYING COPYING-GPLV2 COPYING-LGPLV3 CONDUCT
 
 # Make sure the test install uses lib64 when $LIB will yield lib64.
 # Make sure the test build uses the same compiler, which on e.g. ppc64
@@ -53,8 +55,6 @@ rpmbuild: dist
 
 if GCOV
 
-COVERAGE_OUTPUT_FILE = $(PACKAGE_NAME).lcov
-COVERAGE_OUTPUT_DIRECTORY = coverage
 COVERAGE_OUTPUT_INDEX_HTML = $(COVERAGE_OUTPUT_DIRECTORY)/index.html
 COVERAGE_TITLE = $(PACKAGE_NAME)-$(PACKAGE_VERSION)
 
@@ -64,23 +64,20 @@ build_COVERAGE_DIRS = $(patsubst %,$(builddir)/%,$(COVERAGE_DIRS))
 all_COVERAGE_DIRS = $(sort $(src_COVERAGE_DIRS) $(build_COVERAGE_DIRS))
 LCOV_DIRS_ARGS = $(patsubst %,--directory=%,$(all_COVERAGE_DIRS))
 
-CLEANFILES = $(COVERAGE_OUTPUT_FILE)
-
-.PHONY: coverage coverage-clean
-
-clean-local: coverage-clean
-distclean-local: coverage-clean
-
-coverage-clean:
-	-rm -rf $(COVERAGE_OUTPUT_DIRECTORY)
-
 coverage: $(COVERAGE_OUTPUT_INDEX_HTML)
 	@echo 'file://$(abs_builddir)/$(COVERAGE_OUTPUT_INDEX_HTML)'
+
+if LCOV_OLD
+ignore_errors =
+else
+ignore_errors = --ignore-errors empty,negative
+endif
 
 $(COVERAGE_OUTPUT_INDEX_HTML): $(COVERAGE_OUTPUT_FILE)
 	LC_ALL=C $(GENHTML) \
 		--legend \
 		--show-details \
+		$(ignore_errors) \
 		--rc=genhtml_branch_coverage=1 \
 		--title='$(COVERAGE_TITLE)' \
 		--prefix='$(abspath $(abs_srcdir))' \
@@ -95,11 +92,11 @@ $(COVERAGE_OUTPUT_FILE):
 		--capture \
 		--no-external \
 		--no-checksum \
+		$(ignore_errors) \
 		--rc=lcov_branch_coverage=1 \
 		--gcov-tool='$(GCOV)' \
 		--output-file='$@' \
 		$(LCOV_DIRS_ARGS)
-
 endif
 
 # Tell version 3.79 and up of GNU make to not build goals in this

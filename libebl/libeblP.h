@@ -1,5 +1,5 @@
 /* Internal definitions for interface for libebl.
-   Copyright (C) 2000-2009, 2013, 2014 Red Hat, Inc.
+   Copyright (C) 2000-2009, 2013, 2014, 2025 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -59,6 +59,11 @@ struct ebl
   /* Number of registers to allocate for ebl_set_initial_registers_tid.
      Ebl architecture can unwind iff FRAME_NREGS > 0.  */
   size_t frame_nregs;
+
+  /* Preferred sample_regs_user mask to request from linux perf_events
+     to allow unwinding.  Ebl architecture supports unwinding from
+     perf_events sample data iff PERF_FRAME_REGS_MASK > 0.  */
+  uint64_t perf_frame_regs_mask;
 
   /* Offset to apply to the value of the return_address_register, as
      fetched from a Dwarf CFI.  This is used by some backends, where

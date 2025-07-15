@@ -30,10 +30,10 @@
 # include <config.h>
 #endif
 
+#include "eu-search.h"
 #include "libdwflP.h"
 #include "libdwP.h"
 #include "memory-access.h"
-#include <search.h>
 
 
 static inline Dwarf_Arange *
@@ -151,8 +151,7 @@ less_lazy (Dwfl_Module *mod)
     return;
 
   /* We know about all the CUs now, we don't need this table.  */
-  tdestroy (mod->lazy_cu_root, nofree);
-  mod->lazy_cu_root = NULL;
+  eu_tdestroy (&mod->lazy_cu_tree, nofree);
 }
 
 static inline Dwarf_Off
@@ -198,7 +197,8 @@ intern_cu (Dwfl_Module *mod, Dwarf_Off cuoff, struct dwfl_cu **result)
 
   struct dwfl_cu key;
   key.die.cu = die->cu;
-  struct dwfl_cu **found = tsearch (&key, &mod->lazy_cu_root, &compare_cukey);
+  struct dwfl_cu **found = eu_tsearch (&key, &mod->lazy_cu_tree,
+				       &compare_cukey);
   if (unlikely (found == NULL))
     return DWFL_E_NOMEM;
 

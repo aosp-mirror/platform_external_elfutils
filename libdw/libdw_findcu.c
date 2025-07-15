@@ -32,7 +32,7 @@
 #endif
 
 #include <assert.h>
-#include <search.h>
+#include "eu-search.h"
 #include "libdwP.h"
 
 static int
@@ -101,7 +101,7 @@ __libdw_intern_next_unit (Dwarf *dbg, bool debug_types)
 {
   Dwarf_Off *const offsetp
     = debug_types ? &dbg->next_tu_offset : &dbg->next_cu_offset;
-  void **tree = debug_types ? &dbg->tu_tree : &dbg->cu_tree;
+  search_tree *tree = debug_types ? &dbg->tu_tree : &dbg->cu_tree;
 
   Dwarf_Off oldoff = *offsetp;
   uint16_t version;
@@ -167,7 +167,6 @@ __libdw_intern_next_unit (Dwarf *dbg, bool debug_types)
   newp->orig_abbrev_offset = newp->last_abbrev_offset = abbrev_offset;
   newp->files = NULL;
   newp->lines = NULL;
-  newp->locs = NULL;
   newp->split = (Dwarf_CU *) -1;
   newp->base_address = (Dwarf_Addr) -1;
   newp->addr_base = (Dwarf_Off) -1;
@@ -177,6 +176,11 @@ __libdw_intern_next_unit (Dwarf *dbg, bool debug_types)
 
   newp->startp = data->d_buf + newp->start;
   newp->endp = data->d_buf + newp->end;
+  eu_search_tree_init (&newp->locs_tree);
+  rwlock_init (newp->abbrev_lock);
+  rwlock_init (newp->split_lock);
+  mutex_init (newp->src_lock);
+  mutex_init (newp->str_off_base_lock);
 
   /* v4 debug type units have version == 4 and unit_type == DW_UT_type.  */
   if (debug_types)
@@ -221,7 +225,7 @@ __libdw_intern_next_unit (Dwarf *dbg, bool debug_types)
     Dwarf_Sig8_Hash_insert (&dbg->sig8_hash, unit_id8, newp);
 
   /* Add the new entry to the search tree.  */
-  if (tsearch (newp, tree, findcu_cb) == NULL)
+  if (eu_tsearch (newp, tree, findcu_cb) == NULL)
     {
       /* Something went wrong.  Undo the operation.  */
       *offsetp = oldoff;
@@ -236,41 +240,56 @@ struct Dwarf_CU *
 internal_function
 __libdw_findcu (Dwarf *dbg, Dwarf_Off start, bool v4_debug_types)
 {
-  void **tree = v4_debug_types ? &dbg->tu_tree : &dbg->cu_tree;
+  mutex_lock (dbg->dwarf_lock);
+
+  search_tree *tree = v4_debug_types ? &dbg->tu_tree : &dbg->cu_tree;
   Dwarf_Off *next_offset
     = v4_debug_types ? &dbg->next_tu_offset : &dbg->next_cu_offset;
 
   /* Maybe we already know that CU.  */
   struct Dwarf_CU fake = { .start = start, .end = 0 };
-  struct Dwarf_CU **found = tfind (&fake, tree, findcu_cb);
+  struct Dwarf_CU **found = eu_tfind (&fake, tree, findcu_cb);
+  struct Dwarf_CU *result = NULL;
   if (found != NULL)
-    return *found;
+    {
+      mutex_unlock (dbg->dwarf_lock);
+      return *found;
+    }
 
   if (start < *next_offset)
+    __libdw_seterrno (DWARF_E_INVALID_DWARF);
+  else
     {
-      __libdw_seterrno (DWARF_E_INVALID_DWARF);
-      return NULL;
+      /* No.  Then read more CUs.  */
+      while (1)
+	{
+	  struct Dwarf_CU *newp
+	    = __libdw_intern_next_unit (dbg, v4_debug_types);
+
+	  if (newp == NULL)
+	    {
+	      result = NULL;
+	      break;
+	    }
+
+	  /* Is this the one we are looking for?  */
+	  if (start < *next_offset || start == newp->start)
+	    {
+	      result = newp;
+	      break;
+	    }
+	}
     }
 
-  /* No.  Then read more CUs.  */
-  while (1)
-    {
-      struct Dwarf_CU *newp = __libdw_intern_next_unit (dbg, v4_debug_types);
-      if (newp == NULL)
-	return NULL;
-
-      /* Is this the one we are looking for?  */
-      if (start < *next_offset || start == newp->start)
-	return newp;
-    }
-  /* NOTREACHED */
+  mutex_unlock (dbg->dwarf_lock);
+  return result;
 }
 
 struct Dwarf_CU *
 internal_function
 __libdw_findcu_addr (Dwarf *dbg, void *addr)
 {
-  void **tree;
+  search_tree *tree;
   Dwarf_Off start;
   if (addr >= dbg->sectiondata[IDX_debug_info]->d_buf
       && addr < (dbg->sectiondata[IDX_debug_info]->d_buf
@@ -291,7 +310,7 @@ __libdw_findcu_addr (Dwarf *dbg, void *addr)
     return NULL;
 
   struct Dwarf_CU fake = { .start = start, .end = 0 };
-  struct Dwarf_CU **found = tfind (&fake, tree, findcu_cb);
+  struct Dwarf_CU **found = eu_tfind (&fake, tree, findcu_cb);
 
   if (found != NULL)
     return *found;
@@ -306,7 +325,7 @@ __libdw_find_split_dbg_addr (Dwarf *dbg, void *addr)
   /* XXX Assumes split DWARF only has CUs in main IDX_debug_info.  */
   Elf_Data fake_data = { .d_buf = addr, .d_size = 0 };
   Dwarf fake = { .sectiondata[IDX_debug_info] = &fake_data };
-  Dwarf **found = tfind (&fake, &dbg->split_tree, __libdw_finddbg_cb);
+  Dwarf **found = eu_tfind (&fake, &dbg->split_tree, __libdw_finddbg_cb);
 
   if (found != NULL)
     return *found;

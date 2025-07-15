@@ -33,7 +33,7 @@ test_copy_and_add ()
   # Can we add a section (in-place)?
   testrun ${abs_builddir}/addsections 3 ${out_file}
   testrun ${abs_top_builddir}/src/readelf -S ${out_file} > readelf.out
-  nr=$(grep '.extra' readelf.out | wc -l)
+  nr=$(grep '\.extra' readelf.out | wc -l)
   if test ${nr} != 3; then
     # Show what went wrong
     testrun ${abs_top_builddir}/src/readelf -S ${out_file}
@@ -49,7 +49,7 @@ test_copy_and_add ()
   # because mremap cannot extend too much.
   testrun ${abs_builddir}/addsections --mmap 1 ${out_file_mmap}
   testrun ${abs_top_builddir}/src/readelf -S ${out_file_mmap} > readelf.out
-  nr=$(grep '.extra' readelf.out | wc -l)
+  nr=$(grep '\.extra' readelf.out | wc -l)
   if test ${nr} != 1; then
     # Show what went wrong
     testrun ${abs_top_builddir}/src/readelf -S ${out_file_mmap}

@@ -1,6 +1,7 @@
 #!/bin/gawk -f
 
 ## Copyright (C) 2012, 2015 Red Hat, Inc.
+## Copyright (C) 2025 Mark J. Wielaard <mark@klomp.org>
 ##
 ## This file is part of elfutils.
 ##
@@ -24,6 +25,7 @@ set == "" && $1 ~ /DW_([A-Z_]+)_([^ ]+)/ {
   sub(/^DW_/, "", set);
   sub(/_[^[:upper:]_].*$/, "", set);
   if (set ~ /LANG_.+/) set = "LANG";
+  if (set ~ /LNAME_.+/) set = "LNAME";
 }
 
 $1 ~ /DW([_A-Z]+)_([^ ]+)/ {

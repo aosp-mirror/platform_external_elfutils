@@ -82,7 +82,14 @@ x86_64_register_info (Ebl *ebl __attribute__ ((unused)),
     {
       static const char baseregs[][2] =
 	{
-	  "ax", "dx", "cx", "bx", "si", "di", "bp", "sp"
+	  {'a', 'x'},
+	  {'d', 'x'},
+	  {'c', 'x'},
+	  {'b', 'x'},
+	  {'s', 'i'},
+	  {'d', 'i'},
+	  {'b', 'p'},
+	  {'s', 'p'},
 	};
 
     case 6 ... 7:

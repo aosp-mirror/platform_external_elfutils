@@ -90,13 +90,13 @@ struct Dwarf_CFI_s
   Dwarf_Off next_offset;
 
   /* Search tree for the CIEs, indexed by CIE_pointer (section offset).  */
-  void *cie_tree;
+  search_tree cie_tree;
 
   /* Search tree for the FDEs, indexed by PC address.  */
-  void *fde_tree;
+  search_tree fde_tree;
 
   /* Search tree for parsed DWARF expressions, indexed by raw pointer.  */
-  void *expr_tree;
+  search_tree expr_tree;
 
   /* Backend hook.  */
   struct ebl *ebl;
@@ -228,6 +228,11 @@ extern int __libdw_frame_at_address (Dwarf_CFI *cache, struct dwarf_fde *fde,
     { ((BYTE_ORDER == LITTLE_ENDIAN && e_ident[EI_DATA] == ELFDATA2MSB)       \
        || (BYTE_ORDER == BIG_ENDIAN && e_ident[EI_DATA] == ELFDATA2LSB)) }
 
+/* AARCH64 DWARF registers. */
+enum
+  {
+    DW_AARCH64_RA_SIGN_STATE = 34
+  };
 
 INTDECL (dwarf_next_cfi)
 INTDECL (dwarf_getcfi)

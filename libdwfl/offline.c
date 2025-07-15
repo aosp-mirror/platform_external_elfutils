@@ -271,7 +271,8 @@ process_archive (Dwfl *dwfl, const char *name, const char *file_name, int fd,
      zero, that module will close FD.  If no modules survived the predicate,
      we are all done with the file right here.  */
   if (mod != NULL		/* If no modules, caller will clean up.  */
-      && elf_end (archive) == 0)
+      && elf_end (archive) == 0
+      && fd >= 0)
     close (fd);
 
   return mod;

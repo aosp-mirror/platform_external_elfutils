@@ -212,6 +212,7 @@ unzip (int fd, off_t start_offset,
       else
 	{
 	  state.input_buffer = *state.whole;
+	  mapped = state.input_buffer;
 	  state.input_pos = state.mapped_size = *whole_size;
 	}
     }

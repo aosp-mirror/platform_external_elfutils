@@ -1,3 +1,59 @@
+Version 0.193 "Bugs erased, stacks traced"
+
+debuginfod: Add CORS (webapp access) support to webapi and --cors option.
+
+	    Add --listen-address option for binding the HTTP listen socket
+	    to a specific IPv4 or IPv6 address.
+
+	    debuginfod client now caches x-debuginfod-* HTTP headers
+	    alongside downloaded files.
+
+libdw: Add dwarf_language and dwarf_language_lower_bound functions.
+
+       Improved support for DWARF6 language metadata as well as DWARF
+       language constants for Nim, Dylan, Algol68, V and Mojo.
+
+       dwarf_srclang is now forward-compatible with DWARF6 language
+       constants.
+
+libdwfl_stacktrace: Experimental new library interface for unwinding
+		    stack samples into call chains, and tracking and
+		    caching Elf data for multiple processes, building
+		    on libdwfl.  Initially supports perf_events stack
+		    sample data.
+
+libelf: elf_scnshndx has been rewritten to be more robust, particularily
+        for ELF files with more than 64K sections.
+
+readelf: Improved handling of corrupt ELF data.
+
+	 --section-headers output now includes a "Key to Flags" explaining
+	 section flag meanings.
+
+Version 0.192 "New rules, faster tools"
+
+CONDUCT: A new code of conduct has been adopted.  See the
+	 CONDUCT file for more information.
+
+debuginfod: Add per-file signature verification for integrity
+            checking, using RPM IMA scheme from Fedora/RHEL.
+
+	    New API for metadata queries: file name -> buildid.
+
+	    Server-side extraction of files from kernel debuginfo
+	    packages is significantly faster. Now takes < 0.25 seconds,
+	    down from ~50 seconds.
+
+libdw:	    New functions dwfl_set_sysroot, dwfl_frame_unwound_source
+	    and dwfl_unwound_source_str.
+
+stacktrace: Experimental new tool that can process a stream of stack
+            samples from the Sysprof profiler and unwind them into call
+            chains. Enable on x86 with --enable-stacktrace. See
+            README.eu-stacktrace in the development branch for detailed
+            usage instructions:
+            https://sourceware.org/cgit/elfutils/tree/README.eu-stacktrace?h=users/serhei/eu-stacktrace
+
 Version 0.191 "Bug fixes in C major"
 
 libdw: dwarf_addrdie now supports binaries lacking a .debug_aranges

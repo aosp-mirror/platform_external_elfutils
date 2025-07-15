@@ -78,7 +78,9 @@ ARGP_PROGRAM_VERSION_HOOK_DEF = print_version;
 /* Bug report address.  */
 ARGP_PROGRAM_BUG_ADDRESS_DEF = PACKAGE_BUGREPORT;
 
+#ifdef HAVE_LIBARCHIVE
 constexpr size_t BUFFER_SIZE = 8192;
+#endif
 
 /* Definitions of arguments for argp functions.  */
 static const struct argp_option options[] =
@@ -310,7 +312,6 @@ void zip_files()
   struct stat st;
   char buff[BUFFER_SIZE];
   int len;
-  int fd;
   #ifdef ENABLE_LIBDEBUGINFOD
   /* Initialize a debuginfod client.  */
   static unique_ptr <debuginfod_client, void (*)(debuginfod_client*)>
@@ -323,8 +324,10 @@ void zip_files()
   int missing_files = 0;
   for (const auto &pair : debug_sourcefiles)
   {
-    fd = -1;
+    int fd = -1;
     const std::string &file_path = pair.first;
+    struct archive_entry *entry = NULL;
+    string entry_name;
 
     /* Attempt to query debuginfod client to fetch source files.  */
     #ifdef ENABLE_LIBDEBUGINFOD
@@ -347,12 +350,12 @@ void zip_files()
         else
             cerr << "Error: Invalid build ID length (" << bits_length << ")." << endl;
     }
-    #endif
 
     if (!no_backup)
-      /* Files could not be located using debuginfod, search locally */
-      if (fd < 0)
-        fd = open(file_path.c_str(), O_RDONLY);
+    #endif /* ENABLE_LIBDEBUGINFOD */
+    /* Files could not be located using debuginfod, search locally */
+    if (fd < 0)
+      fd = open(file_path.c_str(), O_RDONLY);
     if (fd < 0)
     {
       if (verbose)
@@ -369,11 +372,11 @@ void zip_files()
       missing_files++;
       if (verbose)
         cerr << "Error: Failed to get file status for " << file_path << ": " << strerror(errno) << endl;
-      continue;
+      goto next;
     }
-    struct archive_entry *entry = archive_entry_new();
+    entry = archive_entry_new();
     /* Removing first "/"" to make the path "relative" before zipping, otherwise warnings are raised when unzipping.  */
-    string entry_name = file_path.substr(file_path.find_first_of('/') + 1);
+    entry_name = file_path.substr(file_path.find_first_of('/') + 1);
     archive_entry_set_pathname(entry, entry_name.c_str());
     archive_entry_copy_stat(entry, &st);
     if (archive_write_header(a, entry) != ARCHIVE_OK)
@@ -383,7 +386,7 @@ void zip_files()
       missing_files++;
       if (verbose)
         cerr << "Error: failed to write header for " << file_path << ": " << archive_error_string(a) << endl;
-      continue;
+      goto next;
     }
 
     /* Write the file to the zip.  */
@@ -395,7 +398,7 @@ void zip_files()
       missing_files++;
       if (verbose)
         cerr << "Error: Failed to open file: " << file_path << ": " << strerror(errno) <<endl;
-      continue;
+      goto next;
     }
     while (len > 0)
     {
@@ -407,8 +410,12 @@ void zip_files()
       }
       len = read(fd, buff, sizeof(buff));
     }
-    close(fd);
-    archive_entry_free(entry);
+
+next:
+    if (fd >= 0)
+      close(fd);
+    if (entry != NULL)
+      archive_entry_free(entry);
   }
   if (verbose && missing_files > 0 )
     cerr << missing_files << " file(s) listed above could not be found.  " << endl;

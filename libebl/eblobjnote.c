@@ -288,9 +288,14 @@ ebl_object_note (Ebl *ebl, uint32_t namesz, const char *name, uint32_t type,
       if (descsz == 0 && type == NT_VERSION)
 	return;
 
-      if (strcmp ("FDO", name) == 0 && type == NT_FDO_PACKAGING_METADATA
+      if (strcmp ("FDO", name) == 0
 	  && descsz > 0 && desc[descsz - 1] == '\0')
-	printf("    Packaging Metadata: %.*s\n", (int) descsz, desc);
+	{
+	  if (type == NT_FDO_PACKAGING_METADATA)
+	    printf("    Packaging Metadata: %.*s\n", (int) descsz, desc);
+	  else if (type == NT_FDO_DLOPEN_METADATA)
+	    printf("    Dlopen  Metadata: %.*s\n", (int) descsz, desc);
+	}
 
       /* Everything else should have the "GNU" owner name.  */
       if (strcmp ("GNU", name) != 0)
@@ -643,10 +648,10 @@ ebl_object_note (Ebl *ebl, uint32_t namesz, const char *name, uint32_t type,
 		  for (size_t cnt = 1; cnt < descsz / 4; ++cnt)
 		    {
 		      if (cnt > 1)
-			putchar_unlocked ('.');
+			putchar ('.');
 		      printf ("%" PRIu32, buf[cnt]);
 		    }
-		  putchar_unlocked ('\n');
+		  putchar ('\n');
 		}
 	      if (descsz / 4 > FIXED_TAG_BYTES)
 		free (buf);

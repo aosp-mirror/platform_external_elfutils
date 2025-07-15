@@ -1,5 +1,5 @@
 /* Interfaces for libdwfl.
-   Copyright (C) 2005-2010, 2013 Red Hat, Inc.
+   Copyright (C) 2005-2010, 2013, 2024 Red Hat, Inc.
    This file is part of elfutils.
 
    This file is free software; you can redistribute it and/or modify
@@ -48,6 +48,19 @@ typedef struct Dwfl_Thread Dwfl_Thread;
 /* This holds everything we know about the state of the frame at a particular
    PC location described by an FDE belonging to Dwfl_Thread.  */
 typedef struct Dwfl_Frame Dwfl_Frame;
+
+/* This identifies the method used to unwind a particular Dwfl_Frame.
+   The enum order matches the order of preference for unwinding
+   (i.e. eh_frame is preferred to dwarf is preferred to ebl). */
+typedef enum {
+    DWFL_UNWOUND_NONE = 0,
+    DWFL_UNWOUND_INITIAL_FRAME,
+    DWFL_UNWOUND_EH_CFI,
+    DWFL_UNWOUND_DWARF_CFI,
+    DWFL_UNWOUND_EBL,
+    /* Keep this the last entry.  */
+    DWFL_UNWOUND_NUM,
+} Dwfl_Unwound_Source;
 
 /* Handle for debuginfod-client connection.  */
 #ifndef _ELFUTILS_DEBUGINFOD_CLIENT_TYPEDEF
@@ -748,6 +761,13 @@ pid_t dwfl_thread_tid (Dwfl_Thread *thread)
 Dwfl_Thread *dwfl_frame_thread (Dwfl_Frame *state)
   __nonnull_attribute__ (1);
 
+/* Return unwind method for frame STATE.  This function never fails.  */
+Dwfl_Unwound_Source dwfl_frame_unwound_source (Dwfl_Frame *state)
+  __nonnull_attribute__ (1);
+
+/* Return a string suitable for printing based on UNWOUND_SOURCE.  */
+const char *dwfl_unwound_source_str (Dwfl_Unwound_Source unwound_source);
+
 /* Called by Dwfl_Thread_Callbacks.set_initial_registers implementation.
    For every known continuous block of registers <FIRSTREG..FIRSTREG+NREGS)
    (inclusive..exclusive) set their content to REGS (array of NREGS items).
@@ -817,6 +837,12 @@ int dwfl_frame_reg (Dwfl_Frame *state, unsigned regno, Dwarf_Word *val)
    NULL will be returned.
  */
 extern debuginfod_client *dwfl_get_debuginfod_client (Dwfl *dwfl);
+
+/* Set the sysroot to use when searching for shared libraries and binaries. If not
+   specified, search the system root. Passing NULL clears previously set sysroot. Note
+   that library creates a copy of the sysroot argument.  */
+int dwfl_set_sysroot (Dwfl *dwfl, const char *sysroot)
+  __nonnull_attribute__ (1);
 
 #ifdef __cplusplus
 }

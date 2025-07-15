@@ -38,6 +38,10 @@ Section Headers:
 [ 6] .shstrtab            STRTAB       0000000000000000 00000384 00000059  0        0   0  1
 [ 7] .symtab              SYMTAB       0000000000000000 000000a8 00000168 24        8   8  8
 [ 8] .strtab              STRTAB       0000000000000000 00000210 0000004b  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 
@@ -61,6 +65,10 @@ Section Headers:
 [ 7] .shstrtab            STRTAB       0000000000000000 000003d0 00000063  0        0   0  1
 [ 8] .symtab              SYMTAB       0000000000000000 000000f0 00000180 24        9   9  8
 [ 9] .strtab              STRTAB       0000000000000000 00000270 00000044  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 
@@ -83,6 +91,10 @@ Section Headers:
 [ 6] .shstrtab            STRTAB       0000000000000000 000003a8 00000056  0        0   0  1
 [ 7] .symtab              SYMTAB       0000000000000000 000000a8 00000168 24        8   8  8
 [ 8] .strtab              STRTAB       0000000000000000 00000210 0000004b  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 
@@ -106,6 +118,10 @@ Section Headers:
 [ 7] .shstrtab            STRTAB       0000000000000000 000003f4 00000060  0        0   0  1
 [ 8] .symtab              SYMTAB       0000000000000000 000000f0 00000180 24        9   9  8
 [ 9] .strtab              STRTAB       0000000000000000 00000270 00000044  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 
@@ -128,6 +144,10 @@ Section Headers:
 [ 6] .shstrtab            STRTAB       00000000 0002e2 000059  0        0   0  1
 [ 7] .symtab              SYMTAB       00000000 000080 0000f0 16        8   8  4
 [ 8] .strtab              STRTAB       00000000 000170 00004b  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 
@@ -151,6 +171,10 @@ Section Headers:
 [ 7] .shstrtab            STRTAB       00000000 00032c 000063  0        0   0  1
 [ 8] .symtab              SYMTAB       00000000 0000c8 000110 16        9   9  4
 [ 9] .strtab              STRTAB       00000000 0001d8 000045  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 
@@ -173,6 +197,10 @@ Section Headers:
 [ 6] .shstrtab            STRTAB       00000000 0002e2 000056  0        0   0  1
 [ 7] .symtab              SYMTAB       00000000 000080 0000f0 16        8   8  4
 [ 8] .strtab              STRTAB       00000000 000170 00004b  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 
@@ -196,6 +224,10 @@ Section Headers:
 [ 7] .shstrtab            STRTAB       00000000 00032c 000060  0        0   0  1
 [ 8] .symtab              SYMTAB       00000000 0000c8 000110 16        9   9  4
 [ 9] .strtab              STRTAB       00000000 0001d8 000045  0        0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), N (extra OS processing required), G (group), T (TLS),
+  C (compressed), O (ordered), R (GNU retain), E (exclude)
 
 EOF
 

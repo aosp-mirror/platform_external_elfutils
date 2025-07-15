@@ -439,7 +439,7 @@ handle_ar (int fd, Elf *elf, const char *prefix, const char *fname,
 	  Elf_Arhdr *arhdr = NULL;
 	  size_t arhdr_off = 0;	/* Note: 0 is no valid offset.  */
 
-	  fputs_unlocked (_("\nArchive index:\n"), stdout);
+	  fputs (_("\nArchive index:\n"), stdout);
 
 	  while (arsym->as_off != 0)
 	    {
@@ -825,8 +825,8 @@ show_symbols_sysv (Ebl *ebl, GElf_Word strndx, const char *fullname,
       /* If we have to precede the line with the file name.  */
       if (print_file_name)
 	{
-	  fputs_unlocked (fullname, stdout);
-	  putchar_unlocked (':');
+	  fputs (fullname, stdout);
+	  putchar (':');
 	}
 
       /* Convert the address.  */
@@ -972,8 +972,8 @@ show_symbols_bsd (Elf *elf, const GElf_Ehdr *ehdr, GElf_Word strndx,
       /* If we have to precede the line with the file name.  */
       if (print_file_name)
 	{
-	  fputs_unlocked (fullname, stdout);
-	  putchar_unlocked (':');
+	  fputs (fullname, stdout);
+	  putchar (':');
 	}
 
       bool is_tls = GELF_ST_TYPE (syms[cnt].sym.st_info) == STT_TLS;
@@ -1046,8 +1046,8 @@ show_symbols_bsd (Elf *elf, const GElf_Ehdr *ehdr, GElf_Word strndx,
 	}
 
       if (color_mode)
-	fputs_unlocked (color_off, stdout);
-      putchar_unlocked ('\n');
+	fputs (color_off, stdout);
+      putchar ('\n');
     }
 
 #ifdef USE_DEMANGLE
@@ -1104,9 +1104,9 @@ show_symbols_posix (Elf *elf, const GElf_Ehdr *ehdr, GElf_Word strndx,
       /* If we have to precede the line with the file name.  */
       if (print_file_name)
 	{
-	  fputs_unlocked (fullname, stdout);
-	  putchar_unlocked (':');
-	  putchar_unlocked (' ');
+	  fputs (fullname, stdout);
+	  putchar (':');
+	  putchar (' ');
 	}
 
       printf ("%s %c%s", symstr,

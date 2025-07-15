@@ -170,6 +170,7 @@ main (int argc, char *argv[])
 
   dwarf_end (dwarf);
   elf_end (elf);
+  close (fd);
 
   return result;
 }

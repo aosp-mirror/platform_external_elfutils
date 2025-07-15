@@ -37,7 +37,7 @@ test_copy_and_add ()
   # Can we add a section (in-place)?
   testrun ${abs_builddir}/addsections 32768 ${out_file}
   testrun ${abs_top_builddir}/src/readelf -S ${out_file} > readelf.out
-  nr=$(grep '.extra' readelf.out | wc -l)
+  nr=$(grep '\.extra' readelf.out | wc -l)
   # We try twice...
   if test ${nr} != 32768 -a ${nr} != 65536; then
     # Show what went wrong

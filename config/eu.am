@@ -31,7 +31,7 @@
 ##
 
 DEFS = -D_GNU_SOURCE -DHAVE_CONFIG_H -DLOCALEDIR='"${localedir}"'
-AM_CPPFLAGS = -I. -I$(srcdir) -I$(top_srcdir)/lib -I..
+AM_CPPFLAGS = -iquote . -I$(srcdir) -I$(top_srcdir)/lib -I..
 
 # Drop the 'u' flag that automake adds by default. It is incompatible
 # with deterministic archives.
@@ -94,7 +94,7 @@ else
 USE_AFTER_FREE3_WARNING=
 endif
 
-AM_CFLAGS = -std=gnu99 -Wall -Wshadow -Wformat=2 \
+AM_CFLAGS = -Wall -Wshadow -Wformat=2 \
 	    -Wold-style-definition -Wstrict-prototypes $(TRAMPOLINES_WARNING) \
 	    $(LOGICAL_OP_WARNING) $(DUPLICATED_COND_WARNING) \
 	    $(NULL_DEREFERENCE_WARNING) $(IMPLICIT_FALLTHROUGH_WARNING) \
@@ -135,7 +135,15 @@ else
 	$(AM_V_CC)$(COMPILE.os) -c -o $@ $(fpic_CFLAGS) $(DEFS.os) $<
 endif
 
-CLEANFILES = *.gcno *.gcda
+COVERAGE_OUTPUT_DIRECTORY = coverage
+COVERAGE_OUTPUT_FILE = $(PACKAGE_NAME).lcov
+
+.PHONY: clean-coverage coverage
+
+clean-local: clean-coverage
+clean-coverage:
+	-rm -rf $(COVERAGE_OUTPUT_DIRECTORY)
+	-rm -f $(COVERAGE_OUTPUT_FILE) *.gcno *.gcda
 
 textrel_msg = echo "WARNING: TEXTREL found in '$@'"
 if FATAL_TEXTREL

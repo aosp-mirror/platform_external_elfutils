@@ -37,7 +37,7 @@ base=9000
 get_ports
 
 # Launch server which will be unable to follow symlinks
-env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -d ${DB} -F -U -t0 -g0 -p $PORT1 L D F > vlog$PORT1 2>&1 &
+env LD_LIBRARY_PATH=$ldpath ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -d ${DB} -F -U -t0 -g0 -p $PORT1 --cors L D F > vlog$PORT1 2>&1 &
 PID1=$!
 tempfiles vlog$PORT1
 errfiles vlog$PORT1
@@ -75,7 +75,7 @@ wait_ready $PORT1 'thread_busy{role="http-metrics"}' 1
 export DEBUGINFOD_CACHE_PATH=${PWD}/.client_cache2
 mkdir -p $DEBUGINFOD_CACHE_PATH
 # NB: run in -L symlink-following mode for the L subdir
-env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS=http://127.0.0.1:$PORT1 ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -d ${DB}_2 -F -U -p $PORT2 -L L D > vlog$PORT2 2>&1 &
+env LD_LIBRARY_PATH=$ldpath DEBUGINFOD_URLS=http://127.0.0.1:$PORT1 ${abs_builddir}/../debuginfod/debuginfod $VERBOSE -d ${DB}_2 -F -U -p $PORT2 --cors -L L D > vlog$PORT2 2>&1 &
 PID2=$!
 tempfiles vlog$PORT2
 errfiles vlog$PORT2
@@ -153,6 +153,8 @@ testrun ${abs_builddir}/debuginfod_build_id_find -e F/prog 1
 curl -s http://127.0.0.1:$PORT1/badapi
 curl -s http://127.0.0.1:$PORT1/metrics
 curl -s http://127.0.0.1:$PORT2/metrics
+curl -i -s http://127.0.0.1:$PORT1/metrics | grep -i access.control.allow.origin:
+curl -X OPTIONS -i -s http://127.0.0.1:$PORT1/ | grep -i access.control.allow.origin:
 curl -s http://127.0.0.1:$PORT1/metrics | grep -q 'http_responses_total.*result.*error'
 curl -s http://127.0.0.1:$PORT2/metrics | grep -q 'http_responses_total.*result.*upstream'
 curl -s http://127.0.0.1:$PORT1/metrics | grep 'http_responses_duration_milliseconds_count'
@@ -181,6 +183,7 @@ rm -f .client_cache*/$BUILDID/debuginfo
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
+curl -i -s http://127.0.0.1:$PORT2/buildid/$BUILDID/debuginfo | grep -i access.control.allow.origin:
 rm -f .client_cache*/$BUILDID/debuginfo
 testrun ${abs_top_builddir}/debuginfod/debuginfod-find debuginfo $BUILDID
 

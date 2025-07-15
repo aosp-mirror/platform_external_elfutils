@@ -1,6 +1,6 @@
 ## Process this file with automake to create Makefile.in
 ##
-## Copyright (C) 2000-2010, 2013, 2016, 2017 Red Hat, Inc.
+## Copyright (C) 2000-2010, 2013, 2016, 2017, 2025 Red Hat, Inc.
 ## This file is part of elfutils.
 ##
 ## This file is free software; you can redistribute it and/or modify
@@ -51,7 +51,7 @@ libebl_a_SOURCES = eblopenbackend.c eblclosebackend.c eblreloctypename.c \
 		   eblbsspltp.c eblretval.c eblreginfo.c eblnonerelocp.c \
 		   eblrelativerelocp.c eblsysvhashentrysize.c eblauxvinfo.c \
 		   eblcheckobjattr.c ebl_check_special_section.c \
-		   eblabicfi.c eblstother.c eblinitreg.c \
+		   eblabicfi.c eblstother.c eblinitreg.c eblinitreg_sample.c \
 		   ebldwarftoregno.c eblnormalizepc.c eblunwind.c \
 		   eblresolvesym.c eblcheckreloctargettype.c \
 		   ebl_data_marker_symbol.c
@@ -61,4 +61,10 @@ am_libebl_pic_a_OBJECTS = $(libebl_a_SOURCES:.c=.os)
 
 noinst_HEADERS = libebl.h libeblP.h ebl-hooks.h
 
-MOSTLYCLEANFILES = $(am_libebl_pic_a_OBJECTS)
+EXTRA_libebl_a_DEPENDENCIES = libebl.manifest
+
+libebl.manifest: $(libebl_a_OBJECTS)
+	$(AM_V_GEN)echo $^ > $@
+
+MOSTLYCLEANFILES = $(am_libebl_a_OBJECTS) $(am_libebl_pic_a_OBJECTS)
+CLEANFILES = $(EXTRA_libebl_a_DEPENDENCIES)

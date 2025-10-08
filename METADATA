@@ -6,6 +6,9 @@ name: "elfutils"
 description: "elfutils is a collection of utilities and libraries to read, create and modify ELF binary files, find and handle DWARF debug data, symbols, thread state and stacktraces for processes and core files on GNU/Linux."
 third_party {
   license_type: RESTRICTED
+  security {
+    tag: "NVD-CPE2.3:cpe:/a:elfutils_project:elfutils:0.193"
+  }
   last_upgrade_date {
     year: 2025
     month: 7

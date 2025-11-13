@@ -132,6 +132,7 @@ cc_library {
         "//external/bpftool",
         "//external/igt-gpu-tools",
         "//external/mesa3d",
+        "//packages/modules/Connectivity/bpf/loader", // For standalone 'netbpfloader' cli test util
     ],
     apex_available: [
         "//apex_available:platform",
